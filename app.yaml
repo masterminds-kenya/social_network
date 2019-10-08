@@ -1,15 +1,10 @@
 
-runtime: python
-env: flex
-entrypoint: gunicorn -b :$PORT main:app
+runtime: python37
 
-runtime_config:
-  python_version: 3
-
-beta_settings:
-    # If using Cloud SQL, uncomment and set this value to the Cloud SQL
-    # connection name, e.g.
-    #   "project:region:cloudsql-instance"
-    # You must also update the values in config.py.
-    #
-    # cloud_sql_instances: "project:region:cloudsql-instance"
+env_variables:
+  SECRET_KEY: 'IYr_2Ld5l6GZiHKUN0T2iA'
+  PROJECT_ID: 'social-network-255302'
+  DB_USER: 'root'
+  DB_PASSWORD: 'bFMmgpdkb2ggm1uf'
+  DB_NAME: 'network'
+  DB_CONNECTION_NAME: 'social-network-255302:us-west2:socialnetwork'

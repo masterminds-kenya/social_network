@@ -19,6 +19,8 @@ Pipfile.lock
 # Apply all .gitignore contents to .gcloudignore
 #!include:.gitignore
 
+!app.yaml
+
 # Python pycache:
 __pycache__/
 # Ignored by the build system
