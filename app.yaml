@@ -13,4 +13,3 @@ beta_settings:
     # You must also update the values in config.py.
     #
     # cloud_sql_instances: "project:region:cloudsql-instance"
-    cloud_sql_instances: "social-network-255302:us-west2:socialnetwork"
