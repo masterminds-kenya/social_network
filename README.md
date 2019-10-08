@@ -16,3 +16,15 @@ When running locally, we can proxy the database. This requires a cloud_sql_proxy
 ``` bash*
 ./cloud_sql_proxy -instances="DB_CONNECTION_NAME"=tcp:3306
 ```
+
+## User Stories
+
+### Influencer
+
+- Can easily login with facebook credentials and grant permission to our app
+- Can review the permissions and revoke them at any time.
+
+### Marketing
+
+- Can view data using google worksheets
+- Does not need to issue commands or modify the code for the data they want
