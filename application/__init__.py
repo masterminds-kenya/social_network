@@ -32,11 +32,22 @@ def create_app(config, debug=False, testing=False, config_overrides=None):
     @app.route('/user/add', methods=['GET', 'POST'])
     def add():
         if request.method == 'POST':
-            data = request.form.to_dict(flat=True)
-            data['admin'] = True if data['admin'] == 'on' else False
+            data = request.form.to_dict(flat=True)  # TODO: Check for security. Possible refactor.
+            data['admin'] = True if 'admin' in data.keys() and data['admin'] == 'on' else False
             user = model_db.create(data)
             return redirect(url_for('view', id=user['id']))
         return render_template('user_form.html', action='Add', user={})
+
+    @app.route('/user/<int:id>/edit', methods=['GET', 'POST'])
+    def edit(id):
+        user = model_db.read(id)
+        if request.method == 'POST':
+            data = request.form.to_dict(flat=True)  # TODO: Check for security. Possible refactor.
+            data['admin'] = True if 'admin' in data and data['admin'] == 'on' else False
+            user = model_db.update(data, id)
+            return redirect(url_for('view', id=user['id']))
+        return render_template('user_form.html', action='Edit', user=user)
+
 
     # Catchall redirect route.
     @app.route('/<string:page_name>/')

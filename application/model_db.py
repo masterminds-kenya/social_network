@@ -65,6 +65,19 @@ def read(id):
     return from_sql(result)
 
 
+def update(data, id):
+    user = User.query.get(id)
+    for k, v in data.items():
+        setattr(user, k, v)
+    db.session.commit()
+    return from_sql(user)
+
+
+def delete(id):
+    User.query.filter_by(id=id).delete()
+    db.session.commit()
+
+
 def _create_database():
     """ If this script is run directly, first we drop and then create
     all the tables necessary to run the application.
