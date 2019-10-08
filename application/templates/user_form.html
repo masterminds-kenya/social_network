@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+{% block head %}
+<title>Add User Form</title>
+{% endblock %}
+
+
+{% block content %}
+<h3>{{action}} User</h3>
+
+<form method="POST" enctype="multipart/form-data">
+
+  <div class="form-group">
+    <label for="username">Username</label>
+    <input type="text" name="username" id="username" value="{{user.username}}" class="form-control"/>
+  </div>
+
+  <div class="form-group">
+    <label for="email">Email</label>
+    <input type="text" name="email" id="email" value="{{user.email}}" class="form-control"/>
+  </div>
+
+  <div class="form-group">
+    {% if user.admin %}
+    <input type="checkbox" id="admin" name="admin" checked />
+    {% else %}
+    <input type="checkbox" id="admin" name="admin" />
+    {% endif %}
+    <label for="admin">Admin Account</label>
+  </div>
+
+  <div class="form-group">
+      <label for="bio">Bio</label>
+      <input type="text" name="bio" id="bio" value="{{user.bio}}" class="form-control"/>
+    </div>
+
+  <button type="submit" class="btn btn-success">Save</button>
+</form>
+
+{% endblock %}

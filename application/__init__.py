@@ -1,5 +1,5 @@
 # import logging
-from flask import Flask, render_template, abort  # , redirect, url_for, current_app
+from flask import Flask, render_template, abort, request, redirect, url_for  # , current_app
 from . import model_db
 
 
@@ -23,6 +23,20 @@ def create_app(config, debug=False, testing=False, config_overrides=None):
     def index():
         """ Default root route """
         return render_template('index.html', data="Some Arbitrary Data")
+
+    @app.route('/user/<int:id>')
+    def view(id):
+        user = model_db.read(id)
+        return render_template('view.html', user=user)
+
+    @app.route('/user/add', methods=['GET', 'POST'])
+    def add():
+        if request.method == 'POST':
+            data = request.form.to_dict(flat=True)
+            data['admin'] = True if data['admin'] == 'on' else False
+            user = model_db.create(data)
+            return redirect(url_for('view', id=user['id']))
+        return render_template('user_form.html', action='Add', user={})
 
     # Catchall redirect route.
     @app.route('/<string:page_name>/')

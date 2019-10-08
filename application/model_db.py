@@ -1,6 +1,7 @@
 from flask import Flask
 #[START cloudsql_settings]
 from flask_sqlalchemy import SQLAlchemy
+from datetime import datetime as dt
 
 db = SQLAlchemy()
 
@@ -50,15 +51,29 @@ class User(db.Model):
         return '<User {}>'.format(self.username)
 
 
+def create(data):
+    user = User(created=dt.now(), **data)
+    db.session.add(user)
+    db.session.commit()
+    return from_sql(user)
+
+
+def read(id):
+    result = User.query.get(id)
+    if not result:
+        return None
+    return from_sql(result)
+
+
 def _create_database():
-    """
-    If this script is run directly, create all the tables necessary to run the
-    application.
+    """ If this script is run directly, first we drop and then create
+    all the tables necessary to run the application.
     """
     app = Flask(__name__)
     app.config.from_pyfile('../config.py')
     init_app(app)
     with app.app_context():
+        db.drop_all()
         db.create_all()
     print("All tables created")
 
