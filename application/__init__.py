@@ -20,7 +20,7 @@ def create_app(config, debug=False, testing=False, config_overrides=None):
 
     # Routes
     @app.route('/')
-    def index():
+    def home():
         """ Default root route """
         return render_template('index.html', data="Some Arbitrary Data")
 
@@ -48,6 +48,10 @@ def create_app(config, debug=False, testing=False, config_overrides=None):
             return redirect(url_for('view', id=user['id']))
         return render_template('user_form.html', action='Edit', user=user)
 
+    @app.route('/user/<int:id>/delete')
+    def delete(id):
+        model_db.delete(id)
+        return redirect(url_for('home'))
 
     # Catchall redirect route.
     @app.route('/<string:page_name>/')
