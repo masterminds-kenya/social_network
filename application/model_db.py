@@ -1,5 +1,4 @@
 from flask import Flask
-#[START cloudsql_settings]
 from flask_sqlalchemy import SQLAlchemy
 from datetime import datetime as dt
 
