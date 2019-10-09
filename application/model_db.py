@@ -78,6 +78,12 @@ def delete(id):
     db.session.commit()
 
 
+def list():
+    query = (User.query.order_by(User.username))
+    users = query.all()
+    return users
+
+
 def _create_database():
     """ If this script is run directly, first we drop and then create
     all the tables necessary to run the application.

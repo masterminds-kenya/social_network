@@ -53,6 +53,11 @@ def create_app(config, debug=False, testing=False, config_overrides=None):
         model_db.delete(id)
         return redirect(url_for('home'))
 
+    @app.route('/user/list')
+    def list():
+        users = model_db.list()
+        return render_template('list.html', users=users)
+
     # Catchall redirect route.
     @app.route('/<string:page_name>/')
     def render_static(page_name):

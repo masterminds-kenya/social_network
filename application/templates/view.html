@@ -14,4 +14,9 @@
   <li>db id: {{user.id}} </li>
 </ul>
 
+<ul>
+  <li><a href="{{ url_for('edit', id=user.id) }}">Update User Account</a></li>
+  <li><a href="{{ url_for('delete', id=user.id) }}">Delete User Account</a></li>
+</ul>
+
 {% endblock %}

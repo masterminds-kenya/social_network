@@ -12,6 +12,13 @@
   <link rel="stylesheet" href="">
 </head>
 <body>
+  <nav>
+    <ul>
+      <li><a href="{{ url_for('home') }}">Home</a></li>
+      <li><a href="{{ url_for('add') }}">Add New User</a></li>
+      <li><a href="{{ url_for('list') }}">Admin - List Users</a></li>
+    </ul>
+  </nav>
 {% block content %}
 
 {% endblock %}
