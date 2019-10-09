@@ -2,13 +2,14 @@ from os import environ
 
 # The secret key is used by Flask to encrypt session cookies.
 SECRET_KEY = environ.get('SECRET_KEY')
+CLIENT_ID = environ.get("CLIENT_ID")
+CLIENT_SECRET = environ.get("CLIENT_SECRET")
 # FLASK_APP = environ.get('FLASK_APP')
 # FLASK_ENV = environ.get('FLASK_ENV')
 PROJECT_ID = environ.get('PROJECT_ID')
 CLOUDSQL_USER = environ.get('DB_USER')
 CLOUDSQL_PASSWORD = environ.get('DB_PASSWORD')
 CLOUDSQL_DATABASE = environ.get('DB_NAME')
-# DATA_BACKEND = 'cloudsql'
 # Set the following value to the Cloud SQL connection name, e.g.
 #   "project:region:cloudsql-instance".
 # You must also update the value in app.yaml.

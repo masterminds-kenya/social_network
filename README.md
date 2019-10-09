@@ -31,7 +31,18 @@ python application/model_db.py
 - [x] UPDATE: update user in DB.
 - [x] DELETE: remove user from DB.
 - [x] LIST: Admin list view (initially insecure route)
-- [ ] Login: User and Admin authentication.
+- [ ] Decide FaceBook Login Implementation.
+  - [N] NO: try python facebook-sdk
+  - [ ] try implementing with requests_oauthlib
+  - [ ] or [try raw](https://docs.simplelogin.io/docs/code-flow/)
+  - [ ] or research other options
+- [ ] Confirm FaceBook Login for Influencer users works.
+  - [ ] Confirm Influencer can login
+  - [ ] Capture and confirm token
+- [ ] Get appropriate data from FaceBook's Graph API stored to the DB.
+  - [ ] User profile info
+  - [ ] Useful network data
+- [ ] Login: any additional User and Admin authentication needed?
   - [ ] Decide 3 options:
     - App Auth: User management, adding/updating, auth, password, etc.
     - External OAuth2: User other for login. App manages sessions after authenticated.
@@ -41,12 +52,6 @@ python application/model_db.py
 - [ ] Error handling on adding user with duplicate email address.
 - [ ] Error handling on adding user with duplicate username.
 - [ ] ?Refactor routes to their own file?
-- [ ] Add FaceBook Login for Influencer users.
-  - [ ] Confirm Influencer can login
-  - [ ] Capture and confirm token
-- [ ] Get appropriate data from FaceBook's Graph API stored to the DB.
-  - [ ] User profile info
-  - [ ] Useful network data
 - [ ] Add Google Drive API to GCloud app.
 - [ ] Add functionality to export Marketing data to a worksheet.
   - [ ] create a view for the desired data
