@@ -32,7 +32,7 @@ def create_app(config, debug=False, testing=False, config_overrides=None):
     @app.route('/user/add', methods=['GET', 'POST'])
     def add():
         if request.method == 'POST':
-            data = request.form.to_dict(flat=True)  # TODO: Check for security. Possible refactor.
+            data = request.form.to_dict(flat=True)  # TODO: add form validate method for security.
             data['admin'] = True if 'admin' in data.keys() and data['admin'] == 'on' else False
             user = model_db.create(data)
             return redirect(url_for('view', id=user['id']))
@@ -42,7 +42,7 @@ def create_app(config, debug=False, testing=False, config_overrides=None):
     def edit(id):
         user = model_db.read(id)
         if request.method == 'POST':
-            data = request.form.to_dict(flat=True)  # TODO: Check for security. Possible refactor.
+            data = request.form.to_dict(flat=True)  # TODO: add form validate method for security.
             data['admin'] = True if 'admin' in data and data['admin'] == 'on' else False
             user = model_db.update(data, id)
             return redirect(url_for('view', id=user['id']))

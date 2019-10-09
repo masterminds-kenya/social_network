@@ -28,8 +28,19 @@ python application/model_db.py
 - [x] Confirm DB connection works
 - [x] CREATE: Confirm we can add users to DB
 - [x] READ:   Confirm we can retrieve user info from DB.
-- [ ] UPDATE: update user in DB.
-- [ ] DELETE: remove user from DB.
+- [x] UPDATE: update user in DB.
+- [x] DELETE: remove user from DB.
+- [x] LIST: Admin list view (initially insecure route)
+- [ ] Refactor routes to their own file.
+- [ ] Login: User and Admin authentication.
+  - [ ] Decide 3 options:
+    - App Auth: User management, adding/updating, auth, password, etc.
+    - External OAuth2: User other for login. App manages sessions after authenticated.
+    - NO - GCloud IAP: only auth users get to app w/ added headers. No identity management in app.
+- [ ] Admin: only allow admin to see list and (potential) admin views
+- [ ] Form Validate: Add method to validate form. Ensure other values cannot be injected.
+- [ ] Error handling on adding user with duplicate email address.
+- [ ] Error handling on adding user with duplicate username.
 - [ ] Add FaceBook Login for Influencer users.
   - [ ] Confirm Influencer can login
   - [ ] Capture and confirm token
