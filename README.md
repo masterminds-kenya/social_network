@@ -31,6 +31,8 @@ python application/model_db.py
 - [x] UPDATE: update user in DB.
 - [x] DELETE: remove user from DB.
 - [x] LIST: Admin list view (initially insecure route)
+- [ ] Redirect existing FB app settings to current project.
+- [ ] For development, try using [ngrok](https://ngrok.com/)
 - [ ] Decide FaceBook Login Implementation.
   - [N] NO: try python facebook-sdk
   - [ ] try implementing with requests_oauthlib
