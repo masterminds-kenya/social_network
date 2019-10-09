@@ -31,7 +31,6 @@ python application/model_db.py
 - [x] UPDATE: update user in DB.
 - [x] DELETE: remove user from DB.
 - [x] LIST: Admin list view (initially insecure route)
-- [ ] Refactor routes to their own file.
 - [ ] Login: User and Admin authentication.
   - [ ] Decide 3 options:
     - App Auth: User management, adding/updating, auth, password, etc.
@@ -41,6 +40,7 @@ python application/model_db.py
 - [ ] Form Validate: Add method to validate form. Ensure other values cannot be injected.
 - [ ] Error handling on adding user with duplicate email address.
 - [ ] Error handling on adding user with duplicate username.
+- [ ] ?Refactor routes to their own file?
 - [ ] Add FaceBook Login for Influencer users.
   - [ ] Confirm Influencer can login
   - [ ] Capture and confirm token
