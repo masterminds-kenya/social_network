@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Social Network Management">
+  <meta http-equiv="X-UA-Compatible" content="ie=edge">
+  {% block head %}
+  <title>{{ page_title }}</title>
+  {% endblock %}
+  <link rel="stylesheet" href="//maxcdn.bootstrapcdn.com/bootstrap/3.3.2/css/bootstrap.min.css">
+  <link rel="stylesheet" href="">
+</head>
+<body>
+  <nav>
+    <ul>
+      <li><a href="{{ url_for('home') }}">Home</a></li>
+      <li><a href="{{ url_for('add') }}">Add New User</a></li>
+      <li><a href="{{ url_for('list') }}">Admin - List Users</a></li>
+    </ul>
+  </nav>
+{% block content %}
+
+{% endblock %}
+</body>
+</html>

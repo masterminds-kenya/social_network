@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% block head %}
+<title>User View Page</title>
+{% endblock %}
+
+{% block content %}
+<h3>Your User Account</h3>
+<ul>
+  <li>Username: {{user.username}} </li>
+  <li>Email: {{user.email}} </li>
+  <li>Created: {{user.created}} </li>
+  <li>Admin: {{user.admin}} </li>
+  <li>Bio: {{user.bio}} </li>
+  <li>db id: {{user.id}} </li>
+</ul>
+
+<ul>
+  <li><a href="{{ url_for('edit', id=user.id) }}">Update User Account</a></li>
+  <li><a href="{{ url_for('delete', id=user.id) }}">Delete User Account</a></li>
+</ul>
+
+{% endblock %}
