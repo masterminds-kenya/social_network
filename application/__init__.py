@@ -5,13 +5,6 @@ import requests_oauthlib
 from requests_oauthlib.compliance_fixes import facebook_compliance_fix
 from os import environ
 
-CLIENT_ID = environ.get("CLIENT_ID")
-CLIENT_SECRET = environ.get("CLIENT_SECRET")
-AUTHORIZATION_BASE_URL = "https://app.simplelogin.io/oauth2/authorize"
-TOKEN_URL = "https://app.simplelogin.io/oauth2/token"
-USERINFO_URL = "https://app.simplelogin.io/oauth2/userinfo"
-environ["OAUTHLIB_INSECURE_TRANSPORT"] = "1"
-
 FB_CLIENT_ID = environ.get("FB_CLIENT_ID")
 FB_CLIENT_SECRET = environ.get("FB_CLIENT_SECRET")
 FB_AUTHORIZATION_BASE_URL = "https://www.facebook.com/dialog/oauth"
@@ -21,15 +14,13 @@ FB_SCOPE = [
     'instagram_basic',
     'instagram_manage_insights',
         ]
-ALT_LOCAL_URL = 'https://f85235ac.ngrok.io'
-LOCAL_URL = 'http://127.0.0.1:8080'
-DEPLOYED_URL = 'https://social-network-255302.appspot.com'
 
+DEPLOYED_URL = 'https://social-network-255302.appspot.com'
 if environ.get('GAE_INSTANCE'):
     URL = DEPLOYED_URL
 else:
-    URL = LOCAL_URL
-print(URL)
+    environ["OAUTHLIB_INSECURE_TRANSPORT"] = "1"
+    URL = 'http://127.0.0.1:8080'
 
 
 def create_app(config, debug=False, testing=False, config_overrides=None):
@@ -55,39 +46,17 @@ def create_app(config, debug=False, testing=False, config_overrides=None):
 
     @app.route('/login')
     def login():
-        cb_url = URL + '/callback'
-        simplelogin = requests_oauthlib.OAuth2Session(CLIENT_ID, redirect_uri=cb_url)
-        authorization_url, _ = simplelogin.authorization_url(AUTHORIZATION_BASE_URL)
-        print('------------- login -----------------------')
-        return redirect(authorization_url)
-
-    @app.route('/callback')
-    def callback():
-        print('------------- callback -----------------------')
-        simplelogin = requests_oauthlib.OAuth2Session(CLIENT_ID)
-        simplelogin.fetch_token(
-            TOKEN_URL, client_secret=CLIENT_SECRET, authorization_response=request.url
-        )
-        user_info = simplelogin.get(USERINFO_URL).json()
-        print(user_info)
-        name = user_info['name']
-        email = user_info['email']
-        other = user_info
-        return render_template('results.html', name=name, email=email, other=other)
-
-    @app.route('/fb-login')
-    def fblogin():
-        fbcallback = URL + '/fb-callback'
+        callback = URL + '/callback'
         facebook = requests_oauthlib.OAuth2Session(
-            FB_CLIENT_ID, redirect_uri=fbcallback, scope=FB_SCOPE
+            FB_CLIENT_ID, redirect_uri=callback, scope=FB_SCOPE
         )
         authorization_url, _ = facebook.authorization_url(FB_AUTHORIZATION_BASE_URL)
         return redirect(authorization_url)
 
-    @app.route("/fb-callback")
-    def fbcallback():
-        fbcallback = URL + '/fb-callback'
-        facebook = requests_oauthlib.OAuth2Session(FB_CLIENT_ID, scope=FB_SCOPE, redirect_uri=fbcallback)
+    @app.route("/callback")
+    def callback():
+        callback = URL + '/callback'
+        facebook = requests_oauthlib.OAuth2Session(FB_CLIENT_ID, scope=FB_SCOPE, redirect_uri=callback)
         # we need to apply a fix for Facebook here
         facebook = facebook_compliance_fix(facebook)
         facebook.fetch_token(
@@ -113,7 +82,7 @@ def create_app(config, debug=False, testing=False, config_overrides=None):
     def add():
         if request.method == 'POST':
             data = request.form.to_dict(flat=True)  # TODO: add form validate method for security.
-            data['admin'] = True if 'admin' in data.keys() and data['admin'] == 'on' else False
+            data['admin'] = True if 'admin' in data and data['admin'] == 'on' else False
             user = model_db.create(data)
             return redirect(url_for('view', id=user['id']))
         return render_template('user_form.html', action='Add', user={})
