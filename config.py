@@ -4,6 +4,8 @@ from os import environ
 SECRET_KEY = environ.get('SECRET_KEY')
 CLIENT_ID = environ.get("CLIENT_ID")
 CLIENT_SECRET = environ.get("CLIENT_SECRET")
+FB_CLIENT_ID = environ.get("FB_CLIENT_ID")
+FB_CLIENT_SECRET = environ.get("FB_CLIENT_SECRET")
 # FLASK_APP = environ.get('FLASK_APP')
 # FLASK_ENV = environ.get('FLASK_ENV')
 PROJECT_ID = environ.get('PROJECT_ID')

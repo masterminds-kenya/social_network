@@ -31,11 +31,11 @@ python application/model_db.py
 - [x] UPDATE: update user in DB.
 - [x] DELETE: remove user from DB.
 - [x] LIST: Admin list view (initially insecure route)
-- [ ] Redirect existing FB app settings to current project.
-- [ ] For development, try using [ngrok](https://ngrok.com/)
+- [x] Redirect existing FB app settings to current project.
+- [N] For development, try using [ngrok](https://ngrok.com/)
 - [ ] Decide FaceBook Login Implementation.
   - [N] NO: try python facebook-sdk
-  - [ ] try implementing with requests_oauthlib
+  - [x] try implementing with requests_oauthlib
   - [ ] or [try raw](https://docs.simplelogin.io/docs/code-flow/)
   - [ ] or research other options
 - [ ] Confirm FaceBook Login for Influencer users works.
