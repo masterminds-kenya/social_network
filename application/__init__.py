@@ -59,19 +59,36 @@ def create_app(config, debug=False, testing=False, config_overrides=None):
         facebook = requests_oauthlib.OAuth2Session(FB_CLIENT_ID, scope=FB_SCOPE, redirect_uri=callback)
         # we need to apply a fix for Facebook here
         facebook = facebook_compliance_fix(facebook)
-        facebook.fetch_token(
+        token = facebook.fetch_token(
             FB_TOKEN_URL,
             client_secret=FB_CLIENT_SECRET,
             authorization_response=request.url,
         )
-        # Fetch a protected resource, i.e. user profile, via Graph API
-        facebook_user_data = facebook.get(
-            "https://graph.facebook.com/me?fields=id,name,email"
-        ).json()
+        # Fetch a protected resources:
+        # Basic User data (user profile, via Graph API)
+        print('===================== Get FB Profile =======================')
+        facebook_user_data = facebook.get("https://graph.facebook.com/me?fields=id,name,email").json()
+        # Associated Pages:
+        # print('===================== Get Instagram Pages =======================')
+        # res = facebook.get(f"https://graph.facebook.com/v4.0/me/accounts?access_token={FB_CLIENT_SECRET}").json()
+        # pages = [page.get('id') for page in res.get('data')]
+        # # Get the Instagram Business account
+        # page_id = pages[0]  # TODO: Refactor to get all page_id in pages
+        # print('==================================== Get IG Account =======================')
+        # res = facebook.get(f"https://graph.facebook.com/v4.0/{page_id}?fields=instagram_business_account&access_token={FB_CLIENT_SECRET}").json
+        # ig_id = res.get('instagram_business_account').get('id')  # TODO: deal with nested get errors
+        ig_id, res = 'No Instgram ID yet', 'NA'
         email = facebook_user_data['email']
         name = facebook_user_data['name']
-        other = facebook_user_data
-        return render_template('results.html', name=name, email=email, other=other)
+        data = facebook_user_data.copy()  # .to_dict(flat=True)
+        data['fb_id'] = data.pop('id')  # rename the id key so 'id' does not colide in User constructor.
+        data['username'] = data.pop('name')
+        data['admin'] = True if 'admin' in data and data['admin'] == 'on' else False
+        data.pop('fb_id')
+        print(data)
+        user = model_db.create(data)
+        return redirect(url_for('view', id=user['id']))
+        # return render_template('results.html', name=name, email=email, instagram_id=ig_id, other=res)
 
     @app.route('/user/<int:id>')
     def view(id):
