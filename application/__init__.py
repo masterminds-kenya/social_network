@@ -50,7 +50,8 @@ def create_app(config, debug=False, testing=False, config_overrides=None):
         facebook = requests_oauthlib.OAuth2Session(
             FB_CLIENT_ID, redirect_uri=callback, scope=FB_SCOPE
         )
-        authorization_url, _ = facebook.authorization_url(FB_AUTHORIZATION_BASE_URL)
+        authorization_url, state = facebook.authorization_url(FB_AUTHORIZATION_BASE_URL)
+        # session['oauth_state'] = state
         return redirect(authorization_url)
 
     @app.route("/callback")
@@ -59,33 +60,39 @@ def create_app(config, debug=False, testing=False, config_overrides=None):
         facebook = requests_oauthlib.OAuth2Session(FB_CLIENT_ID, scope=FB_SCOPE, redirect_uri=callback)
         # we need to apply a fix for Facebook here
         facebook = facebook_compliance_fix(facebook)
-        token = facebook.fetch_token(
-            FB_TOKEN_URL,
-            client_secret=FB_CLIENT_SECRET,
-            authorization_response=request.url,
-        )
+        token = facebook.fetch_token(FB_TOKEN_URL, client_secret=FB_CLIENT_SECRET, authorization_response=request.url,)
         # Fetch a protected resources:
         # Basic User data (user profile, via Graph API)
         print('===================== Get FB Profile =======================')
-        facebook_user_data = facebook.get("https://graph.facebook.com/me?fields=id,name,email").json()
-        # Associated Pages:
-        # print('===================== Get Instagram Pages =======================')
-        # res = facebook.get(f"https://graph.facebook.com/v4.0/me/accounts?access_token={FB_CLIENT_SECRET}").json()
-        # pages = [page.get('id') for page in res.get('data')]
-        # # Get the Instagram Business account
-        # page_id = pages[0]  # TODO: Refactor to get all page_id in pages
-        # print('==================================== Get IG Account =======================')
-        # res = facebook.get(f"https://graph.facebook.com/v4.0/{page_id}?fields=instagram_business_account&access_token={FB_CLIENT_SECRET}").json
-        # ig_id = res.get('instagram_business_account').get('id')  # TODO: deal with nested get errors
-        ig_id, res = 'No Instgram ID yet', 'NA'
-        email = facebook_user_data['email']
-        name = facebook_user_data['name']
+        facebook_user_data = facebook.get("https://graph.facebook.com/me?fields=id,name,email,accounts").json()
+        # email = facebook_user_data['email']
+        # name = facebook_user_data['name']
         data = facebook_user_data.copy()  # .to_dict(flat=True)
-        data['fb_id'] = data.pop('id')  # rename the id key so 'id' does not colide in User constructor.
+        # TODO: use a better constructor for the user account.
+        data['facebook_id'] = data.pop('id')  # rename the id key so 'id' does not colide in User constructor.
         data['username'] = data.pop('name')
         data['admin'] = True if 'admin' in data and data['admin'] == 'on' else False
-        data.pop('fb_id')
+        data.pop('facebook_id')
+        accounts = data.pop('accounts')
+        pages = [page.get('id') for page in accounts.get('data')]
+        instagram_data = facebook.get(f"https://graph.facebook.com/v4.0/{pages[0]}?fields=instagram_business_account").json()
+        ig_id = instagram_data['instagram_business_account'].get('id')
         print(data)
+        # id -> facebook_id
+        # name -> name
+        # email -> email
+        # () -> admin
+        # accounts -> pages -> instagram_id
+        # token['access_token'] -> token
+        # token['expires_at'] -> token_expires
+        # () -> created date
+        # () -> updated date
+        # (pk) -> id
+
+
+        print('============== PAGES & IG_ID =====================')
+        print(pages)
+        print(ig_id)
         user = model_db.create(data)
         return redirect(url_for('view', id=user['id']))
         # return render_template('results.html', name=name, email=email, instagram_id=ig_id, other=res)

@@ -41,6 +41,7 @@ python application/model_db.py
 - [x] Confirm FaceBook Login for Influencer users works.
   - [x] Confirm Influencer can login
   - [x] Capture and confirm token
+- [ ] Add Test Users who have pages and Instagram business accounts.
 - [ ] Get Influencer instagram account (through their pages)
 - [ ] DB Design: Track different businesses and how users affect each of them?
   - [ ] Influencer User Table
@@ -51,7 +52,6 @@ python application/model_db.py
   - [x] User profile info
   - [ ] User Business Instagram Account
   - [ ] Useful network data
-- [ ] Add Test Users who have pages and Instagram business accounts.
 - [ ] Login: any additional User and Admin authentication needed?
   - [ ] ?Confirm Google login for Worksheet access?
   - [ ] ?Add our own App Auth: User management, adding/updating, auth, password, etc.
