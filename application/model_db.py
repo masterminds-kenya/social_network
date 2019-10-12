@@ -1,5 +1,4 @@
 from flask import Flask
-#[START cloudsql_settings]
 from flask_sqlalchemy import SQLAlchemy
 from datetime import datetime as dt
 
@@ -20,22 +19,6 @@ def from_sql(row):
     return data
 
 
-# class Book(db.Model):
-#     __tablename__ = 'books'
-
-#     id = db.Column(db.Integer, primary_key=True)
-#     title = db.Column(db.String(255))
-#     author = db.Column(db.String(255))
-#     publishedDate = db.Column(db.String(255))
-#     imageUrl = db.Column(db.String(255))
-#     description = db.Column(db.String(4096))
-#     createdBy = db.Column(db.String(255))
-#     createdById = db.Column(db.String(255))
-
-#     def __repr__(self):
-#         return "<Book(title='%s', author=%s)" % (self.title, self.author)
-
-
 class User(db.Model):
     """Data model for user accounts."""
     __tablename__ = 'users'
@@ -51,30 +34,30 @@ class User(db.Model):
         return '<User {}>'.format(self.username)
 
 
-def create(data):
-    user = User(created=dt.now(), **data)
-    db.session.add(user)
+def create(data, Model=User):
+    model = Model(created=dt.now(), **data)
+    db.session.add(model)
     db.session.commit()
-    return from_sql(user)
+    return from_sql(model)
 
 
-def read(id):
-    result = User.query.get(id)
+def read(id, Model=User):
+    result = Model.query.get(id)
     if not result:
         return None
     return from_sql(result)
 
 
-def update(data, id):
-    user = User.query.get(id)
+def update(data, id, Model=User):
+    model = Model.query.get(id)
     for k, v in data.items():
-        setattr(user, k, v)
+        setattr(model, k, v)
     db.session.commit()
-    return from_sql(user)
+    return from_sql(model)
 
 
-def delete(id):
-    User.query.filter_by(id=id).delete()
+def delete(id, Model=User):
+    Model.query.filter_by(id=id).delete()
     db.session.commit()
 
 

@@ -31,22 +31,35 @@ python application/model_db.py
 - [x] UPDATE: update user in DB.
 - [x] DELETE: remove user from DB.
 - [x] LIST: Admin list view (initially insecure route)
-- [ ] Login: User and Admin authentication.
-  - [ ] Decide 3 options:
-    - App Auth: User management, adding/updating, auth, password, etc.
-    - External OAuth2: User other for login. App manages sessions after authenticated.
-    - NO - GCloud IAP: only auth users get to app w/ added headers. No identity management in app.
+- [x] Redirect existing FB app settings to current project.
+- [N] For development, try using [ngrok](https://ngrok.com/)
+- [x] Decide FaceBook Login Implementation.
+  - [N] NO: try python facebook-sdk
+  - [x] try implementing with requests_oauthlib
+  - [n] or [try raw](https://docs.simplelogin.io/docs/code-flow/)
+  - [n] or research other options
+- [x] Confirm FaceBook Login for Influencer users works.
+  - [x] Confirm Influencer can login
+  - [x] Capture and confirm token
+- [ ] Add Test Users who have pages and Instagram business accounts.
+- [ ] Get Influencer instagram account (through their pages)
+- [ ] DB Design: Track different businesses and how users affect each of them?
+  - [ ] Influencer User Table
+  - [ ] Business Table
+  - [ ] Assume Many-to-Many, but relationship table w/ hashtag or other connections?
+- [ ] User Constructor function for translating from FB.
+- [ ] Get appropriate data from FaceBook's Graph API stored to the DB.
+  - [x] User profile info
+  - [ ] User Business Instagram Account
+  - [ ] Useful network data
+- [ ] Login: any additional User and Admin authentication needed?
+  - [ ] ?Confirm Google login for Worksheet access?
+  - [ ] ?Add our own App Auth: User management, adding/updating, auth, password, etc.
 - [ ] Admin: only allow admin to see list and (potential) admin views
 - [ ] Form Validate: Add method to validate form. Ensure other values cannot be injected.
 - [ ] Error handling on adding user with duplicate email address.
 - [ ] Error handling on adding user with duplicate username.
 - [ ] ?Refactor routes to their own file?
-- [ ] Add FaceBook Login for Influencer users.
-  - [ ] Confirm Influencer can login
-  - [ ] Capture and confirm token
-- [ ] Get appropriate data from FaceBook's Graph API stored to the DB.
-  - [ ] User profile info
-  - [ ] Useful network data
 - [ ] Add Google Drive API to GCloud app.
 - [ ] Add functionality to export Marketing data to a worksheet.
   - [ ] create a view for the desired data

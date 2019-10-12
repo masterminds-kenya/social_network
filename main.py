@@ -2,7 +2,7 @@ import config
 import application
 
 
-app = application.create_app(config, debug=True)
+app = application.create_app(config.Config, debug=True)
 
 
 if __name__ == '__main__':

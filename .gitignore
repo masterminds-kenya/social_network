@@ -244,7 +244,10 @@ dmypy.json
 
 # End of https://www.gitignore.io/api/node,linux,macos,python
 .vscode/
+notes.md
 cloud_sql_proxy
-app.yaml
 basic_example.py
 backup_app.yaml
+ngrok.yml
+ngrok
+app.yaml

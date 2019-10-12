@@ -1,6 +1,26 @@
 # import logging
 from flask import Flask, render_template, abort, request, redirect, url_for  # , current_app
 from . import model_db
+import requests_oauthlib
+from requests_oauthlib.compliance_fixes import facebook_compliance_fix
+from os import environ
+
+FB_CLIENT_ID = environ.get("FB_CLIENT_ID")
+FB_CLIENT_SECRET = environ.get("FB_CLIENT_SECRET")
+FB_AUTHORIZATION_BASE_URL = "https://www.facebook.com/dialog/oauth"
+FB_TOKEN_URL = "https://graph.facebook.com/oauth/access_token"
+FB_SCOPE = [
+    'email',
+    'instagram_basic',
+    'instagram_manage_insights',
+        ]
+
+DEPLOYED_URL = 'https://social-network-255302.appspot.com'
+if environ.get('GAE_INSTANCE'):
+    URL = DEPLOYED_URL
+else:
+    environ["OAUTHLIB_INSECURE_TRANSPORT"] = "1"
+    URL = 'http://127.0.0.1:8080'
 
 
 def create_app(config, debug=False, testing=False, config_overrides=None):
@@ -24,6 +44,59 @@ def create_app(config, debug=False, testing=False, config_overrides=None):
         """ Default root route """
         return render_template('index.html', data="Some Arbitrary Data")
 
+    @app.route('/login')
+    def login():
+        callback = URL + '/callback'
+        facebook = requests_oauthlib.OAuth2Session(
+            FB_CLIENT_ID, redirect_uri=callback, scope=FB_SCOPE
+        )
+        authorization_url, state = facebook.authorization_url(FB_AUTHORIZATION_BASE_URL)
+        # session['oauth_state'] = state
+        return redirect(authorization_url)
+
+    @app.route("/callback")
+    def callback():
+        callback = URL + '/callback'
+        facebook = requests_oauthlib.OAuth2Session(FB_CLIENT_ID, scope=FB_SCOPE, redirect_uri=callback)
+        # we need to apply a fix for Facebook here
+        facebook = facebook_compliance_fix(facebook)
+        token = facebook.fetch_token(FB_TOKEN_URL, client_secret=FB_CLIENT_SECRET, authorization_response=request.url,)
+        # Fetch a protected resources:
+        # Basic User data (user profile, via Graph API)
+        print('===================== Get FB Profile =======================')
+        facebook_user_data = facebook.get("https://graph.facebook.com/me?fields=id,name,email,accounts").json()
+        # email = facebook_user_data['email']
+        # name = facebook_user_data['name']
+        data = facebook_user_data.copy()  # .to_dict(flat=True)
+        # TODO: use a better constructor for the user account.
+        data['facebook_id'] = data.pop('id')  # rename the id key so 'id' does not colide in User constructor.
+        data['username'] = data.pop('name')
+        data['admin'] = True if 'admin' in data and data['admin'] == 'on' else False
+        data.pop('facebook_id')
+        accounts = data.pop('accounts')
+        pages = [page.get('id') for page in accounts.get('data')]
+        instagram_data = facebook.get(f"https://graph.facebook.com/v4.0/{pages[0]}?fields=instagram_business_account").json()
+        ig_id = instagram_data['instagram_business_account'].get('id')
+        print(data)
+        # id -> facebook_id
+        # name -> name
+        # email -> email
+        # () -> admin
+        # accounts -> pages -> instagram_id
+        # token['access_token'] -> token
+        # token['expires_at'] -> token_expires
+        # () -> created date
+        # () -> updated date
+        # (pk) -> id
+
+
+        print('============== PAGES & IG_ID =====================')
+        print(pages)
+        print(ig_id)
+        user = model_db.create(data)
+        return redirect(url_for('view', id=user['id']))
+        # return render_template('results.html', name=name, email=email, instagram_id=ig_id, other=res)
+
     @app.route('/user/<int:id>')
     def view(id):
         user = model_db.read(id)
@@ -33,7 +106,7 @@ def create_app(config, debug=False, testing=False, config_overrides=None):
     def add():
         if request.method == 'POST':
             data = request.form.to_dict(flat=True)  # TODO: add form validate method for security.
-            data['admin'] = True if 'admin' in data.keys() and data['admin'] == 'on' else False
+            data['admin'] = True if 'admin' in data and data['admin'] == 'on' else False
             user = model_db.create(data)
             return redirect(url_for('view', id=user['id']))
         return render_template('user_form.html', action='Add', user={})
