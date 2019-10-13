@@ -58,12 +58,50 @@ class User(db.Model):
     admin = db.Column(db.Boolean,           index=False, unique=False, nullable=False)
     modified = db.Column(db.DateTime,       index=False, unique=False, nullable=False, default=dt.utcnow, onupdate=dt.utcnow)
     created = db.Column(db.DateTime,        index=False, unique=False, nullable=False, default=dt.utcnow)
+    insights = db.relationship('Insight', backref='user', lazy=True)
+    posts = db.relationship('Post', backref='user', lazy=True)
     # brands = db.relationship('Campaign', back_populates='user')
     # # brands = db.relationship('Brand', secondary='campaigns')
     UNSAFE = {'token', 'token_expires', 'facebook_id', 'modified', 'created'}
 
     def __repr__(self):
         return '<User {}>'.format(self.name)
+
+
+class Insight(db.Model):
+    """ Data model for insights data on a (influencer's) user's or brand's account """
+    __tablename__ = 'insights'
+
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    recorded = db.Column(db.DateTime,         index=True,  unique=False, nullable=False)
+    old_impressions = db.Column(db.Integer,   index=True,  unique=False, nullable=False)
+    new_impressions = db.Column(db.Integer,   index=True,  unique=False, nullable=False)
+    old_reach = db.Column(db.Integer,         index=True,  unique=False, nullable=False)
+    new_reach = db.Column(db.Integer,         index=True,  unique=False, nullable=False)
+    old_profile_views = db.Column(db.Integer, index=True,  unique=False, nullable=False)
+    new_profile_views = db.Column(db.Integer, index=True,  unique=False, nullable=False)
+
+    def __repr__(self):
+        impressions = self.new_impressions - self.old_impressions
+        reach = self.new_reach - self.old_reach
+        p_views = self.new_profile_views - self.old_profile_views
+        return '<Insight {}, {}, {} | Date: {} >'.format(impressions, reach, p_views, self.recorded)
+
+
+class Post(db.Model):
+    """ Instagram posts (media) by an influencer (user) """
+    __tablename__ = 'posts'
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    ig_id = db.Column(db.String(80),    index=True,  unique=True,  nullable=False)  # IG indentity
+    recorded = db.Column(db.DateTime,   index=True,  unique=False, nullable=False)  # timestamp*
+    likes = db.Column(db.Integer,       index=True,  unique=False, nullable=False)
+    count_comm = db.Column(db.Integer,  index=True,  unique=False, nullable=False)
+    comments = db.Column(db.text,       index=False, unique=False, nullable=True)
+
+    def __repr__(self):
+        return '<Post: L {}, C {} | Date: {} >'.format(self.likes, self.count_comm, self.recorded)
 
 
 # class Campaign(db.Model):
