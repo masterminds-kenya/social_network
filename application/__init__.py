@@ -42,7 +42,12 @@ def create_app(config, debug=False, testing=False, config_overrides=None):
     @app.route('/')
     def home():
         """ Default root route """
-        return render_template('index.html', data="Some Arbitrary Data")
+        return render_template('index.html', data="Some Arbitrary Words")
+
+    @app.route('/error', methods=['GET', 'POST'])
+    def error():
+        err = request.form.get('data')
+        return render_template('error.html', err=err)
 
     @app.route('/login')
     def login():
@@ -60,13 +65,13 @@ def create_app(config, debug=False, testing=False, config_overrides=None):
         facebook = requests_oauthlib.OAuth2Session(FB_CLIENT_ID, scope=FB_SCOPE, redirect_uri=callback)
         # we need to apply a fix for Facebook here
         facebook = facebook_compliance_fix(facebook)
-        token = facebook.fetch_token(FB_TOKEN_URL, client_secret=FB_CLIENT_SECRET, authorization_response=request.url,).json()
+        token = facebook.fetch_token(FB_TOKEN_URL, client_secret=FB_CLIENT_SECRET, authorization_response=request.url)
         if 'error' in token:
-            return token, 500
+            return redirect(url_for('error'), data=token, code=307)
         # Fetch a protected resources:
         facebook_user_data = facebook.get("https://graph.facebook.com/me?fields=id,name,email,accounts").json()
         if 'error' in facebook_user_data:
-            return facebook_user_data, 500
+            return redirect(url_for('error'), data=facebook_user_data, code=307)
         # TODO: use a better constructor for the user account.
         data = facebook_user_data.copy()  # .to_dict(flat=True)
         data['token_expires'] = token.get('expires_at')  # TODO: Decide - Should we pass this differently to protect this key?
@@ -88,21 +93,15 @@ def create_app(config, debug=False, testing=False, config_overrides=None):
     def view(mod, id):
         Model = mod_lookup.get(mod, None)
         if not Model:
-            return " Error ", 404
+            return f"No such route: {mod}", 404
         model = model_db.read(id, Model=Model)
         return render_template('view.html', mod=mod, data=model)
-
-    # @app.route('/brand/<int:id>')
-    # def brand_view(id):
-    #     Model = model_db.Brand
-    #     brand = model_db.read(id, Model=Model)
-    #     return render_template('view.html', model='Brand', data=brand)
 
     @app.route('/<string:mod>/add', methods=['GET', 'POST'])
     def add(mod):
         Model = mod_lookup.get(mod, None)
         if not Model:
-            return " Error ", 404
+            return f"No such route: {mod}", 404
         if request.method == 'POST':
             data = request.form.to_dict(flat=True)  # TODO: add form validate method for security.
             model = model_db.create(data, Model=Model)
@@ -110,20 +109,11 @@ def create_app(config, debug=False, testing=False, config_overrides=None):
         template = f"{mod}_form.html"
         return render_template(template, action='Add', mod=mod, data={})
 
-    # @app.route('/brand/add', methods=['GET', 'POST'])
-    # def brand_add():
-    #     Model = model_db.Brand
-    #     if request.method == 'POST':
-    #         data = request.form.to_dict(flat=True)  # TODO: add form validate method for security.
-    #         brand = model_db.create(data, Model=Model)
-    #         return redirect(url_for('brand_view', id=brand['id']))
-    #     return render_template('brand_form.html', action='Add', brand={})
-
     @app.route('/<string:mod>/<int:id>/edit', methods=['GET', 'POST'])
     def edit(mod, id):
         Model = mod_lookup.get(mod, None)
         if not Model:
-            return " Error ", 404
+            return f"No such route: {mod}", 404
         model = model_db.read(id, Model=Model)
         if request.method == 'POST':
             data = request.form.to_dict(flat=True)  # TODO: add form validate method for security.
@@ -136,7 +126,7 @@ def create_app(config, debug=False, testing=False, config_overrides=None):
     def delete(mod, id):
         Model = mod_lookup.get(mod, None)
         if not Model:
-            return " Error ", 404
+            return f"No such route: {mod}", 404
         model_db.delete(id, Model=Model)
         return redirect(url_for('home'))
 
@@ -144,7 +134,7 @@ def create_app(config, debug=False, testing=False, config_overrides=None):
     def list(mod):
         Model = mod_lookup.get(mod, None)
         if not Model:
-            return " Error ", 404
+            return f"No such route: {mod}", 404
         models = model_db.list(Model=Model)
         return render_template('list.html', mod=mod, data=models)
 
@@ -161,7 +151,9 @@ def create_app(config, debug=False, testing=False, config_overrides=None):
     # applications.
     @app.errorhandler(500)
     def server_error(e):
+        print('================== Error Handler =====================')
         print(e)
+        print('================== End Error Handler =================')
         return """
         An internal error occurred: <pre>{}</pre>
         See logs for full stacktrace.

@@ -91,7 +91,7 @@ def create(data, Model=User):
     if Model == User:
         data['admin'] = True if 'admin' in data and data['admin'] == 'on' else False  # TODO: Possible form injection
         data['facebook_id'] = data.pop('id') if 'id' in data else None
-        data['token_expires'] = dt.fromtimestamp(data['token_expires']) if 'token_expires' in data else None
+        data['token_expires'] = dt.fromtimestamp(data['token_expires']) if 'token_expires' in data and data['token_expires'] else None
     model = Model(**data)
     db.session.add(model)
     db.session.commit()

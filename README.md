@@ -44,13 +44,14 @@ python application/model_db.py
 - [ ] Add Test Users who have pages and Instagram business accounts.
 - [x] Get Influencer instagram account (through their pages)
 - [ ] DB Design: Track different businesses and how users affect each of them?
-  - [ ] Influencer User Table
-  - [ ] Business Table
-  - [ ] Assume Many-to-Many, but relationship table w/ hashtag or other connections?
-- [ ] User Constructor function for translating from FB.
+  - [x] Influencer User Table
+  - [x] Brand Table
+  - [ ] Assume Many-to-Many, decide on fields from insights data.
+- [x] CRUD methods updated for all models.
+- [ ] User (and Brand?) Constructor function for translating from FB.
 - [ ] Get appropriate data from FaceBook's Graph API stored to the DB.
   - [x] User profile info
-  - [ ] User Business Instagram Account
+  - [x] User Business Instagram Account
   - [ ] Insights data
   - [ ] Useful network data
 - [ ] Login: any additional User and Admin authentication needed?
