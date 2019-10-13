@@ -42,7 +42,7 @@ python application/model_db.py
   - [x] Confirm Influencer can login
   - [x] Capture and confirm token
 - [ ] Add Test Users who have pages and Instagram business accounts.
-- [ ] Get Influencer instagram account (through their pages)
+- [x] Get Influencer instagram account (through their pages)
 - [ ] DB Design: Track different businesses and how users affect each of them?
   - [ ] Influencer User Table
   - [ ] Business Table
@@ -51,6 +51,7 @@ python application/model_db.py
 - [ ] Get appropriate data from FaceBook's Graph API stored to the DB.
   - [x] User profile info
   - [ ] User Business Instagram Account
+  - [ ] Insights data
   - [ ] Useful network data
 - [ ] Login: any additional User and Admin authentication needed?
   - [ ] ?Confirm Google login for Worksheet access?
@@ -58,7 +59,7 @@ python application/model_db.py
 - [ ] Admin: only allow admin to see list and (potential) admin views
 - [ ] Form Validate: Add method to validate form. Ensure other values cannot be injected.
 - [ ] Error handling on adding user with duplicate email address.
-- [ ] Error handling on adding user with duplicate username.
+- [ ] Error handling on adding user with duplicate name.
 - [ ] ?Refactor routes to their own file?
 - [ ] Add Google Drive API to GCloud app.
 - [ ] Add functionality to export Marketing data to a worksheet.

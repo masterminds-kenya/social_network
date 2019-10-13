@@ -1,22 +1,26 @@
 {% extends "base.html" %}
 {% block head %}
-<title>User View Page</title>
+<title>{{ model }} View Page</title>
 {% endblock %}
 
 {% block content %}
-<h3>Your User Account</h3>
+<h3>{{ model }} Account Details</h3>
 <ul>
-  <li>Username: {{user.username}} </li>
-  <li>Email: {{user.email}} </li>
-  <li>Created: {{user.created}} </li>
-  <li>Admin: {{user.admin}} </li>
-  <li>Bio: {{user.bio}} </li>
-  <li>db id: {{user.id}} </li>
+  {% for key in data.keys() %}
+  <li>{{key}}: {{data[key]}} </li>
+  {% endfor %}
 </ul>
 
+{% if model == 'User' %}
 <ul>
-  <li><a href="{{ url_for('edit', id=user.id) }}">Update User Account</a></li>
-  <li><a href="{{ url_for('delete', id=user.id) }}">Delete User Account</a></li>
+  <li><a href="{{ url_for('edit', id=data.id) }}">Update User Account</a></li>
+  <li><a href="{{ url_for('delete', id=data.id) }}">Delete User Account</a></li>
 </ul>
+{% elif model == 'Brand' %}
+<ul>
+    <li><a href="{{ url_for('edit', id=data.id) }}">Update Brand Account</a></li>
+    <li><a href="{{ url_for('delete', id=data.id) }}">Delete Brand Account</a></li>
+  </ul>
+{% endif %}
 
 {% endblock %}

@@ -60,63 +60,64 @@ def create_app(config, debug=False, testing=False, config_overrides=None):
         facebook = requests_oauthlib.OAuth2Session(FB_CLIENT_ID, scope=FB_SCOPE, redirect_uri=callback)
         # we need to apply a fix for Facebook here
         facebook = facebook_compliance_fix(facebook)
-        token = facebook.fetch_token(FB_TOKEN_URL, client_secret=FB_CLIENT_SECRET, authorization_response=request.url,)
+        token = facebook.fetch_token(FB_TOKEN_URL, client_secret=FB_CLIENT_SECRET, authorization_response=request.url,).json()
+        if 'error' in token:
+            return token, 500
         # Fetch a protected resources:
-        # Basic User data (user profile, via Graph API)
-        print('===================== Get FB Profile =======================')
         facebook_user_data = facebook.get("https://graph.facebook.com/me?fields=id,name,email,accounts").json()
-        # email = facebook_user_data['email']
-        # name = facebook_user_data['name']
-        data = facebook_user_data.copy()  # .to_dict(flat=True)
+        if 'error' in facebook_user_data:
+            return facebook_user_data, 500
         # TODO: use a better constructor for the user account.
-        data['facebook_id'] = data.pop('id')  # rename the id key so 'id' does not colide in User constructor.
-        data['username'] = data.pop('name')
-        data['admin'] = True if 'admin' in data and data['admin'] == 'on' else False
-        data.pop('facebook_id')
+        data = facebook_user_data.copy()  # .to_dict(flat=True)
+        data['token_expires'] = token.get('expires_at')  # TODO: Decide - Should we pass this differently to protect this key?
+        data['token'] = token.get('access_token')
         accounts = data.pop('accounts')
-        pages = [page.get('id') for page in accounts.get('data')]
-        instagram_data = facebook.get(f"https://graph.facebook.com/v4.0/{pages[0]}?fields=instagram_business_account").json()
-        ig_id = instagram_data['instagram_business_account'].get('id')
+        pages = [page.get('id') for page in accounts.get('data')] if accounts and 'data' in accounts else None
+        # TODO: Add logic for user w/ many pages/instagram-accounts. Currently assume 1st page is correct one.
+        if pages:
+            instagram_data = facebook.get(f"https://graph.facebook.com/v4.0/{pages[0]}?fields=instagram_business_account").json()
+            data['instagram_id'] = instagram_data['instagram_business_account'].get('id')
+        else:
+            data['instagram_id'] = None
+        print('============== instagram_id =====================')
         print(data)
-        # id -> facebook_id
-        # name -> name
-        # email -> email
-        # () -> admin
-        # accounts -> pages -> instagram_id
-        # token['access_token'] -> token
-        # token['expires_at'] -> token_expires
-        # () -> created date
-        # () -> updated date
-        # (pk) -> id
-
-
-        print('============== PAGES & IG_ID =====================')
-        print(pages)
-        print(ig_id)
         user = model_db.create(data)
         return redirect(url_for('view', id=user['id']))
-        # return render_template('results.html', name=name, email=email, instagram_id=ig_id, other=res)
 
     @app.route('/user/<int:id>')
     def view(id):
+        # model = model_db.User
         user = model_db.read(id)
-        return render_template('view.html', user=user)
+        return render_template('view.html', model='User', data=user)
+
+    @app.route('/brand/<int:id>')
+    def brand_view(id):
+        Model = model_db.Brand
+        brand = model_db.read(id, Model=Model)
+        return render_template('view.html', model='Brand', data=brand)
 
     @app.route('/user/add', methods=['GET', 'POST'])
     def add():
         if request.method == 'POST':
             data = request.form.to_dict(flat=True)  # TODO: add form validate method for security.
-            data['admin'] = True if 'admin' in data and data['admin'] == 'on' else False
             user = model_db.create(data)
             return redirect(url_for('view', id=user['id']))
         return render_template('user_form.html', action='Add', user={})
+
+    @app.route('/brand/add', methods=['GET', 'POST'])
+    def brand_add():
+        Model = model_db.Brand
+        if request.method == 'POST':
+            data = request.form.to_dict(flat=True)  # TODO: add form validate method for security.
+            brand = model_db.create(data, Model=Model)
+            return redirect(url_for('brand_view', id=brand['id']))
+        return render_template('brand_form.html', action='Add', brand={})
 
     @app.route('/user/<int:id>/edit', methods=['GET', 'POST'])
     def edit(id):
         user = model_db.read(id)
         if request.method == 'POST':
             data = request.form.to_dict(flat=True)  # TODO: add form validate method for security.
-            data['admin'] = True if 'admin' in data and data['admin'] == 'on' else False
             user = model_db.update(data, id)
             return redirect(url_for('view', id=user['id']))
         return render_template('user_form.html', action='Edit', user=user)
