@@ -85,7 +85,8 @@ def create_app(config, debug=False, testing=False, config_overrides=None):
             instagram_data = facebook.get(f"https://graph.facebook.com/v4.0/{pages[0]}?fields=instagram_business_account").json()
             ig_id = instagram_data['instagram_business_account'].get('id')
             ig_metric = 'impressions,reach,profile_views'
-            url = f"https://graph.facebook.com/{ig_id}/insights?metric={ig_metric}&period=day"
+            ig_period = 'day'
+            url = f"https://graph.facebook.com/{ig_id}/insights?metric={ig_metric}&period={ig_period}"
             insights = facebook.get(url).json().get('data')
             url = f"https://graph.facebook.com/v4.0/{ig_id}/media"
             media = facebook.get(url).json().get('data')
