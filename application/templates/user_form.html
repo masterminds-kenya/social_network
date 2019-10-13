@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 {% block head %}
-<title>Add User Form</title>
+<title>{{action}} User Form</title>
 {% endblock %}
 
 
@@ -10,14 +10,14 @@
 <form method="POST" enctype="multipart/form-data">
   <div class="form-group">
     <label for="name">Name</label>
-    <input type="text" name="name" id="name" value="{{user.name}}" class="form-control"/>
+    <input type="text" name="name" id="name" value="{{data.name}}" class="form-control"/>
   </div>
   <div class="form-group">
     <label for="email">Email</label>
-    <input type="text" name="email" id="email" value="{{user.email}}" class="form-control"/>
+    <input type="text" name="email" id="email" value="{{data.email}}" class="form-control"/>
   </div>
   <div class="form-group">
-    {% if user.admin %}
+    {% if data.admin %}
     <input type="checkbox" id="admin" name="admin" checked />
     {% else %}
     <input type="checkbox" id="admin" name="admin" />
@@ -26,7 +26,7 @@
   </div>
   <div class="form-group">
       <label for="notes">Notes</label>
-      <input type="text" name="notes" id="notes" value="{{user.notes}}" class="form-control"/>
+      <input type="text" name="notes" id="notes" value="{{data.notes}}" class="form-control"/>
     </div>
 
   <button type="submit" class="btn btn-success">Save</button>

@@ -14,7 +14,7 @@ FB_SCOPE = [
     'instagram_basic',
     'instagram_manage_insights',
         ]
-
+mod_lookup = {'brand': model_db.Brand, 'user': model_db.User}
 DEPLOYED_URL = 'https://social-network-255302.appspot.com'
 if environ.get('GAE_INSTANCE'):
     URL = DEPLOYED_URL
@@ -82,55 +82,71 @@ def create_app(config, debug=False, testing=False, config_overrides=None):
         print('============== instagram_id =====================')
         print(data)
         user = model_db.create(data)
-        return redirect(url_for('view', id=user['id']))
+        return redirect(url_for('view', mod='user', id=user['id']))
 
-    @app.route('/user/<int:id>')
-    def view(id):
-        # model = model_db.User
-        user = model_db.read(id)
-        return render_template('view.html', model='User', data=user)
+    @app.route('/<string:mod>/<int:id>')
+    def view(mod, id):
+        Model = mod_lookup.get(mod, None)
+        if not Model:
+            return " Error ", 404
+        model = model_db.read(id, Model=Model)
+        return render_template('view.html', mod=mod, data=model)
 
-    @app.route('/brand/<int:id>')
-    def brand_view(id):
-        Model = model_db.Brand
-        brand = model_db.read(id, Model=Model)
-        return render_template('view.html', model='Brand', data=brand)
+    # @app.route('/brand/<int:id>')
+    # def brand_view(id):
+    #     Model = model_db.Brand
+    #     brand = model_db.read(id, Model=Model)
+    #     return render_template('view.html', model='Brand', data=brand)
 
-    @app.route('/user/add', methods=['GET', 'POST'])
-    def add():
+    @app.route('/<string:mod>/add', methods=['GET', 'POST'])
+    def add(mod):
+        Model = mod_lookup.get(mod, None)
+        if not Model:
+            return " Error ", 404
         if request.method == 'POST':
             data = request.form.to_dict(flat=True)  # TODO: add form validate method for security.
-            user = model_db.create(data)
-            return redirect(url_for('view', id=user['id']))
-        return render_template('user_form.html', action='Add', user={})
+            model = model_db.create(data, Model=Model)
+            return redirect(url_for('view', mod=mod, id=model['id']))
+        template = f"{mod}_form.html"
+        return render_template(template, action='Add', mod=mod, data={})
 
-    @app.route('/brand/add', methods=['GET', 'POST'])
-    def brand_add():
-        Model = model_db.Brand
+    # @app.route('/brand/add', methods=['GET', 'POST'])
+    # def brand_add():
+    #     Model = model_db.Brand
+    #     if request.method == 'POST':
+    #         data = request.form.to_dict(flat=True)  # TODO: add form validate method for security.
+    #         brand = model_db.create(data, Model=Model)
+    #         return redirect(url_for('brand_view', id=brand['id']))
+    #     return render_template('brand_form.html', action='Add', brand={})
+
+    @app.route('/<string:mod>/<int:id>/edit', methods=['GET', 'POST'])
+    def edit(mod, id):
+        Model = mod_lookup.get(mod, None)
+        if not Model:
+            return " Error ", 404
+        model = model_db.read(id, Model=Model)
         if request.method == 'POST':
             data = request.form.to_dict(flat=True)  # TODO: add form validate method for security.
-            brand = model_db.create(data, Model=Model)
-            return redirect(url_for('brand_view', id=brand['id']))
-        return render_template('brand_form.html', action='Add', brand={})
+            model = model_db.update(data, id, Model=Model)
+            return redirect(url_for('view', mod=mod, id=model['id']))
+        template = f"{mod}_form.html"
+        return render_template(template, action='Edit', mod=mod, data=model)
 
-    @app.route('/user/<int:id>/edit', methods=['GET', 'POST'])
-    def edit(id):
-        user = model_db.read(id)
-        if request.method == 'POST':
-            data = request.form.to_dict(flat=True)  # TODO: add form validate method for security.
-            user = model_db.update(data, id)
-            return redirect(url_for('view', id=user['id']))
-        return render_template('user_form.html', action='Edit', user=user)
-
-    @app.route('/user/<int:id>/delete')
-    def delete(id):
-        model_db.delete(id)
+    @app.route('/<string:mod>/<int:id>/delete')
+    def delete(mod, id):
+        Model = mod_lookup.get(mod, None)
+        if not Model:
+            return " Error ", 404
+        model_db.delete(id, Model=Model)
         return redirect(url_for('home'))
 
-    @app.route('/user/list')
-    def list():
-        users = model_db.list()
-        return render_template('list.html', users=users)
+    @app.route('/<string:mod>/list')
+    def list(mod):
+        Model = mod_lookup.get(mod, None)
+        if not Model:
+            return " Error ", 404
+        models = model_db.list(Model=Model)
+        return render_template('list.html', mod=mod, data=models)
 
     # Catchall redirect route.
     @app.route('/<string:page_name>/')

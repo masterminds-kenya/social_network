@@ -15,9 +15,10 @@
   <nav>
     <ul>
       <li><a href="{{ url_for('home') }}">Home</a></li>
-      <li><a href="{{ url_for('add') }}">Add New User</a></li>
-      <li><a href="{{ url_for('brand_add') }}">Add New Brand</a></li>
-      <li><a href="{{ url_for('list') }}">Admin - List Users</a></li>
+      <li><a href="{{ url_for('add', mod='user') }}">Add New User</a></li>
+      <li><a href="{{ url_for('add', mod='brand') }}">Add New Brand</a></li>
+      <li><a href="{{ url_for('list', mod='user') }}">Admin - List Users</a></li>
+      <li><a href="{{ url_for('list', mod='brand') }}">Admin - List Brands</a></li>
     </ul>
   </nav>
 {% block content %}
