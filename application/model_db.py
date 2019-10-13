@@ -34,6 +34,7 @@ class Brand(db.Model):
     created = db.Column(db.DateTime,        index=False, unique=False, nullable=False, default=dt.utcnow)
     # users = db.relationship('Campaign', back_populates='brand')
     # # users = db.relationship('User', secondary='campaigns')
+    UNSAFE = {'facebook_id', 'token', 'token_expires', 'modified', 'created'}
 
     def __repr__(self):
         return '<Brand {}>'.format(self.name)
@@ -59,6 +60,7 @@ class User(db.Model):
     created = db.Column(db.DateTime,        index=False, unique=False, nullable=False, default=dt.utcnow)
     # brands = db.relationship('Campaign', back_populates='user')
     # # brands = db.relationship('Brand', secondary='campaigns')
+    UNSAFE = {'token', 'token_expires', 'facebook_id', 'modified', 'created'}
 
     def __repr__(self):
         return '<User {}>'.format(self.name)
@@ -95,14 +97,19 @@ def create(data, Model=User):
     model = Model(**data)
     db.session.add(model)
     db.session.commit()
-    return from_sql(model)
+    results = from_sql(model)
+    safe_results = {k: results[k] for k in results.keys() - Model.UNSAFE}
+    return safe_results
 
 
-def read(id, Model=User):
-    result = Model.query.get(id)
-    if not result:
+def read(id, Model=User, safe=True):
+    model = Model.query.get(id)
+    if not model:
         return None
-    return from_sql(result)
+    results = from_sql(model)
+    safe_results = {k: results[k] for k in results.keys() - Model.UNSAFE}
+    output = safe_results if safe else results
+    return output
 
 
 def update(data, id, Model=User):
@@ -113,7 +120,9 @@ def update(data, id, Model=User):
     for k, v in data.items():
         setattr(model, k, v)
     db.session.commit()
-    return from_sql(model)
+    results = from_sql(model)
+    safe_results = {k: results[k] for k in results.keys() - Model.UNSAFE}
+    return safe_results
 
 
 def delete(id, Model=User):

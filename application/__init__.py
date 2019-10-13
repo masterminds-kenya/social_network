@@ -3,6 +3,7 @@ from flask import Flask, render_template, abort, request, redirect, url_for  # ,
 from . import model_db
 import requests_oauthlib
 from requests_oauthlib.compliance_fixes import facebook_compliance_fix
+import json
 from os import environ
 
 FB_CLIENT_ID = environ.get("FB_CLIENT_ID")
@@ -11,6 +12,7 @@ FB_AUTHORIZATION_BASE_URL = "https://www.facebook.com/dialog/oauth"
 FB_TOKEN_URL = "https://graph.facebook.com/oauth/access_token"
 FB_SCOPE = [
     'email',
+    'pages_show_list',
     'instagram_basic',
     'instagram_manage_insights',
         ]
@@ -81,10 +83,24 @@ def create_app(config, debug=False, testing=False, config_overrides=None):
         # TODO: Add logic for user w/ many pages/instagram-accounts. Currently assume 1st page is correct one.
         if pages:
             instagram_data = facebook.get(f"https://graph.facebook.com/v4.0/{pages[0]}?fields=instagram_business_account").json()
-            data['instagram_id'] = instagram_data['instagram_business_account'].get('id')
+            ig_id = instagram_data['instagram_business_account'].get('id')
+            ig_metric = 'impressions,reach,profile_views'
+            url = f"https://graph.facebook.com/{ig_id}/insights?metric={ig_metric}&period=day"
+            insights = facebook.get(url).json().get('data')
+            url = f"https://graph.facebook.com/v4.0/{ig_id}/media"
+            media = facebook.get(url).json().get('data')
+
+            print('================= Instagram Insights!! =================')
+            print(media)
+            print('------------------------------------------')
+            for info in insights:
+                print(info)
+                # print(info.name, 'Start: ', info.values[0].value, 'End: ', info.values[1].value)
+                print('------------------------------------------')
+            data['instagram_id'], data['notes'] = ig_id, json.dumps(insights)
         else:
-            data['instagram_id'] = None
-        print('============== instagram_id =====================')
+            data['instagram_id'], data['notes'] = None, ''
+        print('============== user data collected =====================')
         print(data)
         user = model_db.create(data)
         return redirect(url_for('view', mod='user', id=user['id']))
@@ -96,6 +112,11 @@ def create_app(config, debug=False, testing=False, config_overrides=None):
             return f"No such route: {mod}", 404
         model = model_db.read(id, Model=Model)
         return render_template('view.html', mod=mod, data=model)
+
+    # @app.route('/insight/<int:id>')
+    # def insight(id):
+    #     results = ''
+    #     return render_template('insight.html', data=results)
 
     @app.route('/<string:mod>/add', methods=['GET', 'POST'])
     def add(mod):
@@ -114,11 +135,11 @@ def create_app(config, debug=False, testing=False, config_overrides=None):
         Model = mod_lookup.get(mod, None)
         if not Model:
             return f"No such route: {mod}", 404
-        model = model_db.read(id, Model=Model)
         if request.method == 'POST':
             data = request.form.to_dict(flat=True)  # TODO: add form validate method for security.
             model = model_db.update(data, id, Model=Model)
             return redirect(url_for('view', mod=mod, id=model['id']))
+        model = model_db.read(id, Model=Model)
         template = f"{mod}_form.html"
         return render_template(template, action='Edit', mod=mod, data=model)
 

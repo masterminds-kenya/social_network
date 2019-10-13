@@ -4,14 +4,18 @@
 {% endblock %}
 
 {% block content %}
-<h3>{{ mod.capitalize() }} Account Details</h3>
+<h2>{{ mod.capitalize() }} Account Details</h2>
 <ul>
   {% for key in data.keys() %}
   <li>{{key}}: {{data[key]}} </li>
   {% endfor %}
 </ul>
+<h3>Insight Data</h3>
 
 <ul>
+  {% if mod == 'user' %}
+  <li>User Time!</li>
+  {% endif %}
   <li><a href="{{ url_for('edit', mod=mod, id=data.id) }}">Update {{ mod.capitalize() }} Account</a></li>
   <li><a href="{{ url_for('delete', mod=mod, id=data.id) }}">Delete {{ mod.capitalize() }} Account</a></li>
 </ul>

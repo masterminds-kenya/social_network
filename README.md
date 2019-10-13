@@ -41,23 +41,23 @@ python application/model_db.py
 - [x] Confirm FaceBook Login for Influencer users works.
   - [x] Confirm Influencer can login
   - [x] Capture and confirm token
-- [ ] Add Test Users who have pages and Instagram business accounts.
 - [x] Get Influencer instagram account (through their pages)
 - [ ] DB Design: Track different businesses and how users affect each of them?
   - [x] Influencer User Table
   - [x] Brand Table
   - [ ] Assume Many-to-Many, decide on fields from insights data.
 - [x] CRUD methods updated for all models.
-- [ ] User (and Brand?) Constructor function for translating from FB.
 - [ ] Get appropriate data from FaceBook's Graph API stored to the DB.
   - [x] User profile info
   - [x] User Business Instagram Account
-  - [ ] Insights data
+  - [x] Insights data
   - [ ] Useful network data
+- [ ] Add Test Users who have pages and Instagram business accounts.
 - [ ] Login: any additional User and Admin authentication needed?
   - [ ] ?Confirm Google login for Worksheet access?
   - [ ] ?Add our own App Auth: User management, adding/updating, auth, password, etc.
 - [ ] Admin: only allow admin to see list and (potential) admin views
+- [ ] User (and Brand?) Constructor function for translating from FB.
 - [ ] Form Validate: Add method to validate form. Ensure other values cannot be injected.
 - [ ] Error handling on adding user with duplicate email address.
 - [ ] Error handling on adding user with duplicate name.
