@@ -46,6 +46,9 @@ python application/model_db.py
   - [x] Influencer User Table
   - [x] Brand Table
   - [ ] Assume Many-to-Many, decide on fields from insights data.
+  - [?] Insight to track time series
+  - [?] Post to track different "media" posts.
+  - [ ] Update ON DELETE for the child insights and posts.
 - [x] CRUD methods updated for all models.
 - [ ] Get appropriate data from FaceBook's Graph API stored to the DB.
   - [x] User profile info
