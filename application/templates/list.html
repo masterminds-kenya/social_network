@@ -7,7 +7,13 @@
 <h3>All {{ mod.capitalize() }}</h3>
 <ul>
   {% for datum in data %}
-  <li><a href="{{ url_for('view', mod=mod, id=datum.id) }}">{{datum.name}}</a> </li>
+  <li><a href="{{ url_for('view', mod=mod, id=datum.id) }}">
+    {% if mod in {'user': true, 'brand': true} %}
+    {{datum.name}}
+    {% else %}
+    {{datum.id}}
+    {% endif %}
+  </a> </li>
   {% endfor %}
 </ul>
 

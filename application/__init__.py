@@ -16,7 +16,7 @@ FB_SCOPE = [
     'instagram_basic',
     'instagram_manage_insights',
         ]
-mod_lookup = {'brand': model_db.Brand, 'user': model_db.User}
+mod_lookup = {'brand': model_db.Brand, 'user': model_db.User, 'insight': model_db.Insight}
 DEPLOYED_URL = 'https://social-network-255302.appspot.com'
 if environ.get('GAE_INSTANCE'):
     URL = DEPLOYED_URL
@@ -76,34 +76,54 @@ def create_app(config, debug=False, testing=False, config_overrides=None):
             return redirect(url_for('error'), data=facebook_user_data, code=307)
         # TODO: use a better constructor for the user account.
         data = facebook_user_data.copy()  # .to_dict(flat=True)
-        data['token_expires'] = token.get('expires_at')  # TODO: Decide - Should we pass this differently to protect this key?
-        data['token'] = token.get('access_token')
+        data['token'] = token  # TODO: Decide - Should we pass this differently to protect this key?
         accounts = data.pop('accounts')
         pages = [page.get('id') for page in accounts.get('data')] if accounts and 'data' in accounts else None
         # TODO: Add logic for user w/ many pages/instagram-accounts. Currently assume 1st page is correct one.
         if pages:
             instagram_data = facebook.get(f"https://graph.facebook.com/v4.0/{pages[0]}?fields=instagram_business_account").json()
             ig_id = instagram_data['instagram_business_account'].get('id')
-            ig_metric = 'impressions,reach,profile_views'
+            audience_metric = {'audience_city', 'audience_country', 'audience_gender_age'}
+            ig_period = 'lifetime'
+            url = f"https://graph.facebook.com/{ig_id}/insights?metric={','.join(audience_metric)}&period={ig_period}"
+            audience = facebook.get(url).json()
+            if 'error' in audience:
+                print('----------- Audience Error! ----------------')
+                print(audience)
+                return redirect(url_for('error'), data=audience, code=307)
+            insight_metric = {'impressions', 'reach', 'follower_count'}
             ig_period = 'day'
-            url = f"https://graph.facebook.com/{ig_id}/insights?metric={ig_metric}&period={ig_period}"
-            insights = facebook.get(url).json().get('data')
+            url = f"https://graph.facebook.com/{ig_id}/insights?metric={','.join(insight_metric)}&period={ig_period}"
+            insights = facebook.get(url).json()
+            if 'error' in insights:
+                print('----------- Insights Error! ----------------')
+                print(insights)
+                return redirect(url_for('error'), data=insights, code=307)
             url = f"https://graph.facebook.com/v4.0/{ig_id}/media"
             media = facebook.get(url).json().get('data')
-
             print('================= Instagram Insights!! =================')
-            print(media)
-            print('------------------------------------------')
-            for info in insights:
+            # print(media)
+            # print('--------------- Audience ---------------------------')
+            # for info in audience.get('data'):
+            #     print(info)
+            #     print('------------------------------------------')
+            # print(type(media))
+            print('--------------- Insights ---------------------------')
+            for info in insights.get('data'):
                 print(info)
-                # print(info.name, 'Start: ', info.values[0].value, 'End: ', info.values[1].value)
                 print('------------------------------------------')
-            data['instagram_id'], data['notes'] = ig_id, json.dumps(insights)
+            print(type(insights))
+            data['instagram_id'], data['notes'] = ig_id, json.dumps(audience.get('data'))
         else:
             data['instagram_id'], data['notes'] = None, ''
         print('============== user data collected =====================')
-        print(data)
+        # print(data)
+        print(type(data))
         user = model_db.create(data)
+        print(user['id'])
+        insights['user_id'] = user['id']
+        temp = model_db.create(insights, model_db.Insight)
+        print(temp['id'])
         return redirect(url_for('view', mod='user', id=user['id']))
 
     @app.route('/<string:mod>/<int:id>')

@@ -1,6 +1,7 @@
 from flask import Flask
 from flask_sqlalchemy import SQLAlchemy
 from datetime import datetime as dt
+from dateutil import parser
 
 db = SQLAlchemy()
 
@@ -58,7 +59,7 @@ class User(db.Model):
     admin = db.Column(db.Boolean,           index=False, unique=False, nullable=False)
     modified = db.Column(db.DateTime,       index=False, unique=False, nullable=False, default=dt.utcnow, onupdate=dt.utcnow)
     created = db.Column(db.DateTime,        index=False, unique=False, nullable=False, default=dt.utcnow)
-    # insights = db.relationship('Insight', backref='user', lazy=True)
+    insights = db.relationship('Insight', backref='user', lazy=True)
     # posts = db.relationship('Post', backref='user', lazy=True)
     # brands = db.relationship('Campaign', back_populates='user')
     # # brands = db.relationship('Brand', secondary='campaigns')
@@ -67,35 +68,67 @@ class User(db.Model):
     def __init__(self, *args, **kwargs):
         kwargs['admin'] = True if 'admin' in kwargs and kwargs['admin'] == 'on' else False  # TODO: Possible form injection
         kwargs['facebook_id'] = kwargs.pop('id') if 'id' in kwargs else None
-        kwargs['token_expires'] = dt.fromtimestamp(kwargs['token_expires']) if 'token_expires' in kwargs and data['token_expires'] else None
+        kwargs['token_expires'] = dt.fromtimestamp(kwargs['token'].get('token_expires')) if 'token' in kwargs and kwargs['token'].get('token_expires') else None
+        kwargs['token'] = kwargs['token'].get('access_token') if 'token' in kwargs and kwargs['token'] else None
+        # if 'audience' in kwargs:
+        #     valid = {'audience_city': True, 'audience_contry': True, 'audience_gender_age': True}
+        #     for data in kwargs['audience'].get('data'):
+        #         if data.name in valid:
+        #             kwargs[data.name] = data.values[0].value
+        # if 'insights' in kwargs:
+        #     valid = {'impressions', 'reach', 'follower_count'}
+        #     for data in kwargs['insights'].get('data'):
+        #         if data.name in valid:
+        #             kwargs[data.name] = data.values
         super().__init__(*args, **kwargs)
 
     def __repr__(self):
         return '<User {}>'.format(self.name)
 
 
-# class Insight(db.Model):
-#     """ Data model for insights data on a (influencer's) user's or brand's account """
-#     __tablename__ = 'insights'
+class Insight(db.Model):
+    """ Data model for insights data on a (influencer's) user's or brand's account """
+    __tablename__ = 'insights'
 
-#     id = db.Column(db.Integer, primary_key=True)
-#     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
-#     recorded = db.Column(db.DateTime,         index=True,  unique=False, nullable=False)
-#     old_impressions = db.Column(db.Integer,   index=True,  unique=False, nullable=False)
-#     new_impressions = db.Column(db.Integer,   index=True,  unique=False, nullable=False)
-#     old_reach = db.Column(db.Integer,         index=True,  unique=False, nullable=False)
-#     new_reach = db.Column(db.Integer,         index=True,  unique=False, nullable=False)
-#     old_profile_views = db.Column(db.Integer, index=True,  unique=False, nullable=False)
-#     new_profile_views = db.Column(db.Integer, index=True,  unique=False, nullable=False)
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    recorded = db.Column(db.DateTime,          index=True,  unique=False, nullable=False)
+    old_impressions = db.Column(db.Integer,    index=True,  unique=False, nullable=False)
+    new_impressions = db.Column(db.Integer,    index=True,  unique=False, nullable=False)
+    old_reach = db.Column(db.Integer,          index=True,  unique=False, nullable=False)
+    new_reach = db.Column(db.Integer,          index=True,  unique=False, nullable=False)
+    old_follower_count = db.Column(db.Integer, index=True,  unique=False, nullable=False)
+    new_follower_count = db.Column(db.Integer, index=True,  unique=False, nullable=False)
+    # insight_metric = {'impressions', 'reach', 'follower_count'}
+    UNSAFE = {''}
 
-#     # def __init__(self, *args, **kwargs):
-#     #     super().__init__(*args, **kwargs)
+    def __init__(self, *args, **kwargs):
+        valid = {'impressions', 'reach', 'follower_count'}
+        recorded = []
+        data = kwargs.pop('data') if 'data' in kwargs else None
+        print('================= Insight Constructor! ========================')
+        user_id, kwargs = kwargs.get('user_id'), {}
+        kwargs['user_id'] = user_id
+        # data_is_valid = (ea for ea in data if ea['name'] in valid)
+        for ea in data:
+            print('-------------- ea in data ----------------')
+            print(ea.get('name', '***** NONE *****'), ea.get('name') in valid)
+            if ea.get('name') in valid:
+                kwargs[f"old_{ea['name']}"] = int(ea.get('values')[0].get('value'))  # expected int for older data
+                kwargs[f"new_{ea['name']}"] = int(ea.get('values')[1].get('value'))
+                recorded.append(ea['values'][1].get('end_time'))
+        datestring = recorded[0] if len(recorded) > 0 else ''
+        # kwargs['recorded'] = dt.fromisoformat(datestring)
+        # kwargs['recorded'] = dt.strptime(datestring, '%Y-%m-%dT%H:%M:%S+%z')
+        # '%Y-%m-%d %H:%M:%S')
+        kwargs['recorded'] = parser.isoparse(datestring)
+        super().__init__(*args, **kwargs)
 
-#     def __repr__(self):
-#         impressions = self.new_impressions - self.old_impressions
-#         reach = self.new_reach - self.old_reach
-#         p_views = self.new_profile_views - self.old_profile_views
-#         return '<Insight {}, {}, {} | Date: {} >'.format(impressions, reach, p_views, self.recorded)
+    def __repr__(self):
+        impressions = self.new_impressions - self.old_impressions
+        reach = self.new_reach - self.old_reach
+        followers = self.new_follower_count - self.old_follower_count
+        return '<Insight {}, {}, {} | Date: {} >'.format(impressions, reach, followers, self.recorded)
 
 
 # class Post(db.Model):
@@ -179,7 +212,8 @@ def delete(id, Model=User):
 
 
 def list(Model=User):
-    query = (Model.query.order_by(Model.name))
+    sort_field = Model.name if Model in {User, Brand} else Model.id
+    query = (Model.query.order_by(sort_field))
     models = query.all()
     return models
 
