@@ -2,6 +2,8 @@ from flask import Flask
 from flask_sqlalchemy import SQLAlchemy
 from datetime import datetime as dt
 from dateutil import parser
+import re
+import json
 
 db = SQLAlchemy()
 
@@ -59,7 +61,8 @@ class User(db.Model):
     admin = db.Column(db.Boolean,           index=False, unique=False, nullable=False)
     modified = db.Column(db.DateTime,       index=False, unique=False, nullable=False, default=dt.utcnow, onupdate=dt.utcnow)
     created = db.Column(db.DateTime,        index=False, unique=False, nullable=False, default=dt.utcnow)
-    insights = db.relationship('Insight', backref='user', lazy=True)
+    insights = db.relationship('Insight', backref='user', lazy=True, passive_deletes=True)
+    # audiences = db.relationship('Audience', backref='user', lazy=True, passive_deletes=True)
     # posts = db.relationship('Post', backref='user', lazy=True)
     # brands = db.relationship('Campaign', back_populates='user')
     # # brands = db.relationship('Brand', secondary='campaigns')
@@ -70,16 +73,6 @@ class User(db.Model):
         kwargs['facebook_id'] = kwargs.pop('id') if 'id' in kwargs else None
         kwargs['token_expires'] = dt.fromtimestamp(kwargs['token'].get('token_expires')) if 'token' in kwargs and kwargs['token'].get('token_expires') else None
         kwargs['token'] = kwargs['token'].get('access_token') if 'token' in kwargs and kwargs['token'] else None
-        # if 'audience' in kwargs:
-        #     valid = {'audience_city': True, 'audience_contry': True, 'audience_gender_age': True}
-        #     for data in kwargs['audience'].get('data'):
-        #         if data.name in valid:
-        #             kwargs[data.name] = data.values[0].value
-        # if 'insights' in kwargs:
-        #     valid = {'impressions', 'reach', 'follower_count'}
-        #     for data in kwargs['insights'].get('data'):
-        #         if data.name in valid:
-        #             kwargs[data.name] = data.values
         super().__init__(*args, **kwargs)
 
     def __repr__(self):
@@ -88,10 +81,10 @@ class User(db.Model):
 
 class Insight(db.Model):
     """ Data model for insights data on a (influencer's) user's or brand's account """
-    __tablename__ = 'insights'
+    __tablename__ = 'insights_use'
 
     id = db.Column(db.Integer, primary_key=True)
-    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id', ondelete='CASCADE'))
     recorded = db.Column(db.DateTime,          index=True,  unique=False, nullable=False)
     old_impressions = db.Column(db.Integer,    index=True,  unique=False, nullable=False)
     new_impressions = db.Column(db.Integer,    index=True,  unique=False, nullable=False)
@@ -106,21 +99,14 @@ class Insight(db.Model):
         valid = {'impressions', 'reach', 'follower_count'}
         recorded = []
         data = kwargs.pop('data') if 'data' in kwargs else None
-        print('================= Insight Constructor! ========================')
         user_id, kwargs = kwargs.get('user_id'), {}
         kwargs['user_id'] = user_id
-        # data_is_valid = (ea for ea in data if ea['name'] in valid)
         for ea in data:
-            print('-------------- ea in data ----------------')
-            print(ea.get('name', '***** NONE *****'), ea.get('name') in valid)
             if ea.get('name') in valid:
                 kwargs[f"old_{ea['name']}"] = int(ea.get('values')[0].get('value'))  # expected int for older data
                 kwargs[f"new_{ea['name']}"] = int(ea.get('values')[1].get('value'))
                 recorded.append(ea['values'][1].get('end_time'))
         datestring = recorded[0] if len(recorded) > 0 else ''
-        # kwargs['recorded'] = dt.fromisoformat(datestring)
-        # kwargs['recorded'] = dt.strptime(datestring, '%Y-%m-%dT%H:%M:%S+%z')
-        # '%Y-%m-%d %H:%M:%S')
         kwargs['recorded'] = parser.isoparse(datestring)
         super().__init__(*args, **kwargs)
 
@@ -131,12 +117,37 @@ class Insight(db.Model):
         return '<Insight {}, {}, {} | Date: {} >'.format(impressions, reach, followers, self.recorded)
 
 
+class Audience(db.Model):
+    """ Data model for current information about the user's audience. """
+    __tablename__ = 'audiences'
+
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id', ondelete='CASCADE'))
+    recorded = db.Column(db.DateTime,          index=True,  unique=False, nullable=False)
+    name = db.Column(db.String(255),           index=True, unique=False, nullable=False)
+    value = db.Column(db.Text,                 index=False, unique=False, nullable=True)
+    UNSAFE = {''}
+
+    def __init__(self, *args, **kwargs):
+        data, kwargs = kwargs.copy(), {}
+        kwargs['user_id'] = data.get('user_id')
+        kwargs['name'] = re.sub('^audience_', '', data.get('name'))
+        kwargs['value'] = json.dumps(data.get('values')[0].get('value'))
+        datestring = data.get('values')[0].get('end_time')
+        kwargs['recorded'] = parser.isoparse(datestring)
+        print('================== Audience Constructor ==============')
+        print(kwargs)
+        super().__init__(*args, **kwargs)
+
+    def __repr__(self):
+        return '<Audience {} | Date: {} >'.format(self.name, self.recorded)
+
 # class Post(db.Model):
 #     """ Instagram posts (media) by an influencer (user) """
 #     __tablename__ = 'posts'
 
 #     id = db.Column(db.Integer, primary_key=True)
-#     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+#     user_id = db.Column(db.Integer, db.ForeignKey('user.id', ondelete='CASCADE'), nullable=False)
 #     ig_id = db.Column(db.String(80),    index=True,  unique=True,  nullable=False)  # IG indentity
 #     recorded = db.Column(db.DateTime,   index=True,  unique=False, nullable=False)  # timestamp*
 #     likes = db.Column(db.Integer,       index=True,  unique=False, nullable=False)
@@ -170,11 +181,6 @@ class Insight(db.Model):
 
 
 def create(data, Model=User):
-    # data['created'], data['modified'] = dt.now(), dt.now()
-    # if Model == User:
-    #     data['admin'] = True if 'admin' in data and data['admin'] == 'on' else False  # TODO: Possible form injection
-    #     data['facebook_id'] = data.pop('id') if 'id' in data else None
-    #     data['token_expires'] = dt.fromtimestamp(data['token_expires']) if 'token_expires' in data and data['token_expires'] else None
     model = Model(**data)
     db.session.add(model)
     db.session.commit()
@@ -194,7 +200,6 @@ def read(id, Model=User, safe=True):
 
 
 def update(data, id, Model=User):
-    # data['modified'] = dt.now()
     if Model == User:
         data['admin'] = True if 'admin' in data and data['admin'] == 'on' else False
     model = Model.query.get(id)
@@ -226,7 +231,8 @@ def _create_database():
     app.config.from_pyfile('../config.py')
     init_app(app)
     with app.app_context():
-        db.drop_all()
+        # db.drop_all()
+        # print("All tables dropped!")
         db.create_all()
     print("All tables created")
 

@@ -3,7 +3,7 @@ from flask import Flask, render_template, abort, request, redirect, url_for  # ,
 from . import model_db
 import requests_oauthlib
 from requests_oauthlib.compliance_fixes import facebook_compliance_fix
-import json
+# import json
 from os import environ
 
 FB_CLIENT_ID = environ.get("FB_CLIENT_ID")
@@ -16,7 +16,7 @@ FB_SCOPE = [
     'instagram_basic',
     'instagram_manage_insights',
         ]
-mod_lookup = {'brand': model_db.Brand, 'user': model_db.User, 'insight': model_db.Insight}
+mod_lookup = {'brand': model_db.Brand, 'user': model_db.User, 'insight': model_db.Insight}  # , 'audience': model_db.Audience}
 DEPLOYED_URL = 'https://social-network-255302.appspot.com'
 if environ.get('GAE_INSTANCE'):
     URL = DEPLOYED_URL
@@ -87,43 +87,39 @@ def create_app(config, debug=False, testing=False, config_overrides=None):
             ig_period = 'lifetime'
             url = f"https://graph.facebook.com/{ig_id}/insights?metric={','.join(audience_metric)}&period={ig_period}"
             audience = facebook.get(url).json()
-            if 'error' in audience:
-                print('----------- Audience Error! ----------------')
-                print(audience)
-                return redirect(url_for('error'), data=audience, code=307)
             insight_metric = {'impressions', 'reach', 'follower_count'}
             ig_period = 'day'
             url = f"https://graph.facebook.com/{ig_id}/insights?metric={','.join(insight_metric)}&period={ig_period}"
             insights = facebook.get(url).json()
-            if 'error' in insights:
-                print('----------- Insights Error! ----------------')
-                print(insights)
-                return redirect(url_for('error'), data=insights, code=307)
             url = f"https://graph.facebook.com/v4.0/{ig_id}/media"
-            media = facebook.get(url).json().get('data')
-            print('================= Instagram Insights!! =================')
-            # print(media)
-            # print('--------------- Audience ---------------------------')
-            # for info in audience.get('data'):
-            #     print(info)
-            #     print('------------------------------------------')
-            # print(type(media))
-            print('--------------- Insights ---------------------------')
-            for info in insights.get('data'):
-                print(info)
-                print('------------------------------------------')
-            print(type(insights))
-            data['instagram_id'], data['notes'] = ig_id, json.dumps(audience.get('data'))
+            media = facebook.get(url).json()
+            if audience.get('error') or insights.get('error') or media.get('error'):
+                print('----------- Error! ----------------')
+                print(audience, insights, media)
+                return redirect(url_for('error'), data=[audience, insights, media], code=307)
+            print('============== Audience =========================')
+            for ea in audience.get('data'):
+                print(ea)
+                print('----------------------------------------------')
+            print(audience)
+            data['instagram_id'], data['notes'] = ig_id, ''
         else:
             data['instagram_id'], data['notes'] = None, ''
         print('============== user data collected =====================')
-        # print(data)
-        print(type(data))
         user = model_db.create(data)
-        print(user['id'])
+        print('User: ', user['id'])
         insights['user_id'] = user['id']
+        print(insights)
         temp = model_db.create(insights, model_db.Insight)
-        print(temp['id'])
+        print('Insight: ', temp['id'])
+        print('---------------- Audience -------------------------')
+        for ea in audience.get('data'):
+            ea['user_id'] = user['id']
+            # datestring = ea.get('values')[0].get('end_time')
+            # print(datestring)
+            # print('--------------------------------')
+            temp = model_db.create(ea, model_db.Audience)
+            print(temp['id'], ea.get('name'))
         return redirect(url_for('view', mod='user', id=user['id']))
 
     @app.route('/<string:mod>/<int:id>')
