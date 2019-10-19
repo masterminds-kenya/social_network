@@ -1,22 +1,34 @@
 {% extends "base.html" %}
 {% block head %}
-<title>User View Page</title>
+<title>{{ mod.capitalize() }} View Page</title>
 {% endblock %}
 
 {% block content %}
-<h3>Your User Account</h3>
-<ul>
-  <li>Username: {{user.username}} </li>
-  <li>Email: {{user.email}} </li>
-  <li>Created: {{user.created}} </li>
-  <li>Admin: {{user.admin}} </li>
-  <li>Bio: {{user.bio}} </li>
-  <li>db id: {{user.id}} </li>
-</ul>
+<h2>{{ mod.capitalize() }} Details</h2>
 
+{% block data_view %}
 <ul>
-  <li><a href="{{ url_for('edit', id=user.id) }}">Update User Account</a></li>
-  <li><a href="{{ url_for('delete', id=user.id) }}">Delete User Account</a></li>
+  {% for key in data.keys() %}
+  {% if key == 'insight' or key == 'audience' %}
+  <li> {{ key }} </li>
+    <ul>
+      {% for ea in data[key] %}
+      <li><a href="{{ url_for('view', mod=key, id=ea.id) }}">
+        {{ ea.name }} on {{ea.recorded}}</a>
+      </li>
+      {% endfor %}
+    </ul>
+  {% else %}
+  <li>{{key}}: {{data[key]}} </li>
+  {% endif %}
+  {% endfor %}
+</ul>
+{% endblock %}
+
+<h3>Modify Record</h3>
+<ul>
+  <li><a href="{{ url_for('edit', mod=mod, id=data.id) }}">Update {{ mod.capitalize() }} Account</a></li>
+  <li><a href="{{ url_for('delete', mod=mod, id=data.id) }}">Delete {{ mod.capitalize() }} Account</a></li>
 </ul>
 
 {% endblock %}

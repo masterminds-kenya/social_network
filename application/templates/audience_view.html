@@ -1,0 +1,11 @@
+{% extends "view.html" %}
+
+{% block data_view %}
+<h3>{{data.user}}: {{data.name.capitalize()}} {{data.recorded}} </h3>
+<ul>
+  {% for ea in data.value.keys() %}
+  <li>{{ea}}: {{data.value[ea]}} </li>
+  {% endfor %}
+</ul>
+
+{% endblock %}

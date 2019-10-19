@@ -3,6 +3,7 @@ from flask import Flask, render_template, abort, request, redirect, url_for  # ,
 from . import model_db
 import requests_oauthlib
 from requests_oauthlib.compliance_fixes import facebook_compliance_fix
+import json
 from os import environ
 
 FB_CLIENT_ID = environ.get("FB_CLIENT_ID")
@@ -11,10 +12,11 @@ FB_AUTHORIZATION_BASE_URL = "https://www.facebook.com/dialog/oauth"
 FB_TOKEN_URL = "https://graph.facebook.com/oauth/access_token"
 FB_SCOPE = [
     'email',
+    'pages_show_list',
     'instagram_basic',
     'instagram_manage_insights',
         ]
-
+mod_lookup = {'brand': model_db.Brand, 'user': model_db.User, 'insight': model_db.Insight, 'audience': model_db.Audience}
 DEPLOYED_URL = 'https://social-network-255302.appspot.com'
 if environ.get('GAE_INSTANCE'):
     URL = DEPLOYED_URL
@@ -42,7 +44,12 @@ def create_app(config, debug=False, testing=False, config_overrides=None):
     @app.route('/')
     def home():
         """ Default root route """
-        return render_template('index.html', data="Some Arbitrary Data")
+        return render_template('index.html', data="Some Arbitrary Words")
+
+    @app.route('/error', methods=['GET', 'POST'])
+    def error():
+        err = request.form.get('data')
+        return render_template('error.html', err=err)
 
     @app.route('/login')
     def login():
@@ -60,76 +67,115 @@ def create_app(config, debug=False, testing=False, config_overrides=None):
         facebook = requests_oauthlib.OAuth2Session(FB_CLIENT_ID, scope=FB_SCOPE, redirect_uri=callback)
         # we need to apply a fix for Facebook here
         facebook = facebook_compliance_fix(facebook)
-        token = facebook.fetch_token(FB_TOKEN_URL, client_secret=FB_CLIENT_SECRET, authorization_response=request.url,)
+        token = facebook.fetch_token(FB_TOKEN_URL, client_secret=FB_CLIENT_SECRET, authorization_response=request.url)
+        if 'error' in token:
+            return redirect(url_for('error'), data=token, code=307)
         # Fetch a protected resources:
-        # Basic User data (user profile, via Graph API)
-        print('===================== Get FB Profile =======================')
         facebook_user_data = facebook.get("https://graph.facebook.com/me?fields=id,name,email,accounts").json()
-        # email = facebook_user_data['email']
-        # name = facebook_user_data['name']
-        data = facebook_user_data.copy()  # .to_dict(flat=True)
+        if 'error' in facebook_user_data:
+            return redirect(url_for('error'), data=facebook_user_data, code=307)
         # TODO: use a better constructor for the user account.
-        data['facebook_id'] = data.pop('id')  # rename the id key so 'id' does not colide in User constructor.
-        data['username'] = data.pop('name')
-        data['admin'] = True if 'admin' in data and data['admin'] == 'on' else False
-        data.pop('facebook_id')
+        data = facebook_user_data.copy()  # .to_dict(flat=True)
+        data['token'] = token  # TODO: Decide - Should we pass this differently to protect this key?
         accounts = data.pop('accounts')
-        pages = [page.get('id') for page in accounts.get('data')]
-        instagram_data = facebook.get(f"https://graph.facebook.com/v4.0/{pages[0]}?fields=instagram_business_account").json()
-        ig_id = instagram_data['instagram_business_account'].get('id')
-        print(data)
-        # id -> facebook_id
-        # name -> name
-        # email -> email
-        # () -> admin
-        # accounts -> pages -> instagram_id
-        # token['access_token'] -> token
-        # token['expires_at'] -> token_expires
-        # () -> created date
-        # () -> updated date
-        # (pk) -> id
-
-
-        print('============== PAGES & IG_ID =====================')
-        print(pages)
-        print(ig_id)
+        pages = [page.get('id') for page in accounts.get('data')] if accounts and 'data' in accounts else None
+        # TODO: Add logic for user w/ many pages/instagram-accounts. Currently assume 1st page is correct one.
+        if pages:
+            instagram_data = facebook.get(f"https://graph.facebook.com/v4.0/{pages[0]}?fields=instagram_business_account").json()
+            ig_id = instagram_data['instagram_business_account'].get('id')
+            audience_metric = {'audience_city', 'audience_country', 'audience_gender_age'}
+            ig_period = 'lifetime'
+            url = f"https://graph.facebook.com/{ig_id}/insights?metric={','.join(audience_metric)}&period={ig_period}"
+            audience = facebook.get(url).json()
+            insight_metric = {'impressions', 'reach', 'follower_count'}
+            ig_period = 'day'
+            url = f"https://graph.facebook.com/{ig_id}/insights?metric={','.join(insight_metric)}&period={ig_period}"
+            insights = facebook.get(url).json()
+            url = f"https://graph.facebook.com/v4.0/{ig_id}/media"
+            media = facebook.get(url).json()
+            if audience.get('error') or insights.get('error') or media.get('error'):
+                print('----------- Error! ----------------')
+                print(audience, insights, media)
+                return redirect(url_for('error'), data=[audience, insights, media], code=307)
+            data['instagram_id'], data['notes'] = ig_id, ''
+        else:
+            data['instagram_id'], data['notes'] = None, ''
         user = model_db.create(data)
-        return redirect(url_for('view', id=user['id']))
-        # return render_template('results.html', name=name, email=email, instagram_id=ig_id, other=res)
+        print('User: ', user['id'])
+        print(user)
+        insights['user_id'] = user['id']
+        temp = model_db.create(insights, model_db.Insight)
+        print('Insight: ', temp['id'])
+        print(temp)
+        for ea in audience.get('data'):
+            ea['user_id'] = user['id']
+            temp = model_db.create(ea, model_db.Audience)
+            print('Audience: ', temp['id'], ea.get('name'))
+            print(temp)
+        return redirect(url_for('view', mod='user', id=user['id']))
 
-    @app.route('/user/<int:id>')
-    def view(id):
-        user = model_db.read(id)
-        return render_template('view.html', user=user)
+    @app.route('/<string:mod>/<int:id>')
+    def view(mod, id):
+        Model = mod_lookup.get(mod, None)
+        if not Model:
+            return f"No such route: {mod}", 404
+        model = model_db.read(id, Model=Model)
+        if mod == 'audience':
+            # prep some data
+            model['user'] = model_db.read(model.get('user_id')).get('name')
+            model['value'] = json.loads(model['value'])
+            return render_template(f"{mod}_view.html", mod=mod, data=model)
+        elif mod == 'insight':
+            # prep some data
+            model['user'] = model_db.read(model.get('user_id')).get('name')
+            return render_template(f"{mod}_view.html", mod=mod, data=model)
+        return render_template('view.html', mod=mod, data=model)
 
-    @app.route('/user/add', methods=['GET', 'POST'])
-    def add():
+    # @app.route('/insight/<int:id>')
+    # def insight(id):
+    #     results = ''
+    #     return render_template('insight.html', data=results)
+
+    @app.route('/<string:mod>/add', methods=['GET', 'POST'])
+    def add(mod):
+        Model = mod_lookup.get(mod, None)
+        if not Model:
+            return f"No such route: {mod}", 404
         if request.method == 'POST':
             data = request.form.to_dict(flat=True)  # TODO: add form validate method for security.
-            data['admin'] = True if 'admin' in data and data['admin'] == 'on' else False
-            user = model_db.create(data)
-            return redirect(url_for('view', id=user['id']))
-        return render_template('user_form.html', action='Add', user={})
+            model = model_db.create(data, Model=Model)
+            return redirect(url_for('view', mod=mod, id=model['id']))
+        template = f"{mod}_form.html"
+        return render_template(template, action='Add', mod=mod, data={})
 
-    @app.route('/user/<int:id>/edit', methods=['GET', 'POST'])
-    def edit(id):
-        user = model_db.read(id)
+    @app.route('/<string:mod>/<int:id>/edit', methods=['GET', 'POST'])
+    def edit(mod, id):
+        Model = mod_lookup.get(mod, None)
+        if not Model:
+            return f"No such route: {mod}", 404
         if request.method == 'POST':
             data = request.form.to_dict(flat=True)  # TODO: add form validate method for security.
-            data['admin'] = True if 'admin' in data and data['admin'] == 'on' else False
-            user = model_db.update(data, id)
-            return redirect(url_for('view', id=user['id']))
-        return render_template('user_form.html', action='Edit', user=user)
+            model = model_db.update(data, id, Model=Model)
+            return redirect(url_for('view', mod=mod, id=model['id']))
+        model = model_db.read(id, Model=Model)
+        template = f"{mod}_form.html"
+        return render_template(template, action='Edit', mod=mod, data=model)
 
-    @app.route('/user/<int:id>/delete')
-    def delete(id):
-        model_db.delete(id)
+    @app.route('/<string:mod>/<int:id>/delete')
+    def delete(mod, id):
+        Model = mod_lookup.get(mod, None)
+        if not Model:
+            return f"No such route: {mod}", 404
+        model_db.delete(id, Model=Model)
         return redirect(url_for('home'))
 
-    @app.route('/user/list')
-    def list():
-        users = model_db.list()
-        return render_template('list.html', users=users)
+    @app.route('/<string:mod>/list')
+    def all(mod):
+        Model = mod_lookup.get(mod, None)
+        if not Model:
+            return f"No such route: {mod}", 404
+        models = model_db.all(Model=Model)
+        return render_template('list.html', mod=mod, data=models)
 
     # Catchall redirect route.
     @app.route('/<string:page_name>/')
@@ -144,7 +190,9 @@ def create_app(config, debug=False, testing=False, config_overrides=None):
     # applications.
     @app.errorhandler(500)
     def server_error(e):
+        print('================== Error Handler =====================')
         print(e)
+        print('================== End Error Handler =================')
         return """
         An internal error occurred: <pre>{}</pre>
         See logs for full stacktrace.
