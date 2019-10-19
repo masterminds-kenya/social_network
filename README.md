@@ -55,7 +55,12 @@ python application/model_db.py
   - [x] User Business Instagram Account
   - [x] Insights data
   - [x] Useful network data
-- [ ] Add Test Users who have pages and Instagram business accounts.
+- [x] Can add new Influencer Users (currently must be added as Test Users)
+- [ ] Can Update data for existing Influencer Users
+- [ ] Add a logical catch for existing users to re-route to data update
+- [ ] Can have Brand give permission for the FB App
+- [ ] Can update data for existing Brand accounts
+- [ ] Create Test Users (need a FB page and Instagram business account).
 - [ ] Login: any additional User and Admin authentication needed?
   - [ ] ?Confirm Google login for Worksheet access?
   - [ ] ?Add our own App Auth: User management, adding/updating, auth, password, etc.
