@@ -39,6 +39,9 @@ class Brand(db.Model):
     # # users = db.relationship('User', secondary='campaigns')
     UNSAFE = {'facebook_id', 'token', 'token_expires', 'modified', 'created'}
 
+    def __str__(self):
+        return f"{self.name} Brand"
+
     def __repr__(self):
         return '<Brand {}>'.format(self.name)
 
@@ -62,7 +65,7 @@ class User(db.Model):
     modified = db.Column(db.DateTime,       index=False, unique=False, nullable=False, default=dt.utcnow, onupdate=dt.utcnow)
     created = db.Column(db.DateTime,        index=False, unique=False, nullable=False, default=dt.utcnow)
     insights = db.relationship('Insight', backref='user', lazy=True, passive_deletes=True)
-    # audiences = db.relationship('Audience', backref='user', lazy=True, passive_deletes=True)
+    audiences = db.relationship('Audience', backref='user', lazy=True, passive_deletes=True)
     # posts = db.relationship('Post', backref='user', lazy=True)
     # brands = db.relationship('Campaign', back_populates='user')
     # # brands = db.relationship('Brand', secondary='campaigns')
@@ -74,6 +77,9 @@ class User(db.Model):
         kwargs['token_expires'] = dt.fromtimestamp(kwargs['token'].get('token_expires')) if 'token' in kwargs and kwargs['token'].get('token_expires') else None
         kwargs['token'] = kwargs['token'].get('access_token') if 'token' in kwargs and kwargs['token'] else None
         super().__init__(*args, **kwargs)
+
+    def __str__(self):
+        return self.name
 
     def __repr__(self):
         return '<User {}>'.format(self.name)
@@ -110,6 +116,9 @@ class Insight(db.Model):
         kwargs['recorded'] = parser.isoparse(datestring)
         super().__init__(*args, **kwargs)
 
+    def __str__(self):
+        return f"{self.user} Insights on {self.recorded}"
+
     def __repr__(self):
         impressions = self.new_impressions - self.old_impressions
         reach = self.new_reach - self.old_reach
@@ -135,9 +144,11 @@ class Audience(db.Model):
         kwargs['value'] = json.dumps(data.get('values')[0].get('value'))
         datestring = data.get('values')[0].get('end_time')
         kwargs['recorded'] = parser.isoparse(datestring)
-        print('================== Audience Constructor ==============')
         print(kwargs)
         super().__init__(*args, **kwargs)
+
+    def __str__(self):
+        return f"{self.user} Audience - {self.name} on {self.recorded}"
 
     def __repr__(self):
         return '<Audience {} | Date: {} >'.format(self.name, self.recorded)
@@ -196,6 +207,15 @@ def read(id, Model=User, safe=True):
     results = from_sql(model)
     safe_results = {k: results[k] for k in results.keys() - Model.UNSAFE}
     output = safe_results if safe else results
+    if Model == User:
+        output['insight'] = [from_sql(ea) for ea in model.insights]
+        output['audience'] = [from_sql(ea) for ea in model.audiences]
+        # print(model.get('insights', "NO INSIGHTS"))
+        # print(model.get('audiences', "NO AUDIENCES"))
+        # print(model.insights)
+        # print(model.audiences)
+        print(output['insight'])
+        print(output['audience'])
     return output
 
 
@@ -216,7 +236,7 @@ def delete(id, Model=User):
     db.session.commit()
 
 
-def list(Model=User):
+def all(Model=User):
     sort_field = Model.name if Model in {User, Brand} else Model.id
     query = (Model.query.order_by(sort_field))
     models = query.all()
@@ -231,8 +251,8 @@ def _create_database():
     app.config.from_pyfile('../config.py')
     init_app(app)
     with app.app_context():
-        # db.drop_all()
-        # print("All tables dropped!")
+        db.drop_all()
+        print("All tables dropped!")
         db.create_all()
     print("All tables created")
 

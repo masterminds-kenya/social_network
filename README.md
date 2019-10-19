@@ -54,7 +54,7 @@ python application/model_db.py
   - [x] User profile info
   - [x] User Business Instagram Account
   - [x] Insights data
-  - [ ] Useful network data
+  - [x] Useful network data
 - [ ] Add Test Users who have pages and Instagram business accounts.
 - [ ] Login: any additional User and Admin authentication needed?
   - [ ] ?Confirm Google login for Worksheet access?

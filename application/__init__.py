@@ -3,7 +3,7 @@ from flask import Flask, render_template, abort, request, redirect, url_for  # ,
 from . import model_db
 import requests_oauthlib
 from requests_oauthlib.compliance_fixes import facebook_compliance_fix
-# import json
+import json
 from os import environ
 
 FB_CLIENT_ID = environ.get("FB_CLIENT_ID")
@@ -16,7 +16,7 @@ FB_SCOPE = [
     'instagram_basic',
     'instagram_manage_insights',
         ]
-mod_lookup = {'brand': model_db.Brand, 'user': model_db.User, 'insight': model_db.Insight}  # , 'audience': model_db.Audience}
+mod_lookup = {'brand': model_db.Brand, 'user': model_db.User, 'insight': model_db.Insight, 'audience': model_db.Audience}
 DEPLOYED_URL = 'https://social-network-255302.appspot.com'
 if environ.get('GAE_INSTANCE'):
     URL = DEPLOYED_URL
@@ -97,29 +97,21 @@ def create_app(config, debug=False, testing=False, config_overrides=None):
                 print('----------- Error! ----------------')
                 print(audience, insights, media)
                 return redirect(url_for('error'), data=[audience, insights, media], code=307)
-            print('============== Audience =========================')
-            for ea in audience.get('data'):
-                print(ea)
-                print('----------------------------------------------')
-            print(audience)
             data['instagram_id'], data['notes'] = ig_id, ''
         else:
             data['instagram_id'], data['notes'] = None, ''
-        print('============== user data collected =====================')
         user = model_db.create(data)
         print('User: ', user['id'])
+        print(user)
         insights['user_id'] = user['id']
-        print(insights)
         temp = model_db.create(insights, model_db.Insight)
         print('Insight: ', temp['id'])
-        print('---------------- Audience -------------------------')
+        print(temp)
         for ea in audience.get('data'):
             ea['user_id'] = user['id']
-            # datestring = ea.get('values')[0].get('end_time')
-            # print(datestring)
-            # print('--------------------------------')
             temp = model_db.create(ea, model_db.Audience)
-            print(temp['id'], ea.get('name'))
+            print('Audience: ', temp['id'], ea.get('name'))
+            print(temp)
         return redirect(url_for('view', mod='user', id=user['id']))
 
     @app.route('/<string:mod>/<int:id>')
@@ -128,6 +120,15 @@ def create_app(config, debug=False, testing=False, config_overrides=None):
         if not Model:
             return f"No such route: {mod}", 404
         model = model_db.read(id, Model=Model)
+        if mod == 'audience':
+            # prep some data
+            model['user'] = model_db.read(model.get('user_id')).get('name')
+            model['value'] = json.loads(model['value'])
+            return render_template(f"{mod}_view.html", mod=mod, data=model)
+        elif mod == 'insight':
+            # prep some data
+            model['user'] = model_db.read(model.get('user_id')).get('name')
+            return render_template(f"{mod}_view.html", mod=mod, data=model)
         return render_template('view.html', mod=mod, data=model)
 
     # @app.route('/insight/<int:id>')
@@ -169,11 +170,11 @@ def create_app(config, debug=False, testing=False, config_overrides=None):
         return redirect(url_for('home'))
 
     @app.route('/<string:mod>/list')
-    def list(mod):
+    def all(mod):
         Model = mod_lookup.get(mod, None)
         if not Model:
             return f"No such route: {mod}", 404
-        models = model_db.list(Model=Model)
+        models = model_db.all(Model=Model)
         return render_template('list.html', mod=mod, data=models)
 
     # Catchall redirect route.

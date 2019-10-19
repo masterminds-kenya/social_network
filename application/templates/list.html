@@ -8,11 +8,7 @@
 <ul>
   {% for datum in data %}
   <li><a href="{{ url_for('view', mod=mod, id=datum.id) }}">
-    {% if mod in {'user': true, 'brand': true} %}
-    {{datum.name}}
-    {% else %}
-    {{datum.id}}
-    {% endif %}
+    {{ datum }}
   </a> </li>
   {% endfor %}
 </ul>
