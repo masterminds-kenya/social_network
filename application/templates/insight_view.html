@@ -1,6 +1,10 @@
 {% extends "view.html" %}
 
 {% block data_view %}
+<h3>{{data.user}}: {{data.name.capitalize()}} {{data.recorded}} </h3>
+<p>{{ data.value }} </p>
+{% endblock %}
+
 
 <h3>{{data.user}}: {{data.recorded}} </h3>
 <h4> Impressions</h4>
@@ -18,7 +22,6 @@
   <li>Old: {{data['old_follower_count']}}</li>
   <li>New: {{data['new_follower_count']}}</li>
 </ul>
-{% endblock %}
 
 <table>
     <tr>

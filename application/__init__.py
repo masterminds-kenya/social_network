@@ -1,10 +1,13 @@
 # import logging
 from flask import Flask, render_template, abort, request, redirect, url_for  # , current_app
 from . import model_db
+import requests
 import requests_oauthlib
 from requests_oauthlib.compliance_fixes import facebook_compliance_fix
 import json
 from os import environ
+from datetime import datetime as dt
+from datetime import timedelta
 
 FB_CLIENT_ID = environ.get("FB_CLIENT_ID")
 FB_CLIENT_SECRET = environ.get("FB_CLIENT_SECRET")
@@ -23,6 +26,34 @@ if environ.get('GAE_INSTANCE'):
 else:
     environ["OAUTHLIB_INSECURE_TRANSPORT"] = "1"
     URL = 'http://127.0.0.1:8080'
+
+
+def get_insight(user_id, first=1, last=30*12, facebook=None):
+    """ Practice getting some insight data with the provided facebook oauth session """
+    model = model_db.read(user_id, safe=False)
+    ig_id, token = model.get('instagram_id'), model.get('token')
+    ig_period = 'day'
+    insight_metric = {'impressions', 'reach', 'follower_count'}
+    results = []
+    for i in range(first, last + 2 - 30, 30):
+        until = dt.utcnow() - timedelta(days=i)
+        since = until - timedelta(days=30)
+        url = f"https://graph.facebook.com/{ig_id}/insights?metric={','.join(insight_metric)}&period={ig_period}&since={since}&until={until}"
+        auth_url = f"{url}&access_token={token}"
+        response = requests.get(auth_url).json()
+        print('============ Test Insights Data ====================')
+        test_insights = response.get('data')
+        if not test_insights:
+            print('Error: ', response.get('error'))
+            return None
+        for ea in test_insights:
+            for val in ea.get('values'):
+                val['name'], val['user_id'] = ea.get('name'), user_id
+                temp = model_db.create(val, model_db.Insight)
+                print(temp.get('id'))
+                # results.append(val)
+
+    return results
 
 
 def create_app(config, debug=False, testing=False, config_overrides=None):
@@ -44,7 +75,8 @@ def create_app(config, debug=False, testing=False, config_overrides=None):
     @app.route('/')
     def home():
         """ Default root route """
-        return render_template('index.html', data="Some Arbitrary Words")
+        data = ''
+        return render_template('index.html', data=data)
 
     @app.route('/error', methods=['GET', 'POST'])
     def error():
@@ -87,32 +119,54 @@ def create_app(config, debug=False, testing=False, config_overrides=None):
             ig_period = 'lifetime'
             url = f"https://graph.facebook.com/{ig_id}/insights?metric={','.join(audience_metric)}&period={ig_period}"
             audience = facebook.get(url).json()
-            insight_metric = {'impressions', 'reach', 'follower_count'}
-            ig_period = 'day'
-            url = f"https://graph.facebook.com/{ig_id}/insights?metric={','.join(insight_metric)}&period={ig_period}"
-            insights = facebook.get(url).json()
+            # daily insights here
+
+            # url = f"https://graph.facebook.com/{ig_id}/insights?metric={','.join(insight_metric)}&period={ig_period}"
+
             url = f"https://graph.facebook.com/v4.0/{ig_id}/media"
             media = facebook.get(url).json()
-            if audience.get('error') or insights.get('error') or media.get('error'):
-                print('----------- Error! ----------------')
-                print(audience, insights, media)
-                return redirect(url_for('error'), data=[audience, insights, media], code=307)
-            data['instagram_id'], data['notes'] = ig_id, ''
+            # if audience.get('error') or insights.get('error') or media.get('error'):
+            #     print('----------- Error! ----------------')
+            #     print(audience, insights, media)
+            #     return redirect(url_for('error'), data=[audience, insights, media], code=307)
+            data['instagram_id'], data['notes'] = ig_id, json.dumps(media)
         else:
             data['instagram_id'], data['notes'] = None, ''
         user = model_db.create(data)
-        print('User: ', user['id'])
-        print(user)
-        insights['user_id'] = user['id']
-        temp = model_db.create(insights, model_db.Insight)
-        print('Insight: ', temp['id'])
-        print(temp)
+        user_id = user.get('id')
+        print('User: ', user_id)
+        insight_metric = {'impressions', 'reach', 'follower_count'}
+        ig_period = 'day'
+        for i in range(1, 360 + 2 - 30, 30):
+            until = dt.utcnow() - timedelta(days=i)
+            since = until - timedelta(days=30)
+            url = f"https://graph.facebook.com/{ig_id}/insights?metric={','.join(insight_metric)}&period={ig_period}&since={since}&until={until}"
+            response = facebook.get(url).json()
+            test_insights = response.get('data')
+            if not test_insights:
+                print('Error: ', response.get('error'))
+                return None
+            for ea in test_insights:
+                for val in ea.get('values'):
+                    val['name'], val['user_id'] = ea.get('name'), user_id
+                    temp = model_db.create(val, model_db.Insight)
+                    print('Insight: ', temp.get('id'))
+        # for ea in insights.get('data'):
+        #     for val in ea.get('values'):
+        #         val['name'], val['user_id'] = ea.get('name'), user_id
+        #         temp = model_db.create(val, model_db.Insight)
+        #         print('Insight: ', temp['id'])
+        #     print(temp)
+        # insights['user_id'] = user_id
+        # temp = model_db.create(insights, model_db.Insight)
+        # print('Insight: ', temp['id'])
+        # print(temp)
         for ea in audience.get('data'):
-            ea['user_id'] = user['id']
+            ea['user_id'] = user_id
             temp = model_db.create(ea, model_db.Audience)
             print('Audience: ', temp['id'], ea.get('name'))
             print(temp)
-        return redirect(url_for('view', mod='user', id=user['id']))
+        return redirect(url_for('view', mod='user', id=user_id))
 
     @app.route('/<string:mod>/<int:id>')
     def view(mod, id):
@@ -135,6 +189,12 @@ def create_app(config, debug=False, testing=False, config_overrides=None):
     # def insight(id):
     #     results = ''
     #     return render_template('insight.html', data=results)
+
+    @app.route('/<string:mod>/<int:id>/fetch')
+    def new_insight(mod, id):
+        # mod is either 'brand' or 'user'
+        new_insight = get_insight(id)
+        return render_template('test.html', data=new_insight)
 
     @app.route('/<string:mod>/add', methods=['GET', 'POST'])
     def add(mod):

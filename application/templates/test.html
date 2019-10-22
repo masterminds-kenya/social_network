@@ -1,0 +1,12 @@
+{% extends 'base.html' %}
+{% block head %}
+<title>Test Page</title>
+{% endblock %}
+{% block content %}
+<h2>Test Results</h2>
+<ul>
+  {% for datum in data %}
+  <li>{{datum}}</li>
+  {% endfor %}
+</ul>
+{% endblock %}
