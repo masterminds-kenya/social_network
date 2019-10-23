@@ -85,47 +85,6 @@ class User(db.Model):
         return '<User {}>'.format(self.name)
 
 
-# class Insight(db.Model):
-#     """ Data model for insights data on a (influencer's) user's or brand's account """
-#     __tablename__ = 'insights_use'
-
-#     id = db.Column(db.Integer, primary_key=True)
-#     user_id = db.Column(db.Integer, db.ForeignKey('users.id', ondelete='CASCADE'))
-#     recorded = db.Column(db.DateTime,          index=True,  unique=False, nullable=False)
-#     old_impressions = db.Column(db.Integer,    index=True,  unique=False, nullable=False)
-#     new_impressions = db.Column(db.Integer,    index=True,  unique=False, nullable=False)
-#     old_reach = db.Column(db.Integer,          index=True,  unique=False, nullable=False)
-#     new_reach = db.Column(db.Integer,          index=True,  unique=False, nullable=False)
-#     old_follower_count = db.Column(db.Integer, index=True,  unique=False, nullable=False)
-#     new_follower_count = db.Column(db.Integer, index=True,  unique=False, nullable=False)
-#     # insight_metric = {'impressions', 'reach', 'follower_count'}
-#     UNSAFE = {''}
-
-#     def __init__(self, *args, **kwargs):
-#         valid = {'impressions', 'reach', 'follower_count'}
-#         recorded = []
-#         data = kwargs.pop('data') if 'data' in kwargs else None
-#         user_id, kwargs = kwargs.get('user_id'), {}
-#         kwargs['user_id'] = user_id
-#         for ea in data:
-#             if ea.get('name') in valid:
-#                 kwargs[f"old_{ea['name']}"] = int(ea.get('values')[0].get('value'))  # expected int for older data
-#                 kwargs[f"new_{ea['name']}"] = int(ea.get('values')[1].get('value'))
-#                 recorded.append(ea['values'][1].get('end_time'))
-#         datestring = recorded[0] if len(recorded) > 0 else ''
-#         kwargs['recorded'] = parser.isoparse(datestring)
-#         super().__init__(*args, **kwargs)
-
-#     def __str__(self):
-#         return f"{self.user} Insights on {self.recorded}"
-
-#     def __repr__(self):
-#         impressions = self.new_impressions - self.old_impressions
-#         reach = self.new_reach - self.old_reach
-#         followers = self.new_follower_count - self.old_follower_count
-#         return '<Insight {}, {}, {} | Date: {} >'.format(impressions, reach, followers, self.recorded)
-
-
 class Insight(db.Model):
     """ Data model for insights data on a (influencer's) user's or brands account """
     __tablename__ = 'insights'
@@ -135,6 +94,7 @@ class Insight(db.Model):
     recorded = db.Column(db.DateTime,          index=True,  unique=False, nullable=False)
     name = db.Column(db.String(255),           index=True, unique=False, nullable=False)
     value = db.Column(db.Text,                 index=False, unique=False, nullable=True)
+    metrics = {'impressions', 'reach', 'follower_count'}
     UNSAFE = {''}
 
     def __init__(self, *args, **kwargs):
@@ -231,7 +191,15 @@ def read(id, Model=User, safe=True):
     safe_results = {k: results[k] for k in results.keys() - Model.UNSAFE}
     output = safe_results if safe else results
     if Model == User:
-        output['insight'] = [from_sql(ea) for ea in model.insights]
+        # ?Find min and max of dates for each Insight.metrics?
+        # output['insight'] = [{name: '', min: '', max: ''}, ...]
+        # insights = [from_sql(ea) for ea in model.insights]
+        # hold = {key: [] for key in Insight.metrics}
+        # print('Hold: ', hold)
+        # print('=======================================')
+        # [hold[ea['name']].append(ea) for ea in insights if ea['name'] in Insight.metrics]
+        # output['insight'] = hold
+        # # output['insight'] = [from_sql(ea) for ea in model.insights]
         output['audience'] = [from_sql(ea) for ea in model.audiences]
     return output
 

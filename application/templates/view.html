@@ -22,9 +22,11 @@
   <li>{{key}}: {{data[key]}} </li>
   {% endif %}
   {% endfor %}
+  <li><a href="{{ url_for('insights', mod=mod, id=data.id)}}">See Insights</a> </li>
 </ul>
 {% endblock %}
 
+{% block modify %}
 <h3>Modify Record</h3>
 <ul>
   {% if mod == 'user' or mod == 'brand' %}
@@ -34,5 +36,6 @@
   <li><a href="{{ url_for('edit', mod=mod, id=data.id) }}">Update {{ mod.capitalize() }} Account</a></li>
   <li><a href="{{ url_for('delete', mod=mod, id=data.id) }}">Delete {{ mod.capitalize() }} Account</a></li>
 </ul>
+{% endblock %}
 
 {% endblock %}

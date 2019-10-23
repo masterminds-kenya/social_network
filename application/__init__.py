@@ -9,8 +9,8 @@ from os import environ
 from datetime import datetime as dt
 from datetime import timedelta
 
-FB_CLIENT_ID = environ.get("FB_CLIENT_ID")
-FB_CLIENT_SECRET = environ.get("FB_CLIENT_SECRET")
+FB_CLIENT_ID = environ.get('FB_CLIENT_ID')
+FB_CLIENT_SECRET = environ.get('FB_CLIENT_SECRET')
 FB_AUTHORIZATION_BASE_URL = "https://www.facebook.com/dialog/oauth"
 FB_TOKEN_URL = "https://graph.facebook.com/oauth/access_token"
 FB_SCOPE = [
@@ -20,7 +20,7 @@ FB_SCOPE = [
     'instagram_manage_insights',
         ]
 mod_lookup = {'brand': model_db.Brand, 'user': model_db.User, 'insight': model_db.Insight, 'audience': model_db.Audience}
-DEPLOYED_URL = 'https://social-network-255302.appspot.com'
+DEPLOYED_URL = environ.get('DEPLOYED_URL')
 if environ.get('GAE_INSTANCE'):
     URL = DEPLOYED_URL
 else:
@@ -28,19 +28,22 @@ else:
     URL = 'http://127.0.0.1:8080'
 
 
-def get_insight(user_id, first=1, last=30*12, facebook=None):
+def get_insight(user_id, first=1, last=30*12, ig_id=None, facebook=None):
     """ Practice getting some insight data with the provided facebook oauth session """
-    model = model_db.read(user_id, safe=False)
-    ig_id, token = model.get('instagram_id'), model.get('token')
     ig_period = 'day'
-    insight_metric = {'impressions', 'reach', 'follower_count'}
     results = []
+    insight_metric = ','.join(model_db.Insight.metrics)
+    # insight_metric = {'impressions', 'reach', 'follower_count'}
+    if not facebook or not ig_id:
+        model = model_db.read(user_id, safe=False)
+        ig_id, token = model.get('instagram_id'), model.get('token')
+
     for i in range(first, last + 2 - 30, 30):
         until = dt.utcnow() - timedelta(days=i)
         since = until - timedelta(days=30)
-        url = f"https://graph.facebook.com/{ig_id}/insights?metric={','.join(insight_metric)}&period={ig_period}&since={since}&until={until}"
+        url = f"https://graph.facebook.com/{ig_id}/insights?metric={insight_metric}&period={ig_period}&since={since}&until={until}"
         auth_url = f"{url}&access_token={token}"
-        response = requests.get(auth_url).json()
+        response = requests.get(auth_url).json() if not facebook else facebook(url).json()
         print('============ Test Insights Data ====================')
         test_insights = response.get('data')
         if not test_insights:
@@ -51,8 +54,7 @@ def get_insight(user_id, first=1, last=30*12, facebook=None):
                 val['name'], val['user_id'] = ea.get('name'), user_id
                 temp = model_db.create(val, model_db.Insight)
                 print(temp.get('id'))
-                # results.append(val)
-
+                results.append(temp)
     return results
 
 
@@ -93,7 +95,7 @@ def create_app(config, debug=False, testing=False, config_overrides=None):
         # session['oauth_state'] = state
         return redirect(authorization_url)
 
-    @app.route("/callback")
+    @app.route('/callback')
     def callback():
         callback = URL + '/callback'
         facebook = requests_oauthlib.OAuth2Session(FB_CLIENT_ID, scope=FB_SCOPE, redirect_uri=callback)
@@ -119,28 +121,25 @@ def create_app(config, debug=False, testing=False, config_overrides=None):
             ig_period = 'lifetime'
             url = f"https://graph.facebook.com/{ig_id}/insights?metric={','.join(audience_metric)}&period={ig_period}"
             audience = facebook.get(url).json()
-            # daily insights here
-
-            # url = f"https://graph.facebook.com/{ig_id}/insights?metric={','.join(insight_metric)}&period={ig_period}"
-
-            url = f"https://graph.facebook.com/v4.0/{ig_id}/media"
-            media = facebook.get(url).json()
+            # url = f"https://graph.facebook.com/v4.0/{ig_id}/media"
+            # media = facebook.get(url).json()
             # if audience.get('error') or insights.get('error') or media.get('error'):
             #     print('----------- Error! ----------------')
             #     print(audience, insights, media)
             #     return redirect(url_for('error'), data=[audience, insights, media], code=307)
-            data['instagram_id'], data['notes'] = ig_id, json.dumps(media)
+            data['instagram_id'], data['notes'] = ig_id, ''  # json.dumps(media)
         else:
             data['instagram_id'], data['notes'] = None, ''
         user = model_db.create(data)
         user_id = user.get('id')
         print('User: ', user_id)
-        insight_metric = {'impressions', 'reach', 'follower_count'}
+        # insight_metric = {'impressions', 'reach', 'follower_count'}
+        insight_metric = ','.join(model_db.Insight.metrics)
         ig_period = 'day'
         for i in range(1, 360 + 2 - 30, 30):
             until = dt.utcnow() - timedelta(days=i)
             since = until - timedelta(days=30)
-            url = f"https://graph.facebook.com/{ig_id}/insights?metric={','.join(insight_metric)}&period={ig_period}&since={since}&until={until}"
+            url = f"https://graph.facebook.com/{ig_id}/insights?metric={insight_metric}&period={ig_period}&since={since}&until={until}"
             response = facebook.get(url).json()
             test_insights = response.get('data')
             if not test_insights:
@@ -151,16 +150,6 @@ def create_app(config, debug=False, testing=False, config_overrides=None):
                     val['name'], val['user_id'] = ea.get('name'), user_id
                     temp = model_db.create(val, model_db.Insight)
                     print('Insight: ', temp.get('id'))
-        # for ea in insights.get('data'):
-        #     for val in ea.get('values'):
-        #         val['name'], val['user_id'] = ea.get('name'), user_id
-        #         temp = model_db.create(val, model_db.Insight)
-        #         print('Insight: ', temp['id'])
-        #     print(temp)
-        # insights['user_id'] = user_id
-        # temp = model_db.create(insights, model_db.Insight)
-        # print('Insight: ', temp['id'])
-        # print(temp)
         for ea in audience.get('data'):
             ea['user_id'] = user_id
             temp = model_db.create(ea, model_db.Audience)
@@ -185,10 +174,13 @@ def create_app(config, debug=False, testing=False, config_overrides=None):
             return render_template(f"{mod}_view.html", mod=mod, data=model)
         return render_template('view.html', mod=mod, data=model)
 
-    # @app.route('/insight/<int:id>')
-    # def insight(id):
-    #     results = ''
-    #     return render_template('insight.html', data=results)
+    @app.route('/<string:mod>/<int:id>/insights')
+    def insights(mod, id):
+        # Query insights where user_id  == id, filter by model_db.Insight.metrics, order_by recorded
+        # display data
+            # use some chart to display data
+
+        return render_template('insight_view.html', mod=mod, data='')
 
     @app.route('/<string:mod>/<int:id>/fetch')
     def new_insight(mod, id):
