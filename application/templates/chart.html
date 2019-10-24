@@ -6,37 +6,38 @@
 
 {% block content %}
 <h1>Test Page</h1>
-<canvas id="chartypants" height="400px" width="1000px"></canvas>
+<canvas id="chartelem" height="400px" width="1000px"></canvas>
 <script>
   function makeChart(){
     titles = [ {% for item in labels %} "{{ item }}", {% endfor %} ];
-    nums1 = [ {% for item in vals1 %} "{{ item }}", {% endfor %} ];
-    nums2 = [ {% for item in vals2 %} "{{ item }}", {% endfor %} ];
-    nums3 = [ {% for item in vals3 %} "{{ item }}", {% endfor %} ];
+    nums1 = [ {% for item in vals1 %} {{ item }}, {% endfor %} ];
+    nums2 = [ {% for item in vals2 %} {{ item }}, {% endfor %} ];
+    nums3 = [ {% for item in vals3 %} {{ item }}, {% endfor %} ];
     max = {{ max }};
     min = {{ min }}
     steps = {{ steps }};
+    colors = [ {% for item in colors %} "{{ item }}", {% endfor %} ];
 
-    var ctx = document.getElementById('chartypants').getContext('2d');
+    var ctx = document.getElementById('chartelem').getContext('2d');
     new Chart(ctx, {
       type: 'bar',
       data: {
         labels: titles,
         datasets: [
               {
-                label: 'Data 1',
+                label: colors[0],
                 backgroundColor: 'gold',
                 borderColor: '#214',
                 data: nums1
               },
               {
-                label: 'Data 2',
+                label: colors[1],
                 backgroundColor: 'purple',
                 borderColor: '#214',
                 data: nums2
               },
               {
-                label: 'Data 3',
+                label: colors[2],
                 backgroundColor: 'green',
                 borderColor: '#214',
                 data: nums3

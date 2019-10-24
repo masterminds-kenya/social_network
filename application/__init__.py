@@ -193,7 +193,7 @@ def create_app(config, debug=False, testing=False, config_overrides=None):
         nums2 = [int(ea) for ea in dataset['reach']['data'].values()]
         nums3 = [int(ea) for ea in dataset['follower_count']['data'].values()]
         colors = [dataset[metric]['color'] for metric in dataset]
-        max_val = int(1.2 * max(max(nums1), max(nums2), max(nums3), 9))
+        max_val = int(1.2 * max(max(nums1), max(nums2), max(nums3), 5))
         min_val = int(0.8 * min(min(nums1), min(nums2), min(nums3)))
         steps = 14
         # return render_template('insight_view.html', mod=mod, data=data)
