@@ -9,12 +9,13 @@
 <canvas id="chartelem" height="400px" width="1000px"></canvas>
 <script>
   function makeChart(){
-    titles = [ {% for item in labels %} "{{ item }}", {% endfor %} ];
-    nums1 = [ {% for item in vals1 %} {{ item }}, {% endfor %} ];
-    nums2 = [ {% for item in vals2 %} {{ item }}, {% endfor %} ];
-    nums3 = [ {% for item in vals3 %} {{ item }}, {% endfor %} ];
+    let titles = [ {% for item in titles %} "{{ item }}", {% endfor %} ];
+    let labels = [ {% for item in labels %} "{{ item }}", {% endfor %} ];
+    let nums1 = [{% for item in vals1 %}{{item}}, {% endfor %}];
+    let nums2 = [{% for item in vals2 %}{{item}}, {% endfor %}];
+    let nums3 = [{% for item in vals3 %}{{item}}, {% endfor %}];
     max = {{ max }};
-    min = {{ min }}
+    min = {{ min }};
     steps = {{ steps }};
     colors = [ {% for item in colors %} "{{ item }}", {% endfor %} ];
 
@@ -22,23 +23,23 @@
     new Chart(ctx, {
       type: 'bar',
       data: {
-        labels: titles,
+        labels: labels,
         datasets: [
               {
-                label: colors[0],
-                backgroundColor: 'gold',
+                label: titles[0],
+                backgroundColor: colors[0],
                 borderColor: '#214',
                 data: nums1
               },
               {
-                label: colors[1],
-                backgroundColor: 'purple',
+                label: titles[1],
+                backgroundColor: colors[1],
                 borderColor: '#214',
                 data: nums2
               },
               {
-                label: colors[2],
-                backgroundColor: 'green',
+                label: titles[2],
+                backgroundColor: colors[2],
                 borderColor: '#214',
                 data: nums3
               }
@@ -57,7 +58,7 @@
         }
       }
     });
-    Chart.defaults.global.defaultFontColor = '#eee';
+    Chart.defaults.global.defaultFontColor = '#333';
   }
   makeChart();
 </script>

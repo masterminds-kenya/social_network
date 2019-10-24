@@ -188,7 +188,8 @@ def create_app(config, debug=False, testing=False, config_overrides=None):
             dataset[metric] = temp
             i += 1
 
-        titles = dataset['reach']['data'].keys()
+        labels = [ea for ea in dataset['reach']['data'].keys()]
+        titles = ['impressions', 'reach', 'follower_count']
         nums1 = [int(ea) for ea in dataset['impressions']['data'].values()]
         nums2 = [int(ea) for ea in dataset['reach']['data'].values()]
         nums3 = [int(ea) for ea in dataset['follower_count']['data'].values()]
@@ -197,7 +198,7 @@ def create_app(config, debug=False, testing=False, config_overrides=None):
         min_val = int(0.8 * min(min(nums1), min(nums2), min(nums3)))
         steps = 14
         # return render_template('insight_view.html', mod=mod, data=data)
-        return render_template('chart.html', colors=colors, data=dataset, max=max_val, min=min_val, steps=steps, vals1=nums1, vals2=nums2, vals3=nums3, labels=titles)
+        return render_template('chart.html', colors=colors, titles=titles, max=max_val, min=min_val, steps=steps, vals1=nums1, vals2=nums2, vals3=nums3, labels=labels)
 
     @app.route('/<string:mod>/<int:id>/fetch')
     def new_insight(mod, id):
