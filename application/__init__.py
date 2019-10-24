@@ -176,11 +176,28 @@ def create_app(config, debug=False, testing=False, config_overrides=None):
 
     @app.route('/<string:mod>/<int:id>/insights')
     def insights(mod, id):
-        # Query insights where user_id  == id, filter by model_db.Insight.metrics, order_by recorded
-        # display data
-            # use some chart to display data
+        Model = model_db.Insight
+        dataset, dates = {}, {}
+        scheme_color = ['gold', 'purple', 'green']
+        i = 0
+        for metric in Model.metrics:
+            temp = {}
+            temp['color'] = scheme_color[i % len(scheme_color)]
+            query = Model.query.filter_by(user_id=id, name=metric).order_by('recorded').all()
+            temp['data'] = {ea.recorded: int(ea.value) for ea in query}
+            dataset[metric] = temp
+            i += 1
 
-        return render_template('insight_view.html', mod=mod, data='')
+        titles = dataset['reach']['data'].keys()
+        nums1 = [int(ea) for ea in dataset['impressions']['data'].values()]
+        nums2 = [int(ea) for ea in dataset['reach']['data'].values()]
+        nums3 = [int(ea) for ea in dataset['follower_count']['data'].values()]
+        colors = [dataset[metric]['color'] for metric in dataset]
+        max_val = int(1.2 * max(max(nums1), max(nums2), max(nums3), 9))
+        min_val = int(0.8 * min(min(nums1), min(nums2), min(nums3)))
+        steps = 14
+        # return render_template('insight_view.html', mod=mod, data=data)
+        return render_template('chart.html', colors=colors, data=dataset, max=max_val, min=min_val, steps=steps, vals1=nums1, vals2=nums2, vals3=nums3, labels=titles)
 
     @app.route('/<string:mod>/<int:id>/fetch')
     def new_insight(mod, id):

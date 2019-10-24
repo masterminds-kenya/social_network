@@ -1,11 +1,20 @@
 {% extends "view.html" %}
 
 {% block data_view %}
-<p>Proof of Insights View</p>
+<h3>Insights View</h3>
+{% for datum in data.keys() %}
+<h4>{{datum.capitalize()}} </h4>
+<ul>
+  {% for val in data[datum] %}
+  <li>{{val.value}}, {{val.recorded}} </li>
+  {% endfor %}
+</ul>
+
+{% endfor %}
 {% endblock %}
 
 {% block modify %}
-<h3>No Need</h3>
+<h3>No Data Editing</h3>
 {% endblock %}
 
 <h3>{{data.user}}: {{data.name.capitalize()}} {{data.recorded}} </h3>
