@@ -176,6 +176,7 @@ def create_app(config, debug=False, testing=False, config_overrides=None):
 
     @app.route('/<string:mod>/<int:id>/insights')
     def insights(mod, id):
+        user = model_db.read(id)
         Model = model_db.Insight
         dataset, dates = {}, {}
         scheme_color = ['gold', 'purple', 'green']
@@ -198,7 +199,7 @@ def create_app(config, debug=False, testing=False, config_overrides=None):
         min_val = int(0.8 * min(min(nums1), min(nums2), min(nums3)))
         steps = 14
         # return render_template('insight_view.html', mod=mod, data=data)
-        return render_template('chart.html', colors=colors, titles=titles, max=max_val, min=min_val, steps=steps, vals1=nums1, vals2=nums2, vals3=nums3, labels=labels)
+        return render_template('chart.html', user=user['name'], colors=colors, titles=titles, max=max_val, min=min_val, steps=steps, vals1=nums1, vals2=nums2, vals3=nums3, labels=labels)
 
     @app.route('/<string:mod>/<int:id>/fetch')
     def new_insight(mod, id):

@@ -8,6 +8,7 @@
 
 {% block data_view %}
 <ul>
+  <li><a href="{{ url_for('insights', mod=mod, id=data.id)}}">See Insights</a> </li>
   {% for key in data.keys() %}
   {% if key == 'insight' or key == 'audience' %}
   <li> {{ key }} </li>
@@ -22,7 +23,6 @@
   <li>{{key}}: {{data[key]}} </li>
   {% endif %}
   {% endfor %}
-  <li><a href="{{ url_for('insights', mod=mod, id=data.id)}}">See Insights</a> </li>
 </ul>
 {% endblock %}
 

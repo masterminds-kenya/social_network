@@ -1,11 +1,11 @@
 {% extends "base.html" %}
 {% block head %}
-<title>Chart Data</title>
+<title> {{user.capitalize()}} Chart Data</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.4.0/Chart.min.js"></script>
 {% endblock %}
 
 {% block content %}
-<h1>Test Page</h1>
+<h1>{{user}} Insight Data</h1>
 <canvas id="chartelem" height="400px" width="1000px"></canvas>
 <script>
   function makeChart(){
