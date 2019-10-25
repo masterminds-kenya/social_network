@@ -178,7 +178,7 @@ def create_app(config, debug=False, testing=False, config_overrides=None):
     def insights(mod, id):
         user = model_db.read(id)
         Model = model_db.Insight
-        dataset, dates = {}, {}
+        dataset = {}
         scheme_color = ['gold', 'purple', 'green']
         i = 0
         for metric in Model.metrics:
@@ -189,7 +189,9 @@ def create_app(config, debug=False, testing=False, config_overrides=None):
             dataset[metric] = temp
             i += 1
 
-        labels = [ea for ea in dataset['reach']['data'].keys()]
+        labels = [ea.strftime("%d %b, %Y") for ea in dataset['reach']['data'].keys()]
+        print('-----------------------------------------------------')
+        print(type(labels[0]))
         titles = ['impressions', 'reach', 'follower_count']
         nums1 = [int(ea) for ea in dataset['impressions']['data'].values()]
         nums2 = [int(ea) for ea in dataset['reach']['data'].values()]
