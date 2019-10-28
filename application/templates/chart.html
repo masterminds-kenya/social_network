@@ -11,39 +11,31 @@
   function makeChart(){
     let titles = [ {% for item in titles %} "{{ item }}", {% endfor %} ];
     let labels = [ {% for item in labels %} "{{ item }}", {% endfor %} ];
-    let nums1 = [{% for item in vals1 %}{{item}}, {% endfor %}];
-    let nums2 = [{% for item in vals2 %}{{item}}, {% endfor %}];
-    let nums3 = [{% for item in vals3 %}{{item}}, {% endfor %}];
+    let colors = [ {% for item in colors %} "{{ item }}", {% endfor %} ];
+    chartData = [];
+    {% for insight in dataset %}
+    chartData.push([{% for item in dataset[insight]['data'].values() %}{{item}}, {% endfor %}]);
+    {% endfor %}
+    chartDataset = [];
+    for(i = 0; i < chartData.length; i++) {
+      let temp = {
+        label: titles[i],
+        backgroundColor: colors[i],
+        borderColor: '#214',
+        data: chartData[i]
+      }
+      chartDataset.push(temp);
+    }
     max = {{ max }};
     min = {{ min }};
     steps = {{ steps }};
-    colors = [ {% for item in colors %} "{{ item }}", {% endfor %} ];
 
     var ctx = document.getElementById('chartelem').getContext('2d');
     new Chart(ctx, {
       type: 'bar',
       data: {
         labels: labels,
-        datasets: [
-              {
-                label: titles[0],
-                backgroundColor: colors[0],
-                borderColor: '#214',
-                data: nums1
-              },
-              {
-                label: titles[1],
-                backgroundColor: colors[1],
-                borderColor: '#214',
-                data: nums2
-              },
-              {
-                label: titles[2],
-                backgroundColor: colors[2],
-                borderColor: '#214',
-                data: nums3
-              }
-        ]
+        datasets: chartDataset
       },
       options: {
         responsive: false,
@@ -63,39 +55,3 @@
   makeChart();
 </script>
 {% endblock %}
-
-
-
-
-
-
-
-<h1>Proof of Life Chart</h1>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.8.0/Chart.min.js"></script>
-<canvas id="chart" width="600" height="400"></canvas>
-<script>
-  var barData = {
-  labels : ["January", "February", "March", "April", "May", "June", "July", "August"],
-  datasets : [
-     {
-           fillColor: "rgba(151,187,205,0.2)",
-           strokeColor: "rgba(151,187,205,1)",
-           pointColor: "rgba(151,187,205,1)",
-           data : [10, 9, 8, 7, 6, 4, 7, 8]
-     }
-     ]
-  }
-  var mychart = document.getElementById("chart").getContext("2d");
-  steps = 10
-  max = 10
-  new Chart(mychart).Bar(barData, {
-       scaleOverride: true,
-       scaleSteps: steps,
-       scaleStepWidth: Math.ceil(max / steps),
-       scaleStartValue: 0,
-       scaleShowVerticalLines: true,
-       scaleShowGridLines : true,
-       barShowStroke : true,
-       scaleShowLabels: true
-  });
-</script>
