@@ -6,25 +6,31 @@
 
 {% block content %}
 <h1>{{user}} Insight Data</h1>
+<div id="button-container">
+  {% for insight in dataset %}
+  <button name="{{insight}}" value="hide">Hide {{insight}}</button>
+  {% endfor %}
+</div>
 <canvas id="chartelem" height="400px" width="1000px"></canvas>
 <script>
-  function makeChart(){
+  function makeChart(showSet){
     let labels = [{% for item in labels %}"{{ item }}", {% endfor %}];
     let chartDataset = [];
     let currData = {};
     {% for insight in dataset %}
-      currData = {};
-      {% for key, val in dataset[insight]['chart'].items() %}
-        {% if val is not string %}
-        currData['{{key}}'] = {{val}};
-        {% else %}
-        currData['{{key}}'] = '{{val}}'; 
-        {% endif %}
+      if (showSet.has('{{insight}}')) {
+        currData = {};
+        {% for key, val in dataset[insight]['chart'].items() %}
+          {% if val is not string %}
+          currData['{{key}}'] = {{val}};
+          {% else %}
+          currData['{{key}}'] = '{{val}}';
+          {% endif %}
+        {% endfor %}
+        chartDataset.push(currData);
+      }
       {% endfor %}
-      chartDataset.push(currData);
-    {% endfor %}
-
-    var ctx = document.getElementById('chartelem').getContext('2d');
+    let ctx = document.getElementById('chartelem').getContext('2d');
     new Chart(ctx, {
       type: 'bar',
       data: {
@@ -36,7 +42,7 @@
         scales: {
           yAxes: [{
             ticks: {
-              max: {{ max }},
+              max: {{max}},
               min: {{ min }},
               stepSize: {{ steps }}
             }
@@ -46,6 +52,27 @@
     });
     Chart.defaults.global.defaultFontColor = '#333';
   }
-  makeChart();
+  function handleButton(e) {
+    e.preventDefault();
+    // let newSet = new Set();
+    let curr = e.target;
+    if(curr.value === 'hide') {
+      curr.setAttribute('value', 'show');
+      curr.textContent = `Show ${curr.name}`;
+      showSet.delete(curr.name);
+    } else if (curr.value === 'show') {
+      curr.setAttribute('value', 'hide');
+      curr.textContent = `Hide ${curr.name}`;
+      showSet.add(curr.name);
+    }
+    makeChart(showSet);
+  }
+  let parent = document.getElementById('button-container');
+  parent.addEventListener('click', handleButton)
+  let showSet = new Set();
+  {% for insight in dataset %}
+  showSet.add('{{insight}}');
+  {% endfor %}
+  makeChart(showSet);
 </script>
 {% endblock %}
