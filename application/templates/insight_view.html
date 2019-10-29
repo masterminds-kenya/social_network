@@ -1,7 +1,7 @@
 {% extends "view.html" %}
 
 {% block data_view %}
-<h3>Insights View</h3>
+<h3>Insight View</h3>
 {% for datum in data.keys() %}
 <h4>{{datum.capitalize()}} </h4>
 <ul>
@@ -9,53 +9,9 @@
   <li>{{val.value}}, {{val.recorded}} </li>
   {% endfor %}
 </ul>
-
 {% endfor %}
 {% endblock %}
 
 {% block modify %}
 <h3>No Data Editing</h3>
 {% endblock %}
-
-<h3>{{data.user}}: {{data.name.capitalize()}} {{data.recorded}} </h3>
-<p>{{ data.value }} </p>
-
-<h3>{{data.user}}: {{data.recorded}} </h3>
-<h4> Impressions</h4>
-<ul>
-  <li>Old: {{data['old_impressions']}}</li>
-  <li>New: {{data['new_impressions']}}</li>
-</ul>
-<h4>Reach</h4>
-<ul>
-  <li>Old: {{data['old_reach']}}</li>
-  <li>New: {{data['new_reach']}}</li>
-</ul>
-<h4>Follower Count</h4>
-<ul>
-  <li>Old: {{data['old_follower_count']}}</li>
-  <li>New: {{data['new_follower_count']}}</li>
-</ul>
-
-<table>
-    <tr>
-      <th>Metric</th>
-      <th>Old</th>
-      <th>New</th>
-    </tr>
-    <tr>
-      <th>Impressions</th>
-      <td>{{data['old_impressions']}} </td>
-      <td>{{data['new_impressions']}} </td>
-    </tr>
-    <tr>
-      <th>Reach</th>
-      <td>{{data['old_reach']}} </td>
-      <td>{{data['new_reach']}} </td>
-    </tr>
-    <tr>
-      <th>Follower Count</th>
-      <td>{{data['old_follower_count']}} </td>
-      <td>{{data['new_follower_count']}} </td>
-    </tr>
-  </table>

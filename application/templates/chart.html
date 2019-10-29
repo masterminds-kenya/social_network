@@ -9,26 +9,20 @@
 <canvas id="chartelem" height="400px" width="1000px"></canvas>
 <script>
   function makeChart(){
-    let titles = [ {% for item in titles %} "{{ item }}", {% endfor %} ];
-    let labels = [ {% for item in labels %} "{{ item }}", {% endfor %} ];
-    let colors = [ {% for item in colors %} "{{ item }}", {% endfor %} ];
-    chartData = [];
+    let labels = [{% for item in labels %}"{{ item }}", {% endfor %}];
+    let chartDataset = [];
+    let currData = {};
     {% for insight in dataset %}
-    chartData.push([{% for item in dataset[insight]['data'].values() %}{{item}}, {% endfor %}]);
+      currData = {};
+      {% for key, val in dataset[insight]['chart'].items() %}
+        {% if val is not string %}
+        currData['{{key}}'] = {{val}};
+        {% else %}
+        currData['{{key}}'] = '{{val}}'; 
+        {% endif %}
+      {% endfor %}
+      chartDataset.push(currData);
     {% endfor %}
-    chartDataset = [];
-    for(i = 0; i < chartData.length; i++) {
-      let temp = {
-        label: titles[i],
-        backgroundColor: colors[i],
-        borderColor: '#214',
-        data: chartData[i]
-      }
-      chartDataset.push(temp);
-    }
-    max = {{ max }};
-    min = {{ min }};
-    steps = {{ steps }};
 
     var ctx = document.getElementById('chartelem').getContext('2d');
     new Chart(ctx, {
@@ -42,9 +36,9 @@
         scales: {
           yAxes: [{
             ticks: {
-              max: max,
-              min: min,
-              stepSize: steps
+              max: {{ max }},
+              min: {{ min }},
+              stepSize: {{ steps }}
             }
           }]
         }

@@ -181,24 +181,26 @@ def create_app(config, debug=False, testing=False, config_overrides=None):
         scheme_color = ['gold', 'purple', 'green']
         dataset = {}
         i = 0
+        max_val, min_val = 0, 0
         for metric in Model.metrics:
-            temp = {}
-            temp['color'] = scheme_color[i % len(scheme_color)]
             query = Model.query.filter_by(user_id=id, name=metric).order_by('recorded').all()
-            temp['data'] = {ea.recorded: int(ea.value) for ea in query}
+            temp_data = {ea.recorded.strftime("%d %b, %Y"): int(ea.value) for ea in query}
+            max_val = max(max_val, *temp_data.values())
+            min_val = min(max_val, *temp_data.values())
+            chart = {
+                'label': metric,
+                'backgroundColor': scheme_color[i % len(scheme_color)],
+                'borderColor': '#214',
+                'data': list(temp_data.values())
+            }
+            temp = {'chart': chart, 'data_dict': temp_data}
             dataset[metric] = temp
             i += 1
-
-        labels = [ea.strftime("%d %b, %Y") for ea in dataset['reach']['data'].keys()]
-        print('-----------------------------------------------------')
-        print(type(labels[0]))
-        titles = ['impressions', 'reach', 'follower_count']
-        colors = [dataset[metric]['color'] for metric in dataset]
-        max_val = int(1.2 * max(max(nums1), max(nums2), max(nums3), 5))
-        min_val = int(0.8 * min(min(nums1), min(nums2), min(nums3)))
+        labels = [ea for ea in dataset['reach']['data_dict'].keys()]
+        max_val = int(1.2 * max_val)
+        min_val = int(0.8 * min_val)
         steps = 14
-        # return render_template('insight_view.html', mod=mod, data=data)
-        return render_template('chart.html', user=user['name'], dataset=dataset, colors=colors, titles=titles, max=max_val, min=min_val, steps=steps, labels=labels)
+        return render_template('chart.html', user=user['name'], dataset=dataset, labels=labels, max=max_val, min=min_val, steps=steps)
 
     @app.route('/<string:mod>/<int:id>/fetch')
     def new_insight(mod, id):
