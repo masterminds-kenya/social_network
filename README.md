@@ -5,6 +5,8 @@
 
 ## Deployment
 
+Current [Dev Proof-of-Concept Site](https://social-network-255302.appspot.com/)
+
 We are currently deploying on google cloud (gcloud), with a flask server. Gcloud is expecting a pip requirements file (requirements.txt), an app.yaml file (indicating what python version to use), and a main.py file for our server code file. Gcloud also allows an ignore file (.gcloudignore) which follows the same concepts from .gitignore files. Locally we are using pipenv to help us track dependencies and packages only needed in the development environment. However, the Pipfile and Pipfile.lock files should be in the ignore file for uploading to gcloud.
 
 ## Development notes
@@ -55,7 +57,12 @@ python application/model_db.py
   - [x] User Business Instagram Account
   - [x] Insights data
   - [x] Useful network data
-- [ ] Add Test Users who have pages and Instagram business accounts.
+- [x] Can add new Influencer Users (currently must be added as Test Users)
+- [ ] Can Update data for existing Influencer Users
+- [ ] Add a logical catch for existing users to re-route to data update
+- [ ] Can have Brand give permission for the FB App
+- [ ] Can update data for existing Brand accounts
+- [ ] Create Test Users (need a FB page and Instagram business account).
 - [ ] Login: any additional User and Admin authentication needed?
   - [ ] ?Confirm Google login for Worksheet access?
   - [ ] ?Add our own App Auth: User management, adding/updating, auth, password, etc.

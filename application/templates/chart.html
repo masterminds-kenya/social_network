@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+{% block head %}
+<title> {{user.capitalize()}} Chart Data</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.4.0/Chart.min.js"></script>
+{% endblock %}
+
+{% block content %}
+<h1>{{user}} Insight Data</h1>
+<canvas id="chartelem" height="400px" width="1000px"></canvas>
+<script>
+  function makeChart(){
+    let labels = [{% for item in labels %}"{{ item }}", {% endfor %}];
+    let chartDataset = [];
+    let currData = {};
+    {% for insight in dataset %}
+      currData = {};
+      {% for key, val in dataset[insight]['chart'].items() %}
+        {% if val is not string %}
+        currData['{{key}}'] = {{val}};
+        {% else %}
+        currData['{{key}}'] = '{{val}}'; 
+        {% endif %}
+      {% endfor %}
+      chartDataset.push(currData);
+    {% endfor %}
+
+    var ctx = document.getElementById('chartelem').getContext('2d');
+    new Chart(ctx, {
+      type: 'bar',
+      data: {
+        labels: labels,
+        datasets: chartDataset
+      },
+      options: {
+        responsive: false,
+        scales: {
+          yAxes: [{
+            ticks: {
+              max: {{ max }},
+              min: {{ min }},
+              stepSize: {{ steps }}
+            }
+          }]
+        }
+      }
+    });
+    Chart.defaults.global.defaultFontColor = '#333';
+  }
+  makeChart();
+</script>
+{% endblock %}
