@@ -7,9 +7,9 @@
 {% block content %}
 <h1>{{user}} Insight Data</h1>
 <div id="button-container">
-  {% for insight in dataset %}
-  <button name="{{insight}}" value="hide">Hide {{insight}}</button>
-  {% endfor %}
+{% for insight in dataset %}
+<button name="{{insight}}" value="hide">Hide {{insight}}</button>
+{% endfor %}
 </div>
 <canvas id="chartelem" height="400px" width="1000px"></canvas>
 <script>
