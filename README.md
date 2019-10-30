@@ -57,7 +57,10 @@ python application/model_db.py
   - [x] User Business Instagram Account
   - [x] Insights data
   - [x] Useful network data
-- [x] Can add new Influencer Users (currently must be added as Test Users)
+- [x] Can add new Influencer Users (first must be added as Test Users)
+- [x] Graph showing all Insight data for a given user.
+- [x] Data sent to graph template setup to allow a variety of different view options.
+- [x] Insight Graph with javascript buttons to toggle which data shows.
 - [ ] Can Update data for existing Influencer Users
 - [ ] Add a logical catch for existing users to re-route to data update
 - [ ] Can have Brand give permission for the FB App
