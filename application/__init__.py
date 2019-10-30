@@ -181,19 +181,21 @@ def create_app(config, debug=False, testing=False, config_overrides=None):
         scheme_color = ['gold', 'purple', 'green']
         dataset = {}
         i = 0
-        max_val, min_val = 0, 0
+        max_val, min_val = 4, 0
         for metric in Model.metrics:
             query = Model.query.filter_by(user_id=id, name=metric).order_by('recorded').all()
             temp_data = {ea.recorded.strftime("%d %b, %Y"): int(ea.value) for ea in query}
-            max_val = max(max_val, *temp_data.values())
-            min_val = min(max_val, *temp_data.values())
+            max_curr = max(*temp_data.values())
+            min_curr = min(*temp_data.values())
+            max_val = max(max_val, max_curr)
+            min_val = min(max_val, min_curr)
             chart = {
                 'label': metric,
                 'backgroundColor': scheme_color[i % len(scheme_color)],
                 'borderColor': '#214',
                 'data': list(temp_data.values())
             }
-            temp = {'chart': chart, 'data_dict': temp_data}
+            temp = {'chart': chart, 'data_dict': temp_data, 'max': max_curr, 'min': min_curr}
             dataset[metric] = temp
             i += 1
         labels = [ea for ea in dataset['reach']['data_dict'].keys()]
