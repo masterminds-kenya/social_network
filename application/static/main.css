@@ -106,33 +106,29 @@ button {
   box-shadow: rgba(0,0,0,1) 0 1px 0;
   text-shadow: rgba(0,0,0,.4) 0 1px 0;
   color: #e6e6e6;
-  font-size: 12px;
-  font-family: Helvetica, Arial, Sans-Serif;
+  font-size: 14px;
+  font-family: 'Apercu-Medium', 'Helvetica Neue', Helvetica, Arial, sans-serif;
   text-decoration: none;
   vertical-align: middle;
-  }
+}
+
 .no-show {
-  border-top: 1px solid #939fef;
+  background: #555761;
+  background: -webkit-gradient(linear, left top, left bottom, from(#42454f), to(#555761));
+  background: -webkit-linear-gradient(top, #42454f, #555761);
+  background: -moz-linear-gradient(top, #42454f, #555761);
+  background: -ms-linear-gradient(top, #42454f, #555761);
+  background: -o-linear-gradient(top, #42454f, #555761);
+  color: #9e9e9e;
+}
+/* .no-show {
   background: #2f313b;
   background: -webkit-gradient(linear, left top, left bottom, from(#1b1e28), to(#2f313b));
   background: -webkit-linear-gradient(top, #1b1e28, #2f313b);
   background: -moz-linear-gradient(top, #1b1e28, #2f313b);
   background: -ms-linear-gradient(top, #1b1e28, #2f313b);
   background: -o-linear-gradient(top, #1b1e28, #2f313b);
-  padding: 7px 14px;
-  -webkit-border-radius: 40px;
-  -moz-border-radius: 40px;
-  border-radius: 40px;
-  -webkit-box-shadow: rgba(0,0,0,1) 0 1px 0;
-  -moz-box-shadow: rgba(0,0,0,1) 0 1px 0;
-  box-shadow: rgba(0,0,0,1) 0 1px 0;
-  text-shadow: rgba(0,0,0,.4) 0 1px 0;
-  color: #e6e6e6;
-  font-size: 12px;
-  font-family: Helvetica, Arial, Sans-Serif;
-  text-decoration: none;
-  vertical-align: middle;
-}
+} */
 button:hover {
   border-top-color: #4d5a64;
   background: #4d5a64;
