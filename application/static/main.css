@@ -11,29 +11,29 @@ Body: Tracking - 75, Size - 20/18pt, Sentence Case, Light, Tracking- 12%, Line s
 
 @font-face{
   font-family:'Apercu-Light';
-  src:url("../type/aperculight.eot");
-  src:url("../type/aperculight.eot?#iefix") format('embedded-opentype'),url("../type/aperculight.woff") format('woff'),url("../type/aperculight.ttf") format('truetype'),url("../type/aperculight.svg#Apercu-Light") format('svg');
+  src:url("/static/font/aperculight.eot");
+  src:url("/static/font/aperculight.eot?#iefix") format('embedded-opentype'),url("/static/font/aperculight.woff") format('woff'),url("/static/font/aperculight.ttf") format('truetype'),url("/static/font/aperculight.svg#Apercu-Light") format('svg');
   font-weight:300;
   font-style:normal
 }
 @font-face{
   font-family:'Apercu-LightItalic';
-  src:url("../type/aperculightitalic.eot");
-  src:url("../type/aperculightitalic.eot?#iefix") format('embedded-opentype'),url("../type/aperculightitalic.woff") format('woff'),url("../type/aperculightitalic.ttf") format('truetype'),url("../type/aperculightitalic.svg#Apercu-LightItalic") format('svg');
+  src:url("/static/font/aperculightitalic.eot");
+  src:url("/static/font/aperculightitalic.eot?#iefix") format('embedded-opentype'),url("/static/font/aperculightitalic.woff") format('woff'),url("/static/font/aperculightitalic.ttf") format('truetype'),url("/static/font/aperculightitalic.svg#Apercu-LightItalic") format('svg');
   font-weight:300;
   font-style:italic
 }
 @font-face{
   font-family:'Apercu-Medium';
-  src:url("../type/Apercu-Medium.eot");
-  src:url("../type/Apercu-Medium.eot?#iefix") format('embedded-opentype'),url("../type/Apercu-Medium.woff") format('woff'),url("../type/Apercu-Medium.ttf") format('truetype'),url("../type/Apercu-Medium.svg#Apercu-Medium") format('svg');
+  src:url("/static/font/Apercu-Medium.eot");
+  src:url("/static/font/Apercu-Medium.eot?#iefix") format('embedded-opentype'),url("/static/font/Apercu-Medium.woff") format('woff'),url("/static/font/Apercu-Medium.ttf") format('truetype'),url("/static/font/Apercu-Medium.svg#Apercu-Medium") format('svg');
   font-weight:600;
   font-style:normal
 }
 @font-face{
   font-family:'BacchusIcons';
-  src:url("../type/bacchusicons.eot");
-  src:url("../type/bacchusicons.eot?#iefix") format('embedded-opentype'),url("../type/bacchusicons.woff") format('woff'),url("../type/bacchusicons.ttf") format('truetype'),url("../type/bacchusicons.svg#BacchusIcons") format('svg');
+  src:url("/static/font/bacchusicons.eot");
+  src:url("/static/font/bacchusicons.eot?#iefix") format('embedded-opentype'),url("/static/font/bacchusicons.woff") format('woff'),url("/static/font/bacchusicons.ttf") format('truetype'),url("/static/font/bacchusicons.svg#BacchusIcons") format('svg');
   font-weight:400;
   font-style:normal
 }
@@ -58,18 +58,15 @@ h1{
   font-size:20px;
   line-height:28px;
   letter-spacing:2px;
-  text-transform:lowercase;
+  text-transform:uppercase;
 }
 h2{
   font-size:20px;
   line-height:28px;
   letter-spacing:2px;
-  text-transform:lowercase;
-  letter-spacing:2px;
   font-family:'Apercu-Medium','Helvetica Neue',Helvetica,Arial,sans-serif;
   font-weight:600;
   font-style:normal;
-  text-transform:uppercase;
   padding-bottom:8px
 }
 h3{
@@ -80,6 +77,93 @@ h3{
 h4, h5, h6{
   font-size:11px;
   line-height:18px;
-  letter-spacing:0;
+  /* letter-spacing:0; */
   letter-spacing:.5px;
 }
+
+/* button {
+  display: inline-block;
+  border: none;
+  padding: 1rem 2rem;
+  margin: 0;
+  text-decoration: none;
+  background: #0069ed;
+  color: #ffffff;
+  font-family: sans-serif;
+  font-size: 1rem;
+  cursor: pointer;
+  text-align: center;
+  transition: background 250ms ease-in-out,
+              transform 150ms ease;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+}
+
+button:hover,
+button:focus {
+  background: #0053ba;
+}
+
+button:focus {
+  outline: 1px solid #fff;
+  outline-offset: -4px;
+}
+
+button:active {
+  transform: scale(0.99);
+} */
+
+/* ================= */
+.no-show {
+  border-top: 1px solid #939fef;
+  background: #2f313b;
+  background: -webkit-gradient(linear, left top, left bottom, from(#1b1e28), to(#2f313b));
+  background: -webkit-linear-gradient(top, #1b1e28, #2f313b);
+  background: -moz-linear-gradient(top, #1b1e28, #2f313b);
+  background: -ms-linear-gradient(top, #1b1e28, #2f313b);
+  background: -o-linear-gradient(top, #1b1e28, #2f313b);
+  padding: 7px 14px;
+  -webkit-border-radius: 40px;
+  -moz-border-radius: 40px;
+  border-radius: 40px;
+  -webkit-box-shadow: rgba(0,0,0,1) 0 1px 0;
+  -moz-box-shadow: rgba(0,0,0,1) 0 1px 0;
+  box-shadow: rgba(0,0,0,1) 0 1px 0;
+  text-shadow: rgba(0,0,0,.4) 0 1px 0;
+  color: #e6e6e6;
+  font-size: 12px;
+  font-family: Helvetica, Arial, Sans-Serif;
+  text-decoration: none;
+  vertical-align: middle;
+  }
+button {
+  border-top: 1px solid #939fef;
+  background: #7583dc;
+  background: -webkit-gradient(linear, left top, left bottom, from(#4d5a78), to(#7583dc));
+  background: -webkit-linear-gradient(top, #4d5a78, #7583dc);
+  background: -moz-linear-gradient(top, #4d5a78, #7583dc);
+  background: -ms-linear-gradient(top, #4d5a78, #7583dc);
+  background: -o-linear-gradient(top, #4d5a78, #7583dc);
+  padding: 7px 14px;
+  -webkit-border-radius: 40px;
+  -moz-border-radius: 40px;
+  border-radius: 40px;
+  -webkit-box-shadow: rgba(0,0,0,1) 0 1px 0;
+  -moz-box-shadow: rgba(0,0,0,1) 0 1px 0;
+  box-shadow: rgba(0,0,0,1) 0 1px 0;
+  text-shadow: rgba(0,0,0,.4) 0 1px 0;
+  color: #e6e6e6;
+  font-size: 12px;
+  font-family: Helvetica, Arial, Sans-Serif;
+  text-decoration: none;
+  vertical-align: middle;
+  }
+button:hover {
+  border-top-color: #4d5a64;
+  background: #4d5a64;
+  color: #bfc1c2;
+  }
+button:active {
+  border-top-color: #1a2630;
+  background: #1a2630;
+  }
