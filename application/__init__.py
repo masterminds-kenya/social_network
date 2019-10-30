@@ -159,6 +159,7 @@ def create_app(config, debug=False, testing=False, config_overrides=None):
 
     @app.route('/<string:mod>/<int:id>')
     def view(mod, id):
+        """ Used primarily for specific User or Brand views, but also any data model view. """
         Model = mod_lookup.get(mod, None)
         if not Model:
             return f"No such route: {mod}", 404
@@ -176,6 +177,7 @@ def create_app(config, debug=False, testing=False, config_overrides=None):
 
     @app.route('/<string:mod>/<int:id>/insights')
     def insights(mod, id):
+        """ For a given User, show all Insight data. """
         user = model_db.read(id)
         Model = model_db.Insight
         scheme_color = ['gold', 'purple', 'green']
@@ -204,12 +206,13 @@ def create_app(config, debug=False, testing=False, config_overrides=None):
 
     @app.route('/<string:mod>/<int:id>/fetch')
     def new_insight(mod, id):
-        # mod is either 'brand' or 'user'
+        """ Get new insight data from API. Input mod for either User or Brand, with given id. """
         new_insight = get_insight(id)
         return render_template('test.html', data=new_insight)
 
     @app.route('/<string:mod>/add', methods=['GET', 'POST'])
     def add(mod):
+        """ For a given data Model, as indicated by mod, add new data to DB. """
         Model = mod_lookup.get(mod, None)
         if not Model:
             return f"No such route: {mod}", 404
@@ -222,6 +225,7 @@ def create_app(config, debug=False, testing=False, config_overrides=None):
 
     @app.route('/<string:mod>/<int:id>/edit', methods=['GET', 'POST'])
     def edit(mod, id):
+        """ Modify the existing DB entry. Model indicated by mod, and provided DB id. """
         Model = mod_lookup.get(mod, None)
         if not Model:
             return f"No such route: {mod}", 404
@@ -235,6 +239,7 @@ def create_app(config, debug=False, testing=False, config_overrides=None):
 
     @app.route('/<string:mod>/<int:id>/delete')
     def delete(mod, id):
+        """ Permantly remove from DB the record for Model indicated by mod and id. """
         Model = mod_lookup.get(mod, None)
         if not Model:
             return f"No such route: {mod}", 404
@@ -243,6 +248,7 @@ def create_app(config, debug=False, testing=False, config_overrides=None):
 
     @app.route('/<string:mod>/list')
     def all(mod):
+        """ List view for all data of Model indicated by mod. """
         Model = mod_lookup.get(mod, None)
         if not Model:
             return f"No such route: {mod}", 404
