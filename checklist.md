@@ -38,12 +38,17 @@ Current Status:
   - [x] Update ON DELETE for a Users child insights and audience.
   - [s] Post to track different "media" posts.
   - [s] Update ON DELETE for a User's posts.
+  - [s] Model for capturing the limited time FB/IG stories
+  - [s] Metrics for limited time FB/IG stories
   - [ ] Manage incoming insight duplications
   - [ ] Make sure incoming audience data does not overwrite historical audience data.
   - [ ] Can make a connection between a brand and a user.
     - [ ] Define a campaign for each connection.
-- [ ] Can Update data for existing Influencer Users
 - [ ] Add a logical catch for existing users to re-route to data update
+  - [ ] For all data collection on new users, move to external functions
+  - [ ] Refactor User data collection functions to work on create and update
+  - [ ] Refactor User data collection functions to work also work for Brands
+- [ ] Can Update data for existing Influencer Users
 - [ ] Refine Brand Model with constructor function for translating from FB.
 - [ ] Can update data for existing Brand accounts
 - [ ] Refine decision for fields from insights data.
@@ -68,7 +73,7 @@ Current Status:
 - [ ] Form Validate: Add method to validate form. Ensure other values cannot be injected.
 - [ ] Error handling on adding user with duplicate email address.
 - [ ] Error handling on adding user with duplicate name.
-- [ ] ?Refactor routes to their own file?
+- [ ] Refactor routes to their own file
 - [ ] Add Google Drive API to GCloud app.
 - [ ] Add functionality to export Marketing data to a Google worksheet.
   - [ ] create a view for the desired data
