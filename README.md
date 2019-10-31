@@ -27,6 +27,8 @@ python application/model_db.py
 
 ### TODO
 
+[Features & Tasks](./checklist.md)
+
 - [x] Confirm DB connection works
 - [x] CREATE: Confirm we can add users to DB
 - [x] READ:   Confirm we can retrieve user info from DB.
@@ -61,6 +63,10 @@ python application/model_db.py
 - [x] Graph showing all Insight data for a given user.
 - [x] Data sent to graph template setup to allow a variety of different view options.
 - [x] Insight Graph with javascript buttons to toggle which data shows.
+- [ ] Styling & Presentation
+  - [ ] Page styling of admin sections to assist in clear reports and navigation
+  - [ ] Attractive page styling for Influencer sign up portal & documents (ToS, privacy, etc)
+  - [ ] Attractive and clear styling for views seen by Influencers.
 - [ ] Can Update data for existing Influencer Users
 - [ ] Add a logical catch for existing users to re-route to data update
 - [ ] Manage incoming insight duplications
