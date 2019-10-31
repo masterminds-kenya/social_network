@@ -49,10 +49,21 @@ python application/model_db.py
 - [ ] DB Design: Track different businesses and how users affect each of them?
   - [x] Influencer User Table
   - [x] Brand Table
-  - [ ] Assume Many-to-Many, decide on fields from insights data.
-  - [?] Insight to track time series
+  - [x] User Model with constructor function for translating from FB.
+  - [x] Decide on fields from insights data.
+  - [x] Insight to track time series
+  - [x] Update ON DELETE for a Users child insights and audience.
   - [?] Post to track different "media" posts.
-  - [ ] Update ON DELETE for the child insights and posts.
+  - [?] Update ON DELETE for a User's posts.
+  - [ ] Manage incoming insight duplications
+  - [ ] Make sure incoming audience data does not overwrite historical audience data.
+  - [ ] Can make a connection between a brand and a user.
+    - [ ] Define a campaign for each connection.
+- [ ] Can Update data for existing Influencer Users
+- [ ] Add a logical catch for existing users to re-route to data update
+- [ ] Refine Brand Model with constructor function for translating from FB.
+- [ ] Can update data for existing Brand accounts
+- [ ] Refine decision for fields from insights data.
 - [x] CRUD methods updated for all models.
 - [x] Get appropriate data from FaceBook's Graph API stored to the DB.
   - [x] User profile info
@@ -67,29 +78,20 @@ python application/model_db.py
   - [ ] Page styling of admin sections to assist in clear reports and navigation
   - [ ] Attractive page styling for Influencer sign up portal & documents (ToS, privacy, etc)
   - [ ] Attractive and clear styling for views seen by Influencers.
-- [ ] Can Update data for existing Influencer Users
-- [ ] Add a logical catch for existing users to re-route to data update
-- [ ] Manage incoming insight duplications
-- [ ] Make sure incoming audience data does not overwrite historical audience data.
-- [ ] Can make a connection between a brand and a user.
-  - [ ] Define a campaign for each connection.
 - [ ] Can have Brand give permission for the FB App
-- [ ] Can update data for existing Brand accounts
 - [ ] Create Test Users (need a FB page and Instagram business account).
-- [ ] Google worksheet report views.
-- [ ] Login: any additional User and Admin authentication needed?
-  - [ ] ?Confirm Google login for Worksheet access?
-  - [ ] ?Add our own App Auth: User management, adding/updating, auth, password, etc.
-- [ ] Admin: only allow admin to see list and (potential) admin views
-- [ ] User (and Brand?) Constructor function for translating from FB.
 - [ ] Form Validate: Add method to validate form. Ensure other values cannot be injected.
 - [ ] Error handling on adding user with duplicate email address.
 - [ ] Error handling on adding user with duplicate name.
 - [ ] ?Refactor routes to their own file?
 - [ ] Add Google Drive API to GCloud app.
-- [ ] Add functionality to export Marketing data to a worksheet.
+- [ ] Add functionality to export Marketing data to a Google worksheet.
   - [ ] create a view for the desired data
   - [ ] refactor view to export to a google worksheet
+- [ ] Login: any additional User and Admin authentication needed?
+  - [ ] ?Confirm Google login for Worksheet access?
+  - [ ] ?Add our own App Auth: User management, adding/updating, auth, password, etc.
+  - [ ] Admin: only allow admin to see list and (potential) admin views
 
 ## User Stories
 
