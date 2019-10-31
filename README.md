@@ -7,7 +7,7 @@
 
 Current [Dev Proof-of-Concept Site](https://social-network-255302.appspot.com/)
 
-We are currently deploying on google cloud (gcloud), with a flask server. Gcloud is expecting a pip requirements file (requirements.txt), an app.yaml file (indicating what python version to use), and a main.py file for our server code file. Gcloud also allows an ignore file (.gcloudignore) which follows the same concepts from .gitignore files. Locally we are using pipenv to help us track dependencies and packages only needed in the development environment. However, the Pipfile and Pipfile.lock files should be in the ignore file for uploading to gcloud.
+We are currently deploying on google cloud (gcloud), with a flask server. Gcloud is expecting a pip requirements file (requirements.txt), an app.yaml file (indicating what python version to use, and environment variables), and a main.py file for our server code file. Gcloud also allows an ignore file - `.gcloudignore` which follows the same concepts from `.gitignore` files, as well as additional techniques for allowing files otherwise ignored in the `.gitignore` file. Locally we are using pipenv to help us track dependencies and packages only needed in the development environment. However, the `Pipfile` and `Pipfile.lock` files should be in the ignore file for uploading to gcloud, but still be tracked in the Git repository.
 
 ## Development notes
 
@@ -25,12 +25,15 @@ We can create the database tables by running:
 python application/model_db.py
 ```
 
-### TODO
+### Current Feature Development
+
+We are keeping a checklist for features and tasks that are both completed and are upcoming. This is intended as brief overview and to capture ongoing thoughts on how we are proceeding in developing this application. As a living document, it loosely indicates what we plan on working soon, with various degrees of specificity in planning. The current status of this file can be found in the following link:
 
 [Features & Tasks](./checklist.md)
 
-
 ## User Stories
+
+Our application has "Influencer" users who are experts in social media that bring value to our "Brand" company users who are principally responsible for the investment in the reputation of their products, as well as "Marketing" users who further manage this brand reputation investment.
 
 ### Influencer - bringing social value
 
