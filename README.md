@@ -52,7 +52,7 @@ python application/model_db.py
   - [?] Post to track different "media" posts.
   - [ ] Update ON DELETE for the child insights and posts.
 - [x] CRUD methods updated for all models.
-- [ ] Get appropriate data from FaceBook's Graph API stored to the DB.
+- [x] Get appropriate data from FaceBook's Graph API stored to the DB.
   - [x] User profile info
   - [x] User Business Instagram Account
   - [x] Insights data
@@ -63,9 +63,14 @@ python application/model_db.py
 - [x] Insight Graph with javascript buttons to toggle which data shows.
 - [ ] Can Update data for existing Influencer Users
 - [ ] Add a logical catch for existing users to re-route to data update
+- [ ] Manage incoming insight duplications
+- [ ] Make sure incoming audience data does not overwrite historical audience data.
+- [ ] Can make a connection between a brand and a user.
+  - [ ] Define a campaign for each connection.
 - [ ] Can have Brand give permission for the FB App
 - [ ] Can update data for existing Brand accounts
 - [ ] Create Test Users (need a FB page and Instagram business account).
+- [ ] Google worksheet report views.
 - [ ] Login: any additional User and Admin authentication needed?
   - [ ] ?Confirm Google login for Worksheet access?
   - [ ] ?Add our own App Auth: User management, adding/updating, auth, password, etc.
@@ -82,12 +87,27 @@ python application/model_db.py
 
 ## User Stories
 
-### Influencer
+### Influencer - bringing social value
 
-- Can easily login with facebook credentials and grant permission to our app
-- Can review the permissions and revoke them at any time.
+- As an active market influencer for a few years, they have seen growth in social following, and social mentions in the market, which are of great value. However, they are interested and unsure of what clearly defined value this brings their company in sales, conversion or loyalty.
+- As a market influencer engaged with a brand, they would like to see the ongoing impact of their campaign efforts has on their audience, the partner brand, and on their own personal branding. This can assist them in fine-tuning and delivering their desired message.
+- As an active market influencer beginning new brand relationships, they would like to provide usable and verifiable data on the value they bring to their brand partners.
+- As a market influencer, they would like their significant history of influence and reach to be recognized by brands and marketing team members.
+- App use: Can easily login with facebook credentials and grant permission to our app
+- App use: Can review the permissions and revoke them at any time.
+- App use: Can setup the parameters for a campaign (or is this marketing team task?)
 
-### Marketing
+### Brand - Deciding where to invest
 
-- Can view data using google worksheets
-- Does not need to issue commands or modify the code for the data they want
+- As a brand company active with market influencers for a a few years, they are satisfied that their influencer activity brings significant value to their brand. However, they feel their influencer strategy could be optimized, especially as the market becomes more crowded and competitive. The brand company wants to know how to leverage influencer campaigns in their overall marketing strategy, by amplifying and tracking gained users.
+- As a brand company that has been active in influencer marketing for a few years, they are concerned with the rising prices for both influencer campaigns and for social paid ads. The brand company wants to invest their budget where the most impact can be gained. However, they do not have the data on either to understand and determine their best options.
+- A given brand company has resisted influencer marketing for a decade, but has previously benefited from organic reach. They are seeking advice on how to use other channels - earned and paid - so they do not lose market share.
+- As a brand company without a strong social marketing history, they are cautiously new to paid social and they are skeptical about influencer marketing. They want to invest in both, but need measurable systems with clearly defined data to justify investment in this typically fuzzily defined field driven by vanity metrics.
+
+### Marketing - Manager of the Campaign
+
+- As a marketer who has been active with social influencers for a few years, they have historically seeded/sampled/gifted product or paid for product placement in an influencer feed. They are unsure the actual ROI and is looking to understand which influencers bring the most real quality audience/customers.
+- As a marketer who is relatively new to influencer marketing, they answer to senior leadership who want clearly defined measurable results. This influencer marketing campaign must be comparable with all their other marketing opportunities, with all projects ladder up to a 360* digital eco-system. Without enough data on influencer campaigns, the marketing team cannot justify investment compared to their other clearly defined digital strategies.
+- App use: Can view useful and clearly defined data using google worksheets
+- App use: They know they are viewing reliable and accurate data.
+- App use: Does not need to issue commands or modify the code for the data they want
