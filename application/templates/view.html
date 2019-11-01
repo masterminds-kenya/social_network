@@ -15,7 +15,7 @@
     <ul>
       {% for ea in data[key] %}
       <li><a href="{{ url_for('view', mod=key, id=ea.id) }}">
-        {{ ea.name }} on {{ea.recorded}}</a>
+        {{ ea.name }} as of {{ea.recorded}}</a>
       </li>
       {% endfor %}
     </ul>

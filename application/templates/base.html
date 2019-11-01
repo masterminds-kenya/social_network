@@ -8,23 +8,28 @@
   {% block head %}
   <title>{{ page_title }}</title>
   {% endblock %}
-  <link rel="stylesheet" href="//maxcdn.bootstrapcdn.com/bootstrap/3.3.2/css/bootstrap.min.css">
-  <link rel="stylesheet" href="">
+  <link rel="stylesheet" href="/static/normalize.css">
+  <link rel="stylesheet" href="/static/main.css">
 </head>
 <body>
+<header>
   <nav>
     <ul>
       <li><a href="{{ url_for('home') }}">Home</a></li>
-      <li><a href="{{ url_for('add', mod='user') }}">Add Fake User</a></li>
       <li><a href="{{ url_for('add', mod='brand') }}">Add Fake Brand</a></li>
-      <li><a href="{{ url_for('all', mod='user') }}">Admin - List Users</a></li>
-      <li><a href="{{ url_for('all', mod='brand') }}">Admin - List Brands</a></li>
-      <li><a href="{{ url_for('all', mod='insight') }}">Admin - List Insights</a></li>
-      <li><a href="{{ url_for('all', mod='audience') }}">Admin - List all Audience Data</a></li>
+      <li><a href="{{ url_for('all', mod='user') }}">List Users</a></li>
+      <li><a href="{{ url_for('all', mod='brand') }}">List Brands</a></li>
+      <li><a href="{{ url_for('render_static', page_name='test') }}">Test Styles Page</a></li>
     </ul>
   </nav>
+</header>
 {% block content %}
 
 {% endblock %}
+<footer>
+  <p>
+    <a href="{{ url_for('render_static', page_name='privacy') }}">Privacy</a> | <a href="{{ url_for('render_static', page_name='tos') }}">Terms of Service</a>
+  </p>
+</footer>
 </body>
 </html>

@@ -1,0 +1,64 @@
+/*! modern-normalize v0.5.0 | MIT License | https://github.com/sindresorhus/modern-normalize */
+
+ html { box-sizing: border-box; } /* Use a better box model (opinionated). */
+*, *::before, *::after { box-sizing: inherit; }
+:root { -moz-tab-size: 4; tab-size: 4; } /* Use a more readable tab size (opinionated). */
+/* Correct the line height in all browsers and Prevent adjustments of font size after orientation changes in iOS. */
+html { line-height: 1.15; -webkit-text-size-adjust: 100%; }
+/* Improve consistency of default fonts in all browsers. (https://github.com/sindresorhus/modern-normalize/issues/3) */
+body {
+  margin: 0;  /* Remove the margin in all browsers. */
+	font-family:
+		-apple-system,
+		BlinkMacSystemFont,
+		'Segoe UI',
+		Roboto,
+		Helvetica,
+		Arial,
+		sans-serif,
+		'Apple Color Emoji',
+		'Segoe UI Emoji',
+		'Segoe UI Symbol';
+}
+hr { height: 0; } /* Add the correct height in Firefox. */
+abbr[title] { text-decoration: underline dotted; } /* Add the correct text decoration in Chrome, Edge, and Safari. */
+b, strong { font-weight: bolder; } /* Add the correct font weight in Chrome, Edge, and Safari. */
+/* Correct the odd 'em' font sizing in all browsers. */
+code, kbd, samp, pre { font-size: 1em; font-family: SFMono-Regular, Consolas, 'Liberation Mono', Menlo, Courier, monospace; }
+small { font-size: 80%; } /* Add the correct font size in all browsers. */
+ /* Prevent 'sub' and 'sup' elements from affecting the line height in all browsers. */
+sub, sup { font-size: 75%; line-height: 0; position: relative; vertical-align: baseline; }
+sub { bottom: -0.25em; }
+sup { top: -0.5em; }
+/* Forms: Fix fonts, fix margin in Firefox and Safari */
+button, input, optgroup, select, textarea { font-family: inherit; font-size: 100%; line-height: 1.15; margin: 0; }
+button, select { text-transform: none; } /* Fix inheritance of text transform for Edge and Firefox. */
+ /* Correct the inability to style clickable types in iOS and Safari. */
+button, [type='button'], [type='reset'], [type='submit'] { -webkit-appearance: button; }
+ /* Remove the inner border and padding in Firefox. */
+button::-moz-focus-inner,
+[type='button']::-moz-focus-inner,
+[type='reset']::-moz-focus-inner,
+[type='submit']::-moz-focus-inner {
+	border-style: none;
+	padding: 0;
+}
+ /* Restore the focus styles unset by the previous rule. */
+button:-moz-focusring,
+[type='button']:-moz-focusring,
+[type='reset']:-moz-focusring,
+[type='submit']:-moz-focusring {
+	outline: 1px dotted ButtonText;
+}
+fieldset { padding: 0.35em 0.75em 0.625em; } /* Correct the padding in Firefox. */
+legend { padding: 0; } /* Remove the padding for case of zero out 'fieldset' elements in all browsers. */
+progress { vertical-align: baseline; } /* Add the correct vertical alignment in Chrome and Firefox. */
+ /* Correct the cursor style of increment and decrement buttons in Safari. */
+[type='number']::-webkit-inner-spin-button, [type='number']::-webkit-outer-spin-button { 	height: auto; }
+ /* Correct the odd appearance in Chrome and Safari (incl. outline). */
+[type='search'] { -webkit-appearance: textfield; outline-offset: -2px; }
+ /* Remove the inner padding in Chrome and Safari on macOS. */
+[type='search']::-webkit-search-decoration { -webkit-appearance: none; }
+ /* Correct the inability to style clickable types in iOS and Safari and fix Safari font: 'inherit' */
+::-webkit-file-upload-button { -webkit-appearance: button; font: inherit; }
+summary { display: list-item; } /* Add the correct display in Chrome and Safari. */

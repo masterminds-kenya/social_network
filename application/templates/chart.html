@@ -8,7 +8,7 @@
 <h1>{{user}} Insight Data</h1>
 <div id="button-container">
 {% for insight in dataset %}
-<button name="{{insight}}" value="hide">Hide {{insight}}</button>
+<button name="{{insight}}" value="hide" class="shown">{{insight}} Shown</button>
 {% endfor %}
 </div>
 <canvas id="chartelem" height="400px" width="1000px"></canvas>
@@ -58,11 +58,13 @@
     let curr = e.target;
     if(curr.value === 'hide') {
       curr.setAttribute('value', 'show');
-      curr.textContent = `Show ${curr.name}`;
+      curr.setAttribute('class', 'no-show');
+      curr.textContent = `${curr.name} Not Shown`;
       showSet.delete(curr.name);
     } else if (curr.value === 'show') {
       curr.setAttribute('value', 'hide');
-      curr.textContent = `Hide ${curr.name}`;
+      curr.setAttribute('class', 'shown');
+      curr.textContent = `${curr.name} Shown`;
       showSet.add(curr.name);
     }
     makeChart(showSet);
