@@ -55,6 +55,9 @@ body{
   -moz-osx-font-smoothing: grayscale;
   -webkit-text-size-adjust: none;
 }
+header nav li { list-style: none; }
+footer { text-align: center; width: 100% }
+
 h1{
   font-size: 20px;
   line-height: 28px;

@@ -12,6 +12,7 @@
   <link rel="stylesheet" href="/static/main.css">
 </head>
 <body>
+<header>
   <nav>
     <ul>
       <li><a href="{{ url_for('home') }}">Home</a></li>
@@ -19,11 +20,16 @@
       <li><a href="{{ url_for('all', mod='user') }}">List Users</a></li>
       <li><a href="{{ url_for('all', mod='brand') }}">List Brands</a></li>
       <li><a href="{{ url_for('render_static', page_name='test') }}">Test Styles Page</a></li>
-
     </ul>
   </nav>
+</header>
 {% block content %}
 
 {% endblock %}
+<footer>
+  <p>
+    <a href="{{ url_for('render_static', page_name='privacy') }}">Privacy</a> | <a href="{{ url_for('render_static', page_name='tos') }}">Terms of Service</a>
+  </p>
+</footer>
 </body>
 </html>
