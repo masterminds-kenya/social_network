@@ -1,13 +1,14 @@
 # import logging
 from flask import Flask, render_template, abort, request, redirect, url_for  # , current_app
 from . import model_db
+from . import sheet_setup
 import requests
 import requests_oauthlib
 from requests_oauthlib.compliance_fixes import facebook_compliance_fix
 import json
 from os import environ
 from datetime import datetime as dt
-from datetime import timedelta  
+from datetime import timedelta
 
 FB_CLIENT_ID = environ.get('FB_CLIENT_ID')
 FB_CLIENT_SECRET = environ.get('FB_CLIENT_SECRET')
@@ -21,11 +22,14 @@ FB_SCOPE = [
         ]
 mod_lookup = {'brand': model_db.Brand, 'user': model_db.User, 'insight': model_db.Insight, 'audience': model_db.Audience}
 DEPLOYED_URL = environ.get('DEPLOYED_URL')
+LOCAL_URL = 'http://127.0.0.1:8080'
 if environ.get('GAE_INSTANCE'):
     URL = DEPLOYED_URL
+    LOCAL_ENV = False
 else:
     environ["OAUTHLIB_INSECURE_TRANSPORT"] = "1"
-    URL = 'http://127.0.0.1:8080'
+    URL = LOCAL_URL
+    LOCAL_ENV = True
 
 
 def get_insight(user_id, first=1, last=30*12, ig_id=None, facebook=None):
@@ -84,6 +88,15 @@ def create_app(config, debug=False, testing=False, config_overrides=None):
     def error():
         err = request.form.get('data')
         return render_template('error.html', err=err)
+
+    @app.route('/data')
+    def data():
+        """ Show the data with Google Sheets """
+        spreedsheet = sheet_setup.get_sheet(LOCAL_ENV)
+        test_string = 'We got a service!' if spreedsheet else 'Creds and service did not work.'
+        print(test_string)
+        test_string = spreedsheet if isinstance(test_string, str) else test_string
+        return render_template('data.html', data=test_string)
 
     @app.route('/login')
     def login():
