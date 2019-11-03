@@ -12,6 +12,9 @@ gunicorn = "*"
 pymysql = "*"
 requests-oauthlib = "*"
 python-dateutil = "*"
+google-api-python-client = "*"
+google-auth = "*"
+google-auth-httplib2 = "*"
 
 [requires]
 python_version = "3.7"
