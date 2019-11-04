@@ -8,9 +8,10 @@
 
 {% block data_view %}
 <ul>
+{% for key in data.keys() %}
+  {% if key == 'insight' %}
   <li><a href="{{ url_for('insights', mod=mod, id=data.id)}}">See Insights</a> </li>
-  {% for key in data.keys() %}
-  {% if key == 'insight' or key == 'audience' %}
+  {% elif key == 'audience' %}
   <li> {{ key }} </li>
     <ul>
       {% for ea in data[key] %}
@@ -22,7 +23,7 @@
   {% else %}
   <li>{{key}}: {{data[key]}} </li>
   {% endif %}
-  {% endfor %}
+{% endfor %}
 </ul>
 {% endblock %}
 
@@ -30,7 +31,8 @@
 <h3>Modify Record</h3>
 <ul>
   {% if mod == 'user' or mod == 'brand' %}
-  <li><a href="{{ url_for('new_insight', mod=mod, id=data.id)}}">Test New Insight</a> </li>
+  <li><a href="{{ url_for('new_insight', mod=mod, id=data.id)}}">Fetch New Insights</a> </li>
+  <li><a href="{{ url_for('new_audience', mod=mod, id=data.id)}}">Get New Audience Data</a> </li>
   {% endif %}
   <li>CAREFUL BELOW!</li>
   <li><a href="{{ url_for('edit', mod=mod, id=data.id) }}">Update {{ mod.capitalize() }} Account</a></li>

@@ -32,7 +32,7 @@ else:
     LOCAL_ENV = True
 
 
-def get_insight(user_id, first=1, last=30*12, ig_id=None, facebook=None):
+def get_insight(user_id, first=1, last=30*3, ig_id=None, facebook=None):
     """ Practice getting some insight data with the provided facebook oauth session """
     ig_period = 'day'
     results, token = [], ''
@@ -82,7 +82,6 @@ def get_audience(user_id, ig_id=None, facebook=None):
     #     print('----------- Error! ----------------')
     #     print(audience, insights, media)
     #     return redirect(url_for('error'), data=[audience, insights, media], code=307)
-    print(audience)
     for ea in audience.get('data'):
         ea['user_id'] = user_id
         temp = model_db.create(ea, model_db.Audience)
@@ -177,10 +176,10 @@ def create_app(config, debug=False, testing=False, config_overrides=None):
         user_id = user.get('id')
         print('User: ', user_id)
         # Insight Data
-        insights = get_insight(user_id, last=90, ig_id=ig_id, facebook=facebook)
-        print('We have insights') if insights else print('No insights')
-        audience = get_audience(user_id, ig_id=ig_id, facebook=facebook)
-        print('Audience data collected') if audience else print('No Audience data')
+        # insights = get_insight(user_id, last=90, ig_id=ig_id, facebook=facebook)
+        # print('We have insights') if insights else print('No insights')
+        # audience = get_audience(user_id, ig_id=ig_id, facebook=facebook)
+        # print('Audience data collected') if audience else print('No Audience data')
         return redirect(url_for('view', mod='user', id=user_id))
 
     @app.route('/<string:mod>/<int:id>')
@@ -232,11 +231,17 @@ def create_app(config, debug=False, testing=False, config_overrides=None):
         steps = 14
         return render_template('chart.html', user=user['name'], dataset=dataset, labels=labels, max=max_val, min=min_val, steps=steps)
 
+    @app.route('/<string:mod>/<int:id>/audience')
+    def new_audience(mod, id):
+        """ Get new audience data from API. Input mod for either User or Brand, with given id. """
+        audience = get_audience(id)
+        return redirect(url_for('view', mod=mod, id=id))
+
     @app.route('/<string:mod>/<int:id>/fetch')
     def new_insight(mod, id):
         """ Get new insight data from API. Input mod for either User or Brand, with given id. """
-        new_insight = get_insight(id)
-        return redirect(url_for('view', mod=mod, id=model['id']))
+        insights = get_insight(id)
+        return redirect(url_for('insights', mod=mod, id=id))
 
     @app.route('/<string:mod>/add', methods=['GET', 'POST'])
     def add(mod):
@@ -267,7 +272,7 @@ def create_app(config, debug=False, testing=False, config_overrides=None):
 
     @app.route('/<string:mod>/<int:id>/delete')
     def delete(mod, id):
-        """ Permantly remove from DB the record for Model indicated by mod and id. """
+        """ Permanently remove from DB the record for Model indicated by mod and id. """
         Model = mod_lookup.get(mod, None)
         if not Model:
             return f"No such route: {mod}", 404
