@@ -127,7 +127,7 @@ def create_app(config, debug=False, testing=False, config_overrides=None):
         data['token'] = token  # TODO: Decide - Should we pass this differently to protect this key?
         accounts = data.pop('accounts')
         pages = [page.get('id') for page in accounts.get('data')] if accounts and 'data' in accounts else None
-        # TODO: Add logic for user w/ many pages/instagram-accounts. Currently assume 1st page is correct one.
+        # TODO: Update logic for user w/ many pages/instagram-accounts. Currently assumes last found instagram account
         if pages:
             print(f'================= Pages count: {len(pages)} =================================')
             ig_arr, ig_id = set(), None
@@ -142,24 +142,25 @@ def create_app(config, debug=False, testing=False, config_overrides=None):
         user = model_db.create(data)
         user_id = user.get('id')
         print('User: ', user_id)
-        # insight_metric = {'impressions', 'reach', 'follower_count'}
-        insight_metric = ','.join(model_db.Insight.metrics)
-        ig_period = 'day'
         # Insight Data
-        for i in range(1, 360 + 2 - 30, 30):
-            until = dt.utcnow() - timedelta(days=i)
-            since = until - timedelta(days=30)
-            url = f"https://graph.facebook.com/{ig_id}/insights?metric={insight_metric}&period={ig_period}&since={since}&until={until}"
-            response = facebook.get(url).json()
-            test_insights = response.get('data')
-            if not test_insights:
-                print('Error: ', response.get('error'))
-                return None
-            for ea in test_insights:
-                for val in ea.get('values'):
-                    val['name'], val['user_id'] = ea.get('name'), user_id
-                    temp = model_db.create(val, model_db.Insight)
-                    # print('Insight: ', temp.get('id'))
+        insights = get_insight(user_id, ig_id=ig_id, facebook=facebook)
+        # insight_metric = ','.join(model_db.Insight.metrics)
+        # ig_period = 'day'
+        # for i in range(1, 360 + 2 - 30, 30):
+        #     until = dt.utcnow() - timedelta(days=i)
+        #     since = until - timedelta(days=30)
+        #     url = f"https://graph.facebook.com/{ig_id}/insights?metric={insight_metric}&period={ig_period}&since={since}&until={until}"
+        #     response = facebook.get(url).json()
+        #     test_insights = response.get('data')
+        #     if not test_insights:
+        #         print('Error: ', response.get('error'))
+        #         return None
+        #     for ea in test_insights:
+        #         for val in ea.get('values'):
+        #             val['name'], val['user_id'] = ea.get('name'), user_id
+        #             temp = model_db.create(val, model_db.Insight)
+        #             # print('Insight: ', temp.get('id'))
+
         # Audience and maybe other Data
         audience_metric = {'audience_city', 'audience_country', 'audience_gender_age'}
         ig_period = 'lifetime'
