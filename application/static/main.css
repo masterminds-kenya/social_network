@@ -30,28 +30,28 @@ body{
 @font-face{
   font-family: 'Apercu-Light';
   src: url("/static/font/Apercu-Light.ttf");
-  src: url("/static/font/aperculight.eot?#iefix") format('embedded-opentype'),url("/static/font/aperculight.woff") format('woff'),url("/static/font/Apercu-Light.ttf") format('truetype'),url("/static/font/aperculight.svg#Apercu-Light") format('svg');
+  /* src: url("/static/font/aperculight.eot?#iefix") format('embedded-opentype'),url("/static/font/aperculight.woff") format('woff'),url("/static/font/Apercu-Light.ttf") format('truetype'),url("/static/font/aperculight.svg#Apercu-Light") format('svg'); */
   font-weight: 400;
   font-style: normal
 }
 @font-face{
   font-family: 'Apercu-LightItalic';
   src: url("/static/font/Apercu-LightItalic.ttf");
-  src: url("/static/font/aperculightitalic.eot ?#iefix") format('embedded-opentype'),url("/static/font/aperculightitalic.woff") format('woff'),url("/static/Apercu-LightItalic.ttf") format('truetype'),url("/static/font/aperculightitalic.svg#Apercu-LightItalic") format('svg');
+  /* src: url("/static/font/aperculightitalic.eot ?#iefix") format('embedded-opentype'),url("/static/font/aperculightitalic.woff") format('woff'),url("/static/Apercu-LightItalic.ttf") format('truetype'),url("/static/font/aperculightitalic.svg#Apercu-LightItalic") format('svg'); */
   font-weight: 400;
   font-style: italic
 }
 @font-face{
   font-family: 'Apercu-Bold';
   src: url("/static/font/Apercu-Bold.ttf");
-  src: url("/static/font/Apercu-Bold.eot?#iefix") format('embedded-opentype'),url("/static/font/Apercu-Bold.woff") format('woff'),url("/static/font/Apercu-Bold.ttf") format('truetype'),url("/static/font/Apercu-Bold.svg#Apercu-Bold") format('svg');
+  /* src: url("/static/font/Apercu-Bold.eot?#iefix") format('embedded-opentype'),url("/static/font/Apercu-Bold.woff") format('woff'),url("/static/font/Apercu-Bold.ttf") format('truetype'),url("/static/font/Apercu-Bold.svg#Apercu-Bold") format('svg'); */
   font-weight: 900;
   font-style: normal
 }
 @font-face{
   font-family: 'Apercu-Medium';
   src: url("/static/font/Apercu-Medium.ttf");
-  src: url("/static/font/Apercu-Medium.otf?#iefix") format('embedded-opentype'),url("/static/font/Apercu-Medium.woff") format('woff'),url("/static/font/Apercu-Medium.ttf") format('truetype'),url("/static/font/Apercu-Medium.svg#Apercu-Medium") format('svg');
+  /* src: url("/static/font/Apercu-Medium.otf?#iefix") format('embedded-opentype'),url("/static/font/Apercu-Medium.woff") format('woff'),url("/static/font/Apercu-Medium.ttf") format('truetype'),url("/static/font/Apercu-Medium.svg#Apercu-Medium") format('svg'); */
   font-weight: 700;
   font-style: normal
 }

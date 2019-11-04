@@ -35,20 +35,21 @@ else:
 def get_insight(user_id, first=1, last=30*12, ig_id=None, facebook=None):
     """ Practice getting some insight data with the provided facebook oauth session """
     ig_period = 'day'
-    results = []
+    results, token = [], ''
     insight_metric = ','.join(model_db.Insight.metrics)
     # insight_metric = {'impressions', 'reach', 'follower_count'}
     if not facebook or not ig_id:
         model = model_db.read(user_id, safe=False)
         ig_id, token = model.get('instagram_id'), model.get('token')
 
+    print('============ Test Insights Data ====================')
     for i in range(first, last + 2 - 30, 30):
         until = dt.utcnow() - timedelta(days=i)
         since = until - timedelta(days=30)
         url = f"https://graph.facebook.com/{ig_id}/insights?metric={insight_metric}&period={ig_period}&since={since}&until={until}"
-        auth_url = f"{url}&access_token={token}"
-        response = requests.get(auth_url).json() if not facebook else facebook(url).json()
-        print('============ Test Insights Data ====================')
+        # auth_url = f"{url}&access_token={token}"
+        # response = requests.get(auth_url).json() if not facebook else facebook(url).json()
+        response = facebook.get(url).json() if facebook else requests.get(f"{url}&access_token={token}").json()
         test_insights = response.get('data')
         if not test_insights:
             print('Error: ', response.get('error'))
@@ -57,9 +58,53 @@ def get_insight(user_id, first=1, last=30*12, ig_id=None, facebook=None):
             for val in ea.get('values'):
                 val['name'], val['user_id'] = ea.get('name'), user_id
                 temp = model_db.create(val, model_db.Insight)
-                print(temp.get('id'))
+                # print(temp.get('id'))
                 results.append(temp)
     return results
+
+
+def get_audience(user_id, ig_id=None, facebook=None):
+    """ Get the audience data for the user of user_id """
+    print('=========================== Get Audience Data ======================')
+    audience_metric = {'audience_city', 'audience_country', 'audience_gender_age'}
+    ig_period = 'lifetime'
+    results, token = [], ''
+    if not facebook or not ig_id:
+        model = model_db.read(user_id, safe=False)
+        ig_id, token = model.get('instagram_id'), model.get('token')
+        print('get_audience did not receive ig_id or facebook')
+
+    url = f"https://graph.facebook.com/{ig_id}/insights?metric={','.join(audience_metric)}&period={ig_period}"
+    audience = facebook.get(url).json() if facebook else requests.get(f"{url}&access_token={token}").json()
+    # url = f"https://graph.facebook.com/v4.0/{ig_id}/media"
+    # media = facebook.get(url).json()
+    # if audience.get('error') or insights.get('error') or media.get('error'):
+    #     print('----------- Error! ----------------')
+    #     print(audience, insights, media)
+    #     return redirect(url_for('error'), data=[audience, insights, media], code=307)
+    print(audience)
+    for ea in audience.get('data'):
+        ea['user_id'] = user_id
+        temp = model_db.create(ea, model_db.Audience)
+        print('Audience: ', temp['id'], ea.get('name'))
+        # print(temp)
+        results.append(temp)
+    return results
+
+
+def find_instagram_id(accounts, facebook=None):
+    ig_id, ig_set = None, set()
+    pages = [page.get('id') for page in accounts.get('data')] if accounts and 'data' in accounts else None
+    # TODO: Update logic for user w/ many pages/instagram-accounts. Currently assumes last found instagram account
+    if pages:
+        print(f'================= Pages count: {len(pages)} =================================')
+        for page in pages:
+            instagram_data = facebook.get(f"https://graph.facebook.com/v4.0/{page}?fields=instagram_business_account").json()
+            temp_ig_id = instagram_data['instagram_business_account'].get('id', None)
+            if temp_ig_id:
+                ig_set.add(temp_ig_id)
+        ig_id = ig_set.pop()
+    return (ig_id, ig_set)
 
 
 def create_app(config, debug=False, testing=False, config_overrides=None):
@@ -126,57 +171,16 @@ def create_app(config, debug=False, testing=False, config_overrides=None):
         data = facebook_user_data.copy()  # .to_dict(flat=True)
         data['token'] = token  # TODO: Decide - Should we pass this differently to protect this key?
         accounts = data.pop('accounts')
-        pages = [page.get('id') for page in accounts.get('data')] if accounts and 'data' in accounts else None
-        # TODO: Update logic for user w/ many pages/instagram-accounts. Currently assumes last found instagram account
-        if pages:
-            print(f'================= Pages count: {len(pages)} =================================')
-            ig_arr, ig_id = set(), None
-            for page in pages:
-                instagram_data = facebook.get(f"https://graph.facebook.com/v4.0/{page}?fields=instagram_business_account").json()
-                temp_ig_id = instagram_data['instagram_business_account'].get('id', None)
-                if temp_ig_id:
-                    ig_arr.add(temp_ig_id)
-                    print(temp_ig_id)
-            ig_id = ig_arr.pop()
-        data['instagram_id'], data['notes'] = ig_id, ''  # json.dumps(media)
+        ig_id, ig_set = find_instagram_id(accounts, facebook=facebook)
+        data['instagram_id'], data['notes'] = ig_id, json.dumps(list(ig_set))  # json.dumps(media)
         user = model_db.create(data)
         user_id = user.get('id')
         print('User: ', user_id)
         # Insight Data
-        insights = get_insight(user_id, ig_id=ig_id, facebook=facebook)
-        # insight_metric = ','.join(model_db.Insight.metrics)
-        # ig_period = 'day'
-        # for i in range(1, 360 + 2 - 30, 30):
-        #     until = dt.utcnow() - timedelta(days=i)
-        #     since = until - timedelta(days=30)
-        #     url = f"https://graph.facebook.com/{ig_id}/insights?metric={insight_metric}&period={ig_period}&since={since}&until={until}"
-        #     response = facebook.get(url).json()
-        #     test_insights = response.get('data')
-        #     if not test_insights:
-        #         print('Error: ', response.get('error'))
-        #         return None
-        #     for ea in test_insights:
-        #         for val in ea.get('values'):
-        #             val['name'], val['user_id'] = ea.get('name'), user_id
-        #             temp = model_db.create(val, model_db.Insight)
-        #             # print('Insight: ', temp.get('id'))
-
-        # Audience and maybe other Data
-        audience_metric = {'audience_city', 'audience_country', 'audience_gender_age'}
-        ig_period = 'lifetime'
-        url = f"https://graph.facebook.com/{ig_id}/insights?metric={','.join(audience_metric)}&period={ig_period}"
-        audience = facebook.get(url).json()
-        # url = f"https://graph.facebook.com/v4.0/{ig_id}/media"
-        # media = facebook.get(url).json()
-        # if audience.get('error') or insights.get('error') or media.get('error'):
-        #     print('----------- Error! ----------------')
-        #     print(audience, insights, media)
-        #     return redirect(url_for('error'), data=[audience, insights, media], code=307)
-        for ea in audience.get('data'):
-            ea['user_id'] = user_id
-            temp = model_db.create(ea, model_db.Audience)
-            print('Audience: ', temp['id'], ea.get('name'))
-            print(temp)
+        insights = get_insight(user_id, last=90, ig_id=ig_id, facebook=facebook)
+        print('We have insights') if insights else print('No insights')
+        audience = get_audience(user_id, ig_id=ig_id, facebook=facebook)
+        print('Audience data collected') if audience else print('No Audience data')
         return redirect(url_for('view', mod='user', id=user_id))
 
     @app.route('/<string:mod>/<int:id>')
@@ -232,7 +236,7 @@ def create_app(config, debug=False, testing=False, config_overrides=None):
     def new_insight(mod, id):
         """ Get new insight data from API. Input mod for either User or Brand, with given id. """
         new_insight = get_insight(id)
-        return render_template('test.html', data=new_insight)
+        return redirect(url_for('view', mod=mod, id=model['id']))
 
     @app.route('/<string:mod>/add', methods=['GET', 'POST'])
     def add(mod):
