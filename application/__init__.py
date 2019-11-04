@@ -140,7 +140,7 @@ def create_app(config, debug=False, testing=False, config_overrides=None):
         spreedsheet = None
         test_string = 'We got a service!' if spreedsheet else 'Creds and service did not work.'
         print(test_string)
-        test_string = spreedsheet if isinstance(test_string, str) else test_string
+        test_string = spreedsheet if isinstance(spreedsheet, str) else test_string
         return render_template('data.html', data=test_string)
 
     @app.route('/login')
