@@ -1,7 +1,7 @@
 # import logging
 from flask import Flask, render_template, abort, request, redirect, url_for  # , current_app
 from . import model_db
-# from . import sheet_setup
+from . import sheet_setup
 import requests
 import requests_oauthlib
 from requests_oauthlib.compliance_fixes import facebook_compliance_fix
@@ -136,9 +136,9 @@ def create_app(config, debug=False, testing=False, config_overrides=None):
     @app.route('/data')
     def data():
         """ Show the data with Google Sheets """
-        # spreedsheet = sheet_setup.get_sheet(LOCAL_ENV)
-        spreedsheet = None
-        test_string = 'We got a service!' if spreedsheet else 'Creds and service did not work.'
+        spreedsheet = sheet_setup.get_sheet(LOCAL_ENV)
+        # spreedsheet = None
+        test_string = 'get_spreedsheet returned something!' if spreedsheet else 'spreedsheet did not work.'
         print(test_string)
         test_string = spreedsheet if isinstance(spreedsheet, str) else test_string
         return render_template('data.html', data=test_string)

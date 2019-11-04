@@ -15,6 +15,7 @@ python-dateutil = "*"
 google-api-python-client = "*"
 google-auth = "*"
 google-auth-httplib2 = "*"
+google-auth-oauthlib = "*"
 
 [requires]
 python_version = "3.7"
