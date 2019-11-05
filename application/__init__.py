@@ -37,12 +37,10 @@ def get_insight(user_id, first=1, last=30*3, ig_id=None, facebook=None):
     ig_period = 'day'
     results, token = [], ''
     insight_metric = ','.join(model_db.Insight.metrics)
-    # insight_metric = {'impressions', 'reach', 'follower_count'}
+    # print('=========================== Get Insight Data ======================')
     if not facebook or not ig_id:
         model = model_db.read(user_id, safe=False)
         ig_id, token = model.get('instagram_id'), model.get('token')
-
-    print('============ Test Insights Data ====================')
     for i in range(first, last + 2 - 30, 30):
         until = dt.utcnow() - timedelta(days=i)
         since = until - timedelta(days=30)
@@ -58,21 +56,20 @@ def get_insight(user_id, first=1, last=30*3, ig_id=None, facebook=None):
             for val in ea.get('values'):
                 val['name'], val['user_id'] = ea.get('name'), user_id
                 temp = model_db.create(val, model_db.Insight)
-                # print(temp.get('id'))
                 results.append(temp)
     return results
 
 
 def get_audience(user_id, ig_id=None, facebook=None):
     """ Get the audience data for the user of user_id """
-    print('=========================== Get Audience Data ======================')
+    # print('=========================== Get Audience Data ======================')
     audience_metric = {'audience_city', 'audience_country', 'audience_gender_age'}
     ig_period = 'lifetime'
     results, token = [], ''
     if not facebook or not ig_id:
         model = model_db.read(user_id, safe=False)
         ig_id, token = model.get('instagram_id'), model.get('token')
-        print('get_audience did not receive ig_id or facebook')
+        # print('get_audience did not receive ig_id or facebook')
 
     url = f"https://graph.facebook.com/{ig_id}/insights?metric={','.join(audience_metric)}&period={ig_period}"
     audience = facebook.get(url).json() if facebook else requests.get(f"{url}&access_token={token}").json()
@@ -85,8 +82,7 @@ def get_audience(user_id, ig_id=None, facebook=None):
     for ea in audience.get('data'):
         ea['user_id'] = user_id
         temp = model_db.create(ea, model_db.Audience)
-        print('Audience: ', temp['id'], ea.get('name'))
-        # print(temp)
+        # print('Audience: ', temp['id'], ea.get('name'))
         results.append(temp)
     return results
 
@@ -136,14 +132,17 @@ def create_app(config, debug=False, testing=False, config_overrides=None):
     @app.route('/data')
     def data():
         """ Show the data with Google Sheets """
-        spreedsheet = sheet_setup.create_sheet(LOCAL_ENV, 'test-title')
-        test_string = 'get_spreedsheet returned something!' if spreedsheet else 'spreedsheet did not work.'
+        spreedsheet, base_url = sheet_setup.create_sheet(LOCAL_ENV, 'test-title')
+        test_string = 'create_spreedsheet returned something!' if spreedsheet else 'spreedsheet did not work.'
         print(test_string)
         test_string = spreedsheet if isinstance(spreedsheet, str) else test_string
-        return render_template('data.html', data=test_string)
+        return render_template('data.html', data=test_string, val=base_url)
 
     @app.route('/login')
     def login():
+        print('========================================================================')
+        print('============================= NEW LOGIN ================================')
+        print('========================================================================')
         callback = URL + '/callback'
         facebook = requests_oauthlib.OAuth2Session(
             FB_CLIENT_ID, redirect_uri=callback, scope=FB_SCOPE
@@ -154,6 +153,7 @@ def create_app(config, debug=False, testing=False, config_overrides=None):
 
     @app.route('/callback')
     def callback():
+        print('========================== They Came Back  =============================')
         callback = URL + '/callback'
         facebook = requests_oauthlib.OAuth2Session(FB_CLIENT_ID, scope=FB_SCOPE, redirect_uri=callback)
         # we need to apply a fix for Facebook here
