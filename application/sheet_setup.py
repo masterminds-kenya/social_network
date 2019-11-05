@@ -27,12 +27,10 @@ def create_sheet(local_env, title):
     print('================== create sheet =======================')
     creds = get_creds(local_env, service_config['sheets'])
     if isinstance(creds, str):
-        return creds
+        return (creds, 0)
     service = build('sheets', 'v4', credentials=creds)
-    temp = type(service)
-    print(temp)
     spreadsheet = {'properties': {'title': title}}
     spreadsheet = service.spreadsheets().create(body=spreadsheet, fields='spreadsheetId').execute()
     id = spreadsheet.get('spreadsheetId')
     print('Spreadsheet ID: {0}'.format(id))
-    return (spreadsheet, temp)
+    return (spreadsheet, id)

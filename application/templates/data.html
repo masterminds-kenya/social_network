@@ -8,10 +8,11 @@
 <p>
   {{ data }}
 </p>
-<h2> What did it get for the url variable? </h2>
+{% if val %}
 <p>
-  {{ val }}
+  <a href="{{ val }}">Link to the worksheet</a>
 </p>
+{% endif %}
 <ul>
   <li><a href="{{ url_for('home') }}">Link example Home</a></li>
 </ul>

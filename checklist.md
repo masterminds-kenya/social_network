@@ -10,6 +10,7 @@
 
 Current Status:
 2019-10-30 21:38:05
+2019-11-05 09:42:07
 <!-- Ctrl-Shift-I to generate timestamp -->
 
 ## Checklist
@@ -75,7 +76,9 @@ Current Status:
 - [ ] Add functionality to export Marketing data to a Google worksheet.
   - [x] App can navigate credentials to allow full Google Sheet API features.
   - [ ] Resolve: if sheet owned by App, can marketing modify or use it?
-  - [ ] Do we need to have marketing user own the worksheet and App allowed to edit?
+    - [ ] Give permission to view an app owned spreadsheet
+    - [ ] Embed the worksheet as a view in our app, if useer is authorized (req add login)
+    - [ ] Do we need to have marketing user own the worksheet and App allowed to edit?
   - [x] Function to create a worksheet
   - [ ] Function to populate data to known worksheet.
   - [ ] Can read and format desired DB data into worksheet.

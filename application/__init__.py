@@ -132,11 +132,12 @@ def create_app(config, debug=False, testing=False, config_overrides=None):
     @app.route('/data')
     def data():
         """ Show the data with Google Sheets """
-        spreedsheet, base_url = sheet_setup.create_sheet(LOCAL_ENV, 'test-title')
-        test_string = 'create_spreedsheet returned something!' if spreedsheet else 'spreedsheet did not work.'
+        spreadsheet, id = sheet_setup.create_sheet(LOCAL_ENV, 'test-title')
+        test_string = 'create_spreedsheet returned something!' if spreadsheet else 'spreedsheet did not work.'
         print(test_string)
-        test_string = spreedsheet if isinstance(spreedsheet, str) else test_string
-        return render_template('data.html', data=test_string, val=base_url)
+        test_string = spreadsheet if isinstance(spreadsheet, str) else test_string
+        link = '' if id == 0 else f"https://docs.google.com/spreadsheets/d/{id}/edit#gid=0"
+        return render_template('data.html', data=test_string, val=link)
 
     @app.route('/login')
     def login():
