@@ -20,6 +20,7 @@ Pipfile.lock
 #!include:.gitignore
 
 !app.yaml
+!env/
 
 # Python pycache:
 __pycache__/

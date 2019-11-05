@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+{% block head %}
+<title>Insert Page Title Here</title>
+{% endblock %}
+
+{% block content %}
+<h1>Top Heading</h1>
+<p>
+  {% if data %}
+  {{ data }}
+  {% else %}
+  some static content.
+  {% endif %}
+</p>
+<h2>Another Heading</h2>
+<ul>
+  <li><a href="{{ url_for('home') }}">Link example Home</a></li>
+</ul>
+{% endblock %}

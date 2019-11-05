@@ -200,7 +200,10 @@ def read(id, Model=User, safe=True):
         # [hold[ea['name']].append(ea) for ea in insights if ea['name'] in Insight.metrics]
         # output['insight'] = hold
         # # output['insight'] = [from_sql(ea) for ea in model.insights]
-        output['audience'] = [from_sql(ea) for ea in model.audiences]
+        if len(model.insights) > 0:
+            output['insight'] = True
+        if len(model.audiences) > 0:
+            output['audience'] = [from_sql(ea) for ea in model.audiences]
     return output
 
 
