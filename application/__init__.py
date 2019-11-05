@@ -136,8 +136,7 @@ def create_app(config, debug=False, testing=False, config_overrides=None):
     @app.route('/data')
     def data():
         """ Show the data with Google Sheets """
-        spreedsheet = sheet_setup.get_sheet(LOCAL_ENV)
-        # spreedsheet = None
+        spreedsheet = sheet_setup.create_sheet(LOCAL_ENV, 'test-title')
         test_string = 'get_spreedsheet returned something!' if spreedsheet else 'spreedsheet did not work.'
         print(test_string)
         test_string = spreedsheet if isinstance(spreedsheet, str) else test_string

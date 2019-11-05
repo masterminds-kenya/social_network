@@ -73,11 +73,11 @@ Current Status:
 - [?] ?Influencer can create a Campaign to connect to Brand?
 - [x] Add Google Sheet API to GCloud app.
 - [ ] Add functionality to export Marketing data to a Google worksheet.
-  - [ ] App can navigate credentials to allow full Google Sheet API features.
-    - [ ] Resolve: if sheet owned by App, can marketing modify or use it?
-    - [ ] Do we need to have marketing user own the worksheet and App allowed to edit?
-  - [ ] Create a worksheet function.
-  - [ ] Populate data to known worksheet function.
+  - [x] App can navigate credentials to allow full Google Sheet API features.
+  - [ ] Resolve: if sheet owned by App, can marketing modify or use it?
+  - [ ] Do we need to have marketing user own the worksheet and App allowed to edit?
+  - [x] Function to create a worksheet
+  - [ ] Function to populate data to known worksheet.
   - [ ] Can read and format desired DB data into worksheet.
 - [x] create a route & view for the sheets data view
 - [ ] refactor sheets data view to export to a google worksheet
