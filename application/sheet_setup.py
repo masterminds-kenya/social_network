@@ -82,27 +82,46 @@ def read_sheet(local_env, id=SHARED_SHEET_ID):
     return (spreadsheet, id)
 
 
+def get_vals():
+    """ Get the values we want to put into our worksheet report """
+    default = [
+            ["pizza", "burger"],
+            [1004, 312],
+            ['good', 'okay']
+        ]
+    return default
+
+
+def compute_A1(arr2d, start='A1', sheet='Sheet1'):
+    """ Determine A1 format for 2D-array input, on given sheet, starting at given cell """
+    row_count = len(arr2d)
+    col_count = len(max(arr2d, key=len))
+    # write regex that separates the letter and digit sections. 'A1' would have following result:
+    col, row = 'A', 1
+    final_col = chr(ord(col) + col_count)
+    final_row = row_count + row
+    return f"{sheet}!{start}:{final_col}{final_row}"
+
+
 def update_sheet(local_env, id=SHARED_SHEET_ID):
     """ Get the data we want, then append it to the worksheet """
-    from pprint import pprint
+    # from pprint import pprint
     print('================== update sheet =======================')
     creds = get_creds(local_env, service_config['sheets'])
     if isinstance(creds, str):
         return (creds, 0)
     service = build('sheets', 'v4', credentials=creds)
-    range_ = 'Sheet1!A1:B2'  # TODO: Update placeholder value.
     value_input_option = 'USER_ENTERED'  # 'RAW' | 'USER_ENTERED' | 'INPUT_VALUE_OPTION_UNSPECIFIED'
     insert_data_option = 'OVERWRITE'  # 'OVERWITE' | 'INSERT_ROWS'
     major_dimension = 'ROWS'  # 'ROWS' | 'COLUMNS'
+    vals = get_vals()
+    range_ = compute_A1(vals) or 'Sheet1!A1:B2'
+
     value_range_body = {
         "majorDimension": major_dimension,
         "range": range_,
-        "values": [
-            ["cow", "penguin"],
-            [37, 4]
-        ]
+        "values": vals
     }
-    print('======== Modify Sheet ================')
     request = service.spreadsheets().values().append(
         spreadsheetId=id,
         range=range_,
@@ -111,11 +130,6 @@ def update_sheet(local_env, id=SHARED_SHEET_ID):
         body=value_range_body
         )
     spreadsheet = request.execute()
-    sheet_vals = spreadsheet.get('values')
-    if sheet_vals:
-        for row in sheet_vals:
-            print(', '.join(row))
-    else:
-        pprint(spreadsheet)
     id = spreadsheet.get('spreadsheetId')
+    # pprint(spreadsheet)
     return (spreadsheet, id)
