@@ -27,6 +27,7 @@ Current Status:
 - [s] Update ON DELETE for a User's posts.
 - [s] Model for capturing the limited time FB/IG stories
 - [s] Metrics for limited time FB/IG stories
+- [ ] Keep a DB table of worksheet ids?
 - [ ] Manage incoming insight duplications
 - [ ] Make sure incoming audience data does not overwrite historical audience data.
 - [ ] Can make a connection between a brand and a user.

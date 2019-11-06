@@ -232,9 +232,7 @@ def all(Model=User):
 
 
 def _create_database():
-    """ If this script is run directly, first we drop and then create
-    all the tables necessary to run the application.
-    """
+    """ Currently only works if we do not need to drop the tables before creating them """
     app = Flask(__name__)
     app.config.from_pyfile('../config.py')
     init_app(app)

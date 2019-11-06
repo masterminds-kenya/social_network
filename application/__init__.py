@@ -46,8 +46,6 @@ def get_insight(user_id, first=1, last=30*3, ig_id=None, facebook=None):
         until = dt.utcnow() - timedelta(days=i)
         since = until - timedelta(days=30)
         url = f"https://graph.facebook.com/{ig_id}/insights?metric={insight_metric}&period={ig_period}&since={since}&until={until}"
-        # auth_url = f"{url}&access_token={token}"
-        # response = requests.get(auth_url).json() if not facebook else facebook(url).json()
         response = facebook.get(url).json() if facebook else requests.get(f"{url}&access_token={token}").json()
         test_insights = response.get('data')
         if not test_insights:
@@ -70,8 +68,6 @@ def get_audience(user_id, ig_id=None, facebook=None):
     if not facebook or not ig_id:
         model = model_db.read(user_id, safe=False)
         ig_id, token = model.get('instagram_id'), model.get('token')
-        # print('get_audience did not receive ig_id or facebook')
-
     url = f"https://graph.facebook.com/{ig_id}/insights?metric={','.join(audience_metric)}&period={ig_period}"
     audience = facebook.get(url).json() if facebook else requests.get(f"{url}&access_token={token}").json()
     # url = f"https://graph.facebook.com/v4.0/{ig_id}/media"
@@ -150,8 +146,6 @@ def create_app(config, debug=False, testing=False, config_overrides=None):
     @app.route('/data/view/<string:id>')
     def data(id):
         """ Show the data with Google Sheets """
-        # spreadsheet, id = sheet_setup.create_sheet(LOCAL_ENV, 'test-title')
-        # spreadsheet, id = sheet_setup.update_sheet(LOCAL_ENV)
         spreadsheet, id = sheet_setup.read_sheet(LOCAL_ENV, id)
         link = '' if id == 0 else f"https://docs.google.com/spreadsheets/d/{id}/edit#gid=0"
         return render_template('data.html', data=spreadsheet, id=id, link=link)
@@ -174,8 +168,7 @@ def create_app(config, debug=False, testing=False, config_overrides=None):
         print('========================== They Came Back  =============================')
         callback = URL + '/callback'
         facebook = requests_oauthlib.OAuth2Session(FB_CLIENT_ID, scope=FB_SCOPE, redirect_uri=callback)
-        # we need to apply a fix for Facebook here
-        facebook = facebook_compliance_fix(facebook)
+        facebook = facebook_compliance_fix(facebook)  # we need to apply a fix for Facebook here
         token = facebook.fetch_token(FB_TOKEN_URL, client_secret=FB_CLIENT_SECRET, authorization_response=request.url)
         if 'error' in token:
             return redirect(url_for('error'), data=token, code=307)
@@ -185,7 +178,7 @@ def create_app(config, debug=False, testing=False, config_overrides=None):
             return redirect(url_for('error'), data=facebook_user_data, code=307)
         # TODO: use a better constructor for the user account.
         data = facebook_user_data.copy()  # .to_dict(flat=True)
-        data['token'] = token  # TODO: Decide - Should we pass this differently to protect this key?
+        data['token'] = token
         accounts = data.pop('accounts')
         ig_id, ig_set = find_instagram_id(accounts, facebook=facebook)
         data['instagram_id'], data['notes'] = ig_id, json.dumps(list(ig_set))  # json.dumps(media)
@@ -207,12 +200,10 @@ def create_app(config, debug=False, testing=False, config_overrides=None):
             return f"No such route: {mod}", 404
         model = model_db.read(id, Model=Model)
         if mod == 'audience':
-            # prep some data
             model['user'] = model_db.read(model.get('user_id')).get('name')
             model['value'] = json.loads(model['value'])
             return render_template(f"{mod}_view.html", mod=mod, data=model)
         elif mod == 'insight':
-            # prep some data
             model['user'] = model_db.read(model.get('user_id')).get('name')
             return render_template(f"{mod}_view.html", mod=mod, data=model)
         return render_template('view.html', mod=mod, data=model)
