@@ -95,9 +95,9 @@ def find_instagram_id(accounts, facebook=None):
         print(f'================= Pages count: {len(pages)} =================================')
         for page in pages:
             instagram_data = facebook.get(f"https://graph.facebook.com/v4.0/{page}?fields=instagram_business_account").json()
-            temp_ig_id = instagram_data['instagram_business_account'].get('id', None)
-            if temp_ig_id:
-                ig_set.add(temp_ig_id)
+            ig_business = instagram_data.get('instagram_business_account', None)
+            if ig_business:
+                ig_set.add(ig_business.get('id', None))
         ig_id = ig_set.pop()
     return (ig_id, ig_set)
 
@@ -132,7 +132,8 @@ def create_app(config, debug=False, testing=False, config_overrides=None):
     @app.route('/data')
     def data():
         """ Show the data with Google Sheets """
-        spreadsheet, id = sheet_setup.create_sheet(LOCAL_ENV, 'test-title')
+        # spreadsheet, id = sheet_setup.create_sheet(LOCAL_ENV, 'test-title')
+        spreadsheet, id = sheet_setup.read_sheet(LOCAL_ENV)
         test_string = 'create_spreedsheet returned something!' if spreadsheet else 'spreedsheet did not work.'
         print(test_string)
         test_string = spreadsheet if isinstance(spreadsheet, str) else test_string
