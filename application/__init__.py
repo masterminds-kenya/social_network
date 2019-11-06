@@ -133,7 +133,8 @@ def create_app(config, debug=False, testing=False, config_overrides=None):
     def data():
         """ Show the data with Google Sheets """
         # spreadsheet, id = sheet_setup.create_sheet(LOCAL_ENV, 'test-title')
-        spreadsheet, id = sheet_setup.read_sheet(LOCAL_ENV)
+        # spreadsheet, id = sheet_setup.read_sheet(LOCAL_ENV)
+        spreadsheet, id = sheet_setup.update_sheet(LOCAL_ENV)
         test_string = 'create_spreedsheet returned something!' if spreadsheet else 'spreedsheet did not work.'
         print(test_string)
         test_string = spreadsheet if isinstance(spreadsheet, str) else test_string

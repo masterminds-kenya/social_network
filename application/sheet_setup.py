@@ -80,3 +80,42 @@ def read_sheet(local_env, id=SHARED_SHEET_ID):
     id = spreadsheet.get('spreadsheetId')
     # pprint(spreadsheet)
     return (spreadsheet, id)
+
+
+def update_sheet(local_env, id=SHARED_SHEET_ID):
+    """ Get the data we want, then append it to the worksheet """
+    from pprint import pprint
+    print('================== update sheet =======================')
+    creds = get_creds(local_env, service_config['sheets'])
+    if isinstance(creds, str):
+        return (creds, 0)
+    service = build('sheets', 'v4', credentials=creds)
+    range_ = 'Sheet1!A1:B2'  # TODO: Update placeholder value.
+    value_input_option = 'USER_ENTERED'  # 'RAW' | 'USER_ENTERED' | 'INPUT_VALUE_OPTION_UNSPECIFIED'
+    insert_data_option = 'OVERWRITE'  # 'OVERWITE' | 'INSERT_ROWS'
+    major_dimension = 'ROWS'  # 'ROWS' | 'COLUMNS'
+    value_range_body = {
+        "majorDimension": major_dimension,
+        "range": range_,
+        "values": [
+            ["cow", "penguin"],
+            [37, 4]
+        ]
+    }
+    print('======== Modify Sheet ================')
+    request = service.spreadsheets().values().append(
+        spreadsheetId=id,
+        range=range_,
+        valueInputOption=value_input_option,
+        insertDataOption=insert_data_option,
+        body=value_range_body
+        )
+    spreadsheet = request.execute()
+    sheet_vals = spreadsheet.get('values')
+    if sheet_vals:
+        for row in sheet_vals:
+            print(', '.join(row))
+    else:
+        pprint(spreadsheet)
+    id = spreadsheet.get('spreadsheetId')
+    return (spreadsheet, id)
