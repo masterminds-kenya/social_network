@@ -110,6 +110,7 @@ Current Status:
   - [ ] Review data options to confirm our desired data collection.
 - [ ] Create Test Users (need a FB page and Instagram business account).
 - [ ] Test influencer flow after completion (Have Noelle go through process again)
+- [ ] Regex for A1 notation starting cell.
 - [ ] Code Refactor: move routes to their own files
 - [ ] Code Refactor: more modular code structure
 - [ ] Form Validate: Add method to validate form. Ensure other values cannot be injected.

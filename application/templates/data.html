@@ -5,15 +5,23 @@
 
 {% block content %}
 <h1>Data Report</h1>
+{% if link and id %}
+<ul>
+  <li><a href="{{ link }}">View Google Worksheet</a> </li>
+  <li><a href="{{ url_for('update_data', id) }}">Update Report</a></li>
+</ul>
+{% endif %}
 <p>
   {{ data }}
 </p>
-{% if val %}
 <p>
-  <a href="{{ val }}">Link to the worksheet</a>
+    <a href="{{ url_for('create_data') }}">Create New Worksheet</a>
 </p>
-{% endif %}
 <ul>
   <li><a href="{{ url_for('home') }}">Link example Home</a></li>
+  <li><a href="{{ url_for('add', mod='user') }}">Add Fake User</a></li>
+  <li><a href="{{ url_for('all', mod='insight') }}">Admin - List Insights</a></li>
+  <li><a href="{{ url_for('all', mod='audience') }}">Admin - List all Audience Data</a></li>
 </ul>
+
 {% endblock %}

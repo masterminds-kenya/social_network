@@ -14,6 +14,7 @@ FB_CLIENT_ID = environ.get('FB_CLIENT_ID')
 FB_CLIENT_SECRET = environ.get('FB_CLIENT_SECRET')
 FB_AUTHORIZATION_BASE_URL = "https://www.facebook.com/dialog/oauth"
 FB_TOKEN_URL = "https://graph.facebook.com/oauth/access_token"
+SHARED_SHEET_ID = '1LyUFeo5in3F-IbR1eMnkp-XeQXD_zvfYraxCJBUkZPs'
 FB_SCOPE = [
     'email',
     'pages_show_list',
@@ -129,17 +130,31 @@ def create_app(config, debug=False, testing=False, config_overrides=None):
         err = request.form.get('data')
         return render_template('error.html', err=err)
 
+    @app.route('/data/update/<string:id>')
+    def update_data(id):
+        """ Update the worksheet data """
+        spreadsheet, id = sheet_setup.update_sheet(LOCAL_ENV, id)
+        return redirect(url_for('data', id=id))
+
+    @app.route('/data/create')
+    def create_data():
+        """ Create a worksheet to hold report data """
+        spreadsheet, id = sheet_setup.create_sheet(LOCAL_ENV, 'test-title')
+        return redirect(url_for('data', id=id))
+
     @app.route('/data')
-    def data():
+    def data_default():
+        id = SHARED_SHEET_ID
+        return redirect(url_for('data', id=id))
+
+    @app.route('/data/view/<string:id>')
+    def data(id):
         """ Show the data with Google Sheets """
         # spreadsheet, id = sheet_setup.create_sheet(LOCAL_ENV, 'test-title')
-        # spreadsheet, id = sheet_setup.read_sheet(LOCAL_ENV)
-        spreadsheet, id = sheet_setup.update_sheet(LOCAL_ENV)
-        test_string = 'create_spreedsheet returned something!' if spreadsheet else 'spreedsheet did not work.'
-        print(test_string)
-        test_string = spreadsheet if isinstance(spreadsheet, str) else test_string
+        # spreadsheet, id = sheet_setup.update_sheet(LOCAL_ENV)
+        spreadsheet, id = sheet_setup.read_sheet(LOCAL_ENV, id)
         link = '' if id == 0 else f"https://docs.google.com/spreadsheets/d/{id}/edit#gid=0"
-        return render_template('data.html', data=test_string, val=link)
+        return render_template('data.html', data=spreadsheet, id=id, link=link)
 
     @app.route('/login')
     def login():

@@ -33,12 +33,12 @@ def create_sheet(local_env, title):
     spreadsheet = {'properties': {'title': title}}
     spreadsheet = service.spreadsheets().create(body=spreadsheet, fields='spreadsheetId').execute()
     id = spreadsheet.get('spreadsheetId')
-    print('Spreadsheet ID: {0}'.format(id))
+    # print('Spreadsheet ID: {0}'.format(id))
     return (spreadsheet, id)
 
 
 def read_sheet_full(local_env, id=SHARED_SHEET_ID):
-    """ Read a sheet that our app service account has been given permission for. """
+    """ Get the information (not the values) for a worksheet with permissions granted to our app service. """
     from pprint import pprint
     print('================== read sheet =======================')
     creds = get_creds(local_env, service_config['sheets'])
@@ -75,8 +75,9 @@ def read_sheet(local_env, id=SHARED_SHEET_ID):
         )
     spreadsheet = request.execute()
     sheet_vals = spreadsheet.get('values')
-    for row in sheet_vals:
-        print(', '.join(row))
+    if sheet_vals:
+        for row in sheet_vals:
+            print(', '.join(row))
     id = spreadsheet.get('spreadsheetId')
     # pprint(spreadsheet)
     return (spreadsheet, id)
@@ -84,11 +85,8 @@ def read_sheet(local_env, id=SHARED_SHEET_ID):
 
 def get_vals():
     """ Get the values we want to put into our worksheet report """
-    default = [
-            ["pizza", "burger"],
-            [1004, 312],
-            ['good', 'okay']
-        ]
+    default = [["pizza", "burger"], [1004, 312], ['good', 'okay']]
+
     return default
 
 
@@ -96,7 +94,7 @@ def compute_A1(arr2d, start='A1', sheet='Sheet1'):
     """ Determine A1 format for 2D-array input, on given sheet, starting at given cell """
     row_count = len(arr2d)
     col_count = len(max(arr2d, key=len))
-    # write regex that separates the letter and digit sections. 'A1' would have following result:
+    # TODO: write regex that separates the letter and digit sections. 'A1' would have following result:
     col, row = 'A', 1
     final_col = chr(ord(col) + col_count)
     final_row = row_count + row
