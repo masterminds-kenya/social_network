@@ -15,7 +15,7 @@ def init_app(app):
 
 
 def from_sql(row):
-    """Translates a SQLAlchemy model instance into a dictionary"""
+    """ Translates a SQLAlchemy model instance into a dictionary """
     data = row.__dict__.copy()
     data['id'] = row.id
     data.pop('_sa_instance_state')
@@ -172,6 +172,17 @@ class Audience(db.Model):
 
 #     def __repr__(self):
 #         return '<Campaign {} | Brand: {} | Starts: {}>'.format(self.id, self.brand_id, self.start_date)
+
+
+def create_many(dataset, Model=User):
+    all_results = []
+    for data in dataset:
+        model = Model(**data)
+        db.session.add(model)
+        all_results.append(from_sql(model))
+        # safe_results = {k: results[k] for k in results.keys() - Model.UNSAFE}
+    db.session.commit()
+    return all_results
 
 
 def create(data, Model=User):

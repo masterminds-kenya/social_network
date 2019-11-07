@@ -54,9 +54,11 @@ def get_insight(user_id, first=1, last=30*3, ig_id=None, facebook=None):
         for ea in test_insights:
             for val in ea.get('values'):
                 val['name'], val['user_id'] = ea.get('name'), user_id
-                temp = model_db.create(val, model_db.Insight)
-                results.append(temp)
-    return results
+                # temp = model_db.create(val, model_db.Insight)
+                # results.append(temp)
+                results.append(val)
+    # return results
+    return model_db.create_many(results, model_db.Insight)
 
 
 def get_audience(user_id, ig_id=None, facebook=None):

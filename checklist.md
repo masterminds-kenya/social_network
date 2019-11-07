@@ -27,7 +27,10 @@ Current Status:
 - [s] Update ON DELETE for a User's posts.
 - [s] Model for capturing the limited time FB/IG stories
 - [s] Metrics for limited time FB/IG stories
+- [ ] Have the ability for a single FB user to have many IG profiles on our app?
+- [ ] How do we want to organize audience data?
 - [ ] Keep a DB table of worksheet ids?
+  - [ ] Will we have multiple report views?
 - [ ] Manage incoming insight duplications
 - [ ] Make sure incoming audience data does not overwrite historical audience data.
 - [ ] Can make a connection between a brand and a user.
@@ -70,6 +73,7 @@ Current Status:
 - [x] Graph showing all Insight data for a given user.
 - [x] Data sent to graph template setup to allow a variety of different view options.
 - [x] Insight Graph with javascript buttons to toggle which data shows.
+- [ ] User creation: Manage if influencer has many IG accounts.
 - [ ] Can have Brand give permission for the FB App
 - [ ] Admin can connect Influencer to Brands through Campaign
 - [?] ?Influencer can create a Campaign to connect to Brand?
@@ -105,7 +109,7 @@ Current Status:
 ### Code Structure, Testing, Clean up
 
 - [x] Setup a real influencer (Noelle Reno) as a confirmed tester.
-- [ ] Have real influencer (Noelle Reno) sign up for testing.
+- [x] Have real influencer (Noelle Reno) sign up for testing.
   - [ ] Is current process slow? Move some data collection outside of sign up flow?
   - [ ] Other feedback for expected sign up flow?
   - [ ] Review data options to confirm our desired data collection.
