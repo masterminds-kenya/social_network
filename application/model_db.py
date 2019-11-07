@@ -74,8 +74,8 @@ class User(db.Model):
     def __init__(self, *args, **kwargs):
         kwargs['admin'] = True if 'admin' in kwargs and kwargs['admin'] == 'on' else False  # TODO: Possible form injection
         kwargs['facebook_id'] = kwargs.pop('id') if 'id' in kwargs else None
-        kwargs['token_expires'] = dt.fromtimestamp(kwargs['token'].get('token_expires')) if 'token' in kwargs and kwargs['token'].get('token_expires') else None
-        kwargs['token'] = kwargs['token'].get('access_token') if 'token' in kwargs and kwargs['token'] else None
+        # kwargs['token_expires'] = dt.fromtimestamp(kwargs['token'].get('token_expires')) if 'token' in kwargs and kwargs['token'].get('token_expires') else None
+        # kwargs['token'] = kwargs['token'].get('access_token') if 'token' in kwargs and kwargs['token'] else None
         super().__init__(*args, **kwargs)
 
     def __str__(self):

@@ -128,6 +128,30 @@ def create_app(config, debug=False, testing=False, config_overrides=None):
         err = request.form.get('data')
         return render_template('error.html', err=err)
 
+    @app.route('/data/fixer/<int:id>')
+    def expand_ig(id):
+        model = model_db.read(id, safe=False)
+        del model['id']
+        del model['created']
+        del model['modified']
+        del model['insight']
+        del model['audience']
+        print('Old Account: ', model)
+        new_vals = json.loads(model.get('notes'))
+        i = 1
+        for val in new_vals:
+            print('---------------')
+            new = model.copy()
+            new['instagram_id'] = val
+            new['notes'] = ''
+            new.pop('facebook_id')
+            new['email'] = f" {i} "
+            new['name'] = f"{model['name']} {i}"
+            i += 1
+            print('Name: ', new['name'])
+            model_db.create(new)
+        return redirect(url_for('view', mod='user', id=id))
+
     @app.route('/data/update/<string:id>')
     def update_data(id):
         """ Update the worksheet data """
