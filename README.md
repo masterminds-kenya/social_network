@@ -33,7 +33,7 @@ We are keeping a checklist for features and tasks that are both completed and ar
 
 ## User Stories
 
-Our application has "Influencer" users who are experts in social media that bring value to our "Brand" company users who are principally responsible for the investment in the reputation of their products, as well as "Marketing" users who further manage this brand reputation investment.
+Our application has "Influencer" users who are experts in social media that bring value to our "Brand" company users who are principally responsible for the investment in the reputation of their products, as well as "Marketing" users who further manage this brand reputation investment.  Brands wish to meausre the effectiveness of their Influencer campaigns; such measurement and reporting is done manually, requiring contacting each Influencer.  This app will automate reporting and bring more measurmenet capabilities to Bacchus and the Brands.
 
 ### Influencer - bringing social value
 
