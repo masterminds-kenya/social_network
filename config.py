@@ -22,8 +22,8 @@ CLOUDSQL_DATABASE = environ.get('DB_NAME')
 # You must also update the value in app.yaml.
 PROJECT_REGION = environ.get('PROJECT_REGION')
 PROJECT_NAME = environ.get('PROJECT_NAME')
-CLOUDSQL_CONNECTION_NAME = f'{PROJECT_ID}:{PROJECT_REGION}:{PROJECT_NAME}'
-# CLOUDSQL_CONNECTION_NAME = environ.get('DB_CONNECTION_NAME')
+# CLOUDSQL_CONNECTION_NAME = f'{PROJECT_ID}:{PROJECT_REGION}:{PROJECT_NAME}'
+CLOUDSQL_CONNECTION_NAME = environ.get('DB_CONNECTION_NAME')
 
 # The CloudSQL proxy is used locally to connect to the cloudsql instance.
 # To start the proxy, use:

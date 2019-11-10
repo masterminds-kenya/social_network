@@ -52,14 +52,34 @@ Current Status:
 - [s] Post to track different "media" posts.
 - [s] Update ON DELETE for a User's posts.
 - [s] Model for capturing the limited time FB/IG stories
-- [ ] Metrics for limited time FB/IG stories
-- [ ] Metrics for posts (media)
-  - [ ] likes
-  - [ ] shares
-  - [ ] impressions
-  - [ ] reach
-- [ ] Refactor User Model, less PII, no admin, connect to posts/media
-- [ ] Have the ability for a single FB user to have many IG profiles on our app?
+- [ ]  posts (media) seem to have 3 types: Story, Album, and Photo/Video
+  - [ ]  All IG Media also has some general returnable fields:
+    - [ ]  caption
+    - [ ]  comments_count
+    - [ ]  like_count
+    - [ ]  media_type
+    - [ ]  permalink
+  - [ ] Stories Insight Metrics (for limited time FB/IG stories)
+    - [ ] exits
+    - [ ] impressions
+    - [ ] reach
+    - [ ] replies
+    - [ ] taps_forward
+    - [ ] taps_back
+  - [ ] Photo/Video Insight Metrics
+    - [ ] engagement
+    - [ ] impressions
+    - [ ] reach
+    - [ ] saved
+    - [ ] video_views
+  - [?] Album Insight Metrics
+    - [ ] carousel_album_engagement
+    - [ ] carousel_album_impressions
+    - [ ] carousel_album_reach
+    - [ ] carousel_album_saved
+    - [ ] carousel_album_video_views
+- [x] Refactor User Model, less PII, no admin, connect to posts/media
+- [x] Have the ability for a single FB user to have many IG profiles on our app?
 - [ ] Add a logical catch for existing users to re-route to data update
 - [ ] Refactor User data collection functions to work on create and update
 - [ ] Can issue new API request for recent data for existing Influencer Users
@@ -69,16 +89,19 @@ Current Status:
 - [?] Make sure incoming audience data does not overwrite historical audience data.
 - [ ] Campaign Model
   - [ ] Can make a connection between a brand and a user.
-  - [ ] Define a campaign for each connection.
+  - [ ] Can create a campaign for each connection.
   - [ ] Allow admin to categorize posts to campaigns
 - [x] For all data collection on new users, move to external functions
 - [s] Refactor User data collection functions to work also work for Brands
 - [x] Create many function
+- [ ] Refactor create to account for both create one or create many
 - [s] Update many function
 - [s] Refine Brand Model with constructor function for translating from FB.
 - [s] Can update data for existing Brand accounts
 - [ ] Keep a DB table of worksheet ids?
   - [ ] Will we have multiple report views?
+- [s] DB Migration: Integrate flask-migrate?
+- [ ] Revisit structure for ON DELETE, ON UPDATE, and how related tables are loaded (lazy=?)
 - [?] Refine decision for fields from (overall user) insights data.
 
 ### Site Functionality

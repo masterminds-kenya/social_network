@@ -22,14 +22,6 @@
     </div>
 
   <div class="form-group">
-    {% if data.admin %}
-    <input type="checkbox" id="admin" name="admin" checked />
-    {% else %}
-    <input type="checkbox" id="admin" name="admin" />
-    {% endif %}
-    <label for="admin">Admin Account</label>
-  </div>
-  <div class="form-group">
       <label for="notes">Notes</label>
       <input type="text" name="notes" id="notes" value="{{data.notes}}" class="form-control"/>
     </div>

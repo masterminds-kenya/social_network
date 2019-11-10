@@ -17,7 +17,6 @@ FB_AUTHORIZATION_BASE_URL = "https://www.facebook.com/dialog/oauth"
 FB_TOKEN_URL = "https://graph.facebook.com/oauth/access_token"
 SHARED_SHEET_ID = '1LyUFeo5in3F-IbR1eMnkp-XeQXD_zvfYraxCJBUkZPs'
 FB_SCOPE = [
-    'email',
     'pages_show_list',
     'instagram_basic',
     'instagram_manage_insights',
@@ -61,19 +60,17 @@ def get_insight(user_id, first=1, last=30*3, ig_id=None, facebook=None):
 def get_audience(user_id, ig_id=None, facebook=None):
     """ Get the audience data for the user of user_id """
     # print('=========================== Get Audience Data ======================')
-    audience_metric = {'audience_city', 'audience_country', 'audience_gender_age'}
+    audience_metric = ','.join(model_db.Audience.metrics)
     ig_period = 'lifetime'
     results, token = [], ''
     if not facebook or not ig_id:
         model = model_db.read(user_id, safe=False)
         ig_id, token = model.get('instagram_id'), model.get('token')
-    url = f"https://graph.facebook.com/{ig_id}/insights?metric={','.join(audience_metric)}&period={ig_period}"
+    url = f"https://graph.facebook.com/{ig_id}/insights?metric={audience_metric}&period={ig_period}"
     audience = facebook.get(url).json() if facebook else requests.get(f"{url}&access_token={token}").json()
     for ea in audience.get('data'):
         ea['user_id'] = user_id
         results.append(ea)
-        # temp = model_db.create(ea, model_db.Audience)
-        # results.append(temp)
     return model_db.create_many(results, model_db.Audience)
 
 
@@ -182,6 +179,8 @@ def create_app(config, debug=False, testing=False, config_overrides=None):
         with open(USER_FILE, 'r') as file:
             for line in file.readlines():
                 user = json.loads(line)
+                if 'email' in user:
+                    del user['email']
                 ig_id, token = user.get('instagram_id'), user.get('token')
                 ig_info = get_ig_info(ig_id, token=token)
                 user['username'] = ig_info.get('username')
@@ -247,6 +246,7 @@ def create_app(config, debug=False, testing=False, config_overrides=None):
 
     @app.route('/callback')
     def callback():
+        from pprint import pprint
         print('========================== Authorization Callback =============================')
         callback = URL + '/callback'
         facebook = requests_oauthlib.OAuth2Session(FB_CLIENT_ID, scope=FB_SCOPE, redirect_uri=callback)
@@ -255,7 +255,7 @@ def create_app(config, debug=False, testing=False, config_overrides=None):
         if 'error' in token:
             return redirect(url_for('error'), data=token, code=307)
         # Fetch a protected resources:
-        facebook_user_data = facebook.get("https://graph.facebook.com/me?fields=id,name,email,accounts").json()
+        facebook_user_data = facebook.get("https://graph.facebook.com/me?fields=id,accounts").json()
         if 'error' in facebook_user_data:
             return redirect(url_for('error'), data=facebook_user_data, code=307)
         # TODO: use a better constructor for the user account.
@@ -263,7 +263,11 @@ def create_app(config, debug=False, testing=False, config_overrides=None):
         data['token'] = token
         accounts = data.pop('accounts')
         ig_id, ig_set = find_instagram_id(accounts, facebook=facebook)
+        ig_info = get_ig_info(ig_id, token=None, facebook=facebook)
+        data['name'] = ig_info.get('username', 'NA')
         data['instagram_id'], data['notes'] = ig_id, json.dumps(list(ig_set))  # json.dumps(media)
+        print('=================== Data sent to Create User =======================')
+        pprint(data)
         user = model_db.create(data)
         user_id = user.get('id')
         print('User: ', user_id)

@@ -27,9 +27,9 @@ class Brand(db.Model):
     __tablename__ = 'brands'
 
     id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String(64),         index=True,  unique=True,  nullable=False)
-    # company = db.Column(db.String(64),      index=False, unique=False, nullable=False)
-    facebook_id = db.Column(db.String(80),  index=True,  unique=True,  nullable=True)
+    name = db.Column(db.String(63),         index=True,  unique=True,  nullable=False)
+    # company = db.Column(db.String(63),      index=False, unique=False, nullable=False)
+    facebook_id = db.Column(db.Integer,     index=False,  unique=False,  nullable=True)
     token = db.Column(db.String(255),       index=False, unique=False, nullable=True)
     token_expires = db.Column(db.DateTime,  index=False, unique=False, nullable=True)
     notes = db.Column(db.Text,              index=False, unique=False, nullable=True)
@@ -54,27 +54,28 @@ class User(db.Model):
     __tablename__ = 'users'
 
     id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String(64),         index=False, unique=True,  nullable=False)
-    email = db.Column(db.String(80),        index=True,  unique=True,  nullable=False)
+    name = db.Column(db.String(63),         index=False, unique=True,  nullable=False)
+    instagram_id = db.Column(db.String(63), index=True,  unique=True,  nullable=True)
+    facebook_id = db.Column(db.String(63),  index=True,  unique=False,  nullable=True)
     token = db.Column(db.String(255),       index=False, unique=False, nullable=True)
     token_expires = db.Column(db.DateTime,  index=False, unique=False, nullable=True)
-    facebook_id = db.Column(db.String(80),  index=True,  unique=True,  nullable=True)
-    instagram_id = db.Column(db.String(80), index=True,  unique=True,  nullable=True)
     notes = db.Column(db.Text,              index=False, unique=False, nullable=True)
-    admin = db.Column(db.Boolean,           index=False, unique=False, nullable=False)
     modified = db.Column(db.DateTime,       index=False, unique=False, nullable=False, default=dt.utcnow, onupdate=dt.utcnow)
     created = db.Column(db.DateTime,        index=False, unique=False, nullable=False, default=dt.utcnow)
     insights = db.relationship('Insight', backref='user', lazy=True, passive_deletes=True)
     audiences = db.relationship('Audience', backref='user', lazy=True, passive_deletes=True)
-    # posts = db.relationship('Post', backref='user', lazy=True)
+    posts = db.relationship('Post', backref='user', lazy=True, passive_deletes=True)
     # brands = db.relationship('Campaign', back_populates='user')
     # # brands = db.relationship('Brand', secondary='campaigns')
     UNSAFE = {'token', 'token_expires', 'facebook_id', 'modified', 'created'}
 
     def __init__(self, *args, **kwargs):
-        kwargs['admin'] = True if kwargs.get('admin') == 'on' or kwargs.get('admin') is True else False  # TODO: Possible form injection
+        had_admin = kwargs.pop('admin', None)
+        if had_admin:
+            print("Source data had an 'admin' parameter that may need to be removed")
+        # kwargs['admin'] = True if kwargs.get('admin') == 'on' or kwargs.get('admin') is True else False  # TODO: Possible form injection
         kwargs['facebook_id'] = kwargs.pop('id') if 'facebook_id' not in kwargs and 'id' in kwargs else None
-        kwargs['name'] = kwargs.pop('username', kwargs['name'])
+        kwargs['name'] = kwargs.pop('username', kwargs.get('name'))
         if 'token_expires' not in kwargs:
             # making a user from api call
             kwargs['token_expires'] = dt.fromtimestamp(kwargs['token'].get('token_expires')) if 'token' in kwargs and kwargs['token'].get('token_expires') else None
@@ -121,6 +122,7 @@ class Audience(db.Model):
     recorded = db.Column(db.DateTime,          index=True,  unique=False, nullable=False)
     name = db.Column(db.String(255),           index=True, unique=False, nullable=False)
     value = db.Column(db.Text,                 index=False, unique=False, nullable=True)
+    metrics = {'audience_city', 'audience_country', 'audience_gender_age'}
     UNSAFE = {''}
 
     def __init__(self, *args, **kwargs):
@@ -140,52 +142,87 @@ class Audience(db.Model):
         return '<Audience {} | Date: {} >'.format(self.name, self.recorded)
 
 
-# class Post(db.Model):
-#     """ Instagram posts (media) by an influencer (user) """
-#     __tablename__ = 'posts'
+class Post(db.Model):
+    """ Instagram media that was posted by an influencer user """
+    __tablename__ = 'posts'
 
-#     id = db.Column(db.Integer, primary_key=True)
-#     user_id = db.Column(db.Integer, db.ForeignKey('user.id', ondelete='CASCADE'), nullable=False)
-#     media_id = db.Column(db.Integer,      index=True,  unique=True, nullable=False)
-#     media_type = db.Column(db.String(64), index=True,  unique=False, nullable=False)
-#     caption = db.Column(db.Text,          index=False,  unique=False, nullable=True)
-#     comment_count = db.Column(db.Integer, index=False,  unique=False, nullable=True)
-#     like_count = db.Column(db.Integer,    index=False,  unique=False, nullable=True)
-#     permalink = db.Column(db.String(255), index=False,  unique=False, nullable=True)
-#     # timestamp = db.Column(db.DateTime,    index=True,  unique=False, nullable=True)
-#     # ig_id = db.Column(db.String(80),    index=True,  unique=True,  nullable=False)  # IG indentity
-#     # comments = db.Column(db.text,       index=False, unique=False, nullable=True)
-#     recorded = db.Column(db.DateTime,     index=False,  unique=False, nullable=False)  # timestamp*
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id', ondelete='CASCADE'), nullable=False)
+    campaign_id = db.Column(db.Integer, db.ForeignKey('campaigns.id', ondelete='SET NULL'), nullable=True)
+    processed = db.Column(db.Boolean, default=False)
+    media_id = db.Column(db.Integer,      index=True,   unique=True,  nullable=False)
+    media_type = db.Column(db.String(64), index=False,   unique=False, nullable=True)
+    caption = db.Column(db.Text,          index=False,  unique=False, nullable=True)
+    comment_count = db.Column(db.Integer, index=False,  unique=False, nullable=True)
+    like_count = db.Column(db.Integer,    index=False,  unique=False, nullable=True)
+    permalink = db.Column(db.String(255), index=False,  unique=False, nullable=True)
+    recorded = db.Column(db.DateTime,     index=False,  unique=False, nullable=False)  # timestamp*
+    modified = db.Column(db.DateTime,       index=False, unique=False, nullable=False, default=dt.utcnow, onupdate=dt.utcnow)
+    created = db.Column(db.DateTime,        index=False, unique=False, nullable=False, default=dt.utcnow)
+    # The following 9 are from insights, the first 2 for all kinds of media
+    impressions = db.Column(db.Integer,   index=False,  unique=False, nullable=True)
+    reach = db.Column(db.Integer,         index=False,  unique=False, nullable=True)
+    # The following 3 are for Album and Photo/Video media
+    engagement = db.Column(db.Integer,    index=False,  unique=False, nullable=True)
+    saved = db.Column(db.Integer,         index=False,  unique=False, nullable=True)
+    video_views = db.Column(db.Integer,   index=False,  unique=False, nullable=True)
+    # The following 4 are only for stories media
+    exits = db.Column(db.Integer,         index=False,  unique=False, nullable=True)
+    replies = db.Column(db.Integer,       index=False,  unique=False, nullable=True)
+    taps_forward = db.Column(db.Integer,  index=False,  unique=False, nullable=True)
+    taps_back = db.Column(db.Integer,     index=False,  unique=False, nullable=True)
 
-#     def __init__(self, *args, **kwargs):
-#         datestring = kwargs.pop('timestamp')
-#         kwargs['recorded'] = parser.isoparse(datestring)
-#         super().__init__(*args, **kwargs)
+    # instagram_id = db.Column(db.String(80),    index=True,  unique=True,  nullable=False)  # IG indentity
+    basic_metrics = {'media_type', 'caption', 'comment_count', 'like_count', 'permalink', 'timestamp'}
+    insight_metrics = {'impressions', 'reach'}
+    media_metrics = {'engagement', 'saved', 'video_views'}.union(insight_metrics)
+    album_metrics = {f"carousel_album_{metric}" for metric in media_metrics}
+    story_metrics = {'exits', 'replies', 'taps_forward', 'taps_back'}.union(insight_metrics)
+    UNSAFE = {''}
 
-#     def __repr__(self):
-#         return '<Post: L {}, C {} | Date: {} | Recorded: {} >'.format(self.like_count, self.comment_count, self.timestamp, self.recorded)
+    def __init__(self, *args, **kwargs):
+        datestring = kwargs.pop('timestamp')
+        kwargs['recorded'] = parser.isoparse(datestring)
+        super().__init__(*args, **kwargs)
+
+    def __repr__(self):
+        return '<Post: L {}, C {} | Date: {} | Recorded: {} >'.format(self.like_count, self.comment_count, self.timestamp, self.recorded)
 
 
-# class Campaign(db.Model):
-#     """ Relationship between User and Brand """
-#     __tablename__ = 'campaigns'
+user_campaign = db.Table(
+    'user_campaigns',
+    db.Column('id', db.Integer, primary_key=True),
+    db.Column('user_id', db.Integer, db.ForeignKey('users.id', ondelete="CASCADE")),
+    db.Column('campaign_id', db.Integer, db.ForeignKey('campaigns.id', ondelete="CASCADE"))
+)
 
-#     id = db.Column(db.Integer, primary_key=True)
-#     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
-#     brand_id = db.Column(db.Integer, db.ForeignKey('brand.id'), nullable=False)
-#     # input fields for insight data here
-#     notes = db.Column(db.Text,              index=False, unique=False, nullable=True)
-#     modified = db.Column(db.DateTime,       index=False, unique=False, nullable=False, default=dt.utcnow, onupdate=dt.utcnow)
-#     created = db.Column(db.DateTime,        index=False, unique=False, nullable=False, default=dt.utcnow)
-#     start_date = db.Column(db.DateTime,     index=False, unique=False, nullable=False, default=dt.utcnow)
-#     end_date = db.Column(db.DateTime,       index=False, unique=False, nullable=True)
-#     user = db.relationship('User', back_populates='brands')
-#     brand = db.relationship('Brand', back_populates='users')
-#     # user = db.relationship(User, backref=db.backref('campaigns'))
-#     # product = db.relationship(Brand, backref=db.backref('campaigns'))
+brand_campaign = db.Table(
+    'brand_campaigns',
+    db.Column('id', db.Integer, primary_key=True),
+    db.Column('brand_id', db.Integer, db.ForeignKey('brands.id', ondelete="CASCADE")),
+    db.Column('campaign_id', db.Integer, db.ForeignKey('campaigns.id', ondelete="CASCADE"))
+)
 
-#     def __repr__(self):
-#         return '<Campaign {} | Brand: {} | Starts: {}>'.format(self.id, self.brand_id, self.start_date)
+
+class Campaign(db.Model):
+    """ Relationship between Users and Brands """
+    __tablename__ = 'campaigns'
+
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    brand_id = db.Column(db.Integer, db.ForeignKey('brands.id'), nullable=False)
+    notes = db.Column(db.Text,              index=False, unique=False, nullable=True)
+    modified = db.Column(db.DateTime,       index=False, unique=False, nullable=False, default=dt.utcnow, onupdate=dt.utcnow)
+    created = db.Column(db.DateTime,        index=False, unique=False, nullable=False, default=dt.utcnow)
+    # start_date = db.Column(db.DateTime,     index=False, unique=False, nullable=False, default=dt.utcnow)
+    # end_date = db.Column(db.DateTime,       index=False, unique=False, nullable=True)
+    users = db.relationship('User', secondary=user_campaign, backref=db.backref('campaigns'))
+    brand = db.relationship('Brand', secondary=brand_campaign, backref=db.backref('campaigns'))
+    posts = db.relationship('Post', backref='campaign', lazy=True)
+    UNSAFE = {''}
+
+    def __repr__(self):
+        return '<Campaign {} | Brand: {} | Starts: {}>'.format(self.id, self.brand_id, self.start_date)
 
 
 def create_many(dataset, Model=User):
@@ -194,17 +231,25 @@ def create_many(dataset, Model=User):
         model = Model(**data)
         db.session.add(model)
         all_results.append(from_sql(model))
+        # all_results.append((model))  # This might be identical as above since id not assigned yet
         # safe_results = {k: results[k] for k in results.keys() - Model.UNSAFE}
     db.session.commit()
+    # TODO: List comprehension to return the array of dictionaries to include the model id.
+    # all_results = [from_sql(ea) for ea in all_results]
     return all_results
 
 
 def create(data, Model=User):
+    # TODO: Refactor to work as many or one: check if we have a list of obj, or single obj
+    # dataset = [data] if not isinstance(data, list) else data
+    # then use code written in create_many for this dataset
     model = Model(**data)
     db.session.add(model)
     db.session.commit()
     results = from_sql(model)
+    # TODO: Refactor safe_results for when we create many
     safe_results = {k: results[k] for k in results.keys() - Model.UNSAFE}
+    # TODO: Return a single obj if we created only one?
     return safe_results
 
 
@@ -233,8 +278,10 @@ def read(id, Model=User, safe=True):
 
 
 def update(data, id, Model=User):
+    # Any checkbox field will need to be modified.
     if Model == User:
-        data['admin'] = True if 'admin' in data and data['admin'] == 'on' else False
+        # data['admin'] = True if 'admin' in data and data['admin'] == 'on' else False
+        pass
     model = Model.query.get(id)
     for k, v in data.items():
         setattr(model, k, v)
@@ -262,8 +309,8 @@ def _create_database():
     app.config.from_pyfile('../config.py')
     init_app(app)
     with app.app_context():
-        # db.drop_all()
-        # print("All tables dropped!")
+        db.drop_all()
+        print("All tables dropped!")
         db.create_all()
     print("All tables created")
 
