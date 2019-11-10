@@ -72,10 +72,13 @@ class User(db.Model):
     UNSAFE = {'token', 'token_expires', 'facebook_id', 'modified', 'created'}
 
     def __init__(self, *args, **kwargs):
-        kwargs['admin'] = True if 'admin' in kwargs and kwargs['admin'] == 'on' else False  # TODO: Possible form injection
-        kwargs['facebook_id'] = kwargs.pop('id') if 'id' in kwargs else None
-        # kwargs['token_expires'] = dt.fromtimestamp(kwargs['token'].get('token_expires')) if 'token' in kwargs and kwargs['token'].get('token_expires') else None
-        # kwargs['token'] = kwargs['token'].get('access_token') if 'token' in kwargs and kwargs['token'] else None
+        kwargs['admin'] = True if kwargs.get('admin') == 'on' or kwargs.get('admin') is True else False  # TODO: Possible form injection
+        kwargs['facebook_id'] = kwargs.pop('id') if 'facebook_id' not in kwargs and 'id' in kwargs else None
+        kwargs['name'] = kwargs.pop('username', kwargs['name'])
+        if 'token_expires' not in kwargs:
+            # making a user from api call
+            kwargs['token_expires'] = dt.fromtimestamp(kwargs['token'].get('token_expires')) if 'token' in kwargs and kwargs['token'].get('token_expires') else None
+            kwargs['token'] = kwargs['token'].get('access_token') if 'token' in kwargs and kwargs['token'] else None
         super().__init__(*args, **kwargs)
 
     def __str__(self):
@@ -136,20 +139,31 @@ class Audience(db.Model):
     def __repr__(self):
         return '<Audience {} | Date: {} >'.format(self.name, self.recorded)
 
+
 # class Post(db.Model):
 #     """ Instagram posts (media) by an influencer (user) """
 #     __tablename__ = 'posts'
 
 #     id = db.Column(db.Integer, primary_key=True)
 #     user_id = db.Column(db.Integer, db.ForeignKey('user.id', ondelete='CASCADE'), nullable=False)
-#     ig_id = db.Column(db.String(80),    index=True,  unique=True,  nullable=False)  # IG indentity
-#     recorded = db.Column(db.DateTime,   index=True,  unique=False, nullable=False)  # timestamp*
-#     likes = db.Column(db.Integer,       index=True,  unique=False, nullable=False)
-#     count_comm = db.Column(db.Integer,  index=True,  unique=False, nullable=False)
-#     comments = db.Column(db.text,       index=False, unique=False, nullable=True)
+#     media_id = db.Column(db.Integer,      index=True,  unique=True, nullable=False)
+#     media_type = db.Column(db.String(64), index=True,  unique=False, nullable=False)
+#     caption = db.Column(db.Text,          index=False,  unique=False, nullable=True)
+#     comment_count = db.Column(db.Integer, index=False,  unique=False, nullable=True)
+#     like_count = db.Column(db.Integer,    index=False,  unique=False, nullable=True)
+#     permalink = db.Column(db.String(255), index=False,  unique=False, nullable=True)
+#     # timestamp = db.Column(db.DateTime,    index=True,  unique=False, nullable=True)
+#     # ig_id = db.Column(db.String(80),    index=True,  unique=True,  nullable=False)  # IG indentity
+#     # comments = db.Column(db.text,       index=False, unique=False, nullable=True)
+#     recorded = db.Column(db.DateTime,     index=False,  unique=False, nullable=False)  # timestamp*
+
+#     def __init__(self, *args, **kwargs):
+#         datestring = kwargs.pop('timestamp')
+#         kwargs['recorded'] = parser.isoparse(datestring)
+#         super().__init__(*args, **kwargs)
 
 #     def __repr__(self):
-#         return '<Post: L {}, C {} | Date: {} >'.format(self.likes, self.count_comm, self.recorded)
+#         return '<Post: L {}, C {} | Date: {} | Recorded: {} >'.format(self.like_count, self.comment_count, self.timestamp, self.recorded)
 
 
 # class Campaign(db.Model):

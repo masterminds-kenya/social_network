@@ -10,6 +10,7 @@ from os import environ
 from datetime import datetime as dt
 from datetime import timedelta
 
+USER_FILE = 'env/user_save.txt'
 FB_CLIENT_ID = environ.get('FB_CLIENT_ID')
 FB_CLIENT_SECRET = environ.get('FB_CLIENT_SECRET')
 FB_AUTHORIZATION_BASE_URL = "https://www.facebook.com/dialog/oauth"
@@ -78,6 +79,7 @@ def get_audience(user_id, ig_id=None, facebook=None):
 
 def get_posts(user_id, ig_id=None, facebook=None):
     """ Get media posts """
+    from pprint import pprint
     results, token = [], ''
     if not facebook or not ig_id:
         model = model_db.read(user_id, safe=False)
@@ -91,7 +93,17 @@ def get_posts(user_id, ig_id=None, facebook=None):
         print('--------------- Instead, response was ----------------')
         print(response)
         return []
-    print(media)
+    print(f"----------- Looking up {len(media)} Media Posts ----------- ")
+    results = []
+    for post in media:
+        media_id = post.get('id')
+        fields = ['media_type', 'caption', 'comments_count', 'like_count', 'permalink', 'timestamp']
+        field_string = ','.join(fields)
+        url = f"https://graph.facebook.com/{media_id}?fields={field_string}"
+        res = facebook.get(url).json() if facebook else requests.get(f"{url}&access_token={token}").json()
+        res['media_id'] = res.pop('id')
+        pprint(res)
+
     # for ea in media:
     #     for val in ea.get('values'):
     #         val['name'], val['user_id'] = ea.get('name'), user_id
@@ -102,6 +114,24 @@ def get_posts(user_id, ig_id=None, facebook=None):
     # return model_db.create_many(results, model_db.Insight)
     # return model_db.create_many(results, model_db.Post)
     return results
+
+
+def get_ig_info(ig_id, token=None, facebook=None):
+    """ We already have their InstaGram Business Account id, but we need their IG username """
+    from pprint import pprint
+    # Possible fields. Fields with asterisk (*) are public and can be returned by and edge using field expansion:
+    # biography*, id*, ig_id, followers_count*, follows_count, media_count*, name,
+    # profile_picture_url, username*, website*
+    fields = ['username', 'followers_count', 'follows_count', 'media_count']
+    fields = ','.join(fields)
+    print('============ Get IG Info ===================')
+    if not token and not facebook:
+        return "You must pass a 'token' or 'facebook' reference. "
+    url = f"https://graph.facebook.com/v4.0/{ig_id}?fields={fields}"
+    print(url)
+    res = facebook.get(url).json() if facebook else requests.get(f"{url}&access_token={token}").json()
+    pprint(res)
+    return res
 
 
 def find_instagram_id(accounts, facebook=None):
@@ -146,28 +176,38 @@ def create_app(config, debug=False, testing=False, config_overrides=None):
         err = request.form.get('data')
         return render_template('error.html', err=err)
 
-    @app.route('/data/fixer/<int:id>')
-    def expand_ig(id):
-        model = model_db.read(id, safe=False)
+    @app.route('/data/load/')
+    def load_user():
+        new_users = []
+        with open(USER_FILE, 'r') as file:
+            for line in file.readlines():
+                user = json.loads(line)
+                ig_id, token = user.get('instagram_id'), user.get('token')
+                ig_info = get_ig_info(ig_id, token=token)
+                user['username'] = ig_info.get('username')
+                print(user['username'])
+                new_users.append(user)
+        created_users = model_db.create_many(new_users)
+        print(f'------------- Create from File: {len(created_users)} users -------------')
+        return redirect(url_for('all', mod='user'))
+
+    @app.route('/data/<string:mod>/<int:id>')
+    def migrate_save(mod, id):
+        if mod == 'user':
+            filename = USER_FILE
+        Model = mod_lookup.get(mod, None)
+        if not Model:
+            return f"No such route: {mod}", 404
+        model = model_db.read(id, Model=Model, safe=False)
         del model['id']
-        del model['created']
-        del model['modified']
-        del model['insight']
-        del model['audience']
+        model.pop('created', None)
+        model.pop('modified', None)
+        model.pop('insight', None)
+        model.pop('audience', None)
         print('Old Account: ', model)
-        new_vals = json.loads(model.get('notes'))
-        i = 1
-        for val in new_vals:
-            print('---------------')
-            new = model.copy()
-            new['instagram_id'] = val
-            new['notes'] = ''
-            new.pop('facebook_id')
-            new['email'] = f" {i} "
-            new['name'] = f"{model['name']} {i}"
-            i += 1
-            print('Name: ', new['name'])
-            model_db.create(new)
+        with open(filename, 'a') as file:
+            file.write(json.dumps(model))
+            file.write('\n')
         return redirect(url_for('view', mod='user', id=id))
 
     @app.route('/data/update/<string:id>')
