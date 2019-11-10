@@ -26,17 +26,28 @@ Current Status:
 - [s] Post to track different "media" posts.
 - [s] Update ON DELETE for a User's posts.
 - [s] Model for capturing the limited time FB/IG stories
-- [s] Metrics for limited time FB/IG stories
+- [ ] Metrics for limited time FB/IG stories
+- [ ] Metrics for posts (media)
+  - [ ] likes
+  - [ ] shares
+  - [ ] impressions
+  - [ ] reach
+- [ ] Allow admin to categorize posts to campaigns
+- [ ] Have the ability for a single FB user to have many IG profiles on our app?
+- [s] How do we want to organize audience data?
 - [ ] Keep a DB table of worksheet ids?
-- [ ] Manage incoming insight duplications
+  - [ ] Will we have multiple report views?
+- [s] Manage incoming insight duplications
 - [ ] Make sure incoming audience data does not overwrite historical audience data.
 - [ ] Can make a connection between a brand and a user.
   - [ ] Define a campaign for each connection.
 - [ ] Add a logical catch for existing users to re-route to data update
-- [ ] For all data collection on new users, move to external functions
+- [x] For all data collection on new users, move to external functions
 - [ ] Refactor User data collection functions to work on create and update
 - [ ] Refactor User data collection functions to work also work for Brands
-- [ ] Can Update data for existing Influencer Users
+- [x] Create many function
+- [ ] Update many function
+- [ ] Can issue new API request for recent data for existing Influencer Users
 - [ ] Refine Brand Model with constructor function for translating from FB.
 - [ ] Can update data for existing Brand accounts
 - [ ] Refine decision for fields from insights data.
@@ -70,7 +81,9 @@ Current Status:
 - [x] Graph showing all Insight data for a given user.
 - [x] Data sent to graph template setup to allow a variety of different view options.
 - [x] Insight Graph with javascript buttons to toggle which data shows.
-- [ ] Can have Brand give permission for the FB App
+- [ ] User creation: Manage if influencer has many IG accounts.
+- [s] Can have Brand give permission for the FB App
+- [x] Admin can input information for a brand
 - [ ] Admin can connect Influencer to Brands through Campaign
 - [?] ?Influencer can create a Campaign to connect to Brand?
 - [x] Add Google Sheet API to GCloud app.
@@ -105,7 +118,7 @@ Current Status:
 ### Code Structure, Testing, Clean up
 
 - [x] Setup a real influencer (Noelle Reno) as a confirmed tester.
-- [ ] Have real influencer (Noelle Reno) sign up for testing.
+- [x] Have real influencer (Noelle Reno) sign up for testing.
   - [ ] Is current process slow? Move some data collection outside of sign up flow?
   - [ ] Other feedback for expected sign up flow?
   - [ ] Review data options to confirm our desired data collection.

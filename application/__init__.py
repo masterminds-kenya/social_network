@@ -10,6 +10,7 @@ from os import environ
 from datetime import datetime as dt
 from datetime import timedelta
 
+USER_FILE = 'env/user_save.txt'
 FB_CLIENT_ID = environ.get('FB_CLIENT_ID')
 FB_CLIENT_SECRET = environ.get('FB_CLIENT_SECRET')
 FB_AUTHORIZATION_BASE_URL = "https://www.facebook.com/dialog/oauth"
@@ -38,7 +39,6 @@ def get_insight(user_id, first=1, last=30*3, ig_id=None, facebook=None):
     ig_period = 'day'
     results, token = [], ''
     insight_metric = ','.join(model_db.Insight.metrics)
-    # print('=========================== Get Insight Data ======================')
     if not facebook or not ig_id:
         model = model_db.read(user_id, safe=False)
         ig_id, token = model.get('instagram_id'), model.get('token')
@@ -54,9 +54,8 @@ def get_insight(user_id, first=1, last=30*3, ig_id=None, facebook=None):
         for ea in test_insights:
             for val in ea.get('values'):
                 val['name'], val['user_id'] = ea.get('name'), user_id
-                temp = model_db.create(val, model_db.Insight)
-                results.append(temp)
-    return results
+                results.append(val)
+    return model_db.create_many(results, model_db.Insight)
 
 
 def get_audience(user_id, ig_id=None, facebook=None):
@@ -70,18 +69,69 @@ def get_audience(user_id, ig_id=None, facebook=None):
         ig_id, token = model.get('instagram_id'), model.get('token')
     url = f"https://graph.facebook.com/{ig_id}/insights?metric={','.join(audience_metric)}&period={ig_period}"
     audience = facebook.get(url).json() if facebook else requests.get(f"{url}&access_token={token}").json()
-    # url = f"https://graph.facebook.com/v4.0/{ig_id}/media"
-    # media = facebook.get(url).json()
-    # if audience.get('error') or insights.get('error') or media.get('error'):
-    #     print('----------- Error! ----------------')
-    #     print(audience, insights, media)
-    #     return redirect(url_for('error'), data=[audience, insights, media], code=307)
     for ea in audience.get('data'):
         ea['user_id'] = user_id
-        temp = model_db.create(ea, model_db.Audience)
-        # print('Audience: ', temp['id'], ea.get('name'))
-        results.append(temp)
+        results.append(ea)
+        # temp = model_db.create(ea, model_db.Audience)
+        # results.append(temp)
+    return model_db.create_many(results, model_db.Audience)
+
+
+def get_posts(user_id, ig_id=None, facebook=None):
+    """ Get media posts """
+    from pprint import pprint
+    results, token = [], ''
+    if not facebook or not ig_id:
+        model = model_db.read(user_id, safe=False)
+        ig_id, token = model.get('instagram_id'), model.get('token')
+    print('================ Media Posts ====================')
+    url = f"https://graph.facebook.com/{ig_id}/media"
+    response = facebook.get(url).json() if facebook else requests.get(f"{url}?access_token={token}").json()
+    media = response.get('data')
+    if not isinstance(media, list):
+        print('Error: ', response.get('error'))
+        print('--------------- Instead, response was ----------------')
+        print(response)
+        return []
+    print(f"----------- Looking up {len(media)} Media Posts ----------- ")
+    results = []
+    for post in media:
+        media_id = post.get('id')
+        fields = ['media_type', 'caption', 'comments_count', 'like_count', 'permalink', 'timestamp']
+        field_string = ','.join(fields)
+        url = f"https://graph.facebook.com/{media_id}?fields={field_string}"
+        res = facebook.get(url).json() if facebook else requests.get(f"{url}&access_token={token}").json()
+        res['media_id'] = res.pop('id')
+        pprint(res)
+
+    # for ea in media:
+    #     for val in ea.get('values'):
+    #         val['name'], val['user_id'] = ea.get('name'), user_id
+    #         # temp = model_db.create(val, model_db.Insight)
+    #         # results.append(temp)
+    #         results.append(val)
+    # # return results
+    # return model_db.create_many(results, model_db.Insight)
+    # return model_db.create_many(results, model_db.Post)
     return results
+
+
+def get_ig_info(ig_id, token=None, facebook=None):
+    """ We already have their InstaGram Business Account id, but we need their IG username """
+    from pprint import pprint
+    # Possible fields. Fields with asterisk (*) are public and can be returned by and edge using field expansion:
+    # biography*, id*, ig_id, followers_count*, follows_count, media_count*, name,
+    # profile_picture_url, username*, website*
+    fields = ['username', 'followers_count', 'follows_count', 'media_count']
+    fields = ','.join(fields)
+    print('============ Get IG Info ===================')
+    if not token and not facebook:
+        return "You must pass a 'token' or 'facebook' reference. "
+    url = f"https://graph.facebook.com/v4.0/{ig_id}?fields={fields}"
+    print(url)
+    res = facebook.get(url).json() if facebook else requests.get(f"{url}&access_token={token}").json()
+    pprint(res)
+    return res
 
 
 def find_instagram_id(accounts, facebook=None):
@@ -126,6 +176,40 @@ def create_app(config, debug=False, testing=False, config_overrides=None):
         err = request.form.get('data')
         return render_template('error.html', err=err)
 
+    @app.route('/data/load/')
+    def load_user():
+        new_users = []
+        with open(USER_FILE, 'r') as file:
+            for line in file.readlines():
+                user = json.loads(line)
+                ig_id, token = user.get('instagram_id'), user.get('token')
+                ig_info = get_ig_info(ig_id, token=token)
+                user['username'] = ig_info.get('username')
+                print(user['username'])
+                new_users.append(user)
+        created_users = model_db.create_many(new_users)
+        print(f'------------- Create from File: {len(created_users)} users -------------')
+        return redirect(url_for('all', mod='user'))
+
+    @app.route('/data/<string:mod>/<int:id>')
+    def migrate_save(mod, id):
+        if mod == 'user':
+            filename = USER_FILE
+        Model = mod_lookup.get(mod, None)
+        if not Model:
+            return f"No such route: {mod}", 404
+        model = model_db.read(id, Model=Model, safe=False)
+        del model['id']
+        model.pop('created', None)
+        model.pop('modified', None)
+        model.pop('insight', None)
+        model.pop('audience', None)
+        print('Old Account: ', model)
+        with open(filename, 'a') as file:
+            file.write(json.dumps(model))
+            file.write('\n')
+        return redirect(url_for('view', mod='user', id=id))
+
     @app.route('/data/update/<string:id>')
     def update_data(id):
         """ Update the worksheet data """
@@ -152,9 +236,7 @@ def create_app(config, debug=False, testing=False, config_overrides=None):
 
     @app.route('/login')
     def login():
-        print('========================================================================')
         print('============================= NEW LOGIN ================================')
-        print('========================================================================')
         callback = URL + '/callback'
         facebook = requests_oauthlib.OAuth2Session(
             FB_CLIENT_ID, redirect_uri=callback, scope=FB_SCOPE
@@ -165,7 +247,7 @@ def create_app(config, debug=False, testing=False, config_overrides=None):
 
     @app.route('/callback')
     def callback():
-        print('========================== They Came Back  =============================')
+        print('========================== Authorization Callback =============================')
         callback = URL + '/callback'
         facebook = requests_oauthlib.OAuth2Session(FB_CLIENT_ID, scope=FB_SCOPE, redirect_uri=callback)
         facebook = facebook_compliance_fix(facebook)  # we need to apply a fix for Facebook here
@@ -185,11 +267,11 @@ def create_app(config, debug=False, testing=False, config_overrides=None):
         user = model_db.create(data)
         user_id = user.get('id')
         print('User: ', user_id)
-        # Insight Data
-        # insights = get_insight(user_id, last=90, ig_id=ig_id, facebook=facebook)
-        # print('We have insights') if insights else print('No insights')
-        # audience = get_audience(user_id, ig_id=ig_id, facebook=facebook)
-        # print('Audience data collected') if audience else print('No Audience data')
+        # Relate Data
+        insights = get_insight(user_id, last=90, ig_id=ig_id, facebook=facebook)
+        print('We have insights') if insights else print('No insights')
+        audience = get_audience(user_id, ig_id=ig_id, facebook=facebook)
+        print('Audience data collected') if audience else print('No Audience data')
         return redirect(url_for('view', mod='user', id=user_id))
 
     @app.route('/<string:mod>/<int:id>')
@@ -248,8 +330,18 @@ def create_app(config, debug=False, testing=False, config_overrides=None):
     @app.route('/<string:mod>/<int:id>/fetch')
     def new_insight(mod, id):
         """ Get new insight data from API. Input mod for either User or Brand, with given id. """
+        # print('=========================== Get Insight Data ======================')
         insights = get_insight(id)
+        print(f'Insight data for {mod} - {id} ') if insights else (f'No insight data, {mod} - {data}')
         return redirect(url_for('insights', mod=mod, id=id))
+
+    @app.route('/<string:mod>/<int:id>/posts')
+    def new_post(mod, id):
+        """ Get new posts data from API. Input mod for either User or Brand, with a given id"""
+        posts = get_posts(id)
+        if len(posts):
+            print('we got some posts back')
+        return redirect(url_for('view', mod=mod, id=id))
 
     @app.route('/<string:mod>/add', methods=['GET', 'POST'])
     def add(mod):
