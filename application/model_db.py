@@ -1,5 +1,6 @@
 from flask import Flask
 from flask_sqlalchemy import SQLAlchemy
+from sqlalchemy.dialects.mysql import BIGINT
 from datetime import datetime as dt
 from dateutil import parser
 import re
@@ -27,14 +28,14 @@ class Brand(db.Model):
     __tablename__ = 'brands'
 
     id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String(63),         index=True,  unique=True,  nullable=False)
-    # company = db.Column(db.String(63),      index=False, unique=False, nullable=False)
-    facebook_id = db.Column(db.Integer,     index=False,  unique=False,  nullable=True)
-    token = db.Column(db.String(255),       index=False, unique=False, nullable=True)
-    token_expires = db.Column(db.DateTime,  index=False, unique=False, nullable=True)
-    notes = db.Column(db.Text,              index=False, unique=False, nullable=True)
-    modified = db.Column(db.DateTime,       index=False, unique=False, nullable=False, default=dt.utcnow, onupdate=dt.utcnow)
-    created = db.Column(db.DateTime,        index=False, unique=False, nullable=False, default=dt.utcnow)
+    name = db.Column(db.String(63),                index=True,  unique=True,  nullable=False)
+    # company = db.Column(db.String(63),           index=False, unique=False, nullable=False)
+    facebook_id = db.Column(BIGINT(unsigned=True), index=False, unique=False, nullable=True)
+    token = db.Column(db.String(255),              index=False, unique=False, nullable=True)
+    token_expires = db.Column(db.DateTime,         index=False, unique=False, nullable=True)
+    notes = db.Column(db.Text,                     index=False, unique=False, nullable=True)
+    modified = db.Column(db.DateTime,              index=False, unique=False, nullable=False, default=dt.utcnow, onupdate=dt.utcnow)
+    created = db.Column(db.DateTime,               index=False, unique=False, nullable=False, default=dt.utcnow)
     # users = db.relationship('Campaign', back_populates='brand')
     # # users = db.relationship('User', secondary='campaigns')
     UNSAFE = {'facebook_id', 'token', 'token_expires', 'modified', 'created'}
@@ -54,17 +55,17 @@ class User(db.Model):
     __tablename__ = 'users'
 
     id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String(63),         index=False, unique=True,  nullable=False)
-    instagram_id = db.Column(db.String(63), index=True,  unique=True,  nullable=True)
-    facebook_id = db.Column(db.String(63),  index=True,  unique=False,  nullable=True)
-    token = db.Column(db.String(255),       index=False, unique=False, nullable=True)
-    token_expires = db.Column(db.DateTime,  index=False, unique=False, nullable=True)
-    notes = db.Column(db.Text,              index=False, unique=False, nullable=True)
-    modified = db.Column(db.DateTime,       index=False, unique=False, nullable=False, default=dt.utcnow, onupdate=dt.utcnow)
-    created = db.Column(db.DateTime,        index=False, unique=False, nullable=False, default=dt.utcnow)
-    insights = db.relationship('Insight', backref='user', lazy=True, passive_deletes=True)
+    name = db.Column(db.String(63),                 index=False, unique=True,  nullable=False)
+    instagram_id = db.Column(BIGINT(unsigned=True), index=True,  unique=True,  nullable=True)
+    facebook_id = db.Column(BIGINT(unsigned=True),  index=False, unique=False, nullable=True)
+    token = db.Column(db.String(255),               index=False, unique=False, nullable=True)
+    token_expires = db.Column(db.DateTime,          index=False, unique=False, nullable=True)
+    notes = db.Column(db.Text,                      index=False, unique=False, nullable=True)
+    modified = db.Column(db.DateTime,               index=False, unique=False, nullable=False, default=dt.utcnow, onupdate=dt.utcnow)
+    created = db.Column(db.DateTime,                index=False, unique=False, nullable=False, default=dt.utcnow)
+    insights = db.relationship('Insight',   backref='user', lazy=True, passive_deletes=True)
     audiences = db.relationship('Audience', backref='user', lazy=True, passive_deletes=True)
-    posts = db.relationship('Post', backref='user', lazy=True, passive_deletes=True)
+    posts = db.relationship('Post',         backref='user', lazy=True, passive_deletes=True)
     # brands = db.relationship('Campaign', back_populates='user')
     # # brands = db.relationship('Brand', secondary='campaigns')
     UNSAFE = {'token', 'token_expires', 'facebook_id', 'modified', 'created'}
@@ -93,7 +94,7 @@ class Insight(db.Model):
     """ Data model for insights data on a (influencer's) user's or brands account """
     __tablename__ = 'insights'
 
-    id = db.Column(db.Integer, primary_key=True)
+    id = db.Column(db.Integer,      primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey('users.id', ondelete='CASCADE'))
     recorded = db.Column(db.DateTime,          index=True,  unique=False, nullable=False)
     name = db.Column(db.String(255),           index=True, unique=False, nullable=False)
@@ -150,29 +151,28 @@ class Post(db.Model):
     user_id = db.Column(db.Integer, db.ForeignKey('users.id', ondelete='CASCADE'), nullable=False)
     campaign_id = db.Column(db.Integer, db.ForeignKey('campaigns.id', ondelete='SET NULL'), nullable=True)
     processed = db.Column(db.Boolean, default=False)
-    media_id = db.Column(db.Integer,      index=True,   unique=True,  nullable=False)
-    media_type = db.Column(db.String(64), index=False,   unique=False, nullable=True)
-    caption = db.Column(db.Text,          index=False,  unique=False, nullable=True)
-    comment_count = db.Column(db.Integer, index=False,  unique=False, nullable=True)
-    like_count = db.Column(db.Integer,    index=False,  unique=False, nullable=True)
-    permalink = db.Column(db.String(255), index=False,  unique=False, nullable=True)
-    recorded = db.Column(db.DateTime,     index=False,  unique=False, nullable=False)  # timestamp*
-    modified = db.Column(db.DateTime,       index=False, unique=False, nullable=False, default=dt.utcnow, onupdate=dt.utcnow)
-    created = db.Column(db.DateTime,        index=False, unique=False, nullable=False, default=dt.utcnow)
+    media_id = db.Column(BIGINT(unsigned=True), index=True,  unique=True,  nullable=False)
+    media_type = db.Column(db.String(64),       index=False, unique=False, nullable=True)
+    caption = db.Column(db.Text,                index=False, unique=False, nullable=True)
+    comment_count = db.Column(db.Integer,       index=False, unique=False, nullable=True)
+    like_count = db.Column(db.Integer,          index=False, unique=False, nullable=True)
+    permalink = db.Column(db.String(255),       index=False, unique=False, nullable=True)
+    recorded = db.Column(db.DateTime,           index=False, unique=False, nullable=False)  # timestamp*
+    modified = db.Column(db.DateTime,           index=False, unique=False, nullable=False, default=dt.utcnow, onupdate=dt.utcnow)
+    created = db.Column(db.DateTime,            index=False, unique=False, nullable=False, default=dt.utcnow)
     # The following 9 are from insights, the first 2 for all kinds of media
-    impressions = db.Column(db.Integer,   index=False,  unique=False, nullable=True)
-    reach = db.Column(db.Integer,         index=False,  unique=False, nullable=True)
+    impressions = db.Column(db.Integer,         index=False,  unique=False, nullable=True)
+    reach = db.Column(db.Integer,               index=False,  unique=False, nullable=True)
     # The following 3 are for Album and Photo/Video media
-    engagement = db.Column(db.Integer,    index=False,  unique=False, nullable=True)
-    saved = db.Column(db.Integer,         index=False,  unique=False, nullable=True)
-    video_views = db.Column(db.Integer,   index=False,  unique=False, nullable=True)
+    engagement = db.Column(db.Integer,          index=False,  unique=False, nullable=True)
+    saved = db.Column(db.Integer,               index=False,  unique=False, nullable=True)
+    video_views = db.Column(db.Integer,         index=False,  unique=False, nullable=True)
     # The following 4 are only for stories media
-    exits = db.Column(db.Integer,         index=False,  unique=False, nullable=True)
-    replies = db.Column(db.Integer,       index=False,  unique=False, nullable=True)
-    taps_forward = db.Column(db.Integer,  index=False,  unique=False, nullable=True)
-    taps_back = db.Column(db.Integer,     index=False,  unique=False, nullable=True)
+    exits = db.Column(db.Integer,               index=False,  unique=False, nullable=True)
+    replies = db.Column(db.Integer,             index=False,  unique=False, nullable=True)
+    taps_forward = db.Column(db.Integer,        index=False,  unique=False, nullable=True)
+    taps_back = db.Column(db.Integer,           index=False,  unique=False, nullable=True)
 
-    # instagram_id = db.Column(db.String(80),    index=True,  unique=True,  nullable=False)  # IG indentity
     metrics = {}
     metrics['basic'] = {'media_type', 'caption', 'like_count', 'permalink', 'timestamp'}  # comment_count requires different permissions
     metrics['insight'] = {'impressions', 'reach'}
@@ -193,15 +193,15 @@ class Post(db.Model):
 
 user_campaign = db.Table(
     'user_campaigns',
-    db.Column('id', db.Integer, primary_key=True),
-    db.Column('user_id', db.Integer, db.ForeignKey('users.id', ondelete="CASCADE")),
+    db.Column('id',          db.Integer, primary_key=True),
+    db.Column('user_id',     db.Integer, db.ForeignKey('users.id', ondelete="CASCADE")),
     db.Column('campaign_id', db.Integer, db.ForeignKey('campaigns.id', ondelete="CASCADE"))
 )
 
 brand_campaign = db.Table(
     'brand_campaigns',
-    db.Column('id', db.Integer, primary_key=True),
-    db.Column('brand_id', db.Integer, db.ForeignKey('brands.id', ondelete="CASCADE")),
+    db.Column('id',          db.Integer, primary_key=True),
+    db.Column('brand_id',    db.Integer, db.ForeignKey('brands.id',    ondelete="CASCADE")),
     db.Column('campaign_id', db.Integer, db.ForeignKey('campaigns.id', ondelete="CASCADE"))
 )
 
