@@ -78,13 +78,7 @@ def get_posts(user_id, ig_id=None, facebook=None):
     """ Get media posts """
     from pprint import pprint
     print('==================== Get Posts ====================')
-    basic_metrics = ','.join(model_db.Post.basic_metrics)
-    # basic_metrics = {'media_type', 'caption', 'like_count', 'permalink', 'timestamp'}  # 'comment_count',
-    # basic_metrics = ','.join(basic_metrics)
-    # print('from db vs literal: ', basic_metrics_a == basic_metrics)
-    media_metrics = ','.join(model_db.Post.media_metrics)
-    album_metrics = ','.join(model_db.Post.album_metrics)
-    story_metrics = ','.join(model_db.Post.story_metrics)
+    post_metrics = {key: ','.join(val) for (key, val) in model_db.Post.metrics.items()}
     results, token = [], ''
     if not facebook or not ig_id:
         model = model_db.read(user_id, safe=False)
@@ -96,44 +90,29 @@ def get_posts(user_id, ig_id=None, facebook=None):
     if not isinstance(media, list):
         print('Error: ', response.get('error'))
         print('--------------- Instead, response was ----------------')
-        print(response)
+        pprint(response)
         return []
     print(f"----------- Looking up {len(media)} Media Posts ----------- ")
-    results = []
     for post in media:
         media_id = post.get('id')
-        url = f"https://graph.facebook.com/{media_id}?fields={basic_metrics}"
+        url = f"https://graph.facebook.com/{media_id}?fields={post_metrics['basic']}"
         res = facebook.get(url).json() if facebook else requests.get(f"{url}&access_token={token}").json()
         res['media_id'] = res.pop('id', media_id)
-        if res['media_type'] == 'IMAGE' or res['media_type'] == 'VIDEO':
-            metrics = media_metrics
-        elif res['media_type'] == 'ALBUM':
-            metrics = album_metrics
-        elif res['media_type'] == 'STORY':
-            metrics = story_metrics
+        metrics = post_metrics.get(res.get('media_type'), post_metrics['insight'])
+        if metrics == post_metrics['insight']:  # TODO: remove after tested
+            print(f"----- Match not found for {res.get('media_type')} media_type parameter -----")  # TODO: remove after tested
+        url = f"https://graph.facebook.com/{media_id}/insights?metric={metrics}"
+        res_insight = facebook.get(url).json() if facebook else requests.get(f"{url}&access_token={token}").json()
+        insights = res_insight.get('data')
+        if insights:
+            temp = {ea.get('name'): ea.get('values', [{'value': 0}])[0].get('value', 0) for ea in insights}
+            res.update(temp)
         else:
-            metrics = None
-        if metrics:
-            url = f"https://graph.facebook.com/{media_id}/insights?metric={metrics}"
-            res_insight = facebook.get(url).json() if facebook else requests.get(f"{url}&access_token={token}").json()
-            insights = res_insight.get('data')
-            print('========== Media Insights ============')
-            print(insights)
-            # {key: val for key, val in ea.items() for ea in insights}
-
-        pprint(res)
-
-    # for ea in media:
-    #     for val in ea.get('values'):
-    #         val['name'], val['user_id'] = ea.get('name'), user_id
-    #         # temp = model_db.create(val, model_db.Insight)
-    #         # results.append(temp)
-    #         results.append(val)
-    # # return results
-    # return model_db.create_many(results, model_db.Insight)
-    # return model_db.create_many(results, model_db.Post)
+            print(f"media {media_id} had NO INSIGHTS for type {res.get('media_type')} --- {res_insight}")
+        # pprint(res)
+        # print('---------------------------------------')
+        results.append(res)
     return results
-
 
 def get_ig_info(ig_id, token=None, facebook=None):
     """ We already have their InstaGram Business Account id, but we need their IG username """
@@ -147,7 +126,6 @@ def get_ig_info(ig_id, token=None, facebook=None):
     if not token and not facebook:
         return "You must pass a 'token' or 'facebook' reference. "
     url = f"https://graph.facebook.com/v4.0/{ig_id}?fields={fields}"
-    print(url)
     res = facebook.get(url).json() if facebook else requests.get(f"{url}&access_token={token}").json()
     pprint(res)
     return res
@@ -367,6 +345,7 @@ def create_app(config, debug=False, testing=False, config_overrides=None):
         posts = get_posts(id)
         if len(posts):
             print('we got some posts back')
+
         return redirect(url_for('view', mod=mod, id=id))
 
     @app.route('/<string:mod>/add', methods=['GET', 'POST'])

@@ -173,11 +173,13 @@ class Post(db.Model):
     taps_back = db.Column(db.Integer,     index=False,  unique=False, nullable=True)
 
     # instagram_id = db.Column(db.String(80),    index=True,  unique=True,  nullable=False)  # IG indentity
-    basic_metrics = {'media_type', 'caption', 'like_count', 'permalink', 'timestamp'}  # comment_count requires different permissions
-    insight_metrics = {'impressions', 'reach'}
-    media_metrics = {'engagement', 'saved', 'video_views'}.union(insight_metrics)
-    album_metrics = {f"carousel_album_{metric}" for metric in media_metrics}
-    story_metrics = {'exits', 'replies', 'taps_forward', 'taps_back'}.union(insight_metrics)
+    metrics = {}
+    metrics['basic'] = {'media_type', 'caption', 'like_count', 'permalink', 'timestamp'}  # comment_count requires different permissions
+    metrics['insight'] = {'impressions', 'reach'}
+    metrics['IMAGE'] = {'engagement', 'saved'}.union(metrics['insight'])
+    metrics['VIDEO'] = {'video_views'}.union(metrics['IMAGE'])
+    metrics['CAROUSEL_ALBUM'] = {f"carousel_album_{metric}" for metric in metrics['IMAGE']}  # ?in metrics['VIDEO']
+    metrics['STORY'] = {'exits', 'replies', 'taps_forward', 'taps_back'}.union(metrics['insight'])
     UNSAFE = {''}
 
     def __init__(self, *args, **kwargs):
