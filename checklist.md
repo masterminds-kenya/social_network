@@ -23,7 +23,7 @@
 |                    | Testing, on-boarding, error handling ||
 |                    | **Milestone 4 Completion** |
 |                    | Facebook App approved and go live |
-|                    | **Initial Project Completion** |
+|                    | **Initial Contract Completion** |
 
 ## Checklist
 
@@ -72,7 +72,7 @@ Current Status:
     - [ ] reach
     - [ ] saved
     - [ ] video_views
-  - [?] Album Insight Metrics
+  - [ ] Album Insight Metrics
     - [ ] carousel_album_engagement
     - [ ] carousel_album_impressions
     - [ ] carousel_album_reach
@@ -136,6 +136,11 @@ Current Status:
 - [ ] User creation: Manage if influencer has many IG accounts.
 - [s] Can have Brand give permission for the FB App
 - [x] Admin can input information for a brand
+- [ ] API call and store basic metrics for media Posts
+- [ ] API call and store post insight metrics for Photo/Video
+- [ ] API call and store post insight metrics for Albums
+- [ ] API call and store post insight metrics for Stories
+- [s] WebHook to get Stories data at completion.
 - [ ] Admin/Marketing can connect Influencer to Brands through Campaign
 - [ ] Create Brand and Campaign View
   - [ ] Create Brand
