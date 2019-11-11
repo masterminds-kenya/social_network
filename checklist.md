@@ -11,10 +11,10 @@
 | :heavy_check_mark: | Database connected                        ||
 | :heavy_check_mark: | Influencer or Brand can give permissions to account data||
 |                    | **Milestone 2 Completion** |
-| :heavy_check_mark: | Influencer/Brand can select which Instagram account to use |
+|                    | Influencer/Brand can select which Instagram account to use |
 | :heavy_check_mark: | Facebook API data is collected on user and saved to database ||
 | :heavy_check_mark: | Google Sheets connected to Facebook API database ||
-|                    | Getting Media & Stories metrics captured & stored ||
+|  partial           | Getting Media & Stories metrics captured & stored ||
 |                    | Media & Stories can be assigned as in or out of campaign ||
 |                    | **Milestone 3 Completion** |
 |                    | Generate reports to Google sheets         |
@@ -52,13 +52,14 @@ Current Status:
 - [s] Post to track different "media" posts.
 - [s] Update ON DELETE for a User's posts.
 - [s] Model for capturing the limited time FB/IG stories
-- [ ]  posts (media) seem to have 3 types: Story, Album, and Photo/Video
-  - [ ]  All IG Media also has some general returnable fields:
-    - [ ]  caption
-    - [ ]  comments_count
-    - [ ]  like_count
-    - [ ]  media_type
-    - [ ]  permalink
+- [ ] Fix DB setup: use utf8mb4 so we can handle emojis
+- [ ] posts (media) seem to have 3 types: Story, Album, and Photo/Video
+  - [x]  All IG Media also has some general returnable fields:
+    - [x]  caption  - except emoji problem
+    - [x]  comments_count
+    - [x]  like_count
+    - [x]  media_type
+    - [x]  permalink
   - [ ] Stories Insight Metrics (for limited time FB/IG stories)
     - [ ] exits
     - [ ] impressions
@@ -66,18 +67,18 @@ Current Status:
     - [ ] replies
     - [ ] taps_forward
     - [ ] taps_back
-  - [ ] Photo/Video Insight Metrics
-    - [ ] engagement
-    - [ ] impressions
-    - [ ] reach
-    - [ ] saved
-    - [ ] video_views
-  - [ ] Album Insight Metrics
-    - [ ] carousel_album_engagement
-    - [ ] carousel_album_impressions
-    - [ ] carousel_album_reach
-    - [ ] carousel_album_saved
-    - [ ] carousel_album_video_views
+  - [x] Photo/Video Insight Metrics
+    - [x] engagement
+    - [x] impressions
+    - [x] reach
+    - [x] saved
+    - [x] video_views
+  - [x] Album Insight Metrics
+    - [x] carousel_album_engagement
+    - [x] carousel_album_impressions
+    - [x] carousel_album_reach
+    - [x] carousel_album_saved
+    - [N] carousel_album_video_views
 - [x] Refactor User Model, less PII, no admin, connect to posts/media
 - [x] Have the ability for a single FB user to have many IG profiles on our app?
 - [ ] Add a logical catch for existing users to re-route to data update

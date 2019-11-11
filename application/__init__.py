@@ -21,7 +21,7 @@ FB_SCOPE = [
     'instagram_basic',
     'instagram_manage_insights',
         ]
-mod_lookup = {'brand': model_db.Brand, 'user': model_db.User, 'insight': model_db.Insight, 'audience': model_db.Audience}
+mod_lookup = {'brand': model_db.Brand, 'user': model_db.User, 'insight': model_db.Insight, 'audience': model_db.Audience, 'post': model_db.Post, 'campaign': model_db.Campaign}
 DEPLOYED_URL = environ.get('DEPLOYED_URL')
 LOCAL_URL = 'http://127.0.0.1:8080'
 if environ.get('GAE_INSTANCE'):
@@ -98,6 +98,7 @@ def get_posts(user_id, ig_id=None, facebook=None):
         url = f"https://graph.facebook.com/{media_id}?fields={post_metrics['basic']}"
         res = facebook.get(url).json() if facebook else requests.get(f"{url}&access_token={token}").json()
         res['media_id'] = res.pop('id', media_id)
+        res['user_id'] = user_id
         metrics = post_metrics.get(res.get('media_type'), post_metrics['insight'])
         if metrics == post_metrics['insight']:  # TODO: remove after tested
             print(f"----- Match not found for {res.get('media_type')} media_type parameter -----")  # TODO: remove after tested
@@ -109,10 +110,11 @@ def get_posts(user_id, ig_id=None, facebook=None):
             res.update(temp)
         else:
             print(f"media {media_id} had NO INSIGHTS for type {res.get('media_type')} --- {res_insight}")
-        # pprint(res)
-        # print('---------------------------------------')
+        pprint(res)
+        print('---------------------------------------')
         results.append(res)
-    return results
+    return model_db.create_many(results, model_db.Post)
+
 
 def get_ig_info(ig_id, token=None, facebook=None):
     """ We already have their InstaGram Business Account id, but we need their IG username """
