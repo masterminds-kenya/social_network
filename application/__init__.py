@@ -77,6 +77,14 @@ def get_audience(user_id, ig_id=None, facebook=None):
 def get_posts(user_id, ig_id=None, facebook=None):
     """ Get media posts """
     from pprint import pprint
+    print('==================== Get Posts ====================')
+    basic_metrics = ','.join(model_db.Post.basic_metrics)
+    # basic_metrics = {'media_type', 'caption', 'like_count', 'permalink', 'timestamp'}  # 'comment_count',
+    # basic_metrics = ','.join(basic_metrics)
+    # print('from db vs literal: ', basic_metrics_a == basic_metrics)
+    media_metrics = ','.join(model_db.Post.media_metrics)
+    album_metrics = ','.join(model_db.Post.album_metrics)
+    story_metrics = ','.join(model_db.Post.story_metrics)
     results, token = [], ''
     if not facebook or not ig_id:
         model = model_db.read(user_id, safe=False)
@@ -94,11 +102,25 @@ def get_posts(user_id, ig_id=None, facebook=None):
     results = []
     for post in media:
         media_id = post.get('id')
-        fields = ['media_type', 'caption', 'comments_count', 'like_count', 'permalink', 'timestamp']
-        field_string = ','.join(fields)
-        url = f"https://graph.facebook.com/{media_id}?fields={field_string}"
+        url = f"https://graph.facebook.com/{media_id}?fields={basic_metrics}"
         res = facebook.get(url).json() if facebook else requests.get(f"{url}&access_token={token}").json()
-        res['media_id'] = res.pop('id')
+        res['media_id'] = res.pop('id', media_id)
+        if res['media_type'] == 'IMAGE' or res['media_type'] == 'VIDEO':
+            metrics = media_metrics
+        elif res['media_type'] == 'ALBUM':
+            metrics = album_metrics
+        elif res['media_type'] == 'STORY':
+            metrics = story_metrics
+        else:
+            metrics = None
+        if metrics:
+            url = f"https://graph.facebook.com/{media_id}/insights?metric={metrics}"
+            res_insight = facebook.get(url).json() if facebook else requests.get(f"{url}&access_token={token}").json()
+            insights = res_insight.get('data')
+            print('========== Media Insights ============')
+            print(insights)
+            # {key: val for key, val in ea.items() for ea in insights}
+
         pprint(res)
 
     # for ea in media:

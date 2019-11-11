@@ -173,7 +173,7 @@ class Post(db.Model):
     taps_back = db.Column(db.Integer,     index=False,  unique=False, nullable=True)
 
     # instagram_id = db.Column(db.String(80),    index=True,  unique=True,  nullable=False)  # IG indentity
-    basic_metrics = {'media_type', 'caption', 'comment_count', 'like_count', 'permalink', 'timestamp'}
+    basic_metrics = {'media_type', 'caption', 'like_count', 'permalink', 'timestamp'}  # comment_count requires different permissions
     insight_metrics = {'impressions', 'reach'}
     media_metrics = {'engagement', 'saved', 'video_views'}.union(insight_metrics)
     album_metrics = {f"carousel_album_{metric}" for metric in media_metrics}
