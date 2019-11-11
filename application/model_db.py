@@ -12,6 +12,7 @@ db = SQLAlchemy()
 def init_app(app):
     # Disable track modifications, as it unnecessarily uses memory.
     app.config.setdefault('SQLALCHEMY_TRACK_MODIFICATIONS', False)
+    # app.config['MYSQL_DATABASE_CHARSET'] = 'utf8mb4'
     db.init_app(app)
 
 
@@ -31,6 +32,7 @@ class Brand(db.Model):
     name = db.Column(db.String(63),                index=True,  unique=True,  nullable=False)
     # company = db.Column(db.String(63),           index=False, unique=False, nullable=False)
     facebook_id = db.Column(BIGINT(unsigned=True), index=False, unique=False, nullable=True)
+    # instagram_id = db.Column(BIGINT(unsigned=True), index=True,  unique=True,  nullable=True)
     token = db.Column(db.String(255),              index=False, unique=False, nullable=True)
     token_expires = db.Column(db.DateTime,         index=False, unique=False, nullable=True)
     notes = db.Column(db.Text,                     index=False, unique=False, nullable=True)
@@ -38,7 +40,7 @@ class Brand(db.Model):
     created = db.Column(db.DateTime,               index=False, unique=False, nullable=False, default=dt.utcnow)
     # users = db.relationship('Campaign', back_populates='brand')
     # # users = db.relationship('User', secondary='campaigns')
-    UNSAFE = {'facebook_id', 'token', 'token_expires', 'modified', 'created'}
+    UNSAFE = {'token', 'token_expires', 'modified', 'created'}
 
     def __str__(self):
         return f"{self.name} Brand"
@@ -68,7 +70,7 @@ class User(db.Model):
     posts = db.relationship('Post',         backref='user', lazy=True, passive_deletes=True)
     # brands = db.relationship('Campaign', back_populates='user')
     # # brands = db.relationship('Brand', secondary='campaigns')
-    UNSAFE = {'token', 'token_expires', 'facebook_id', 'modified', 'created'}
+    UNSAFE = {'token', 'token_expires', 'modified', 'created'}
 
     def __init__(self, *args, **kwargs):
         had_admin = kwargs.pop('admin', None)
@@ -118,7 +120,7 @@ class Audience(db.Model):
     """ Data model for current information about the user's audience. """
     __tablename__ = 'audiences'
 
-    id = db.Column(db.Integer, primary_key=True)
+    id = db.Column(db.Integer,      primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey('users.id', ondelete='CASCADE'))
     recorded = db.Column(db.DateTime,          index=True,  unique=False, nullable=False)
     name = db.Column(db.String(255),           index=True, unique=False, nullable=False)
@@ -147,8 +149,8 @@ class Post(db.Model):
     """ Instagram media that was posted by an influencer user """
     __tablename__ = 'posts'
 
-    id = db.Column(db.Integer, primary_key=True)
-    user_id = db.Column(db.Integer, db.ForeignKey('users.id', ondelete='CASCADE'), nullable=False)
+    id = db.Column(db.Integer,          primary_key=True)
+    user_id = db.Column(db.Integer,     db.ForeignKey('users.id', ondelete='CASCADE'), nullable=False)
     campaign_id = db.Column(db.Integer, db.ForeignKey('campaigns.id', ondelete='SET NULL'), nullable=True)
     processed = db.Column(db.Boolean, default=False)
     media_id = db.Column(BIGINT(unsigned=True), index=True,  unique=True,  nullable=False)
@@ -210,18 +212,26 @@ class Campaign(db.Model):
     """ Relationship between Users and Brands """
     __tablename__ = 'campaigns'
 
-    id = db.Column(db.Integer, primary_key=True)
-    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    id = db.Column(db.Integer,       primary_key=True)
+    user_id = db.Column(db.Integer,  db.ForeignKey('users.id'), nullable=False)
     brand_id = db.Column(db.Integer, db.ForeignKey('brands.id'), nullable=False)
+    # name = db.Column(db.String(63),         index=False, unique=False, nullable=True)
     notes = db.Column(db.Text,              index=False, unique=False, nullable=True)
     modified = db.Column(db.DateTime,       index=False, unique=False, nullable=False, default=dt.utcnow, onupdate=dt.utcnow)
     created = db.Column(db.DateTime,        index=False, unique=False, nullable=False, default=dt.utcnow)
     # start_date = db.Column(db.DateTime,     index=False, unique=False, nullable=False, default=dt.utcnow)
     # end_date = db.Column(db.DateTime,       index=False, unique=False, nullable=True)
     users = db.relationship('User', secondary=user_campaign, backref=db.backref('campaigns'))
+    # TODO: update brand to brands
     brand = db.relationship('Brand', secondary=brand_campaign, backref=db.backref('campaigns'))
     posts = db.relationship('Post', backref='campaign', lazy=True)
     UNSAFE = {''}
+
+    def __str__(self):
+        # TODO: update to use self.name
+        name = self.get('name', self['id'])
+        brands = ', '.join(self.brand) if self.get('brand') else 'NA'
+        return f"Campaign {name} - {brands}"
 
     def __repr__(self):
         return '<Campaign {} | Brand: {} | Starts: {}>'.format(self.id, self.brand_id, self.start_date)
@@ -311,8 +321,8 @@ def _create_database():
     app.config.from_pyfile('../config.py')
     init_app(app)
     with app.app_context():
-        db.drop_all()
-        print("All tables dropped!")
+        # db.drop_all()
+        # print("All tables dropped!")
         db.create_all()
     print("All tables created")
 

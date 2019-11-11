@@ -360,7 +360,8 @@ def create_app(config, debug=False, testing=False, config_overrides=None):
             data = request.form.to_dict(flat=True)  # TODO: add form validate method for security.
             model = model_db.create(data, Model=Model)
             return redirect(url_for('view', mod=mod, id=model['id']))
-        template = f"{mod}_form.html"
+        # template = f"{mod}_form.html"
+        template = 'form.html'
         return render_template(template, action='Add', mod=mod, data={})
 
     @app.route('/<string:mod>/<int:id>/edit', methods=['GET', 'POST'])
@@ -374,7 +375,8 @@ def create_app(config, debug=False, testing=False, config_overrides=None):
             model = model_db.update(data, id, Model=Model)
             return redirect(url_for('view', mod=mod, id=model['id']))
         model = model_db.read(id, Model=Model)
-        template = f"{mod}_form.html"
+        # template = f"{mod}_form.html"
+        template = 'form.html'
         return render_template(template, action='Edit', mod=mod, data=model)
 
     @app.route('/<string:mod>/<int:id>/delete')

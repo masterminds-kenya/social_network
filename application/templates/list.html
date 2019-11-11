@@ -1,10 +1,10 @@
 {% extends "base.html" %}
 {% block head %}
-<title>List All {{ mod.capitalize() }}</title>
+<title>{{ mod.capitalize() }}s</title>
 {% endblock %}
 
 {% block content %}
-<h3>All {{ mod.capitalize() }}</h3>
+<h3>All Current {{ mod.capitalize() }}s</h3>
 <ul>
   {% for datum in data %}
   <li><a href="{{ url_for('view', mod=mod, id=datum.id) }}">
@@ -12,5 +12,11 @@
   </a> </li>
   {% endfor %}
 </ul>
-
+<h3>Other Options</h3>
+<ul>
+  <li><a href="{{url_for('add', mod=mod)}}">Add {% if mod == 'user' %}Fake {%endif%}{{mod.capitalize()}}</a></li>
+  {% if mod == 'campaign' %}
+  <li><a href="{{ url_for('add', mod='brand')}}">Add Brand</a></li>
+  {% endif %}
+</ul>
 {% endblock %}
