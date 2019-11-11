@@ -1,6 +1,33 @@
 # Feature Development Plan
 
-## Key
+## Milestones
+
+| Complete           | Task                                      |
+| ------------------ |:-----------------------------------------:|
+|                    | **Start of Project**                      |
+| :heavy_check_mark: | Requirements gathering and begin project  |
+|                    | **Milestone 1 Completion**                |
+| :heavy_check_mark: | Servers set up                            |
+| :heavy_check_mark: | Database connected                        ||
+| :heavy_check_mark: | Influencer or Brand can give permissions to account data||
+|                    | **Milestone 2 Completion** |
+| :heavy_check_mark: | Influencer/Brand can select which Instagram account to use |
+| :heavy_check_mark: | Facebook API data is collected on user and saved to database ||
+| :heavy_check_mark: | Google Sheets connected to Facebook API database ||
+|                    | Getting Media & Stories metrics captured & stored ||
+|                    | Media & Stories can be assigned as in or out of campaign ||
+|                    | **Milestone 3 Completion** |
+|                    | Generate reports to Google sheets         |
+|                    | Give permissions to view google sheets    ||
+|                    | Site content and style, basic UI and graphs ||
+|                    | Testing, on-boarding, error handling ||
+|                    | **Milestone 4 Completion** |
+|                    | Facebook App approved and go live |
+|                    | **Initial Contract Completion** |
+
+## Checklist
+
+### Key
 
 - [x] Completed.
 - [N] No: does not work or decided against.
@@ -13,7 +40,6 @@ Current Status:
 2019-11-05 09:42:07
 <!-- Ctrl-Shift-I to generate timestamp -->
 
-## Checklist
 
 ### DB Design: Track different businesses and how influencers affect them
 
@@ -26,31 +52,57 @@ Current Status:
 - [s] Post to track different "media" posts.
 - [s] Update ON DELETE for a User's posts.
 - [s] Model for capturing the limited time FB/IG stories
-- [ ] Metrics for limited time FB/IG stories
-- [ ] Metrics for posts (media)
-  - [ ] likes
-  - [ ] shares
-  - [ ] impressions
-  - [ ] reach
-- [ ] Allow admin to categorize posts to campaigns
-- [ ] Have the ability for a single FB user to have many IG profiles on our app?
+- [ ]  posts (media) seem to have 3 types: Story, Album, and Photo/Video
+  - [ ]  All IG Media also has some general returnable fields:
+    - [ ]  caption
+    - [ ]  comments_count
+    - [ ]  like_count
+    - [ ]  media_type
+    - [ ]  permalink
+  - [ ] Stories Insight Metrics (for limited time FB/IG stories)
+    - [ ] exits
+    - [ ] impressions
+    - [ ] reach
+    - [ ] replies
+    - [ ] taps_forward
+    - [ ] taps_back
+  - [ ] Photo/Video Insight Metrics
+    - [ ] engagement
+    - [ ] impressions
+    - [ ] reach
+    - [ ] saved
+    - [ ] video_views
+  - [ ] Album Insight Metrics
+    - [ ] carousel_album_engagement
+    - [ ] carousel_album_impressions
+    - [ ] carousel_album_reach
+    - [ ] carousel_album_saved
+    - [ ] carousel_album_video_views
+- [x] Refactor User Model, less PII, no admin, connect to posts/media
+- [x] Have the ability for a single FB user to have many IG profiles on our app?
+- [ ] Add a logical catch for existing users to re-route to data update
+- [ ] Refactor User data collection functions to work on create and update
+- [ ] Can issue new API request for recent data for existing Influencer Users
+- [s] Manage incoming insight duplications
 - [s] How do we want to organize audience data?
+- [?] Refactor Audience Model to parse out the gender and age group fields
+- [?] Make sure incoming audience data does not overwrite historical audience data.
+- [ ] Campaign Model
+  - [ ] Can make a connection between a brand and a user.
+  - [ ] Can create a campaign for each connection.
+  - [ ] Allow admin to categorize posts to campaigns
+- [x] For all data collection on new users, move to external functions
+- [s] Refactor User data collection functions to work also work for Brands
+- [x] Create many function
+- [ ] Refactor create to account for both create one or create many
+- [s] Update many function
+- [s] Refine Brand Model with constructor function for translating from FB.
+- [s] Can update data for existing Brand accounts
 - [ ] Keep a DB table of worksheet ids?
   - [ ] Will we have multiple report views?
-- [s] Manage incoming insight duplications
-- [ ] Make sure incoming audience data does not overwrite historical audience data.
-- [ ] Can make a connection between a brand and a user.
-  - [ ] Define a campaign for each connection.
-- [ ] Add a logical catch for existing users to re-route to data update
-- [x] For all data collection on new users, move to external functions
-- [ ] Refactor User data collection functions to work on create and update
-- [ ] Refactor User data collection functions to work also work for Brands
-- [x] Create many function
-- [ ] Update many function
-- [ ] Can issue new API request for recent data for existing Influencer Users
-- [ ] Refine Brand Model with constructor function for translating from FB.
-- [ ] Can update data for existing Brand accounts
-- [ ] Refine decision for fields from insights data.
+- [s] DB Migration: Integrate flask-migrate?
+- [ ] Revisit structure for ON DELETE, ON UPDATE, and how related tables are loaded (lazy=?)
+- [?] Refine decision for fields from (overall user) insights data.
 
 ### Site Functionality
 
@@ -84,7 +136,23 @@ Current Status:
 - [ ] User creation: Manage if influencer has many IG accounts.
 - [s] Can have Brand give permission for the FB App
 - [x] Admin can input information for a brand
-- [ ] Admin can connect Influencer to Brands through Campaign
+- [ ] API call and store basic metrics for media Posts
+- [ ] API call and store post insight metrics for Photo/Video
+- [ ] API call and store post insight metrics for Albums
+- [ ] API call and store post insight metrics for Stories
+- [s] WebHook to get Stories data at completion.
+- [ ] Admin/Marketing can connect Influencer to Brands through Campaign
+- [ ] Create Brand and Campaign View
+  - [ ] Create Brand
+  - [ ] Create Campaign
+  - [ ] Assign Users to Campaign
+- [ ] Manage Campaign View
+  - [ ] List all Influencers in this campaign
+  - [ ] For each Influencer, list media to process.
+    - [ ] maintain a cue of unprocessed posts.
+    - [ ] fetch new posts to add to the cue
+    - [ ] checkbox to confirm post is part of campaign
+    - [ ] checkbox to confirm post is NOT part of campaign
 - [?] ?Influencer can create a Campaign to connect to Brand?
 - [x] Add Google Sheet API to GCloud app.
 - [ ] Add functionality to export Marketing data to a Google worksheet.
