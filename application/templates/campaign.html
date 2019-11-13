@@ -4,33 +4,33 @@
 {% endblock %}
 
 {% block content %}
-<h1>{{ mod.capitalize() }} Management</h1>
+<h1>
+  Manage Campaign -
+  {{ data.name|title|e if data.name else data.id }}
+  {% if data.brands|length > 0 %}
+  - {{ data.brands|join(", ")|e }}
+  {% elif data.brands|length > 0 %}
+  - {{ data.brands[0]|e }}
+  {% else %}
+  - Unassigned Brands
+  {% endif %}
+</h1>
 <p>
   Last Updated on {{data.modified}} |
   {%if completed%}Finished Campaign{%else%}Active Campaign{%endif%}
 </p>
-<h2>{{ data.name|title|e if data.name else data.id }}</h2>
+{% if data.brands|length < 1 %}
+<p><a href="{{url_for('edit', mod='campaign', id='{{ data.id }}')}}">Modify Assignments</a></p>
+{% endif %}
 <p><strong>Notes: </strong> {{ data.notes|e }}</p>
-{% for type, assoc in dict(brands=data.brands, users=data.users).items() %}
-<section id="{{type}}">
-  {% if data[type]|length > 1 %}
-  <h3>{{type|title}}</h3>
-  <p>
-    {{ data[type]|join(", ")|e }}
-  </p>
-  {% elif type|length > 0 %}
-  <h3>{{ data[type][0]|e }}</h3>
-  {% else %}
-  <h3>No {{type|title}} Assigned to this Campaign</h3>
-  <p><a href="{{url_for('edit', mod='campaign', id='{{ data.id }}')}}">Modify Assignments</a></p>
-  {% endif %}
-</section>
-{% endfor %}
+{% if data.users|length < 1 %}
+<h2>No Influencers assigned in Campaign</h2>
+<p><a href="{{url_for('edit', mod='campaign', id='{{ data.id }}')}}">Modify Assignments</a></p>
+{% endif %}
 <main>
-  <h3>Media - Post Assignment </h3>
   {% for user in data.users %}
   <div class="users" id="{{user.id}}">
-    <h4>Posts by {{user.name|e}}</h4>
+    <h2>Media Post Assignment for - {{user.name}}</h2>
     <form action="" method="POST">
       {% for post in user.posts %}
       {% if not post.processed %}
@@ -42,11 +42,11 @@
           </p>
         </article>
         <input type="radio" id="accept_{{post.id}}" name="assign_{{post.id}}" value="{{data.id}}">
-        <label for="accept_{{post.id}}">Campaign</label>
+          <label for="accept_{{post.id}}">Campaign</label>
         <input type="radio" id="reject_{{post.id}}" name="assign_{{post.id}}" value="processed">
-        <label for="reject_{{post.id}}">Other</label>
+          <label for="reject_{{post.id}}">Other</label>
         <input type="radio" id="ignore_{{post.id}}" name="assign_{{post.id}}" value="skip" checked>
-        <label for="ignore_{{post.id}}">Skip</label>
+          <label for="ignore_{{post.id}}">Skip</label>
         <hr />
       </section>
       {% endif %}
