@@ -32,14 +32,14 @@ CLOUDSQL_CONNECTION_NAME = environ.get('DB_CONNECTION_NAME')
 
 # Alternatively, you could use a local MySQL instance for testing.
 LOCAL_SQLALCHEMY_DATABASE_URI = (
-    'mysql+pymysql://{user}:{password}@127.0.0.1:3306/{database}').format(
+    'mysql+pymysql://{user}:{password}@127.0.0.1:3306/{database}?charset=utf8mb4').format(
         user=CLOUDSQL_USER, password=CLOUDSQL_PASSWORD,
         database=CLOUDSQL_DATABASE)
 
 # When running on App Engine a unix socket is used to connect to the cloudsql instance.
 LIVE_SQLALCHEMY_DATABASE_URI = (
     'mysql+pymysql://{user}:{password}@localhost/{database}'
-    '?unix_socket=/cloudsql/{connection_name}').format(
+    '?unix_socket=/cloudsql/{connection_name}&charset=utf8mb4').format(
         user=CLOUDSQL_USER, password=CLOUDSQL_PASSWORD,
         database=CLOUDSQL_DATABASE, connection_name=CLOUDSQL_CONNECTION_NAME)
 

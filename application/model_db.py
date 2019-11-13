@@ -20,7 +20,10 @@ def from_sql(row):
     """ Translates a SQLAlchemy model instance into a dictionary """
     data = row.__dict__.copy()
     data['id'] = row.id
-    data.pop('_sa_instance_state')
+    temp = data.pop('_sa_instance_state', None)
+    if not temp:
+        print('Not a model instance!')
+    # TODO: ? Move the cleaning for safe results to this function?
     return data
 
 
@@ -29,17 +32,16 @@ class Brand(db.Model):
     __tablename__ = 'brands'
 
     id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String(63),                index=True,  unique=True,  nullable=False)
-    # company = db.Column(db.String(63),           index=False, unique=False, nullable=False)
-    facebook_id = db.Column(BIGINT(unsigned=True), index=False, unique=False, nullable=True)
-    # instagram_id = db.Column(BIGINT(unsigned=True), index=True,  unique=True,  nullable=True)
-    token = db.Column(db.String(255),              index=False, unique=False, nullable=True)
-    token_expires = db.Column(db.DateTime,         index=False, unique=False, nullable=True)
-    notes = db.Column(db.Text,                     index=False, unique=False, nullable=True)
-    modified = db.Column(db.DateTime,              index=False, unique=False, nullable=False, default=dt.utcnow, onupdate=dt.utcnow)
-    created = db.Column(db.DateTime,               index=False, unique=False, nullable=False, default=dt.utcnow)
-    # users = db.relationship('Campaign', back_populates='brand')
-    # # users = db.relationship('User', secondary='campaigns')
+    name = db.Column(db.String(47),                 index=True,  unique=True,  nullable=False)
+    # company = db.Column(db.String(63),            index=False, unique=False, nullable=False)
+    instagram_id = db.Column(BIGINT(unsigned=True), index=True,  unique=True,  nullable=True)
+    facebook_id = db.Column(BIGINT(unsigned=True),  index=False, unique=False, nullable=True)
+    token = db.Column(db.String(255),               index=False, unique=False, nullable=True)
+    token_expires = db.Column(db.DateTime,          index=False, unique=False, nullable=True)
+    notes = db.Column(db.String(191),               index=False, unique=False, nullable=True)
+    modified = db.Column(db.DateTime,               index=False, unique=False, nullable=False, default=dt.utcnow, onupdate=dt.utcnow)
+    created = db.Column(db.DateTime,                index=False, unique=False, nullable=False, default=dt.utcnow)
+    # # campaigns = backref from Campaign.brands  with lazy='dynamic'
     UNSAFE = {'token', 'token_expires', 'modified', 'created'}
 
     def __str__(self):
@@ -57,19 +59,18 @@ class User(db.Model):
     __tablename__ = 'users'
 
     id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String(63),                 index=False, unique=True,  nullable=False)
+    name = db.Column(db.String(47),                 index=True,  unique=True,  nullable=False)
     instagram_id = db.Column(BIGINT(unsigned=True), index=True,  unique=True,  nullable=True)
     facebook_id = db.Column(BIGINT(unsigned=True),  index=False, unique=False, nullable=True)
     token = db.Column(db.String(255),               index=False, unique=False, nullable=True)
     token_expires = db.Column(db.DateTime,          index=False, unique=False, nullable=True)
-    notes = db.Column(db.Text,                      index=False, unique=False, nullable=True)
+    notes = db.Column(db.String(191),               index=False, unique=False, nullable=True)
     modified = db.Column(db.DateTime,               index=False, unique=False, nullable=False, default=dt.utcnow, onupdate=dt.utcnow)
     created = db.Column(db.DateTime,                index=False, unique=False, nullable=False, default=dt.utcnow)
     insights = db.relationship('Insight',   backref='user', lazy=True, passive_deletes=True)
     audiences = db.relationship('Audience', backref='user', lazy=True, passive_deletes=True)
     posts = db.relationship('Post',         backref='user', lazy=True, passive_deletes=True)
-    # brands = db.relationship('Campaign', back_populates='user')
-    # # brands = db.relationship('Brand', secondary='campaigns')
+    # # campaigns = backref from Campaign.users with lazy='dynamic'
     UNSAFE = {'token', 'token_expires', 'modified', 'created'}
 
     def __init__(self, *args, **kwargs):
@@ -99,8 +100,9 @@ class Insight(db.Model):
     id = db.Column(db.Integer,      primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey('users.id', ondelete='CASCADE'))
     recorded = db.Column(db.DateTime,          index=True,  unique=False, nullable=False)
-    name = db.Column(db.String(255),           index=True, unique=False, nullable=False)
-    value = db.Column(db.Text,                 index=False, unique=False, nullable=True)
+    name = db.Column(db.String(47),            index=True,  unique=True,  nullable=False)
+    value = db.Column(db.Integer,              index=False, unique=False, nullable=True)
+    # # user = backref from User.insights with lazy='select' (synonym for True)
     metrics = {'impressions', 'reach', 'follower_count'}
     UNSAFE = {''}
 
@@ -118,17 +120,20 @@ class Insight(db.Model):
 
 class Audience(db.Model):
     """ Data model for current information about the user's audience. """
+    # TODO: Refactor to parse out the age groups and gender groups
     __tablename__ = 'audiences'
 
     id = db.Column(db.Integer,      primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey('users.id', ondelete='CASCADE'))
     recorded = db.Column(db.DateTime,          index=True,  unique=False, nullable=False)
-    name = db.Column(db.String(255),           index=True, unique=False, nullable=False)
-    value = db.Column(db.Text,                 index=False, unique=False, nullable=True)
+    name = db.Column(db.String(47),            index=True,  unique=True,  nullable=False)
+    value = db.Column(db.String(47),           index=False, unique=False, nullable=True)
+    # # user = backref from User.audiences with lazy='select' (synonym for True)
     metrics = {'audience_city', 'audience_country', 'audience_gender_age'}
     UNSAFE = {''}
 
     def __init__(self, *args, **kwargs):
+        # TODO: Refactor to avoid the unnecessary kwargs.copy()
         data, kwargs = kwargs.copy(), {}
         kwargs['user_id'] = data.get('user_id')
         kwargs['name'] = re.sub('^audience_', '', data.get('name'))
@@ -154,11 +159,11 @@ class Post(db.Model):
     campaign_id = db.Column(db.Integer, db.ForeignKey('campaigns.id', ondelete='SET NULL'), nullable=True)
     processed = db.Column(db.Boolean, default=False)
     media_id = db.Column(BIGINT(unsigned=True), index=True,  unique=True,  nullable=False)
-    media_type = db.Column(db.String(64),       index=False, unique=False, nullable=True)
+    media_type = db.Column(db.String(47),       index=False, unique=False, nullable=True)
     caption = db.Column(db.Text,                index=False, unique=False, nullable=True)
     comment_count = db.Column(db.Integer,       index=False, unique=False, nullable=True)
     like_count = db.Column(db.Integer,          index=False, unique=False, nullable=True)
-    permalink = db.Column(db.String(255),       index=False, unique=False, nullable=True)
+    permalink = db.Column(db.String(191),       index=False, unique=False, nullable=True)
     recorded = db.Column(db.DateTime,           index=False, unique=False, nullable=False)  # timestamp*
     modified = db.Column(db.DateTime,           index=False, unique=False, nullable=False, default=dt.utcnow, onupdate=dt.utcnow)
     created = db.Column(db.DateTime,            index=False, unique=False, nullable=False, default=dt.utcnow)
@@ -174,6 +179,8 @@ class Post(db.Model):
     replies = db.Column(db.Integer,             index=False,  unique=False, nullable=True)
     taps_forward = db.Column(db.Integer,        index=False,  unique=False, nullable=True)
     taps_back = db.Column(db.Integer,           index=False,  unique=False, nullable=True)
+    # # user = backref from User.posts with lazy='select' (synonym for True)
+    # # campaign = backref from Campaign.posts with lazy='select' (synonym for True)
 
     metrics = {}
     metrics['basic'] = {'media_type', 'caption', 'like_count', 'permalink', 'timestamp'}  # comment_count requires different permissions
@@ -187,6 +194,7 @@ class Post(db.Model):
     def __init__(self, *args, **kwargs):
         datestring = kwargs.pop('timestamp')
         kwargs['recorded'] = parser.isoparse(datestring)
+        kwargs['processed'] = True if kwargs.get('processed') in {'on', True} else False
         super().__init__(*args, **kwargs)
 
     def __repr__(self):
@@ -213,28 +221,35 @@ class Campaign(db.Model):
     __tablename__ = 'campaigns'
 
     id = db.Column(db.Integer,       primary_key=True)
-    user_id = db.Column(db.Integer,  db.ForeignKey('users.id'), nullable=False)
-    brand_id = db.Column(db.Integer, db.ForeignKey('brands.id'), nullable=False)
-    # name = db.Column(db.String(63),         index=False, unique=False, nullable=True)
-    notes = db.Column(db.Text,              index=False, unique=False, nullable=True)
-    modified = db.Column(db.DateTime,       index=False, unique=False, nullable=False, default=dt.utcnow, onupdate=dt.utcnow)
-    created = db.Column(db.DateTime,        index=False, unique=False, nullable=False, default=dt.utcnow)
-    # start_date = db.Column(db.DateTime,     index=False, unique=False, nullable=False, default=dt.utcnow)
-    # end_date = db.Column(db.DateTime,       index=False, unique=False, nullable=True)
-    users = db.relationship('User', secondary=user_campaign, backref=db.backref('campaigns'))
-    # TODO: update brand to brands
-    brand = db.relationship('Brand', secondary=brand_campaign, backref=db.backref('campaigns'))
+    completed = db.Column(db.Boolean, default=False)
+    name = db.Column(db.String(47),     index=True,  unique=True,  nullable=True)
+    notes = db.Column(db.String(191),   index=False, unique=False, nullable=True)
+    modified = db.Column(db.DateTime,   index=False, unique=False, nullable=False, default=dt.utcnow, onupdate=dt.utcnow)
+    created = db.Column(db.DateTime,    index=False, unique=False, nullable=False, default=dt.utcnow)
+    users = db.relationship('User', secondary=user_campaign, backref=db.backref('campaigns', lazy='dynamic'))
+    brands = db.relationship('Brand', secondary=brand_campaign, backref=db.backref('campaigns', lazy='dynamic'))
     posts = db.relationship('Post', backref='campaign', lazy=True)
     UNSAFE = {''}
 
+    def __init__(self, *args, **kwargs):
+        print('============ Campaign constructor ============')
+        print(kwargs)
+        # user_id = kwargs.pop('users', None)
+        # brand_id = kwargs.pop('brands', None)
+        # save related fields
+        # print(f"Users: {user_id}, Brands: {brand_id}")
+        kwargs['completed'] = True if kwargs.get('completed') in {'on', True} else False
+        super().__init__(*args, **kwargs)
+
     def __str__(self):
-        # TODO: update to use self.name
-        name = self.get('name', self['id'])
-        brands = ', '.join(self.brand) if self.get('brand') else 'NA'
-        return f"Campaign {name} - {brands}"
+        name = self.name if self.name else self.id
+        brands = ', '.join([brand.name for brand in self.brands]) if self.brands else ['NA']
+        return f"Campaign: {name} with Brand(s): {brands}"
 
     def __repr__(self):
-        return '<Campaign {} | Brand: {} | Starts: {}>'.format(self.id, self.brand_id, self.start_date)
+        name = self.name if self.name else self.id
+        brands = ', '.join([brand.name for brand in self.brands]) if self.brands else ['NA']
+        return '<Campaign: {} | Brands: {} >'.format(name, brands)
 
 
 def create_many(dataset, Model=User):
@@ -245,6 +260,7 @@ def create_many(dataset, Model=User):
         all_results.append(from_sql(model))
         # all_results.append((model))  # This might be identical as above since id not assigned yet
         # safe_results = {k: results[k] for k in results.keys() - Model.UNSAFE}
+    # TODO: ? Refactor to use db.session.add_all() ?
     db.session.commit()
     # TODO: List comprehension to return the array of dictionaries to include the model id.
     # all_results = [from_sql(ea) for ea in all_results]
@@ -252,16 +268,27 @@ def create_many(dataset, Model=User):
 
 
 def create(data, Model=User):
+    from pprint import pprint
     # TODO: Refactor to work as many or one: check if we have a list of obj, or single obj
     # dataset = [data] if not isinstance(data, list) else data
     # then use code written in create_many for this dataset
+    print('--------- Inspecting the create function -------------')
+    pprint(data)
     model = Model(**data)
+    print('-------First was data, now model ----------------------------------')
+    pprint(model)
     db.session.add(model)
     db.session.commit()
     results = from_sql(model)
+    print('----------model after commit() -------------------------------')
+    pprint(model)
+    print('--------results before safe ---------------------------------')
+    pprint(results)
     # TODO: Refactor safe_results for when we create many
     safe_results = {k: results[k] for k in results.keys() - Model.UNSAFE}
     # TODO: Return a single obj if we created only one?
+    print('---------safe results --------------------------------')
+    pprint(safe_results)
     return safe_results
 
 
@@ -290,10 +317,7 @@ def read(id, Model=User, safe=True):
 
 
 def update(data, id, Model=User):
-    # Any checkbox field will need to be modified.
-    if Model == User:
-        # data['admin'] = True if 'admin' in data and data['admin'] == 'on' else False
-        pass
+    # Any checkbox field should have been prepared by process_form()
     model = Model.query.get(id)
     for k, v in data.items():
         setattr(model, k, v)
@@ -309,7 +333,7 @@ def delete(id, Model=User):
 
 
 def all(Model=User):
-    sort_field = Model.name if Model in {User, Brand} else Model.id
+    sort_field = Model.name if hasattr(Model, 'name') else Model.id
     query = (Model.query.order_by(sort_field))
     models = query.all()
     return models

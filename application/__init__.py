@@ -33,6 +33,29 @@ else:
     LOCAL_ENV = True
 
 
+def process_form(mod, request):
+    # If Model has relationship collections set in form, then we must capture these before flattening the input
+    # I believe this is only needed for campaigns.
+    save = {}
+    if mod == 'campaign':
+        data = request.form.to_dict(flat=False)  # TODO: add form validate method for security.
+        # capture the relationship collections
+        rel_collections = (('brands', model_db.Brand), ('users', model_db.User), ('posts', model_db.Post))
+        for rel, Model in rel_collections:
+            if rel in data:
+                model_ids = [int(ea) for ea in data[rel]]
+                models = Model.query.filter(Model.id.in_(model_ids)).all()
+                save[rel] = models
+    data = request.form.to_dict(flat=True)  # TODO: add form validate method for security.
+    data.update(save)  # update if we did save some relationship collections
+    # If the form has a checkbox for a Boolean in the form, we may need to reformat.
+    # currently I think only Campaign and Post have checkboxes
+    bool_fields = {'campaign': 'completed', 'post': 'processed'}
+    if mod in bool_fields:
+        data[bool_fields[mod]] = True if data.get(bool_fields[mod]) in {'on', True} else False
+    return data
+
+
 def get_insight(user_id, first=1, last=30*3, ig_id=None, facebook=None):
     """ Practice getting some insight data with the provided facebook oauth session """
     ig_period = 'day'
@@ -357,12 +380,20 @@ def create_app(config, debug=False, testing=False, config_overrides=None):
         if not Model:
             return f"No such route: {mod}", 404
         if request.method == 'POST':
-            data = request.form.to_dict(flat=True)  # TODO: add form validate method for security.
+            print('--------- add ------------')
+            data = process_form(mod, request)
             model = model_db.create(data, Model=Model)
             return redirect(url_for('view', mod=mod, id=model['id']))
         # template = f"{mod}_form.html"
-        template = 'form.html'
-        return render_template(template, action='Add', mod=mod, data={})
+        template, related = 'form.html', {}
+        if mod == 'campaign':
+            template = f"{mod}_{template}"
+            # TODO: Modify query to only get the id and name fields?
+            users = model_db.User.query.all()
+            brands = model_db.Brand.query.all()
+            related['users'] = [(ea.id, ea.name) for ea in users]
+            related['brands'] = [(ea.id, ea.name) for ea in brands]
+        return render_template(template, action='Add', mod=mod, data={}, related=related)
 
     @app.route('/<string:mod>/<int:id>/edit', methods=['GET', 'POST'])
     def edit(mod, id):
@@ -371,13 +402,22 @@ def create_app(config, debug=False, testing=False, config_overrides=None):
         if not Model:
             return f"No such route: {mod}", 404
         if request.method == 'POST':
-            data = request.form.to_dict(flat=True)  # TODO: add form validate method for security.
+            print('--------- edit ------------')
+            data = process_form(mod, request)
             model = model_db.update(data, id, Model=Model)
             return redirect(url_for('view', mod=mod, id=model['id']))
         model = model_db.read(id, Model=Model)
         # template = f"{mod}_form.html"
-        template = 'form.html'
-        return render_template(template, action='Edit', mod=mod, data=model)
+        template, related = 'form.html', {}
+        if mod == 'campaign':
+            template = f"{mod}_{template}"
+            # add context for Brands and Users
+            # list of all users & brands, only keep id and name.
+            users = model_db.User.query.all()
+            brands = model_db.Brand.query.all()
+            related['users'] = [(ea.id, ea.name) for ea in users]
+            related['brands'] = [(ea.id, ea.name) for ea in brands]
+        return render_template(template, action='Edit', mod=mod, data=model, related=related)
 
     @app.route('/<string:mod>/<int:id>/delete')
     def delete(mod, id):

@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 {% block head %}
-<title>{{ action }} {{ mod.capitalize() }} User Form</title>
+<title>{{ action }} {{ mod.capitalize() }} Form</title>
 {% endblock %}
 
 
@@ -22,7 +22,7 @@
     </div>
   {% endif %}
   {% if mod == 'campaign' %}
-  <p>Insert more fields for campaigns </p>
+    <p>Insert more fields for campaigns </p>
   {% endif %}
   <div class="form-group">
       <label for="notes">Notes</label>
