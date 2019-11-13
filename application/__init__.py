@@ -305,13 +305,11 @@ def create_app(config, debug=False, testing=False, config_overrides=None):
 
     @app.route('/campaign/<int:id>')
     def campaign(id):
-        mod, template, related = 'campaign', 'campaign.html', {}
+        mod, template = 'campaign', 'campaign.html'
         Model = mod_lookup.get(mod, None)
         model = Model.query.get(id)
-        print('--------------- Campaign Query ------------------')
-        print(model)
         # model = model_db.read(id, Model=Model)
-        return render_template(template, mod=mod, data=model, related=related)
+        return render_template(template, mod=mod, data=model)
 
     @app.route('/<string:mod>/<int:id>')
     def view(mod, id):

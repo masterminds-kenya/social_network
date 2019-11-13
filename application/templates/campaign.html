@@ -7,28 +7,53 @@
 <h1>{{ mod.capitalize() }} Management</h1>
 <p>
   Last Updated on {{data.modified}} |
-  {% if completed %}
-  Finished Campaign
-  {% else %}
-  Active Campaign
-  {% endif %}
+  {%if completed%}Finished Campaign{%else%}Active Campaign{%endif%}
 </p>
-<h2>{{ data.name|title if data.name else data.id }}</h2>
-<p>{{ data.notes }}</p>
+<h2>{{ data.name|title|e if data.name else data.id }}</h2>
+<p><strong>Notes: </strong> {{ data.notes|e }}</p>
 {% for type, assoc in dict(brands=data.brands, users=data.users).items() %}
-<section id='{{type}}'>
+<section id="{{type}}">
   {% if data[type]|length > 1 %}
   <h3>{{type|title}}</h3>
   <p>
-    {{ data[type]|join(", ") }}
+    {{ data[type]|join(", ")|e }}
   </p>
   {% elif type|length > 0 %}
-  <h3>{{ data[type][0] }}</h3>
+  <h3>{{ data[type][0]|e }}</h3>
   {% else %}
   <h3>No {{type|title}} Assigned to this Campaign</h3>
   <p><a href="{{url_for('edit', mod='campaign', id='{{ data.id }}')}}">Modify Assignments</a></p>
   {% endif %}
 </section>
 {% endfor %}
-
+<main>
+  <h3>Media - Post Assignment </h3>
+  {% for user in data.users %}
+  <div class="users" id="{{user.id}}">
+    <h4>Posts by {{user.name|e}}</h4>
+    <form action="" method="POST">
+      {% for post in user.posts %}
+      {% if not post.processed %}
+      <section class="posts" id="post_{{post.id}}">
+        <article>
+          <p><a href="{{post.permalink}}">{{post.media_type}} | {{post.recorded}}</a></p>
+          <p>
+            {{post.caption|e}}
+          </p>
+        </article>
+        <input type="radio" id="accept_{{post.id}}" name="assign_{{post.id}}" value="{{data.id}}">
+        <label for="accept_{{post.id}}">Campaign</label>
+        <input type="radio" id="reject_{{post.id}}" name="assign_{{post.id}}" value="processed">
+        <label for="reject_{{post.id}}">Other</label>
+        <input type="radio" id="ignore_{{post.id}}" name="assign_{{post.id}}" value="skip" checked>
+        <label for="ignore_{{post.id}}">Skip</label>
+        <hr />
+      </section>
+      {% endif %}
+      {% endfor %}
+      <input type="submit" value="Confirm Assignments">
+    </form>
+  </div>
+  {% endfor %}
+</main>
 {% endblock %}
