@@ -31,10 +31,10 @@
 <h3>Modify Record</h3>
 <ul>
   {% if mod == 'user' or mod == 'brand' %}
-  <li><a href="{{ url_for('migrate_save', mod=mod, id=data.id )}}">Log User Data</a> </li>
   <li><a href="{{ url_for('new_post', mod=mod, id=data.id)}}">Get New Media / Posts</a> </li>
   <li><a href="{{ url_for('new_insight', mod=mod, id=data.id)}}">Fetch New Insights</a> </li>
   <li><a href="{{ url_for('new_audience', mod=mod, id=data.id)}}">Get New Audience Data</a> </li>
+  <li><a href="{{ url_for('migrate_save', mod=mod, id=data.id )}}">Admin - Log User Data</a> </li>
   {% endif %}
   <li>CAREFUL BELOW!</li>
   <li><a href="{{ url_for('edit', mod=mod, id=data.id) }}">Update {{ mod.capitalize() }} Account</a></li>

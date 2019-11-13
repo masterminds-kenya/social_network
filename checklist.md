@@ -8,22 +8,24 @@
 | :heavy_check_mark: | Requirements gathering and begin project  |
 |                    | **Milestone 1 Completion**                |
 | :heavy_check_mark: | Servers set up                            |
-| :heavy_check_mark: | Database connected                        ||
-| :heavy_check_mark: | Influencer or Brand can give permissions to account data||
-|                    | **Milestone 2 Completion** |
-|                    | Influencer/Brand can select which Instagram account to use |
-| :heavy_check_mark: | Facebook API data is collected on user and saved to database ||
-| :heavy_check_mark: | Google Sheets connected to Facebook API database ||
-|  partial           | Getting Media & Stories metrics captured & stored ||
-|                    | Media & Stories can be assigned as in or out of campaign ||
-|                    | **Milestone 3 Completion** |
-|                    | Generate reports to Google sheets         |
-|                    | Give permissions to view google sheets    ||
-|                    | Site content and style, basic UI and graphs ||
-|                    | Testing, on-boarding, error handling ||
-|                    | **Milestone 4 Completion** |
-|                    | Facebook App approved and go live |
-|                    | **Initial Contract Completion** |
+| :heavy_check_mark: | Database connected                        |
+| :heavy_check_mark: | Influencer or Brand can give permissions to account data|
+|                    | **Milestone 2 Completion**           |
+|                    | Influencer/Brand can select which Instagram account to use|
+| :heavy_check_mark: | Facebook API data is collected & stored to database |
+| :heavy_check_mark: | Google Sheets connected to Facebook API database    |
+| :heavy_check_mark: | Getting Media Posts (non-Story) metrics captured & stored |
+|  needs testing     | Getting Story Posts metrics captured & stored  |
+| :heavy_check_mark: | Campaign create & edit - can connect Users & Brands |
+|                    | Posts can be assigned as in or out of campaign |
+|                    | **Milestone 3 Completion**           |
+|                    | Generate reports to Google sheets    |
+|                    | Give permissions to view google sheets      |
+|                    | Site content and style, basic UI and graphs |
+|                    | Testing, on-boarding, error handling |
+|                    | **Milestone 4 Completion**           |
+|                    | Facebook App approved and go live    |
+|                    | **Initial Contract Completion**      |
 
 ## Checklist
 
@@ -52,7 +54,7 @@ Current Status:
 - [s] Post to track different "media" posts.
 - [s] Update ON DELETE for a User's posts.
 - [s] Model for capturing the limited time FB/IG stories
-- [ ] Fix DB setup: use utf8mb4 so we can handle emojis
+- [x] Fix DB setup: use utf8mb4 so we can handle emojis
 - [ ] posts (media) seem to have 3 types: Story, Album, and Photo/Video
   - [x]  All IG Media also has some general returnable fields:
     - [x]  caption  - except emoji problem
@@ -81,17 +83,16 @@ Current Status:
     - [N] carousel_album_video_views
 - [x] Refactor User Model, less PII, no admin, connect to posts/media
 - [x] Have the ability for a single FB user to have many IG profiles on our app?
-- [ ] Add a logical catch for existing users to re-route to data update
-- [ ] Refactor User data collection functions to work on create and update
-- [ ] Can issue new API request for recent data for existing Influencer Users
+- [ ] User Model creation works if new Influencer has multiple IG accounts.
 - [s] Manage incoming insight duplications
 - [s] How do we want to organize audience data?
-- [?] Refactor Audience Model to parse out the gender and age group fields
-- [?] Make sure incoming audience data does not overwrite historical audience data.
+- [s] Refactor Audience Model to parse out the gender and age group fields
+- [s] After refactor, make sure audience data does not overwrite previous data
 - [ ] Campaign Model
-  - [ ] Can make a connection between a brand and a user.
-  - [ ] Can create a campaign for each connection.
+  - [s] Can make a connection between a brand and a user.
+  - [s] Can create a campaign for each connection.
   - [ ] Allow admin to categorize posts to campaigns
+  - [ ] Allow admin to indicate a post has been processed even if not assigned.
 - [x] For all data collection on new users, move to external functions
 - [s] Refactor User data collection functions to work also work for Brands
 - [x] Create many function
@@ -102,7 +103,8 @@ Current Status:
 - [ ] Keep a DB table of worksheet ids?
   - [ ] Will we have multiple report views?
 - [s] DB Migration: Integrate flask-migrate?
-- [ ] Revisit structure for ON DELETE, ON UPDATE, and how related tables are loaded (lazy=?)
+- [ ] Revisit structure for ON DELETE, ON UPDATE,
+- [ ] Revisit structure for how related tables are loaded (lazy=?)
 - [?] Refine decision for fields from (overall user) insights data.
 
 ### Site Functionality
@@ -137,17 +139,20 @@ Current Status:
 - [ ] User creation: Manage if influencer has many IG accounts.
 - [s] Can have Brand give permission for the FB App
 - [x] Admin can input information for a brand
-- [ ] API call and store basic metrics for media Posts
-- [ ] API call and store post insight metrics for Photo/Video
+- [x] API call and store basic metrics for media Posts
+- [x] API call and store post insight metrics for Photo/Video
 - [ ] API call and store post insight metrics for Albums
 - [ ] API call and store post insight metrics for Stories
 - [s] WebHook to get Stories data at completion.
-- [ ] Admin/Marketing can connect Influencer to Brands through Campaign
-- [ ] Create Brand and Campaign View
-  - [ ] Create Brand
-  - [ ] Create Campaign
-  - [ ] Assign Users to Campaign
-- [ ] Manage Campaign View
+- [ ] Add a logical catch for existing users to re-route to data update
+- [x] Refactor User data collection functions to work on create and update
+- [x] Can issue new API requests for recent data for existing Influencer Users
+- [x] Admin/Marketing can connect Influencer to Brands through Campaign
+- [x] Create Brand and Campaign View
+  - [x] Create Brand
+  - [x] Create Campaign
+  - [x] Assign Users to Campaign
+- [ ] Campaign Detail & Manage View
   - [ ] List all Influencers in this campaign
   - [ ] For each Influencer, list media to process.
     - [ ] maintain a cue of unprocessed posts.

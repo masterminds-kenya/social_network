@@ -197,8 +197,11 @@ class Post(db.Model):
         kwargs['processed'] = True if kwargs.get('processed') in {'on', True} else False
         super().__init__(*args, **kwargs)
 
+    def __str__(self):
+        return f"{self.user} {self.media_type} Post on {self.recorded}"
+
     def __repr__(self):
-        return '<Post: L {}, C {} | Date: {} | Recorded: {} >'.format(self.like_count, self.comment_count, self.timestamp, self.recorded)
+        return '< {} Post | User: {} | Recorded: {} >'.format(self.media_type, self.user, self.recorded)
 
 
 user_campaign = db.Table(
