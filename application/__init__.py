@@ -310,14 +310,15 @@ def create_app(config, debug=False, testing=False, config_overrides=None):
         if not Model:
             return f"No such route: {mod}", 404
         model = model_db.read(id, Model=Model)
+        template = 'view.html'
         if mod == 'audience':
             model['user'] = model_db.read(model.get('user_id')).get('name')
             model['value'] = json.loads(model['value'])
-            return render_template(f"{mod}_view.html", mod=mod, data=model)
+            return render_template(f"{mod}_{template}", mod=mod, data=model)
         elif mod == 'insight':
             model['user'] = model_db.read(model.get('user_id')).get('name')
-            return render_template(f"{mod}_view.html", mod=mod, data=model)
-        return render_template('view.html', mod=mod, data=model)
+            return render_template(f"{mod}_{template}", mod=mod, data=model)
+        return render_template(template, mod=mod, data=model)
 
     @app.route('/<string:mod>/<int:id>/insights')
     def insights(mod, id):

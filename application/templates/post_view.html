@@ -1,0 +1,11 @@
+{% extends "view.html" %}
+
+{% block data_view %}
+<ul>
+{% for key in data.keys() %}
+
+  <li>{{key}}: {{data[key]}} </li>
+
+{% endfor %}
+</ul>
+{% endblock %}
