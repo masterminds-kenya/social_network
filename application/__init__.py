@@ -303,11 +303,25 @@ def create_app(config, debug=False, testing=False, config_overrides=None):
         print('Audience data collected') if audience else print('No Audience data')
         return redirect(url_for('view', mod='user', id=user_id))
 
-    @app.route('/campaign/<int:id>')
+    @app.route('/campaign/<int:id>', methods=['GET', 'POST'])
     def campaign(id):
         mod, template = 'campaign', 'campaign.html'
         Model = mod_lookup.get(mod, None)
         model = Model.query.get(id)
+        if request.method == 'POST':
+            print('=========== Updating Campaign Posts ===========')
+            form_dict = request.form.to_dict(flat=True)  # TODO: add form validate method for security.
+            # print(request.form)
+            # temp = {key: int(val) for key, val in ea for ea in request.form}
+            # temp = {ea[0].replace('assign_', ''): int(ea[1]) for ea in request.form}
+            # print(temp)
+            data = {int(key.replace('assign_', '')): int(val) for (key, val) in form_dict.items() if val != '0'}
+            related = model_db.Post.query.filter(model_db.Post.id.in_(data.keys())).all()
+            for post in related:
+                post.processed = True
+                post.campaign_id = data[post.id] if data[post.id] > 0 else None
+            model_db.db.session.commit()
+
         # model = model_db.read(id, Model=Model)
         return render_template(template, mod=mod, data=model)
 
