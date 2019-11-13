@@ -303,6 +303,16 @@ def create_app(config, debug=False, testing=False, config_overrides=None):
         print('Audience data collected') if audience else print('No Audience data')
         return redirect(url_for('view', mod='user', id=user_id))
 
+    @app.route('/campaign/<int:id>')
+    def campaign(id):
+        mod, template, related = 'campaign', 'campaign.html', {}
+        Model = mod_lookup.get(mod, None)
+        model = Model.query.get(id)
+        print('--------------- Campaign Query ------------------')
+        print(model)
+        # model = model_db.read(id, Model=Model)
+        return render_template(template, mod=mod, data=model, related=related)
+
     @app.route('/<string:mod>/<int:id>')
     def view(mod, id):
         """ Used primarily for specific User or Brand views, but also any data model view. """
@@ -311,13 +321,21 @@ def create_app(config, debug=False, testing=False, config_overrides=None):
             return f"No such route: {mod}", 404
         model = model_db.read(id, Model=Model)
         template = 'view.html'
-        if mod == 'audience':
+        if mod == 'post':
+            template = f"{mod}_{template}"
+            fields = {'id', 'user_id', 'campaign_id', 'processed', 'recorded'}
+            fields.update(Model.metrics['basic'])
+            fields.discard('timestamp')
+            fields.update(Model.metrics[model['media_type']])
+            model = {key: val for (key, val) in model.items() if key in fields}
+            # model = {key: model[key] for key in fields}
+        elif mod == 'audience':
+            template = f"{mod}_{template}"
             model['user'] = model_db.read(model.get('user_id')).get('name')
             model['value'] = json.loads(model['value'])
-            return render_template(f"{mod}_{template}", mod=mod, data=model)
         elif mod == 'insight':
+            template = f"{mod}_{template}"
             model['user'] = model_db.read(model.get('user_id')).get('name')
-            return render_template(f"{mod}_{template}", mod=mod, data=model)
         return render_template(template, mod=mod, data=model)
 
     @app.route('/<string:mod>/<int:id>/insights')

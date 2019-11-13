@@ -3,8 +3,11 @@
 {% block data_view %}
 <ul>
 {% for key in data.keys() %}
-
+  {% if key == 'permalink' %}
+  <li><a href="{{ data[key] }}">Instagram {{key}}</a> </li>
+  {% else %}
   <li>{{key}}: {{data[key]}} </li>
+  {% endif %}
 
 {% endfor %}
 </ul>

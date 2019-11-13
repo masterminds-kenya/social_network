@@ -1,0 +1,34 @@
+{% extends "view.html" %}
+{% block head %}
+<title>{{ mod.capitalize() }} Management</title>
+{% endblock %}
+
+{% block content %}
+<h1>{{ mod.capitalize() }} Management</h1>
+<p>
+  Last Updated on {{data.modified}} |
+  {% if completed %}
+  Finished Campaign
+  {% else %}
+  Active Campaign
+  {% endif %}
+</p>
+<h2>{{ data.name|title if data.name else data.id }}</h2>
+<p>{{ data.notes }}</p>
+{% for type, assoc in dict(brands=data.brands, users=data.users).items() %}
+<section id='{{type}}'>
+  {% if data[type]|length > 1 %}
+  <h3>{{type|title}}</h3>
+  <p>
+    {{ data[type]|join(", ") }}
+  </p>
+  {% elif type|length > 0 %}
+  <h3>{{ data[type][0] }}</h3>
+  {% else %}
+  <h3>No {{type|title}} Assigned to this Campaign</h3>
+  <p><a href="{{url_for('edit', mod='campaign', id='{{ data.id }}')}}">Modify Assignments</a></p>
+  {% endif %}
+</section>
+{% endfor %}
+
+{% endblock %}

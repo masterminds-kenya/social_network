@@ -45,7 +45,7 @@ class Brand(db.Model):
     UNSAFE = {'token', 'token_expires', 'modified', 'created'}
 
     def __str__(self):
-        return f"{self.name} Brand"
+        return f"{self.name}"
 
     def __repr__(self):
         return '<Brand {}>'.format(self.name)
