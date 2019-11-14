@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+{% block head %}
+<title>{{action}} User Form</title>
+{% endblock %}
+
+
+{% block content %}
+<h3>{{action}} User</h3>
+
+<form method="POST" enctype="multipart/form-data">
+  <div class="form-group">
+    <label for="name">Name</label>
+    <input type="text" name="name" id="name" value="{{data.name}}" class="form-control"/>
+  </div>
+  <div class="form-group">
+      <label for="instagram_id">Instagram Id</label>
+      <input type="text" name="instagram_id" id="instagram_id" value="{{data.instagram_idl}}" class="form-control"/>
+    </div>
+  <div class="form-group">
+      <label for="notes">Notes</label>
+      <input type="text" name="notes" id="notes" value="{{data.notes}}" class="form-control"/>
+    </div>
+  <button type="submit" class="btn btn-success">Save</button>
+</form>
+
+{% endblock %}

@@ -1,0 +1,101 @@
+{% extends "view.html" %}
+{% block head %}
+<title>{{ mod|title }} {{ view|title }}</title>
+{% endblock head %}
+
+{% block header %}
+{{ super() }}
+<h1>
+  {{ mod|title }} {{ view|title }} -
+  {{ data.name|title|e if data.name else data.id }}
+  {% if data.brands|length > 0 %}
+  - {{ data.brands|join(", ")|e }}
+  {% elif data.brands|length > 0 %}
+  - {{ data.brands[0]|e }}
+  {% else %}
+  - Unassigned Brands
+  {% endif %}
+</h1>
+<p>
+  {% if view == 'management' %}<a href="{{url_for('detail_campaign', id=data.id)}}">Campaign Results</a>
+  {% elif view == 'results' %}<a href="{{url_for('view', mod=mod, id=data.id)}}">Campaign Management</a>
+  {% endif %} |
+  Last Updated on {{data.modified}} |
+  {%if completed%}Finished Campaign{%else%}Active Campaign{%endif%} |
+  <a href="{{ url_for('edit', mod=mod, id=data.id) }}">Change Campaign Settings</a>
+  <br /><strong>Notes: </strong> {{ data.notes|e }}
+</p>
+{% if data.brands|length < 1 %}
+<p>
+  There are no Brands associated with this campaign! You probably want to
+  <a href="{{url_for('edit', mod=mod, id=data.id)}}">Change Campaign Settings</a>
+</p>
+{% endif %}
+{% if data.users|length < 1 %}
+<h2>No Influencers assigned in Campaign</h2>
+<p>You probably want to <a href="{{url_for('edit', mod=mod, id=data.id)}}">Change Campaign Settings</a></p>
+{% else %}
+{% if view == 'management' %}
+<ul>
+  {% for user in data.users %}
+  <li>
+    <strong>{{ user.name }}</strong> |
+    posts last retrieved on {{user.modified}} |
+    <a href="{{ url_for('new_post', mod='user', id=user.id) }}">retrieve new {{user.name}} posts</a>
+    <br />
+  </li>
+  {% endfor %}
+</ul>
+{% endif %}
+{% endif %}
+{% endblock header %}
+
+{% block content %}
+<main>
+  {% for user in data.users %}
+  <div class="users" id="user_{{user.id}}">
+    <h2>Media Post Assignment for - {{user.name|e}} ( {{related[user]|length}} )</h2>
+    <form action="" method="POST">
+      {% for post in related[user] %}
+      <section class="posts" id="post_{{post.id}}">
+        <article>
+          <p><a href="{{post.permalink}}">{{post.media_type}} | {{post.recorded}}</a></p>
+          <p>{{ post.caption|e }}</p>
+        </article>
+        <div class="form-group">
+          <label for="accept_{{post.id}}">
+          <input type="radio" id="accept_{{post.id}}" name="assign_{{post.id}}"
+            {% if view == 'management' %} value="{{data.id}}"
+            {% elif view == 'results' %} value="0" checked
+            {% endif %} >
+          Campaign
+          </label>
+          <label for="reject_{{post.id}}">
+          <input type="radio" id="reject_{{post.id}}" name="assign_{{post.id}}"
+            value="-1" >
+          Other
+          </label>
+          <label for="ignore_{{post.id}}">
+          <input type="radio" id="ignore_{{post.id}}" name="assign_{{post.id}}"
+            {% if view == 'management' %} value="0" checked
+            {% elif view == 'results' %} value="-2"
+            {% endif %} >
+          Skip
+          </label>
+        </div>
+        <hr />
+      </section>
+      {% endfor %}
+      {% if related[user]|length < 1 %}
+      {% if view=='management' %}
+      <p><a href="{{ url_for('new_post', mod='user', id=user.id) }}">retrieve new {{user.name}} posts</a></p>
+      {% endif %}
+      {% else %}
+      <button type="submit" value="Confirm Assignments">Confirm Assignments</button>
+      {% endif %}
+    </form>
+  </div>
+  {% endfor %}
+</main>
+
+{% endblock content %}

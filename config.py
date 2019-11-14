@@ -17,7 +17,6 @@ PROJECT_ID = environ.get('PROJECT_ID')
 CLOUDSQL_USER = environ.get('DB_USER')
 CLOUDSQL_PASSWORD = environ.get('DB_PASSWORD')
 CLOUDSQL_DATABASE = environ.get('DB_NAME')
-MYSQL_DATABASE_CHARSET = 'utf8mb4'
 # Set the following value to the Cloud SQL connection name, e.g.
 #   "project:region:cloudsql-instance".
 # You must also update the value in app.yaml.
@@ -39,8 +38,8 @@ LOCAL_SQLALCHEMY_DATABASE_URI = (
 
 # When running on App Engine a unix socket is used to connect to the cloudsql instance.
 LIVE_SQLALCHEMY_DATABASE_URI = (
-    'mysql+pymysql://{user}:{password}@localhost/{database}?charset=utf8mb4'
-    '?unix_socket=/cloudsql/{connection_name}').format(
+    'mysql+pymysql://{user}:{password}@localhost/{database}'
+    '?unix_socket=/cloudsql/{connection_name}&charset=utf8mb4').format(
         user=CLOUDSQL_USER, password=CLOUDSQL_PASSWORD,
         database=CLOUDSQL_DATABASE, connection_name=CLOUDSQL_CONNECTION_NAME)
 

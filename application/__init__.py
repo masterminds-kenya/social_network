@@ -33,6 +33,52 @@ else:
     LOCAL_ENV = True
 
 
+def update_campaign(ver, request):
+    form_dict = request.form.to_dict(flat=True)  # TODO: add form validate method for security.
+    # Radio Button | Management | Results | Manage Outcome  | Result Outcome
+    # accept       |  data.id   |    0    | camp_id = val   | leave alone
+    # reject       |    -1      |   -1    | processed       | camp_id = None
+    # ignore       |     0      |   -2    | leave alone     | unset process & camp_id
+    try:
+        data = {int(key.replace('assign_', '')): int(val) for (key, val) in form_dict.items() if val != '0'}
+    except ValueError as e:
+        # handle error
+        return False
+    modified = model_db.Post.query.filter(model_db.Post.id.in_(data.keys())).all()
+    for post in modified:
+        post.processed = True if data[post.id] != -2 else False
+        post.campaign_id = data[post.id] if data[post.id] > 0 else None
+    try:
+        model_db.db.session.commit()
+    except Exception as e:
+        # handle exception
+        return False
+    return True
+
+
+def process_form(mod, request):
+    # If Model has relationship collections set in form, then we must capture these before flattening the input
+    # I believe this is only needed for campaigns.
+    save = {}
+    if mod == 'campaign':
+        data = request.form.to_dict(flat=False)  # TODO: add form validate method for security.
+        # capture the relationship collections
+        rel_collections = (('brands', model_db.Brand), ('users', model_db.User), ('posts', model_db.Post))
+        for rel, Model in rel_collections:
+            if rel in data:
+                model_ids = [int(ea) for ea in data[rel]]
+                models = Model.query.filter(Model.id.in_(model_ids)).all()
+                save[rel] = models
+    data = request.form.to_dict(flat=True)  # TODO: add form validate method for security.
+    data.update(save)  # update if we did save some relationship collections
+    # If the form has a checkbox for a Boolean in the form, we may need to reformat.
+    # currently I think only Campaign and Post have checkboxes
+    bool_fields = {'campaign': 'completed', 'post': 'processed'}
+    if mod in bool_fields:
+        data[bool_fields[mod]] = True if data.get(bool_fields[mod]) in {'on', True} else False
+    return data
+
+
 def get_insight(user_id, first=1, last=30*3, ig_id=None, facebook=None):
     """ Practice getting some insight data with the provided facebook oauth session """
     ig_period = 'day'
@@ -280,6 +326,35 @@ def create_app(config, debug=False, testing=False, config_overrides=None):
         print('Audience data collected') if audience else print('No Audience data')
         return redirect(url_for('view', mod='user', id=user_id))
 
+    @app.route('/campaign/<int:id>/detail', methods=['GET', 'POST'])
+    def detail_campaign(id):
+        """ Used because campaign function over-rides route for detail view """
+        mod, view = 'campaign', 'results'
+        template, related = f"{mod}.html", {}
+        Model = mod_lookup.get(mod, None)
+        model = Model.query.get(id)
+        print('=========== Campaign Results ===========')
+        if request.method == 'POST':
+            update_campaign(view, request)
+        for user in model.users:
+            related[user] = [ea for ea in user.posts if ea.campaign_id == id]
+            print(len(related[user]))
+        return render_template(template, mod=mod, view=view, data=model, related=related)
+
+    @app.route('/campaign/<int:id>', methods=['GET', 'POST'])
+    def campaign(id):
+        mod, view = 'campaign', 'management'
+        template, related = f"{mod}.html", {}
+        Model = mod_lookup.get(mod, None)
+        model = Model.query.get(id)
+        print('=========== Managing Campaign Posts ===========')
+        if request.method == 'POST':
+            update_campaign(view, request)
+        for user in model.users:
+            related[user] = [ea for ea in user.posts if not ea.processed]
+            print(len(related[user]))
+        return render_template(template, mod=mod, view=view, data=model, related=related)
+
     @app.route('/<string:mod>/<int:id>')
     def view(mod, id):
         """ Used primarily for specific User or Brand views, but also any data model view. """
@@ -287,14 +362,24 @@ def create_app(config, debug=False, testing=False, config_overrides=None):
         if not Model:
             return f"No such route: {mod}", 404
         model = model_db.read(id, Model=Model)
-        if mod == 'audience':
+        # model = Model.query.get(id)
+        template = 'view.html'
+        if mod == 'post':
+            template = f"{mod}_{template}"
+            fields = {'id', 'user_id', 'campaign_id', 'processed', 'recorded'}
+            fields.update(Model.metrics['basic'])
+            fields.discard('timestamp')
+            fields.update(Model.metrics[model['media_type']])
+            model = {key: val for (key, val) in model.items() if key in fields}
+            # model = {key: model[key] for key in fields}
+        elif mod == 'audience':
+            template = f"{mod}_{template}"
             model['user'] = model_db.read(model.get('user_id')).get('name')
             model['value'] = json.loads(model['value'])
-            return render_template(f"{mod}_view.html", mod=mod, data=model)
         elif mod == 'insight':
+            template = f"{mod}_{template}"
             model['user'] = model_db.read(model.get('user_id')).get('name')
-            return render_template(f"{mod}_view.html", mod=mod, data=model)
-        return render_template('view.html', mod=mod, data=model)
+        return render_template(template, mod=mod, data=model)
 
     @app.route('/<string:mod>/<int:id>/insights')
     def insights(mod, id):
@@ -347,8 +432,10 @@ def create_app(config, debug=False, testing=False, config_overrides=None):
         posts = get_posts(id)
         if len(posts):
             print('we got some posts back')
-
-        return redirect(url_for('view', mod=mod, id=id))
+        return_path = request.referrer
+        print('---------------------------', return_path)
+        return redirect(return_path)
+        # return redirect(url_for('view', mod=mod, id=id))
 
     @app.route('/<string:mod>/add', methods=['GET', 'POST'])
     def add(mod):
@@ -357,11 +444,20 @@ def create_app(config, debug=False, testing=False, config_overrides=None):
         if not Model:
             return f"No such route: {mod}", 404
         if request.method == 'POST':
-            data = request.form.to_dict(flat=True)  # TODO: add form validate method for security.
+            print('--------- add ------------')
+            data = process_form(mod, request)
             model = model_db.create(data, Model=Model)
             return redirect(url_for('view', mod=mod, id=model['id']))
-        template = f"{mod}_form.html"
-        return render_template(template, action='Add', mod=mod, data={})
+        # template = f"{mod}_form.html"
+        template, related = 'form.html', {}
+        if mod == 'campaign':
+            template = f"{mod}_{template}"
+            # TODO: Modify query to only get the id and name fields?
+            users = model_db.User.query.all()
+            brands = model_db.Brand.query.all()
+            related['users'] = [(ea.id, ea.name) for ea in users]
+            related['brands'] = [(ea.id, ea.name) for ea in brands]
+        return render_template(template, action='Add', mod=mod, data={}, related=related)
 
     @app.route('/<string:mod>/<int:id>/edit', methods=['GET', 'POST'])
     def edit(mod, id):
@@ -370,12 +466,22 @@ def create_app(config, debug=False, testing=False, config_overrides=None):
         if not Model:
             return f"No such route: {mod}", 404
         if request.method == 'POST':
-            data = request.form.to_dict(flat=True)  # TODO: add form validate method for security.
+            print('--------- edit ------------')
+            data = process_form(mod, request)
             model = model_db.update(data, id, Model=Model)
             return redirect(url_for('view', mod=mod, id=model['id']))
         model = model_db.read(id, Model=Model)
-        template = f"{mod}_form.html"
-        return render_template(template, action='Edit', mod=mod, data=model)
+        # template = f"{mod}_form.html"
+        template, related = 'form.html', {}
+        if mod == 'campaign':
+            template = f"{mod}_{template}"
+            # add context for Brands and Users
+            # list of all users & brands, only keep id and name.
+            users = model_db.User.query.all()
+            brands = model_db.Brand.query.all()
+            related['users'] = [(ea.id, ea.name) for ea in users]
+            related['brands'] = [(ea.id, ea.name) for ea in brands]
+        return render_template(template, action='Edit', mod=mod, data=model, related=related)
 
     @app.route('/<string:mod>/<int:id>/delete')
     def delete(mod, id):
