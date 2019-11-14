@@ -5,14 +5,15 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="description" content="Social Network Management">
   <meta http-equiv="X-UA-Compatible" content="ie=edge">
-  {% block head %}
-  <title>{{ page_title }}</title>
-  {% endblock %}
   <link rel="stylesheet" href="/static/normalize.css">
   <link rel="stylesheet" href="/static/main.css">
+  {% block head %}
+  <title>{{ page_title }}</title>
+  {% endblock head %}
 </head>
 <body>
 <header>
+{% block header %}
   <nav>
     <ul>
       <li><a href="{{ url_for('home') }}">Home</a></li>
@@ -22,10 +23,11 @@
       <li><a href="{{ url_for('data_default') }}">Developer Admin</a></li>
     </ul>
   </nav>
+{% endblock header %}
 </header>
 {% block content %}
 
-{% endblock %}
+{% endblock content %}
 <footer>
   <p>
     <a href="{{ url_for('render_static', page_name='privacy') }}">Privacy</a> | <a href="{{ url_for('render_static', page_name='tos') }}">Terms of Service</a>

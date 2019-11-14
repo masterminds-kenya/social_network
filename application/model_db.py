@@ -1,5 +1,5 @@
 from flask import Flask
-from flask_sqlalchemy import SQLAlchemy
+from flask_sqlalchemy import BaseQuery, SQLAlchemy
 from sqlalchemy.dialects.mysql import BIGINT
 from datetime import datetime as dt
 from dateutil import parser
@@ -25,6 +25,16 @@ def from_sql(row):
         print('Not a model instance!')
     # TODO: ? Move the cleaning for safe results to this function?
     return data
+
+
+class GetActive(BaseQuery):
+    """ Some models, such as Post, may want to only fetch records not yet processed """
+    def get_active(self, not_field=None):
+        # if not not_field:
+        #     lookup_not_field = {'Post': 'processed', 'Campaign': 'completed'}
+        #     curr_class = self.__class__.__name__
+        #     not_field = lookup_not_field(curr_class) or None
+        return self.query.filter_by(processed=False)
 
 
 class Brand(db.Model):
@@ -69,7 +79,7 @@ class User(db.Model):
     created = db.Column(db.DateTime,                index=False, unique=False, nullable=False, default=dt.utcnow)
     insights = db.relationship('Insight',   backref='user', lazy=True, passive_deletes=True)
     audiences = db.relationship('Audience', backref='user', lazy=True, passive_deletes=True)
-    posts = db.relationship('Post',         backref='user', lazy=True, passive_deletes=True)
+    posts = db.relationship('Post', query_class=GetActive, backref='user', lazy=True, passive_deletes=True)
     # # campaigns = backref from Campaign.users with lazy='dynamic'
     UNSAFE = {'token', 'token_expires', 'modified', 'created'}
 
@@ -303,6 +313,7 @@ def read(id, Model=User, safe=True):
     safe_results = {k: results[k] for k in results.keys() - Model.UNSAFE}
     output = safe_results if safe else results
     if Model == User:
+        # TODO: Is the following something we want? Corpse code?
         # ?Find min and max of dates for each Insight.metrics?
         # output['insight'] = [{name: '', min: '', max: ''}, ...]
         # insights = [from_sql(ea) for ea in model.insights]

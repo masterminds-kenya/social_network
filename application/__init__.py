@@ -305,11 +305,11 @@ def create_app(config, debug=False, testing=False, config_overrides=None):
 
     @app.route('/campaign/<int:id>', methods=['GET', 'POST'])
     def campaign(id):
-        mod, template = 'campaign', 'campaign.html'
+        mod, template, related = 'campaign', 'campaign.html', {}
         Model = mod_lookup.get(mod, None)
         model = Model.query.get(id)
+        print('=========== Managing Campaign Posts ===========')
         if request.method == 'POST':
-            print('=========== Updating Campaign Posts ===========')
             form_dict = request.form.to_dict(flat=True)  # TODO: add form validate method for security.
             # print(request.form)
             # temp = {key: int(val) for key, val in ea for ea in request.form}
@@ -321,9 +321,12 @@ def create_app(config, debug=False, testing=False, config_overrides=None):
                 post.processed = True
                 post.campaign_id = data[post.id] if data[post.id] > 0 else None
             model_db.db.session.commit()
-
-        # model = model_db.read(id, Model=Model)
-        return render_template(template, mod=mod, data=model)
+        else:
+            for user in model.users:
+                related[user] = [ea for ea in user.posts if not ea.processed]
+                print(len(related[user]))
+        print(related)
+        return render_template(template, mod=mod, data=model, related=related)
 
     @app.route('/<string:mod>/<int:id>')
     def view(mod, id):

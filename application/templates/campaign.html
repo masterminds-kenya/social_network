@@ -1,9 +1,10 @@
 {% extends "view.html" %}
 {% block head %}
 <title>{{ mod.capitalize() }} Management</title>
-{% endblock %}
+{% endblock head %}
 
-{% block content %}
+{% block header %}
+{{ super() }}
 <h1>
   Manage Campaign -
   {{ data.name|title|e if data.name else data.id }}
@@ -18,23 +19,27 @@
 <p>
   Last Updated on {{data.modified}} |
   {%if completed%}Finished Campaign{%else%}Active Campaign{%endif%} |
-
+  <a href="{{ url_for('edit', mod=mod, id=data.id) }}">Change Campaign Settings</a>
+  <br /><strong>Notes: </strong> {{ data.notes|e }}
 </p>
 {% if data.brands|length < 1 %}
-<p><a href="{{url_for('edit', mod='campaign', id='{{ data.id }}')}}">Modify Assignments</a></p>
+<p>
+  There are no Brands associated with this campaign! You probably want to
+  <a href="{{url_for('edit', mod=mod, id=data.id)}}">Change Campaign Settings</a>
+</p>
 {% endif %}
-<p><strong>Notes: </strong> {{ data.notes|e }}</p>
 {% if data.users|length < 1 %}
 <h2>No Influencers assigned in Campaign</h2>
-<p><a href="{{url_for('edit', mod='campaign', id='{{ data.id }}')}}">Modify Assignments</a></p>
+<p>You probably want to <a href="{{url_for('edit', mod=mod, id=data.id)}}">Change Campaign Settings</a></p>
 {% endif %}
+{% endblock header %}
+{% block content %}
 <main>
   {% for user in data.users %}
-  <div class="users" id="{{user.id}}">
-    <h2>Media Post Assignment for - {{user.name}} ({{ user.posts|length }})</h2>
+  <div class="users" id="user_{{user.id}}">
+    <h2>Media Post Assignment for - {{user.name|e}} ( {{related[user]|length}} )</h2>
     <form action="" method="POST">
-      {% for post in user.posts %}
-      {% if not post.processed %}
+      {% for post in related[user] %}
       <section class="posts" id="post_{{post.id}}">
         <article>
           <p><a href="{{post.permalink}}">{{post.media_type}} | {{post.recorded}}</a></p>
@@ -50,11 +55,11 @@
           <label for="ignore_{{post.id}}">Skip</label>
         <hr />
       </section>
-      {% endif %}
       {% endfor %}
       <input type="submit" value="Confirm Assignments">
     </form>
   </div>
   {% endfor %}
 </main>
-{% endblock %}
+
+{% endblock content %}
