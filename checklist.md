@@ -91,8 +91,8 @@ Current Status:
 - [ ] Campaign Model
   - [s] Can make a connection between a brand and a user.
   - [s] Can create a campaign for each connection.
-  - [ ] Allow admin to categorize posts to campaigns
-  - [ ] Allow admin to indicate a post has been processed even if not assigned.
+  - [x] Allow admin to categorize posts to campaigns
+  - [x] Allow admin to indicate a post has been processed even if not assigned.
 - [x] For all data collection on new users, move to external functions
 - [s] Refactor User data collection functions to work also work for Brands
 - [x] Create many function
@@ -152,24 +152,37 @@ Current Status:
   - [x] Create Brand
   - [x] Create Campaign
   - [x] Assign Users to Campaign
+- [ ] User detail view reports current number of posts we have stored
+- [x] Post Detail view
+  - [x] Only show the appropriate fields the media_type
+    - [x] Before rendering template, limit object to only have appropriate fields.
+  - [s] Sort or Filter to show posts by processed or not yet processed
+  - [s] Sort or Filter to show posts that are assigned to a campaign
+  - [s] Sort or Filter to show posts that were rejected from being in a campaign
 - [ ] Campaign Manage View
   - [x] List all Influencers in this campaign
   - [x] For each Influencer, list media to process.
     - [x] able to filter for only unprocessed posts.
-    - [ ] fetch new posts to add to the cue
+    - [x] fetch new posts to add to be processed
+      - [x] ?Change what view it shows when completed?
     - [x] radio button to confirm post is part of campaign
     - [x] radio button to confirm post is NOT part of campaign
     - [x] can skip processing a seen post, to categorize it later
-    - [ ] Can navigate to Detail View to see posts assigned to campaign
+    - [x] Can navigate to Detail View to see posts assigned to campaign
+    - [ ] Can view already assigned posts and reprocess them - see Campaign Detail
 - [s] ?Influencer can create a Campaign to connect to Brand?
 - [ ] Campaign Detail View w/ assigned posts
+  - [ ] ?Decide if it should show more metrics or results?
+  - [ ] ?Update link text from Management page, currently says "Campaign Results"?
   - [ ] can view all posts currently assigned to this campaign
   - [ ] can navigate to Campaign Manage view to add posts to campaign
 - [ ] Functionality to Fetch more posts (API call to FB)
   - [x] Can request more posts for a given user
+  - [x] redirect back to the page/view that called to get more posts
   - [ ] Will limit request to only get new posts since last request
-  - [ ] In case we do get duplicates, it will create duplicates in DB
+  - [ ] In case we do get duplicates, it will NOT create duplicates in DB
       - [ ] Will update if our DB info is out-of-date
+  - [ ] Visual feedback that it is processing but not ready to render new view
 - [ ] Fetch more Insights (of the account, not of media)
   - [x] Can get a history the the user (or brand) account insights
   - [ ] Will limit request to only get new insights since last request

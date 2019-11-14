@@ -33,6 +33,29 @@ else:
     LOCAL_ENV = True
 
 
+def update_campaign(ver, request):
+    form_dict = request.form.to_dict(flat=True)  # TODO: add form validate method for security.
+    # Radio Button | Management | Results | Manage Outcome  | Result Outcome
+    # accept       |  data.id   |    0    | camp_id = val   | leave alone
+    # reject       |    -1      |   -1    | processed       | camp_id = None
+    # ignore       |     0      |   -2    | leave alone     | unset process & camp_id
+    try:
+        data = {int(key.replace('assign_', '')): int(val) for (key, val) in form_dict.items() if val != '0'}
+    except ValueError as e:
+        # handle error
+        return False
+    modified = model_db.Post.query.filter(model_db.Post.id.in_(data.keys())).all()
+    for post in modified:
+        post.processed = True if data[post.id] != -2 else False
+        post.campaign_id = data[post.id] if data[post.id] > 0 else None
+    try:
+        model_db.db.session.commit()
+    except Exception as e:
+        # handle exception
+        return False
+    return True
+
+
 def process_form(mod, request):
     # If Model has relationship collections set in form, then we must capture these before flattening the input
     # I believe this is only needed for campaigns.
@@ -303,30 +326,34 @@ def create_app(config, debug=False, testing=False, config_overrides=None):
         print('Audience data collected') if audience else print('No Audience data')
         return redirect(url_for('view', mod='user', id=user_id))
 
+    @app.route('/campaign/<int:id>/detail', methods=['GET', 'POST'])
+    def detail_campaign(id):
+        """ Used because campaign function over-rides route for detail view """
+        mod, view = 'campaign', 'results'
+        template, related = f"{mod}.html", {}
+        Model = mod_lookup.get(mod, None)
+        model = Model.query.get(id)
+        print('=========== Campaign Results ===========')
+        if request.method == 'POST':
+            update_campaign(view, request)
+        for user in model.users:
+            related[user] = [ea for ea in user.posts if ea.campaign_id == id]
+            print(len(related[user]))
+        return render_template(template, mod=mod, view=view, data=model, related=related)
+
     @app.route('/campaign/<int:id>', methods=['GET', 'POST'])
     def campaign(id):
-        mod, template, related = 'campaign', 'campaign.html', {}
+        mod, view = 'campaign', 'management'
+        template, related = f"{mod}.html", {}
         Model = mod_lookup.get(mod, None)
         model = Model.query.get(id)
         print('=========== Managing Campaign Posts ===========')
         if request.method == 'POST':
-            form_dict = request.form.to_dict(flat=True)  # TODO: add form validate method for security.
-            # print(request.form)
-            # temp = {key: int(val) for key, val in ea for ea in request.form}
-            # temp = {ea[0].replace('assign_', ''): int(ea[1]) for ea in request.form}
-            # print(temp)
-            data = {int(key.replace('assign_', '')): int(val) for (key, val) in form_dict.items() if val != '0'}
-            related = model_db.Post.query.filter(model_db.Post.id.in_(data.keys())).all()
-            for post in related:
-                post.processed = True
-                post.campaign_id = data[post.id] if data[post.id] > 0 else None
-            model_db.db.session.commit()
-        else:
-            for user in model.users:
-                related[user] = [ea for ea in user.posts if not ea.processed]
-                print(len(related[user]))
-        print(related)
-        return render_template(template, mod=mod, data=model, related=related)
+            update_campaign(view, request)
+        for user in model.users:
+            related[user] = [ea for ea in user.posts if not ea.processed]
+            print(len(related[user]))
+        return render_template(template, mod=mod, view=view, data=model, related=related)
 
     @app.route('/<string:mod>/<int:id>')
     def view(mod, id):
@@ -404,8 +431,10 @@ def create_app(config, debug=False, testing=False, config_overrides=None):
         posts = get_posts(id)
         if len(posts):
             print('we got some posts back')
-
-        return redirect(url_for('view', mod=mod, id=id))
+        return_path = request.referrer
+        print('---------------------------', return_path)
+        return redirect(return_path)
+        # return redirect(url_for('view', mod=mod, id=id))
 
     @app.route('/<string:mod>/add', methods=['GET', 'POST'])
     def add(mod):

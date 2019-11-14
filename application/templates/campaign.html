@@ -1,12 +1,12 @@
 {% extends "view.html" %}
 {% block head %}
-<title>{{ mod.capitalize() }} Management</title>
+<title>{{ mod|title }} {{ view|title }}</title>
 {% endblock head %}
 
 {% block header %}
 {{ super() }}
 <h1>
-  Manage Campaign -
+  {{ mod|title }} {{ view|title }} -
   {{ data.name|title|e if data.name else data.id }}
   {% if data.brands|length > 0 %}
   - {{ data.brands|join(", ")|e }}
@@ -17,6 +17,9 @@
   {% endif %}
 </h1>
 <p>
+  {% if view == 'management' %}<a href="{{url_for('detail_campaign', id=data.id)}}">Campaign Results</a>
+  {% elif view == 'results' %}<a href="{{url_for('view', mod=mod, id=data.id)}}">Campaign Management</a>
+  {% endif %} |
   Last Updated on {{data.modified}} |
   {%if completed%}Finished Campaign{%else%}Active Campaign{%endif%} |
   <a href="{{ url_for('edit', mod=mod, id=data.id) }}">Change Campaign Settings</a>
@@ -33,11 +36,16 @@
 <p>You probably want to <a href="{{url_for('edit', mod=mod, id=data.id)}}">Change Campaign Settings</a></p>
 {% endif %}
 {% endblock header %}
+
 {% block content %}
 <main>
   {% for user in data.users %}
   <div class="users" id="user_{{user.id}}">
     <h2>Media Post Assignment for - {{user.name|e}} ( {{related[user]|length}} )</h2>
+    <p> </p>
+    <ul>
+      <li><a href="{{ url_for('new_post', mod='user', id=user.id) }}">Get New Media / Posts</a> </li>
+    </ul>
     <form action="" method="POST">
       {% for post in related[user] %}
       <section class="posts" id="post_{{post.id}}">
@@ -47,11 +55,18 @@
             {{post.caption|e}}
           </p>
         </article>
-        <input type="radio" id="accept_{{post.id}}" name="assign_{{post.id}}" value="{{data.id}}">
+        <input type="radio" id="accept_{{post.id}}" name="assign_{{post.id}}"
+          {% if view == 'management' %} value="{{data.id}}"
+          {% elif view == 'results' %} value="0" checked
+          {% endif %} >
           <label for="accept_{{post.id}}">Campaign</label>
-        <input type="radio" id="reject_{{post.id}}" name="assign_{{post.id}}" value="-1">
+        <input type="radio" id="reject_{{post.id}}" name="assign_{{post.id}}"
+          value="-1" >
           <label for="reject_{{post.id}}">Other</label>
-        <input type="radio" id="ignore_{{post.id}}" name="assign_{{post.id}}" value="0" checked>
+        <input type="radio" id="ignore_{{post.id}}" name="assign_{{post.id}}"
+          {% if view == 'management' %} value="0" checked
+          {% elif view == 'results' %} value="-2"
+          {% endif %} >
           <label for="ignore_{{post.id}}">Skip</label>
         <hr />
       </section>
