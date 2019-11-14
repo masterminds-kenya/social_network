@@ -42,7 +42,6 @@
   {% for user in data.users %}
   <div class="users" id="user_{{user.id}}">
     <h2>Media Post Assignment for - {{user.name|e}} ( {{related[user]|length}} )</h2>
-    <p> </p>
     <ul>
       <li><a href="{{ url_for('new_post', mod='user', id=user.id) }}">Get New Media / Posts</a> </li>
     </ul>

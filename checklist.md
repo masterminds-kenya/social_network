@@ -88,7 +88,7 @@ Current Status:
 - [s] How do we want to organize audience data?
 - [s] Refactor Audience Model to parse out the gender and age group fields
 - [s] After refactor, make sure audience data does not overwrite previous data
-- [ ] Campaign Model
+- [x] Campaign Model
   - [s] Can make a connection between a brand and a user.
   - [s] Can create a campaign for each connection.
   - [x] Allow admin to categorize posts to campaigns
@@ -96,7 +96,7 @@ Current Status:
 - [x] For all data collection on new users, move to external functions
 - [s] Refactor User data collection functions to work also work for Brands
 - [x] Create many function
-- [ ] Refactor create to account for both create one or create many
+- [ ] Refactor create function to account for both create one or create many
 - [s] Update many function
 - [s] Refine Brand Model with constructor function for translating from FB.
 - [s] Can update data for existing Brand accounts

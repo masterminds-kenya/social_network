@@ -20,6 +20,10 @@ def from_sql(row):
     """ Translates a SQLAlchemy model instance into a dictionary """
     data = row.__dict__.copy()
     data['id'] = row.id
+    # print('============= from_sql ===================')
+    # rel = row.__mapper__.relationships
+    # all = row.__mapper__
+    # print(dir(rel))
     temp = data.pop('_sa_instance_state', None)
     if not temp:
         print('Not a model instance!')

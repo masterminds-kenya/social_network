@@ -362,6 +362,7 @@ def create_app(config, debug=False, testing=False, config_overrides=None):
         if not Model:
             return f"No such route: {mod}", 404
         model = model_db.read(id, Model=Model)
+        # model = Model.query.get(id)
         template = 'view.html'
         if mod == 'post':
             template = f"{mod}_{template}"
