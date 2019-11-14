@@ -152,14 +152,29 @@ Current Status:
   - [x] Create Brand
   - [x] Create Campaign
   - [x] Assign Users to Campaign
-- [ ] Campaign Detail & Manage View
-  - [ ] List all Influencers in this campaign
-  - [ ] For each Influencer, list media to process.
-    - [ ] maintain a cue of unprocessed posts.
+- [ ] Campaign Manage View
+  - [x] List all Influencers in this campaign
+  - [x] For each Influencer, list media to process.
+    - [x] able to filter for only unprocessed posts.
     - [ ] fetch new posts to add to the cue
-    - [ ] checkbox to confirm post is part of campaign
-    - [ ] checkbox to confirm post is NOT part of campaign
-- [?] ?Influencer can create a Campaign to connect to Brand?
+    - [x] radio button to confirm post is part of campaign
+    - [x] radio button to confirm post is NOT part of campaign
+    - [x] can skip processing a seen post, to categorize it later
+    - [ ] Can navigate to Detail View to see posts assigned to campaign
+- [s] ?Influencer can create a Campaign to connect to Brand?
+- [ ] Campaign Detail View w/ assigned posts
+  - [ ] can view all posts currently assigned to this campaign
+  - [ ] can navigate to Campaign Manage view to add posts to campaign
+- [ ] Functionality to Fetch more posts (API call to FB)
+  - [x] Can request more posts for a given user
+  - [ ] Will limit request to only get new posts since last request
+  - [ ] In case we do get duplicates, it will create duplicates in DB
+      - [ ] Will update if our DB info is out-of-date
+- [ ] Fetch more Insights (of the account, not of media)
+  - [x] Can get a history the the user (or brand) account insights
+  - [ ] Will limit request to only get new insights since last request
+- [ ] In case we do get duplicates, it will create duplicates in DB
+    - [ ] Will update if our DB info is out-of-date
 - [x] Add Google Sheet API to GCloud app.
 - [ ] Add functionality to export Marketing data to a Google worksheet.
   - [x] App can navigate credentials to allow full Google Sheet API features.
@@ -193,6 +208,7 @@ Current Status:
 
 - [x] Setup a real influencer (Noelle Reno) as a confirmed tester.
 - [x] Have real influencer (Noelle Reno) sign up for testing.
+  - [ ] Should campaign management view extend base instead of view?
   - [ ] Is current process slow? Move some data collection outside of sign up flow?
   - [ ] Other feedback for expected sign up flow?
   - [ ] Review data options to confirm our desired data collection.
