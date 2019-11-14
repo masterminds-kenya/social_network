@@ -91,6 +91,33 @@ h4, h5, h6{
   color: rgb(57, 70, 80);
 }
 
+.posts {
+  display: flex;
+  /* flex-direction: row-reverse; */
+  justify-content: flex-end;
+}
+/* .posts article {
+  width: 80%;
+} */
+.posts .form-group {
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  padding: 1rem;
+}
+
+.posts .form-group label {
+  white-space: nowrap;
+  width: -webkit-max-content;
+  width: -moz-max-content;
+  width: max-content;
+  padding: .2rem 0;
+  order: 1;
+}
+.posts article {
+  flex-basis: 100%;
+  order: 2;
+}
 button {
   border-top: 1px solid #939fef;
   background: #7583dc;
@@ -138,4 +165,7 @@ button:hover {
 button:active {
   border-top-color: #1a2630;
   background: #1a2630;
+}
+button {
+  margin: 1rem 1rem 2rem 1rem;
 }

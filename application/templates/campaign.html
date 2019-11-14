@@ -34,6 +34,19 @@
 {% if data.users|length < 1 %}
 <h2>No Influencers assigned in Campaign</h2>
 <p>You probably want to <a href="{{url_for('edit', mod=mod, id=data.id)}}">Change Campaign Settings</a></p>
+{% else %}
+{% if view == 'management' %}
+<ul>
+  {% for user in data.users %}
+  <li>
+    <strong>{{ user.name }}</strong> |
+    posts last retrieved on {{user.modified}} |
+    <a href="{{ url_for('new_post', mod='user', id=user.id) }}">retrieve new {{user.name}} posts</a>
+    <br />
+  </li>
+  {% endfor %}
+</ul>
+{% endif %}
 {% endif %}
 {% endblock header %}
 
@@ -42,35 +55,44 @@
   {% for user in data.users %}
   <div class="users" id="user_{{user.id}}">
     <h2>Media Post Assignment for - {{user.name|e}} ( {{related[user]|length}} )</h2>
-    <ul>
-      <li><a href="{{ url_for('new_post', mod='user', id=user.id) }}">Get New Media / Posts</a> </li>
-    </ul>
     <form action="" method="POST">
       {% for post in related[user] %}
       <section class="posts" id="post_{{post.id}}">
         <article>
           <p><a href="{{post.permalink}}">{{post.media_type}} | {{post.recorded}}</a></p>
-          <p>
-            {{post.caption|e}}
-          </p>
+          <p>{{ post.caption|e }}</p>
         </article>
-        <input type="radio" id="accept_{{post.id}}" name="assign_{{post.id}}"
-          {% if view == 'management' %} value="{{data.id}}"
-          {% elif view == 'results' %} value="0" checked
-          {% endif %} >
-          <label for="accept_{{post.id}}">Campaign</label>
-        <input type="radio" id="reject_{{post.id}}" name="assign_{{post.id}}"
-          value="-1" >
-          <label for="reject_{{post.id}}">Other</label>
-        <input type="radio" id="ignore_{{post.id}}" name="assign_{{post.id}}"
-          {% if view == 'management' %} value="0" checked
-          {% elif view == 'results' %} value="-2"
-          {% endif %} >
-          <label for="ignore_{{post.id}}">Skip</label>
+        <div class="form-group">
+          <label for="accept_{{post.id}}">
+          <input type="radio" id="accept_{{post.id}}" name="assign_{{post.id}}"
+            {% if view == 'management' %} value="{{data.id}}"
+            {% elif view == 'results' %} value="0" checked
+            {% endif %} >
+          Campaign
+          </label>
+          <label for="reject_{{post.id}}">
+          <input type="radio" id="reject_{{post.id}}" name="assign_{{post.id}}"
+            value="-1" >
+          Other
+          </label>
+          <label for="ignore_{{post.id}}">
+          <input type="radio" id="ignore_{{post.id}}" name="assign_{{post.id}}"
+            {% if view == 'management' %} value="0" checked
+            {% elif view == 'results' %} value="-2"
+            {% endif %} >
+          Skip
+          </label>
+        </div>
         <hr />
       </section>
       {% endfor %}
-      <input type="submit" value="Confirm Assignments">
+      {% if related[user]|length < 1 %}
+      {% if view=='management' %}
+      <p><a href="{{ url_for('new_post', mod='user', id=user.id) }}">retrieve new {{user.name}} posts</a></p>
+      {% endif %}
+      {% else %}
+      <button type="submit" value="Confirm Assignments">Confirm Assignments</button>
+      {% endif %}
     </form>
   </div>
   {% endfor %}
