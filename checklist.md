@@ -159,7 +159,7 @@ Current Status:
   - [s] Sort or Filter to show posts by processed or not yet processed
   - [s] Sort or Filter to show posts that are assigned to a campaign
   - [s] Sort or Filter to show posts that were rejected from being in a campaign
-- [ ] Campaign Manage View
+- [x] Campaign Manage View
   - [x] List all Influencers in this campaign
   - [x] For each Influencer, list media to process.
     - [x] able to filter for only unprocessed posts.
@@ -169,13 +169,17 @@ Current Status:
     - [x] radio button to confirm post is NOT part of campaign
     - [x] can skip processing a seen post, to categorize it later
     - [x] Can navigate to Detail View to see posts assigned to campaign
-    - [ ] Can view already assigned posts and reprocess them - see Campaign Detail
+    - [x] Campaign form elements nicely on the side of post details
+    - [x] Can view already assigned posts and reprocess them - see Campaign Detail
 - [s] ?Influencer can create a Campaign to connect to Brand?
-- [ ] Campaign Detail View w/ assigned posts
+- [x] Campaign Detail View w/ assigned posts
   - [ ] ?Decide if it should show more metrics or results?
   - [ ] ?Update link text from Management page, currently says "Campaign Results"?
-  - [ ] can view all posts currently assigned to this campaign
-  - [ ] can navigate to Campaign Manage view to add posts to campaign
+  - [x] can view all posts currently assigned to this campaign
+  - [x] can navigate to Campaign Manage view to add posts to campaign
+  - [x] Can remove from campaign & back in cue to decide later (marked unprocessed)
+  - [x] Can remove to campaign and remove for consideration (marked processed)
+  - [x] Will be left with current settings if unchanged when other posts modified
 - [ ] Functionality to Fetch more posts (API call to FB)
   - [x] Can request more posts for a given user
   - [x] redirect back to the page/view that called to get more posts
