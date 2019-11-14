@@ -311,6 +311,13 @@ def create_app(config, debug=False, testing=False, config_overrides=None):
         data['token'] = token
         accounts = data.pop('accounts')
         ig_id, ig_set = find_instagram_id(accounts, facebook=facebook)
+        # WORK HERE
+        # If they only have 1 ig account, continue making things
+        # else if multiple ig accounts, make their user account with no ig_id
+        # Then collect IG usernames for all options
+        # And give them a choice of which to use.
+        # This will need another view, and another form.
+        # Should we give them checkboxes or radio for ig_id selection?
         ig_info = get_ig_info(ig_id, token=None, facebook=facebook)
         data['name'] = ig_info.get('username', 'NA')
         data['instagram_id'], data['notes'] = ig_id, json.dumps(list(ig_set))  # json.dumps(media)
