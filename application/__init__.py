@@ -326,7 +326,7 @@ def create_app(config, debug=False, testing=False, config_overrides=None):
         # # else if multiple ig accounts, save ig_list for later choice of which to use.
         else:
             # data['notes'] = json.dumps(list(ig_list))  # json.dumps(media)
-            data['name'] = 'na' if 'name' not in data else data['name']
+            data['name'] = data.get('username', 'na') if 'name' not in data else data['name']
             print(f'--------- Found {len(ig_list)} potential IG accounts -----------')
         print('=================== Data sent to Create User =======================')
         pprint(data)
@@ -343,19 +343,21 @@ def create_app(config, debug=False, testing=False, config_overrides=None):
         else:
             # This will need another view, and another form.
             # Should we give them checkboxes or radio for ig_id selection?
-            return render_template('decide_ig.html', user=user, ig_list=ig_list)
+            return render_template('decide_ig.html', mod='user', id=user_id, ig_list=ig_list)
 
-    @app.route('/<string:mod>/<int:id>/addig/<int:ig_id>/<string:name>')
-    def add_ig(mod, id, ig_id, name):
+    @app.route('/<string:mod>/<int:id>/addig', methods=['GET', 'POST'])
+    def add_ig(mod, id):
         Model = mod_lookup.get(mod, None)
         if not Model:
             return f"No such route: {mod}", 404
-        # if request.method == 'POST':
-        print('--------- Update IG ------------')
-        # data = process_form(mod, request)
-        data = {'instagram_id': ig_id, 'name': name}
-        model = model_db.update(data, id, Model=Model)
-        return redirect(url_for('view', mod=mod, id=model['id']))
+        if request.method == 'POST':
+            print('--------- Update IG ------------')
+            data = process_form(mod, request)
+            # data = {'instagram_id': ig_id, 'name': name}
+            model = model_db.update(data, id, Model=Model)
+            return redirect(url_for('view', mod=mod, id=model['id']))
+        print('----------- Had a GET on add_ig -------------')
+        return redirect(url_for('home'))
 
     @app.route('/campaign/<int:id>/detail', methods=['GET', 'POST'])
     def detail_campaign(id):
