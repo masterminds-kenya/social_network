@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+{% block head %}
+<title>Assign InstaGram Account</title>
+{% endblock head %}
+
+{% block header %}
+{{ super() }}
+<h1>Which InstaGram account to use?</h1>
+{% endblock header %}
+
+{% block content %}
+<main>
+  {% for account in ig_list %}
+  <hr />
+  <p>
+    <a href="{{ url_for('add_ig', mod='user', id=user.id, ig_id=account.id, name=account.username)}}"> {{ account.username }} </a>
+    followers count: {{account.followers_count}},
+    follows count: {{account.follows_count}},
+    media_count: {{account.media_count}}
+  </p>
+  {% endfor %}
+  <ul>
+    <li><a href="{{ url_for('home') }}">Link example Home</a></li>
+  </ul>
+</main>
+{% endblock content %}

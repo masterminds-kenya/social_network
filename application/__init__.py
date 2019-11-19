@@ -74,6 +74,7 @@ def process_form(mod, request):
     # If the form has a checkbox for a Boolean in the form, we may need to reformat.
     # currently I think only Campaign and Post have checkboxes
     bool_fields = {'campaign': 'completed', 'post': 'processed'}
+    # TODO: Add logic to find all Boolean fields in models and handle appropriately.
     if mod in bool_fields:
         data[bool_fields[mod]] = True if data.get(bool_fields[mod]) in {'on', True} else False
     return data
@@ -180,7 +181,7 @@ def get_ig_info(ig_id, token=None, facebook=None):
 
 
 def find_instagram_id(accounts, facebook=None):
-    ig_id, ig_set = None, set()
+    ig_list = []
     pages = [page.get('id') for page in accounts.get('data')] if accounts and 'data' in accounts else None
     # TODO: Update logic for user w/ many pages/instagram-accounts. Currently assumes last found instagram account
     if pages:
@@ -189,9 +190,9 @@ def find_instagram_id(accounts, facebook=None):
             instagram_data = facebook.get(f"https://graph.facebook.com/v4.0/{page}?fields=instagram_business_account").json()
             ig_business = instagram_data.get('instagram_business_account', None)
             if ig_business:
-                ig_set.add(ig_business.get('id', None))
-        ig_id = ig_set.pop()
-    return (ig_id, ig_set)
+                ig_info = get_ig_info(ig_business.get('id', None), facebook=facebook)
+                ig_list.append(ig_info)
+    return ig_list
 
 
 def create_app(config, debug=False, testing=False, config_overrides=None):
@@ -310,28 +311,51 @@ def create_app(config, debug=False, testing=False, config_overrides=None):
         data = facebook_user_data.copy()  # .to_dict(flat=True)
         data['token'] = token
         accounts = data.pop('accounts')
-        ig_id, ig_set = find_instagram_id(accounts, facebook=facebook)
+        ig_list = find_instagram_id(accounts, facebook=facebook)
         # WORK HERE
+        # Collect IG usernames for all options
         # If they only have 1 ig account, continue making things
-        # else if multiple ig accounts, make their user account with no ig_id
-        # Then collect IG usernames for all options
-        # And give them a choice of which to use.
-        # This will need another view, and another form.
-        # Should we give them checkboxes or radio for ig_id selection?
-        ig_info = get_ig_info(ig_id, token=None, facebook=facebook)
-        data['name'] = ig_info.get('username', 'NA')
-        data['instagram_id'], data['notes'] = ig_id, json.dumps(list(ig_set))  # json.dumps(media)
+        ig_id = None
+        # if len(ig_list) == 1:
+        if ig_id:
+            ig_info = ig_list.pop()
+            data['name'] = ig_info.get('username', 'NA')
+            ig_id = ig_info.get('id')
+            data['instagram_id'] = ig_id
+            print('------ Only 1 InstaGram business account --------')
+        # # else if multiple ig accounts, save ig_list for later choice of which to use.
+        else:
+            # data['notes'] = json.dumps(list(ig_list))  # json.dumps(media)
+            data['name'] = 'na' if 'name' not in data else data['name']
+            print(f'--------- Found {len(ig_list)} potential IG accounts -----------')
         print('=================== Data sent to Create User =======================')
         pprint(data)
         user = model_db.create(data)
         user_id = user.get('id')
         print('User: ', user_id)
-        # Relate Data
-        insights = get_insight(user_id, last=90, ig_id=ig_id, facebook=facebook)
-        print('We have insights') if insights else print('No insights')
-        audience = get_audience(user_id, ig_id=ig_id, facebook=facebook)
-        print('Audience data collected') if audience else print('No Audience data')
-        return redirect(url_for('view', mod='user', id=user_id))
+        if ig_id:
+            # Relate Data
+            insights = get_insight(user_id, last=90, ig_id=ig_id, facebook=facebook)
+            print('We have insights') if insights else print('No insights')
+            audience = get_audience(user_id, ig_id=ig_id, facebook=facebook)
+            print('Audience data collected') if audience else print('No Audience data')
+            return redirect(url_for('view', mod='user', id=user_id))
+        else:
+            # This will need another view, and another form.
+            # Should we give them checkboxes or radio for ig_id selection?
+            return render_template('decide_ig.html', user=user, ig_list=ig_list)
+
+    @app.route('/<string:mod>/<int:id>/addig/<int:ig_id>/<string:name>')
+    def add_ig(mod, id, ig_id, name):
+        Model = mod_lookup.get(mod, None)
+        if not Model:
+            return f"No such route: {mod}", 404
+        # if request.method == 'POST':
+        print('--------- Update IG ------------')
+        # data = process_form(mod, request)
+        data = {'instagram_id': ig_id, 'name': name}
+        model = model_db.update(data, id, Model=Model)
+        return redirect(url_for('view', mod=mod, id=model['id']))
 
     @app.route('/campaign/<int:id>/detail', methods=['GET', 'POST'])
     def detail_campaign(id):
