@@ -73,7 +73,7 @@ class User(db.Model):
     __tablename__ = 'users'
 
     id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String(47),                 index=True,  unique=True,  nullable=False)
+    name = db.Column(db.String(47),                 index=False, unique=False, nullable=True)
     instagram_id = db.Column(BIGINT(unsigned=True), index=True,  unique=True,  nullable=True)
     facebook_id = db.Column(BIGINT(unsigned=True),  index=False, unique=False, nullable=True)
     token = db.Column(db.String(255),               index=False, unique=False, nullable=True)
@@ -284,6 +284,14 @@ def create_many(dataset, Model=User):
     return all_results
 
 
+def create_or_update(data, Model=User):
+    """ Create or Update if the record exists """
+    unique_keys = [c.name for c in Model.__table__.columns if c.unique]
+    target_keys = {key: val for (key, val) in data.items() if key in unique_keys}
+    Model.query.filter(Model[key]==val)
+    pass
+
+
 def create(data, Model=User):
     from pprint import pprint
     # TODO: Refactor to work as many or one: check if we have a list of obj, or single obj
@@ -291,7 +299,11 @@ def create(data, Model=User):
     # then use code written in create_many for this dataset
     print('--------- Inspecting the create function -------------')
     pprint(data)
-    model = Model(**data)
+    try:
+        model = Model(**data)
+    except Exception as e:
+        print('**************** DB CREATE Error *******************')
+        print(e)
     print('-------First was data, now model ----------------------------------')
     pprint(model)
     db.session.add(model)

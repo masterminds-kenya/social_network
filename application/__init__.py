@@ -345,20 +345,6 @@ def create_app(config, debug=False, testing=False, config_overrides=None):
             # Should we give them checkboxes or radio for ig_id selection?
             return render_template('decide_ig.html', mod='user', id=user_id, ig_list=ig_list)
 
-    @app.route('/<string:mod>/<int:id>/addig', methods=['GET', 'POST'])
-    def add_ig(mod, id):
-        Model = mod_lookup.get(mod, None)
-        if not Model:
-            return f"No such route: {mod}", 404
-        if request.method == 'POST':
-            print('--------- Update IG ------------')
-            data = process_form(mod, request)
-            # data = {'instagram_id': ig_id, 'name': name}
-            model = model_db.update(data, id, Model=Model)
-            return redirect(url_for('view', mod=mod, id=model['id']))
-        print('----------- Had a GET on add_ig -------------')
-        return redirect(url_for('home'))
-
     @app.route('/campaign/<int:id>/detail', methods=['GET', 'POST'])
     def detail_campaign(id):
         """ Used because campaign function over-rides route for detail view """
