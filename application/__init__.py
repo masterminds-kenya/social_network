@@ -141,7 +141,7 @@ def get_posts(user_id, ig_id=None, facebook=None):
         pprint(story_res)
         return []
     print(f"----------- Looking up {len(stories)} Stories ----------- ")
-
+    story_ids = {ea.get('id') for ea in stories}
     print('================ Media Posts ====================')
     url = f"https://graph.facebook.com/{ig_id}/media"
     response = facebook.get(url).json() if facebook else requests.get(f"{url}?access_token={token}").json()
@@ -153,12 +153,16 @@ def get_posts(user_id, ig_id=None, facebook=None):
         return []
     print(f"----------- Looking up {len(media)} Media Posts ----------- ")
     types_of_media = set()
+    media.extend(stories)
+    print(f"----------- Looking up a total of {len(media)} Posts (all media and stories) ----------- ")
     for post in media:
         media_id = post.get('id')
         url = f"https://graph.facebook.com/{media_id}?fields={post_metrics['basic']}"
         res = facebook.get(url).json() if facebook else requests.get(f"{url}&access_token={token}").json()
         res['media_id'] = res.pop('id', media_id)
         res['user_id'] = user_id
+        media_type = res.get('media_type')
+        res['media_type'] = 'STORY' if res['media_id'] in story_ids else media_type
         metrics = post_metrics.get(res.get('media_type'), post_metrics['insight'])
         types_of_media.add(res.get('media_type'))
         if metrics == post_metrics['insight']:  # TODO: remove after tested
