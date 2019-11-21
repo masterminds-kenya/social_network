@@ -114,8 +114,8 @@ class Insight(db.Model):
 
     id = db.Column(db.Integer,      primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey('users.id', ondelete='CASCADE'))
-    recorded = db.Column(db.DateTime,          index=True,  unique=False, nullable=False)
-    name = db.Column(db.String(47),            index=True,  unique=True,  nullable=False)
+    recorded = db.Column(db.DateTime,          index=False, unique=False, nullable=False)
+    name = db.Column(db.String(47),            index=False, unique=False, nullable=False)
     value = db.Column(db.Integer,              index=False, unique=False, nullable=True)
     # # user = backref from User.insights with lazy='select' (synonym for True)
     metrics = {'impressions', 'reach', 'follower_count'}
@@ -140,8 +140,8 @@ class Audience(db.Model):
 
     id = db.Column(db.Integer,      primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey('users.id', ondelete='CASCADE'))
-    recorded = db.Column(db.DateTime,          index=True,  unique=False, nullable=False)
-    name = db.Column(db.String(47),            index=True,  unique=True,  nullable=False)
+    recorded = db.Column(db.DateTime,          index=False, unique=False, nullable=False)
+    name = db.Column(db.String(47),            index=False, unique=False, nullable=False)
     value = db.Column(db.String(47),           index=False, unique=False, nullable=True)
     # # user = backref from User.audiences with lazy='select' (synonym for True)
     metrics = {'audience_city', 'audience_country', 'audience_gender_age'}
