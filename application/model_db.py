@@ -198,7 +198,7 @@ class Post(db.Model):
     # # campaign = backref from Campaign.posts with lazy='select' (synonym for True)
 
     metrics = {}
-    metrics['basic'] = {'media_type', 'caption', 'comments_count', 'like_count', 'timestamp'}  # is permalink an issue?
+    metrics['basic'] = {'media_type', 'caption', 'comments_count', 'like_count', 'permalink', 'timestamp'}  # is permalink an issue?
     metrics['insight'] = {'impressions', 'reach'}
     metrics['IMAGE'] = {'engagement', 'saved'}.union(metrics['insight'])
     metrics['VIDEO'] = {'video_views'}.union(metrics['IMAGE'])

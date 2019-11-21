@@ -131,56 +131,51 @@ def get_posts(user_id, ig_id=None, facebook=None):
     if not facebook or not ig_id:
         model = model_db.read(user_id, safe=False)
         ig_id, token = model.get('instagram_id'), model.get('token')
-    print('================ Story Posts ====================')
     url = f"https://graph.facebook.com/{ig_id}/stories"
     story_res = facebook.get(url).json() if facebook else requests.get(f"{url}?access_token={token}").json()
     stories = story_res.get('data')
     if not isinstance(stories, list):
         print('Error: ', story_res.get('error'))
-        print('--------------- Instead, response was ----------------')
+        print('--------------- something wrong with story posts ----------------')
         pprint(story_res)
         return []
     print(f"----------- Looking up {len(stories)} Stories ----------- ")
     story_ids = {ea.get('id') for ea in stories}
-    print('================ Media Posts ====================')
     url = f"https://graph.facebook.com/{ig_id}/media"
     response = facebook.get(url).json() if facebook else requests.get(f"{url}?access_token={token}").json()
     media = response.get('data')
     if not isinstance(media, list):
         print('Error: ', response.get('error'))
-        print('--------------- Instead, response was ----------------')
+        print('--------------- Something wrong with media posts ----------------')
         pprint(response)
         return []
-    print(f"----------- Looking up {len(media)} Media Posts ----------- ")
     types_of_media = set()
     media.extend(stories)
-    print(f"----------- Looking up a total of {len(media)} Posts (all media and stories) ----------- ")
+    print(f"----------- Looking up a total of {len(media)} Story & Media Posts ----------- ")
     for post in media:
         media_id = post.get('id')
         url = f"https://graph.facebook.com/{media_id}?fields={post_metrics['basic']}"
         res = facebook.get(url).json() if facebook else requests.get(f"{url}&access_token={token}").json()
         res['media_id'] = res.pop('id', media_id)
         res['user_id'] = user_id
-        media_type = res.get('media_type')
-        res['media_type'] = 'STORY' if res['media_id'] in story_ids else media_type
-        metrics = post_metrics.get(res.get('media_type'), post_metrics['insight'])
-        types_of_media.add(res.get('media_type'))
+        media_type = 'STORY' if res['media_id'] in story_ids else res.get('media_type')
+        res['media_type'] = media_type
+        metrics = post_metrics.get(media_type, post_metrics['insight'])
+        types_of_media.add(media_type)
         if metrics == post_metrics['insight']:  # TODO: remove after tested
-            print(f"----- Match not found for {res.get('media_type')} media_type parameter -----")  # TODO: remove after tested
-        if res.get('media_type') == 'STORY':
-                print('****************** found a STORY media_type ******************************************')
-                print('****************** found a STORY media_type ******************************************')
+            print(f"----- Match not found for {media_type} media_type parameter -----")  # TODO: remove after tested
+        if media_type == 'STORY':
                 print('****************** found a STORY media_type ******************************************')
         url = f"https://graph.facebook.com/{media_id}/insights?metric={metrics}"
         res_insight = facebook.get(url).json() if facebook else requests.get(f"{url}&access_token={token}").json()
         insights = res_insight.get('data')
         if insights:
             temp = {ea.get('name'): ea.get('values', [{'value': 0}])[0].get('value', 0) for ea in insights}
-            if res.get('media_type') == 'CAROUSEL_ALBUM':
+            if media_type == 'CAROUSEL_ALBUM':
                 temp = {re.sub('^carousel_album_', '', key): val for key, val in temp.items()}
             res.update(temp)
         else:
-            print(f"media {media_id} had NO INSIGHTS for type {res.get('media_type')} --- {res_insight}")
+            print(f"media {media_id} had NO INSIGHTS for type {media_type} --- {res_insight}")
         # pprint(res)
         # print('---------------------------------------')
         results.append(res)

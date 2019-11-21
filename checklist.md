@@ -54,20 +54,20 @@ Current Status:
 - [s] Update ON DELETE for a User's posts.
 - [s] Model for capturing the limited time FB/IG stories
 - [x] Fix DB setup: use utf8mb4 so we can handle emojis
-- [ ] posts (media) seem to have 3 types: Story, Album, and Photo/Video
+- [x] posts (media) seem to have 3 types: Story, Album, and Photo/Video
   - [x]  All IG Media also has some general returnable fields:
     - [x]  caption  - except emoji problem
     - [x]  comments_count
     - [x]  like_count
     - [x]  media_type
     - [x]  permalink
-  - [ ] Stories Insight Metrics (for limited time FB/IG stories)
-    - [ ] exits
-    - [ ] impressions
-    - [ ] reach
-    - [ ] replies
-    - [ ] taps_forward
-    - [ ] taps_back
+  - [x] Stories Insight Metrics (for limited time FB/IG stories)
+    - [x] exits
+    - [x] impressions
+    - [x] reach
+    - [?] replies
+    - [x] taps_forward
+    - [x] taps_back
   - [x] Photo/Video Insight Metrics
     - [x] engagement
     - [x] impressions
@@ -83,10 +83,12 @@ Current Status:
     - [N] carousel_album_video_views
 - [x] Refactor User Model, less PII, no admin, connect to posts/media
 - [x] Have the ability for a single FB user to have many IG profiles on our app?
-- [ ] User Model creation works if new Influencer has multiple IG accounts.
+- [x] User Model creation works if new Influencer has multiple IG accounts.
 - [ ] ?DB create handles update if record already exists?
   - [ ] Corrects for double click on starting any API fetch and save process
-  - [ ] Corrects for overlapping results from a previous batch of data requests
+  - [x] Corrects for overlapping results from a previous batch of posts requests
+  - [ ] Corrects for overlapping results from a previous batch of insights requests
+  - [ ] Corrects for overlapping results from a previous batch of audiences requests
 - [s] Manage incoming insight duplications
 - [s] How do we want to organize audience data?
 - [s] Refactor Audience Model to parse out the gender and age group fields
@@ -144,8 +146,8 @@ Current Status:
 - [x] Admin can input information for a brand
 - [x] API call and store basic metrics for media Posts
 - [x] API call and store post insight metrics for Photo/Video
-- [ ] API call and store post insight metrics for Albums
-- [ ] API call and store post insight metrics for Stories
+- [x] API call and store post insight metrics for Albums
+- [x] API call and store post insight metrics for Stories
 - [s] WebHook to get Stories data at completion.
 - [ ] Add a logical catch for existing users to re-route to data update
 - [x] Refactor User data collection functions to work on create and update
