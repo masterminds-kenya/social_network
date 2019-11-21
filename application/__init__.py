@@ -131,6 +131,17 @@ def get_posts(user_id, ig_id=None, facebook=None):
     if not facebook or not ig_id:
         model = model_db.read(user_id, safe=False)
         ig_id, token = model.get('instagram_id'), model.get('token')
+    print('================ Story Posts ====================')
+    url = f"https://graph.facebook.com/{ig_id}/stories"
+    story_res = facebook.get(url).json() if facebook else requests.get(f"{url}?access_token={token}").json()
+    stories = story_res.get('data')
+    if not isinstance(stories, list):
+        print('Error: ', story_res.get('error'))
+        print('--------------- Instead, response was ----------------')
+        pprint(story_res)
+        return []
+    print(f"----------- Looking up {len(stories)} Stories ----------- ")
+
     print('================ Media Posts ====================')
     url = f"https://graph.facebook.com/{ig_id}/media"
     response = facebook.get(url).json() if facebook else requests.get(f"{url}?access_token={token}").json()
@@ -141,7 +152,7 @@ def get_posts(user_id, ig_id=None, facebook=None):
         pprint(response)
         return []
     print(f"----------- Looking up {len(media)} Media Posts ----------- ")
-    media_list = []
+    types_of_media = set()
     for post in media:
         media_id = post.get('id')
         url = f"https://graph.facebook.com/{media_id}?fields={post_metrics['basic']}"
@@ -149,7 +160,7 @@ def get_posts(user_id, ig_id=None, facebook=None):
         res['media_id'] = res.pop('id', media_id)
         res['user_id'] = user_id
         metrics = post_metrics.get(res.get('media_type'), post_metrics['insight'])
-        media_list.append(res.get('media_type'))
+        types_of_media.add(res.get('media_type'))
         if metrics == post_metrics['insight']:  # TODO: remove after tested
             print(f"----- Match not found for {res.get('media_type')} media_type parameter -----")  # TODO: remove after tested
         if res.get('media_type') == 'STORY':
@@ -170,7 +181,7 @@ def get_posts(user_id, ig_id=None, facebook=None):
         # print('---------------------------------------')
         results.append(res)
     print('-------------------------- Media Type List --------------------------------')
-    print(media_list)
+    print(types_of_media)
     return model_db.create_or_update_many(results, model_db.Post)
 
 

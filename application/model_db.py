@@ -176,7 +176,7 @@ class Post(db.Model):
     media_id = db.Column(BIGINT(unsigned=True), index=True,  unique=True,  nullable=False)
     media_type = db.Column(db.String(47),       index=False, unique=False, nullable=True)
     caption = db.Column(db.Text,                index=False, unique=False, nullable=True)
-    comment_count = db.Column(db.Integer,       index=False, unique=False, nullable=True)
+    comments_count = db.Column(db.Integer,      index=False, unique=False, nullable=True)
     like_count = db.Column(db.Integer,          index=False, unique=False, nullable=True)
     permalink = db.Column(db.String(191),       index=False, unique=False, nullable=True)
     recorded = db.Column(db.DateTime,           index=False, unique=False, nullable=False)  # timestamp*
@@ -198,7 +198,7 @@ class Post(db.Model):
     # # campaign = backref from Campaign.posts with lazy='select' (synonym for True)
 
     metrics = {}
-    metrics['basic'] = {'media_type', 'caption', 'like_count', 'permalink', 'timestamp'}  # comment_count requires different permissions
+    metrics['basic'] = {'media_type', 'caption', 'comments_count', 'like_count', 'timestamp'}  # is permalink an issue?
     metrics['insight'] = {'impressions', 'reach'}
     metrics['IMAGE'] = {'engagement', 'saved'}.union(metrics['insight'])
     metrics['VIDEO'] = {'video_views'}.union(metrics['IMAGE'])
@@ -291,18 +291,16 @@ def create_many(dataset, Model=User):
 def create_or_update_many(dataset, Model=Post):
     """ Create or Update if the record exists for all of the dataset list """
     print('============== Create or Update Many ====================')
-    from pprint import pprint
     allowed_models = {Post, Insight}
     if Model not in allowed_models:
         return
-    all_results, add_set, update_set, error_set = [], [], [], []
+    all_results, add_count, update_count, error_set = [], 0, 0, []
     print(f'---- Initial dataset has {len(dataset)} records ----')
     # Note: initially all Models only had 1 non-pk unique field, except for unused Brand instagram_id field.
     columns = Model.__table__.columns
     unique = {c.name: [] for c in columns if c.unique}
     [unique[key].append(val) for ea in dataset for (key, val) in ea.items() if key in unique]
     # unique now has a key for each unique field, and a list of all the values that we want to assign those fields from the dataset
-    print('Look for DB records that have any matching values on unique fields')
     q_to_update = Model.query.filter(or_(*[getattr(Model, key).in_(arr) for key, arr in unique.items()]))
     match = q_to_update.all()
     # match is a list of current DB records that have a unique field with a value matching the incoming dataset
@@ -311,23 +309,17 @@ def create_or_update_many(dataset, Model=Post):
     for key in unique.keys():
         lookup_record_by_val = {getattr(ea, key): ea for ea in match}
         match_dict[key] = lookup_record_by_val
-    print('********************************match dict *******************************************')
-    pprint(match_dict)
     for data in dataset:
         # find all records in match that would collide with the values of this data
         updates = [lookup[int(data[unikey])] for unikey, lookup in match_dict.items() if int(data[unikey]) in lookup]
-        print(f'******************************** updates *******************************************')
-        pprint(updates)
-        # update if we can, add if no collision, save a list of unhandled dataset elements.
+        # add if no collisions, update if we can, save a list of unhandled dataset elements.
         if len(updates) > 0:
             # dataset.remove(data)
             if len(updates) == 1:
-                print('---------- Got an Update Record ----------')
                 model = updates[0]
                 for k, v in data.items():
                     setattr(model, k, v)
-                print(getattr(model, 'id'))
-                update_set.append(model)
+                update_count += 1
                 all_results.append(model)
             else:
                 print('------- Got a Multiple Match Record ------')
@@ -336,14 +328,13 @@ def create_or_update_many(dataset, Model=Post):
         else:
             model = Model(**data)
             db.session.add(model)
-            add_set.append(model)
+            add_count += 1
             all_results.append(model)
     print('------------------------------------------------------------------------------')
     print(f'The all results has {len(all_results)} records to commit')
-    print(f'This includes {len(update_set)} updated records')
-    print(f'This includes {len(add_set)} added records')
+    print(f'This includes {update_count} updated records')
+    print(f'This includes {add_count} added records')
     print(f'We were unable to handle {len(error_set)} of the incoming dataset items')
-    print(f'Final dataset has {len(dataset)} records')
     print('------------------------------------------------------------------------------')
     db.session.commit()
     return [from_sql(ea) for ea in all_results]
