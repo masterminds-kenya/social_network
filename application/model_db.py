@@ -1,6 +1,7 @@
 from flask import Flask
 from flask_sqlalchemy import BaseQuery, SQLAlchemy
 from sqlalchemy.dialects.mysql import BIGINT
+from sqlalchemy import or_
 from datetime import datetime as dt
 from dateutil import parser
 import re
@@ -73,7 +74,7 @@ class User(db.Model):
     __tablename__ = 'users'
 
     id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String(47),                 index=True,  unique=True,  nullable=False)
+    name = db.Column(db.String(47),                 index=False, unique=False, nullable=True)
     instagram_id = db.Column(BIGINT(unsigned=True), index=True,  unique=True,  nullable=True)
     facebook_id = db.Column(BIGINT(unsigned=True),  index=False, unique=False, nullable=True)
     token = db.Column(db.String(255),               index=False, unique=False, nullable=True)
@@ -175,7 +176,7 @@ class Post(db.Model):
     media_id = db.Column(BIGINT(unsigned=True), index=True,  unique=True,  nullable=False)
     media_type = db.Column(db.String(47),       index=False, unique=False, nullable=True)
     caption = db.Column(db.Text,                index=False, unique=False, nullable=True)
-    comment_count = db.Column(db.Integer,       index=False, unique=False, nullable=True)
+    comments_count = db.Column(db.Integer,      index=False, unique=False, nullable=True)
     like_count = db.Column(db.Integer,          index=False, unique=False, nullable=True)
     permalink = db.Column(db.String(191),       index=False, unique=False, nullable=True)
     recorded = db.Column(db.DateTime,           index=False, unique=False, nullable=False)  # timestamp*
@@ -197,7 +198,7 @@ class Post(db.Model):
     # # campaign = backref from Campaign.posts with lazy='select' (synonym for True)
 
     metrics = {}
-    metrics['basic'] = {'media_type', 'caption', 'like_count', 'permalink', 'timestamp'}  # comment_count requires different permissions
+    metrics['basic'] = {'media_type', 'caption', 'comments_count', 'like_count', 'permalink', 'timestamp'}
     metrics['insight'] = {'impressions', 'reach'}
     metrics['IMAGE'] = {'engagement', 'saved'}.union(metrics['insight'])
     metrics['VIDEO'] = {'video_views'}.union(metrics['IMAGE'])
@@ -284,6 +285,58 @@ def create_many(dataset, Model=User):
     return all_results
 
 
+def create_or_update_many(dataset, Model=Post):
+    """ Create or Update if the record exists for all of the dataset list """
+    print('============== Create or Update Many ====================')
+    allowed_models = {Post, Insight}
+    if Model not in allowed_models:
+        return
+    all_results, add_count, update_count, error_set = [], 0, 0, []
+    print(f'---- Initial dataset has {len(dataset)} records ----')
+    # Note: initially all Models only had 1 non-pk unique field, except for unused Brand instagram_id field.
+    columns = Model.__table__.columns
+    unique = {c.name: [] for c in columns if c.unique}
+    [unique[key].append(val) for ea in dataset for (key, val) in ea.items() if key in unique]
+    # unique now has a key for each unique field, and a list of all the values that we want to assign those fields from the dataset
+    q_to_update = Model.query.filter(or_(*[getattr(Model, key).in_(arr) for key, arr in unique.items()]))
+    match = q_to_update.all()
+    # match is a list of current DB records that have a unique field with a value matching the incoming dataset
+    print(f'---- There seems to be {len(match)} records to update ----')
+    match_dict = {}
+    for key in unique.keys():
+        lookup_record_by_val = {getattr(ea, key): ea for ea in match}
+        match_dict[key] = lookup_record_by_val
+    for data in dataset:
+        # find all records in match that would collide with the values of this data
+        updates = [lookup[int(data[unikey])] for unikey, lookup in match_dict.items() if int(data[unikey]) in lookup]
+        # add if no collisions, update if we can, save a list of unhandled dataset elements.
+        if len(updates) > 0:
+            # dataset.remove(data)
+            if len(updates) == 1:
+                model = updates[0]
+                for k, v in data.items():
+                    setattr(model, k, v)
+                update_count += 1
+                all_results.append(model)
+            else:
+                print('------- Got a Multiple Match Record ------')
+                data['id'] = [getattr(ea, 'id') for ea in updates]
+                error_set.append(data)
+        else:
+            model = Model(**data)
+            db.session.add(model)
+            add_count += 1
+            all_results.append(model)
+    print('------------------------------------------------------------------------------')
+    print(f'The all results has {len(all_results)} records to commit')
+    print(f'This includes {update_count} updated records')
+    print(f'This includes {add_count} added records')
+    print(f'We were unable to handle {len(error_set)} of the incoming dataset items')
+    print('------------------------------------------------------------------------------')
+    db.session.commit()
+    return [from_sql(ea) for ea in all_results]
+
+
 def create(data, Model=User):
     from pprint import pprint
     # TODO: Refactor to work as many or one: check if we have a list of obj, or single obj
@@ -291,7 +344,11 @@ def create(data, Model=User):
     # then use code written in create_many for this dataset
     print('--------- Inspecting the create function -------------')
     pprint(data)
-    model = Model(**data)
+    try:
+        model = Model(**data)
+    except Exception as e:
+        print('**************** DB CREATE Error *******************')
+        print(e)
     print('-------First was data, now model ----------------------------------')
     pprint(model)
     db.session.add(model)
@@ -301,7 +358,7 @@ def create(data, Model=User):
     pprint(model)
     print('--------results before safe ---------------------------------')
     pprint(results)
-    # TODO: Refactor safe_results for when we create many
+    # TODO: Refactor safe_results for when we create many    for k, v in data.items():
     safe_results = {k: results[k] for k in results.keys() - Model.UNSAFE}
     # TODO: Return a single obj if we created only one?
     print('---------safe results --------------------------------')

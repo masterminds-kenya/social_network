@@ -11,13 +11,13 @@
 | :heavy_check_mark: | Database connected                        |
 | :heavy_check_mark: | Influencer or Brand can give permissions to account data|
 |                    | **Milestone 2 Completion**           |
-|                    | Influencer/Brand can select which Instagram account to use|
+| :heavy_check_mark: | Influencer/Brand can select which Instagram account to use|
 | :heavy_check_mark: | Facebook API data is collected & stored to database |
 | :heavy_check_mark: | Google Sheets connected to Facebook API database    |
 | :heavy_check_mark: | Getting Media Posts (non-Story) metrics captured & stored |
-|  needs testing     | Getting Story Posts metrics captured & stored  |
+| :heavy_check_mark: | Getting Story Posts metrics captured & stored  |
 | :heavy_check_mark: | Campaign create & edit - can connect Users & Brands |
-|                    | Posts can be assigned as in or out of campaign |
+| :heavy_check_mark: | Posts can be assigned as in or out of campaign |
 |                    | **Milestone 3 Completion**           |
 |                    | Generate reports to Google sheets    |
 |                    | Give permissions to view google sheets      |
@@ -38,8 +38,7 @@
 - [s] Stretch Goal. Not for current feature plan.
 
 Current Status:
-2019-10-30 21:38:05
-2019-11-05 09:42:07
+2019-11-20 18:31:19
 <!-- Ctrl-Shift-I to generate timestamp -->
 
 
@@ -55,20 +54,20 @@ Current Status:
 - [s] Update ON DELETE for a User's posts.
 - [s] Model for capturing the limited time FB/IG stories
 - [x] Fix DB setup: use utf8mb4 so we can handle emojis
-- [ ] posts (media) seem to have 3 types: Story, Album, and Photo/Video
+- [x] posts (media) seem to have 3 types: Story, Album, and Photo/Video
   - [x]  All IG Media also has some general returnable fields:
     - [x]  caption  - except emoji problem
     - [x]  comments_count
     - [x]  like_count
     - [x]  media_type
     - [x]  permalink
-  - [ ] Stories Insight Metrics (for limited time FB/IG stories)
-    - [ ] exits
-    - [ ] impressions
-    - [ ] reach
-    - [ ] replies
-    - [ ] taps_forward
-    - [ ] taps_back
+  - [x] Stories Insight Metrics (for limited time FB/IG stories)
+    - [x] exits
+    - [x] impressions
+    - [x] reach
+    - [?] replies
+    - [x] taps_forward
+    - [x] taps_back
   - [x] Photo/Video Insight Metrics
     - [x] engagement
     - [x] impressions
@@ -76,6 +75,7 @@ Current Status:
     - [x] saved
     - [x] video_views
   - [x] Album Insight Metrics
+    - [x] Probably need to regex to fix the key for the Model.
     - [x] carousel_album_engagement
     - [x] carousel_album_impressions
     - [x] carousel_album_reach
@@ -83,7 +83,12 @@ Current Status:
     - [N] carousel_album_video_views
 - [x] Refactor User Model, less PII, no admin, connect to posts/media
 - [x] Have the ability for a single FB user to have many IG profiles on our app?
-- [ ] User Model creation works if new Influencer has multiple IG accounts.
+- [x] User Model creation works if new Influencer has multiple IG accounts.
+- [ ] ?DB create handles update if record already exists?
+  - [ ] Corrects for double click on starting any API fetch and save process
+  - [x] Corrects for overlapping results from a previous batch of posts requests
+  - [ ] Corrects for overlapping results from a previous batch of insights requests
+  - [ ] Corrects for overlapping results from a previous batch of audiences requests
 - [s] Manage incoming insight duplications
 - [s] How do we want to organize audience data?
 - [s] Refactor Audience Model to parse out the gender and age group fields
@@ -136,13 +141,13 @@ Current Status:
 - [x] Graph showing all Insight data for a given user.
 - [x] Data sent to graph template setup to allow a variety of different view options.
 - [x] Insight Graph with javascript buttons to toggle which data shows.
-- [ ] User creation: Manage if influencer has many IG accounts.
+- [x] User creation: Manage if influencer has many IG accounts.
 - [s] Can have Brand give permission for the FB App
 - [x] Admin can input information for a brand
 - [x] API call and store basic metrics for media Posts
 - [x] API call and store post insight metrics for Photo/Video
-- [ ] API call and store post insight metrics for Albums
-- [ ] API call and store post insight metrics for Stories
+- [x] API call and store post insight metrics for Albums
+- [x] API call and store post insight metrics for Stories
 - [s] WebHook to get Stories data at completion.
 - [ ] Add a logical catch for existing users to re-route to data update
 - [x] Refactor User data collection functions to work on create and update
@@ -153,6 +158,7 @@ Current Status:
   - [x] Create Campaign
   - [x] Assign Users to Campaign
 - [ ] User detail view reports current number of posts we have stored
+- [ ] For User Model: add followers_count, follows_count, media_count
 - [x] Post Detail view
   - [x] Only show the appropriate fields the media_type
     - [x] Before rendering template, limit object to only have appropriate fields.
@@ -184,14 +190,14 @@ Current Status:
   - [x] Can request more posts for a given user
   - [x] redirect back to the page/view that called to get more posts
   - [ ] Will limit request to only get new posts since last request
-  - [ ] In case we do get duplicates, it will NOT create duplicates in DB
-      - [ ] Will update if our DB info is out-of-date
+  - [x] In case we do get duplicates, it will NOT create duplicates in DB
+      - [x] Will update if our DB info is out-of-date
   - [ ] Visual feedback that it is processing but not ready to render new view
 - [ ] Fetch more Insights (of the account, not of media)
   - [x] Can get a history the the user (or brand) account insights
   - [ ] Will limit request to only get new insights since last request
-- [ ] In case we do get duplicates, it will create duplicates in DB
-    - [ ] Will update if our DB info is out-of-date
+  - [ ] In case we do get duplicates, it will NOT create duplicates in DB
+      - [ ] Will update if our DB info is out-of-date
 - [x] Add Google Sheet API to GCloud app.
 - [ ] Add functionality to export Marketing data to a Google worksheet.
   - [x] App can navigate credentials to allow full Google Sheet API features.

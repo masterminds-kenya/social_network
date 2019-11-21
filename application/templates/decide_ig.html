@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+{% block head %}
+<title>Assign InstaGram Account</title>
+{% endblock head %}
+
+{% block header %}
+{{ super() }}
+<h1>Which InstaGram account to use?</h1>
+{% endblock header %}
+
+{% block content %}
+<main>
+  {% for account in ig_list %}
+  <hr />
+  <form action="{{url_for('edit', mod=mod, id=id)}} " method="POST" enctype="multipart/form-data">
+    <div class="form-group">
+      <h3>{{account.username}} </h3>
+      <input type="hidden" name="name" id="name" value="{{account.username}}" />
+      <input type="hidden" name="instagram_id" id="ig_id" value="{{account.id}}" />
+    </div>
+    <ul>
+      <li>followers count: {{account.followers_count}}</li>
+      <li>follows count: {{account.follows_count}}</li>
+      <li>media_count: {{account.media_count}} </li>
+    </ul>
+    <button type="submit" class="btn btn-success">{{account.username}}</button>
+  </form>
+  {% endfor %}
+</main>
+{% endblock content %}
+
