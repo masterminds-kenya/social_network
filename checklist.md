@@ -15,7 +15,7 @@
 | :heavy_check_mark: | Facebook API data is collected & stored to database |
 | :heavy_check_mark: | Google Sheets connected to Facebook API database    |
 | :heavy_check_mark: | Getting Media Posts (non-Story) metrics captured & stored |
-|  needs testing     | Getting Story Posts metrics captured & stored  |
+| :heavy_check_mark: | Getting Story Posts metrics captured & stored  |
 | :heavy_check_mark: | Campaign create & edit - can connect Users & Brands |
 | :heavy_check_mark: | Posts can be assigned as in or out of campaign |
 |                    | **Milestone 3 Completion**           |
@@ -38,7 +38,7 @@
 - [s] Stretch Goal. Not for current feature plan.
 
 Current Status:
-2019-11-19 20:47:56
+2019-11-20 18:31:19
 <!-- Ctrl-Shift-I to generate timestamp -->
 
 
@@ -158,6 +158,7 @@ Current Status:
   - [x] Create Campaign
   - [x] Assign Users to Campaign
 - [ ] User detail view reports current number of posts we have stored
+- [ ] For User Model: add followers_count, follows_count, media_count
 - [x] Post Detail view
   - [x] Only show the appropriate fields the media_type
     - [x] Before rendering template, limit object to only have appropriate fields.
@@ -189,14 +190,14 @@ Current Status:
   - [x] Can request more posts for a given user
   - [x] redirect back to the page/view that called to get more posts
   - [ ] Will limit request to only get new posts since last request
-  - [ ] In case we do get duplicates, it will NOT create duplicates in DB
-      - [ ] Will update if our DB info is out-of-date
+  - [x] In case we do get duplicates, it will NOT create duplicates in DB
+      - [x] Will update if our DB info is out-of-date
   - [ ] Visual feedback that it is processing but not ready to render new view
 - [ ] Fetch more Insights (of the account, not of media)
   - [x] Can get a history the the user (or brand) account insights
   - [ ] Will limit request to only get new insights since last request
-- [ ] In case we do get duplicates, it will create duplicates in DB
-    - [ ] Will update if our DB info is out-of-date
+  - [ ] In case we do get duplicates, it will NOT create duplicates in DB
+      - [ ] Will update if our DB info is out-of-date
 - [x] Add Google Sheet API to GCloud app.
 - [ ] Add functionality to export Marketing data to a Google worksheet.
   - [x] App can navigate credentials to allow full Google Sheet API features.

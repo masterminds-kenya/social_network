@@ -10,6 +10,7 @@ import re
 from os import environ
 from datetime import datetime as dt
 from datetime import timedelta
+from pprint import pprint
 
 USER_FILE = 'env/user_save.txt'
 FB_CLIENT_ID = environ.get('FB_CLIENT_ID')
@@ -124,7 +125,6 @@ def get_audience(user_id, ig_id=None, facebook=None):
 
 def get_posts(user_id, ig_id=None, facebook=None):
     """ Get media posts """
-    from pprint import pprint
     print('==================== Get Posts ====================')
     post_metrics = {key: ','.join(val) for (key, val) in model_db.Post.metrics.items()}
     results, token = [], ''
@@ -139,7 +139,6 @@ def get_posts(user_id, ig_id=None, facebook=None):
         print('--------------- something wrong with story posts ----------------')
         pprint(story_res)
         return []
-    print(f"----------- Looking up {len(stories)} Stories ----------- ")
     story_ids = {ea.get('id') for ea in stories}
     url = f"https://graph.facebook.com/{ig_id}/media"
     response = facebook.get(url).json() if facebook else requests.get(f"{url}?access_token={token}").json()
@@ -149,9 +148,8 @@ def get_posts(user_id, ig_id=None, facebook=None):
         print('--------------- Something wrong with media posts ----------------')
         pprint(response)
         return []
-    types_of_media = set()
     media.extend(stories)
-    print(f"----------- Looking up a total of {len(media)} Story & Media Posts ----------- ")
+    print(f"----------- Looking up a total of {len(media)} Media Posts, including {len(stories)} Stories ----------- ")
     for post in media:
         media_id = post.get('id')
         url = f"https://graph.facebook.com/{media_id}?fields={post_metrics['basic']}"
@@ -161,11 +159,8 @@ def get_posts(user_id, ig_id=None, facebook=None):
         media_type = 'STORY' if res['media_id'] in story_ids else res.get('media_type')
         res['media_type'] = media_type
         metrics = post_metrics.get(media_type, post_metrics['insight'])
-        types_of_media.add(media_type)
         if metrics == post_metrics['insight']:  # TODO: remove after tested
             print(f"----- Match not found for {media_type} media_type parameter -----")  # TODO: remove after tested
-        if media_type == 'STORY':
-                print('****************** found a STORY media_type ******************************************')
         url = f"https://graph.facebook.com/{media_id}/insights?metric={metrics}"
         res_insight = facebook.get(url).json() if facebook else requests.get(f"{url}&access_token={token}").json()
         insights = res_insight.get('data')
@@ -179,14 +174,11 @@ def get_posts(user_id, ig_id=None, facebook=None):
         # pprint(res)
         # print('---------------------------------------')
         results.append(res)
-    print('-------------------------- Media Type List --------------------------------')
-    print(types_of_media)
     return model_db.create_or_update_many(results, model_db.Post)
 
 
 def get_ig_info(ig_id, token=None, facebook=None):
     """ We already have their InstaGram Business Account id, but we need their IG username """
-    from pprint import pprint
     # Possible fields. Fields with asterisk (*) are public and can be returned by and edge using field expansion:
     # biography*, id*, ig_id, followers_count*, follows_count, media_count*, name,
     # profile_picture_url, username*, website*
@@ -316,7 +308,6 @@ def create_app(config, debug=False, testing=False, config_overrides=None):
 
     @app.route('/callback')
     def callback():
-        from pprint import pprint
         print('========================== Authorization Callback =============================')
         callback = URL + '/callback'
         facebook = requests_oauthlib.OAuth2Session(FB_CLIENT_ID, scope=FB_SCOPE, redirect_uri=callback)
@@ -337,17 +328,17 @@ def create_app(config, debug=False, testing=False, config_overrides=None):
         # Collect IG usernames for all options
         # If they only have 1 ig account, continue making things
         ig_id = None
-        # if len(ig_list) == 1:
-        if ig_id:
+        # if ig_id:
+        if len(ig_list) == 1:
             ig_info = ig_list.pop()
-            data['name'] = ig_info.get('username', 'NA')
+            data['name'] = ig_info.get('username', None)
             ig_id = ig_info.get('id')
             data['instagram_id'] = ig_id
             print('------ Only 1 InstaGram business account --------')
         # # else if multiple ig accounts, save ig_list for later choice of which to use.
         else:
             # data['notes'] = json.dumps(list(ig_list))  # json.dumps(media)
-            data['name'] = data.get('username', 'na') if 'name' not in data else data['name']
+            data['name'] = data.get('username', None) if 'name' not in data else data['name']
             print(f'--------- Found {len(ig_list)} potential IG accounts -----------')
         print('=================== Data sent to Create User =======================')
         pprint(data)
@@ -357,13 +348,13 @@ def create_app(config, debug=False, testing=False, config_overrides=None):
         if ig_id:
             # Relate Data
             insights = get_insight(user_id, last=90, ig_id=ig_id, facebook=facebook)
-            print('We have insights') if insights else print('No insights')
+            print('We have IG account insights') if insights else print('No IG account insights')
             audience = get_audience(user_id, ig_id=ig_id, facebook=facebook)
             print('Audience data collected') if audience else print('No Audience data')
             return redirect(url_for('view', mod='user', id=user_id))
         else:
-            # This will need another view, and another form.
-            # Should we give them checkboxes or radio for ig_id selection?
+            # Allow this Facebook user to select one of many of their IG business accounts
+            # TODO: The following 'mod' needs to be updated if this function is used for Brand Model
             return render_template('decide_ig.html', mod='user', id=user_id, ig_list=ig_list)
 
     @app.route('/campaign/<int:id>/detail', methods=['GET', 'POST'])

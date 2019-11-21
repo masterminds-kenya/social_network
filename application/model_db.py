@@ -198,7 +198,7 @@ class Post(db.Model):
     # # campaign = backref from Campaign.posts with lazy='select' (synonym for True)
 
     metrics = {}
-    metrics['basic'] = {'media_type', 'caption', 'comments_count', 'like_count', 'permalink', 'timestamp'}  # is permalink an issue?
+    metrics['basic'] = {'media_type', 'caption', 'comments_count', 'like_count', 'permalink', 'timestamp'}
     metrics['insight'] = {'impressions', 'reach'}
     metrics['IMAGE'] = {'engagement', 'saved'}.union(metrics['insight'])
     metrics['VIDEO'] = {'video_views'}.union(metrics['IMAGE'])
@@ -210,9 +210,6 @@ class Post(db.Model):
         datestring = kwargs.pop('timestamp')
         kwargs['recorded'] = parser.isoparse(datestring)
         kwargs['processed'] = True if kwargs.get('processed') in {'on', True} else False
-        # if kwargs['media_type'] == 'CAROUSEL_ALBUM':
-        #     regex the key names: {re.sub('^carousel_album_', '', key): val for key, val in kwargs if key in metrics['CAROUSEL_ALBUM']}
-        # ABOVE IS WRONG
         super().__init__(*args, **kwargs)
 
     def __str__(self):
