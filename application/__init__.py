@@ -141,6 +141,7 @@ def get_posts(user_id, ig_id=None, facebook=None):
         pprint(response)
         return []
     print(f"----------- Looking up {len(media)} Media Posts ----------- ")
+    media_list = []
     for post in media:
         media_id = post.get('id')
         url = f"https://graph.facebook.com/{media_id}?fields={post_metrics['basic']}"
@@ -148,6 +149,7 @@ def get_posts(user_id, ig_id=None, facebook=None):
         res['media_id'] = res.pop('id', media_id)
         res['user_id'] = user_id
         metrics = post_metrics.get(res.get('media_type'), post_metrics['insight'])
+        media_list.append(res.get('media_type'))
         if metrics == post_metrics['insight']:  # TODO: remove after tested
             print(f"----- Match not found for {res.get('media_type')} media_type parameter -----")  # TODO: remove after tested
         if res.get('media_type') == 'STORY':
@@ -160,14 +162,15 @@ def get_posts(user_id, ig_id=None, facebook=None):
         if insights:
             temp = {ea.get('name'): ea.get('values', [{'value': 0}])[0].get('value', 0) for ea in insights}
             if res.get('media_type') == 'CAROUSEL_ALBUM':
-                print('****************** found a CAROUSEL_ALBUM media_type ******************************************')
                 temp = {re.sub('^carousel_album_', '', key): val for key, val in temp.items()}
             res.update(temp)
         else:
             print(f"media {media_id} had NO INSIGHTS for type {res.get('media_type')} --- {res_insight}")
-        pprint(res)
-        print('---------------------------------------')
+        # pprint(res)
+        # print('---------------------------------------')
         results.append(res)
+    print('-------------------------- Media Type List --------------------------------')
+    print(media_list)
     return model_db.create_or_update_many(results, model_db.Post)
 
 
