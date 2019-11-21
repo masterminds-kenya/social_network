@@ -6,6 +6,7 @@ import requests
 import requests_oauthlib
 from requests_oauthlib.compliance_fixes import facebook_compliance_fix
 import json
+import re
 from os import environ
 from datetime import datetime as dt
 from datetime import timedelta
@@ -149,18 +150,25 @@ def get_posts(user_id, ig_id=None, facebook=None):
         metrics = post_metrics.get(res.get('media_type'), post_metrics['insight'])
         if metrics == post_metrics['insight']:  # TODO: remove after tested
             print(f"----- Match not found for {res.get('media_type')} media_type parameter -----")  # TODO: remove after tested
+        if res.get('media_type') == 'STORY':
+                print('****************** found a STORY media_type ******************************************')
+                print('****************** found a STORY media_type ******************************************')
+                print('****************** found a STORY media_type ******************************************')
         url = f"https://graph.facebook.com/{media_id}/insights?metric={metrics}"
         res_insight = facebook.get(url).json() if facebook else requests.get(f"{url}&access_token={token}").json()
         insights = res_insight.get('data')
         if insights:
             temp = {ea.get('name'): ea.get('values', [{'value': 0}])[0].get('value', 0) for ea in insights}
+            if res.get('media_type') == 'CAROUSEL_ALBUM':
+                print('****************** found a CAROUSEL_ALBUM media_type ******************************************')
+                temp = {re.sub('^carousel_album_', '', key): val for key, val in temp.items()}
             res.update(temp)
         else:
             print(f"media {media_id} had NO INSIGHTS for type {res.get('media_type')} --- {res_insight}")
         pprint(res)
         print('---------------------------------------')
         results.append(res)
-    return model_db.create_many(results, model_db.Post)
+    return model_db.create_or_update_many(results, model_db.Post)
 
 
 def get_ig_info(ig_id, token=None, facebook=None):

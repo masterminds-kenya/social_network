@@ -75,7 +75,7 @@ Current Status:
     - [x] saved
     - [x] video_views
   - [x] Album Insight Metrics
-    - [ ] Probably need to regex out the 'carousel_' part of key
+    - [x] Probably need to regex to fix the key for the Model.
     - [x] carousel_album_engagement
     - [x] carousel_album_impressions
     - [x] carousel_album_reach
