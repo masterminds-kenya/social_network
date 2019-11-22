@@ -6,6 +6,8 @@ from datetime import datetime as dt
 from dateutil import parser
 import re
 import json
+from pprint import pprint
+# TODO: see "Setting up Constraints when using the Declarative ORM Extension" at https://docs.sqlalchemy.org/en/13/core/constraints.html#unique-constraint
 
 db = SQLAlchemy()
 
@@ -92,7 +94,6 @@ class User(db.Model):
         had_admin = kwargs.pop('admin', None)
         if had_admin:
             print("Source data had an 'admin' parameter that may need to be removed")
-        # kwargs['admin'] = True if kwargs.get('admin') == 'on' or kwargs.get('admin') is True else False  # TODO: Possible form injection
         kwargs['facebook_id'] = kwargs.pop('id') if 'facebook_id' not in kwargs and 'id' in kwargs else None
         kwargs['name'] = kwargs.pop('username', kwargs.get('name'))
         if 'token_expires' not in kwargs:
@@ -111,11 +112,12 @@ class User(db.Model):
 class Insight(db.Model):
     """ Data model for insights data on a (influencer's) user's or brands account """
     __tablename__ = 'insights'
+    __table_args__ = (db.UniqueConstraint('recorded', 'name', name='uq_insight_recorded_name'),)
 
     id = db.Column(db.Integer,      primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey('users.id', ondelete='CASCADE'))
-    recorded = db.Column(db.DateTime,          index=True,  unique=False, nullable=False)
-    name = db.Column(db.String(47),            index=True,  unique=True,  nullable=False)
+    recorded = db.Column(db.DateTime,          index=False, unique=False, nullable=False)
+    name = db.Column(db.String(47),            index=False, unique=False, nullable=False)
     value = db.Column(db.Integer,              index=False, unique=False, nullable=True)
     # # user = backref from User.insights with lazy='select' (synonym for True)
     metrics = {'impressions', 'reach', 'follower_count'}
@@ -124,6 +126,7 @@ class Insight(db.Model):
     def __init__(self, *args, **kwargs):
         datestring = kwargs.pop('end_time')
         kwargs['recorded'] = parser.isoparse(datestring)
+
         super().__init__(*args, **kwargs)
 
     def __str__(self):
@@ -137,25 +140,25 @@ class Audience(db.Model):
     """ Data model for current information about the user's audience. """
     # TODO: Refactor to parse out the age groups and gender groups
     __tablename__ = 'audiences'
+    __table_args__ = (db.UniqueConstraint('recorded', 'name', name='uq_audiences_recorded_name'),)
 
     id = db.Column(db.Integer,      primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey('users.id', ondelete='CASCADE'))
-    recorded = db.Column(db.DateTime,          index=True,  unique=False, nullable=False)
-    name = db.Column(db.String(47),            index=True,  unique=True,  nullable=False)
-    value = db.Column(db.String(47),           index=False, unique=False, nullable=True)
+    recorded = db.Column(db.DateTime,          index=False, unique=False, nullable=False)
+    name = db.Column(db.String(47),            index=False, unique=False, nullable=False)
+    value = db.Column(db.Text,                 index=False, unique=False, nullable=True)
     # # user = backref from User.audiences with lazy='select' (synonym for True)
     metrics = {'audience_city', 'audience_country', 'audience_gender_age'}
     UNSAFE = {''}
 
     def __init__(self, *args, **kwargs):
-        # TODO: Refactor to avoid the unnecessary kwargs.copy()
         data, kwargs = kwargs.copy(), {}
+        # Using this copy method to remove the extra data from the API call
         kwargs['user_id'] = data.get('user_id')
         kwargs['name'] = re.sub('^audience_', '', data.get('name'))
         kwargs['value'] = json.dumps(data.get('values')[0].get('value'))
         datestring = data.get('values')[0].get('end_time')
         kwargs['recorded'] = parser.isoparse(datestring)
-        print(kwargs)
         super().__init__(*args, **kwargs)
 
     def __str__(self):
@@ -271,18 +274,23 @@ class Campaign(db.Model):
 
 
 def create_many(dataset, Model=User):
+    # Currently used for Insight, Audience, and when remaking users from file.
     all_results = []
     for data in dataset:
+        # TODO: check to see if there are issues with the new data
+        # TODO: more appropriate approach for unique constraint management
+        # if Model in {Insight, Audience}:
+        #     # make sure this is not a duplicate recorded, name combo
+        #     Model.query.filter(Model.recorded == data.recorded, Model.name == data.name)
+        # if no issues, add to DB
         model = Model(**data)
         db.session.add(model)
-        all_results.append(from_sql(model))
-        # all_results.append((model))  # This might be identical as above since id not assigned yet
+        # all_results.append(from_sql(model))
+        all_results.append(model)  # This might be identical as above since id not assigned yet
         # safe_results = {k: results[k] for k in results.keys() - Model.UNSAFE}
     # TODO: ? Refactor to use db.session.add_all() ?
     db.session.commit()
-    # TODO: List comprehension to return the array of dictionaries to include the model id.
-    # all_results = [from_sql(ea) for ea in all_results]
-    return all_results
+    return [from_sql(ea) for ea in all_results]
 
 
 def create_or_update_many(dataset, Model=Post):
@@ -290,12 +298,20 @@ def create_or_update_many(dataset, Model=Post):
     print('============== Create or Update Many ====================')
     allowed_models = {Post, Insight}
     if Model not in allowed_models:
-        return
+        return []
     all_results, add_count, update_count, error_set = [], 0, 0, []
     print(f'---- Initial dataset has {len(dataset)} records ----')
     # Note: initially all Models only had 1 non-pk unique field, except for unused Brand instagram_id field.
+    # The following should work with multiple single column unique fields.
     columns = Model.__table__.columns
     unique = {c.name: [] for c in columns if c.unique}
+    print('----------------- Unique Columns -----------------------')
+    print(unique)
+    table_args = dir(Model.__table_args__)
+    print(table_args.count)
+    print(table_args.index)
+    print(table_args.__doc__)
+    print(table_args)
     [unique[key].append(val) for ea in dataset for (key, val) in ea.items() if key in unique]
     # unique now has a key for each unique field, and a list of all the values that we want to assign those fields from the dataset
     q_to_update = Model.query.filter(or_(*[getattr(Model, key).in_(arr) for key, arr in unique.items()]))
@@ -338,7 +354,6 @@ def create_or_update_many(dataset, Model=Post):
 
 
 def create(data, Model=User):
-    from pprint import pprint
     # TODO: Refactor to work as many or one: check if we have a list of obj, or single obj
     # dataset = [data] if not isinstance(data, list) else data
     # then use code written in create_many for this dataset
