@@ -298,12 +298,20 @@ def create_or_update_many(dataset, Model=Post):
     print('============== Create or Update Many ====================')
     allowed_models = {Post, Insight}
     if Model not in allowed_models:
-        return
+        return []
     all_results, add_count, update_count, error_set = [], 0, 0, []
     print(f'---- Initial dataset has {len(dataset)} records ----')
     # Note: initially all Models only had 1 non-pk unique field, except for unused Brand instagram_id field.
+    # The following should work with multiple single column unique fields.
     columns = Model.__table__.columns
     unique = {c.name: [] for c in columns if c.unique}
+    print('----------------- Unique Columns -----------------------')
+    print(unique)
+    table_args = dir(Model.__table_args__)
+    print(table_args.count)
+    print(table_args.index)
+    print(table_args.__doc__)
+    print(table_args)
     [unique[key].append(val) for ea in dataset for (key, val) in ea.items() if key in unique]
     # unique now has a key for each unique field, and a list of all the values that we want to assign those fields from the dataset
     q_to_update = Model.query.filter(or_(*[getattr(Model, key).in_(arr) for key, arr in unique.items()]))
