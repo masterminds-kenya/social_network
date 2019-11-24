@@ -12,6 +12,10 @@ from pprint import pprint
 db = SQLAlchemy()
 
 
+def fix_date(datestring):
+    return parser.isoparse(datestring)
+
+
 def init_app(app):
     # Disable track modifications, as it unnecessarily uses memory.
     app.config.setdefault('SQLALCHEMY_TRACK_MODIFICATIONS', False)
@@ -125,7 +129,7 @@ class Insight(db.Model):
 
     def __init__(self, *args, **kwargs):
         datestring = kwargs.pop('end_time')
-        kwargs['recorded'] = parser.isoparse(datestring)
+        kwargs['recorded'] = fix_date(datestring)
 
         super().__init__(*args, **kwargs)
 
@@ -157,7 +161,8 @@ class Audience(db.Model):
         kwargs['name'] = re.sub('^audience_', '', data.get('name'))
         kwargs['value'] = json.dumps(data.get('values')[0].get('value'))
         datestring = data.get('values')[0].get('end_time')
-        kwargs['recorded'] = parser.isoparse(datestring)
+        # kwargs['recorded'] = parser.isoparse(datestring)
+        kwargs['recorded'] = fix_date(datestring)
         super().__init__(*args, **kwargs)
 
     def __str__(self):
@@ -209,8 +214,9 @@ class Post(db.Model):
     UNSAFE = {''}
 
     def __init__(self, *args, **kwargs):
-        datestring = kwargs.pop('timestamp')
-        kwargs['recorded'] = parser.isoparse(datestring)
+        # datestring = kwargs.pop('timestamp')
+        # kwargs['recorded'] = parser.isoparse(datestring)
+        kwargs['recorded'] = fix_date(kwargs.pop('timestamp'))
         kwargs['processed'] = True if kwargs.get('processed') in {'on', True} else False
         super().__init__(*args, **kwargs)
 
@@ -292,29 +298,42 @@ def create_many(dataset, Model=User):
     return [from_sql(ea) for ea in all_results]
 
 
-def create_or_update_many(dataset, Model=Post):
+def create_or_update_many(dataset, user_id=None, Model=Post):
     """ Create or Update if the record exists for all of the dataset list """
     print('============== Create or Update Many ====================')
     allowed_models = {Post, Insight, Audience}
     if Model not in allowed_models:
         return []
+    composite_unique = ['recorded', 'name'] if Model in {Insight, Audience} else False
     all_results, add_count, update_count, error_set = [], 0, 0, []
+    # insp = db.inspect(Model)
     print(f'---- Initial dataset has {len(dataset)} records ----')
     # Note: initially all Models only had 1 non-pk unique field, except for unused Brand instagram_id field.
-    # The following should work with multiple single column unique fields.
-    columns = Model.__table__.columns
-    unique = {c.name: [] for c in columns if c.unique}
-    composite_unique = True if Model in {Insight, Audience} else False
-    # insp = db.inspect(Model)
+    # However, both the Insight and Audience models have a composite unique requirement (user_id, recorded, name)
     if composite_unique:
+        q = Model.query.filter(user_id == user_id) if user_id else Model.query()
+        match = q.all()
+        print(f'-------------- Composite Unique for {Model.__name__}: {len(match)} possible matches ------------------------')
+        lookup = {tuple([getattr(ea, key) for key in composite_unique]): ea for ea in match}
         for data in dataset:
             # TODO: HERE!
-            # check if it is in DB
-                # if yes, update
-                # else: add
-            pass
+            # call fix_date for appropriate datestring
+            key = tuple([data.get(key) for key in composite_unique])
+            model = lookup.get(key, None)
+            pprint(key, model)
+            if model:
+                [setattr(model, k, v) for k, v in data.items()]
+                update_count += 1
+            else:
+                model = Model(**data)
+                db.session.add(model)
+                add_count += 1
+            all_results.append(model)
     else:
-        print('----------------- Unique Columns -----------------------')
+        # The following should work with multiple single column unique fields, but no composite unique requirements
+        print('----------------- Unique Columns -----------------------')  # TODO: remove
+        columns = Model.__table__.columns
+        unique = {c.name: [] for c in columns if c.unique}
         [unique[key].append(val) for ea in dataset for (key, val) in ea.items() if key in unique]
         pprint(unique)
         # [uniq_comp[key].append(val) for ea in dataset for (key, val) in ea.items() ]
@@ -348,12 +367,12 @@ def create_or_update_many(dataset, Model=Post):
                 db.session.add(model)
                 add_count += 1
                 all_results.append(model)
-        print('------------------------------------------------------------------------------')
-        print(f'The all results has {len(all_results)} records to commit')
-        print(f'This includes {update_count} updated records')
-        print(f'This includes {add_count} added records')
-        print(f'We were unable to handle {len(error_set)} of the incoming dataset items')
-        print('------------------------------------------------------------------------------')
+    print('------------------------------------------------------------------------------')
+    print(f'The all results has {len(all_results)} records to commit')
+    print(f'This includes {update_count} updated records')
+    print(f'This includes {add_count} added records')
+    print(f'We were unable to handle {len(error_set)} of the incoming dataset items')
+    print('------------------------------------------------------------------------------')
     db.session.commit()
     return [from_sql(ea) for ea in all_results]
 

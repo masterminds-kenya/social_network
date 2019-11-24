@@ -103,7 +103,7 @@ def get_insight(user_id, first=1, last=30*3, ig_id=None, facebook=None):
             for val in ea.get('values'):
                 val['name'], val['user_id'] = ea.get('name'), user_id
                 results.append(val)
-    return model_db.create_or_update_many(results, model_db.Insight)
+    return model_db.create_or_update_many(results, user_id=user_id, Model=model_db.Insight)
 
 
 def get_audience(user_id, ig_id=None, facebook=None):
@@ -120,7 +120,7 @@ def get_audience(user_id, ig_id=None, facebook=None):
     for ea in audience.get('data'):
         ea['user_id'] = user_id
         results.append(ea)
-    return model_db.create_many(results, model_db.Audience)
+    return model_db.create_many(results, user_id=user_id, Model=model_db.Audience)
 
 
 def get_posts(user_id, ig_id=None, facebook=None):
