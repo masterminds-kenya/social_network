@@ -84,11 +84,11 @@ Current Status:
 - [x] Refactor User Model, less PII, no admin, connect to posts/media
 - [x] Have the ability for a single FB user to have many IG profiles on our app?
 - [x] User Model creation works if new Influencer has multiple IG accounts.
-- [ ] ?DB create handles update if record already exists?
-  - [ ] Corrects for double click on starting any API fetch and save process
+- [x] ?DB create handles update if record already exists?
+  - [?] Corrects for double click on starting any API fetch and save process
   - [x] Corrects for overlapping results from a previous batch of posts requests
-  - [ ] Corrects for overlapping results from a previous batch of insights requests
-  - [ ] Corrects for overlapping results from a previous batch of audiences requests
+  - [x] Corrects for overlapping results from a previous batch of insights requests
+  - [x] Corrects for overlapping results from a previous batch of audiences requests
 - [s] Manage incoming insight duplications
 - [s] How do we want to organize audience data?
 - [s] Refactor Audience Model to parse out the gender and age group fields
@@ -101,7 +101,7 @@ Current Status:
 - [x] For all data collection on new users, move to external functions
 - [s] Refactor User data collection functions to work also work for Brands
 - [x] Create many function
-- [ ] Refactor create function to account for both create one or create many
+- [x] Refactor create function to account for both create one or create many
 - [s] Update many function
 - [s] Refine Brand Model with constructor function for translating from FB.
 - [s] Can update data for existing Brand accounts

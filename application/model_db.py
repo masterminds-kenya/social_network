@@ -1,12 +1,13 @@
 from flask import Flask
-from flask_sqlalchemy import BaseQuery, SQLAlchemy
+from flask_sqlalchemy import SQLAlchemy
+# from flask_sqlalchemy import BaseQuery, SQLAlchemy  # if we create custom query
 from sqlalchemy.dialects.mysql import BIGINT
 from sqlalchemy import or_
 from datetime import datetime as dt
 from dateutil import parser
 import re
 import json
-from pprint import pprint
+from pprint import pprint  # only for debugging
 # TODO: see "Setting up Constraints when using the Declarative ORM Extension" at https://docs.sqlalchemy.org/en/13/core/constraints.html#unique-constraint
 
 db = SQLAlchemy()
@@ -47,14 +48,14 @@ def from_sql(row):
     return data
 
 
-class GetActive(BaseQuery):
-    """ Some models, such as Post, may want to only fetch records not yet processed """
-    def get_active(self, not_field=None):
-        # if not not_field:
-        #     lookup_not_field = {'Post': 'processed', 'Campaign': 'completed'}
-        #     curr_class = self.__class__.__name__
-        #     not_field = lookup_not_field(curr_class) or None
-        return self.query.filter_by(processed=False)
+# class GetActive(BaseQuery):
+#     """ Some models, such as Post, may want to only fetch records not yet processed """
+#     def get_active(self, not_field=None):
+#         # if not not_field:
+#         #     lookup_not_field = {'Post': 'processed', 'Campaign': 'completed'}
+#         #     curr_class = self.__class__.__name__
+#         #     not_field = lookup_not_field(curr_class) or None
+#         return self.query.filter_by(processed=False)
 
 
 class Brand(db.Model):
@@ -63,7 +64,6 @@ class Brand(db.Model):
 
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(47),                 index=True,  unique=True,  nullable=False)
-    # company = db.Column(db.String(63),            index=False, unique=False, nullable=False)
     instagram_id = db.Column(BIGINT(unsigned=True), index=True,  unique=True,  nullable=True)
     facebook_id = db.Column(BIGINT(unsigned=True),  index=False, unique=False, nullable=True)
     token = db.Column(db.String(255),               index=False, unique=False, nullable=True)
@@ -99,7 +99,7 @@ class User(db.Model):
     created = db.Column(db.DateTime,                index=False, unique=False, nullable=False, default=dt.utcnow)
     insights = db.relationship('Insight',   backref='user', lazy=True, passive_deletes=True)
     audiences = db.relationship('Audience', backref='user', lazy=True, passive_deletes=True)
-    posts = db.relationship('Post', query_class=GetActive, backref='user', lazy=True, passive_deletes=True)
+    posts = db.relationship('Post', backref='user', lazy=True, passive_deletes=True)  # ? query_class=GetActive,
     # # campaigns = backref from Campaign.users with lazy='dynamic'
     UNSAFE = {'token', 'token_expires', 'modified', 'created'}
 
@@ -288,14 +288,10 @@ def create_many(dataset, Model=User):
     for data in dataset:
         # TODO: check to see if there are issues with the new data
         # TODO: more appropriate approach for unique constraint management
-        # if Model in {Insight, Audience}:
-        #     # make sure this is not a duplicate recorded, name combo
-        #     Model.query.filter(Model.recorded == data.recorded, Model.name == data.name)
         # if no issues, add to DB
         model = Model(**data)
         db.session.add(model)
-        # all_results.append(from_sql(model))
-        all_results.append(model)  # This might be identical as above since id not assigned yet
+        all_results.append(model)
         # safe_results = {k: results[k] for k in results.keys() - Model.UNSAFE}
     # TODO: ? Refactor to use db.session.add_all() ?
     db.session.commit()
@@ -389,30 +385,18 @@ def create_or_update_many(dataset, user_id=None, Model=Post):
 
 
 def create(data, Model=User):
-    # TODO: Refactor to work as many or one: check if we have a list of obj, or single obj
-    # dataset = [data] if not isinstance(data, list) else data
-    # then use code written in create_many for this dataset
-    print('--------- Inspecting the create function -------------')
-    pprint(data)
+    # TODO: ? Refactor to work as many or one: check if we have a list of obj, or single obj
+    if isinstance(data, list):
+        return create_many(data, Model=Model)
     try:
         model = Model(**data)
+        db.session.add(model)
+        db.session.commit()
     except Exception as e:
         print('**************** DB CREATE Error *******************')
         print(e)
-    print('-------First was data, now model ----------------------------------')
-    pprint(model)
-    db.session.add(model)
-    db.session.commit()
     results = from_sql(model)
-    print('----------model after commit() -------------------------------')
-    pprint(model)
-    print('--------results before safe ---------------------------------')
-    pprint(results)
-    # TODO: Refactor safe_results for when we create many    for k, v in data.items():
     safe_results = {k: results[k] for k in results.keys() - Model.UNSAFE}
-    # TODO: Return a single obj if we created only one?
-    print('---------safe results --------------------------------')
-    pprint(safe_results)
     return safe_results
 
 
@@ -424,16 +408,6 @@ def read(id, Model=User, safe=True):
     safe_results = {k: results[k] for k in results.keys() - Model.UNSAFE}
     output = safe_results if safe else results
     if Model == User:
-        # TODO: Is the following something we want? Corpse code?
-        # ?Find min and max of dates for each Insight.metrics?
-        # output['insight'] = [{name: '', min: '', max: ''}, ...]
-        # insights = [from_sql(ea) for ea in model.insights]
-        # hold = {key: [] for key in Insight.metrics}
-        # print('Hold: ', hold)
-        # print('=======================================')
-        # [hold[ea['name']].append(ea) for ea in insights if ea['name'] in Insight.metrics]
-        # output['insight'] = hold
-        # # output['insight'] = [from_sql(ea) for ea in model.insights]
         if len(model.insights) > 0:
             output['insight'] = True
         if len(model.audiences) > 0:
