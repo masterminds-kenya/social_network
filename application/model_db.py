@@ -1,15 +1,28 @@
 from flask import Flask
-from flask_sqlalchemy import BaseQuery, SQLAlchemy
+from flask_sqlalchemy import SQLAlchemy
+# from flask_sqlalchemy import BaseQuery, SQLAlchemy  # if we create custom query
 from sqlalchemy.dialects.mysql import BIGINT
 from sqlalchemy import or_
 from datetime import datetime as dt
 from dateutil import parser
 import re
 import json
-from pprint import pprint
+from pprint import pprint  # only for debugging
 # TODO: see "Setting up Constraints when using the Declarative ORM Extension" at https://docs.sqlalchemy.org/en/13/core/constraints.html#unique-constraint
 
 db = SQLAlchemy()
+
+
+def fix_date(Model, data):
+    datestring = ''
+    if Model == Insight:
+        datestring = data.pop('end_time', None)
+    elif Model == Audience:
+        datestring = data.get('values', [{}])[0].get('end_time')  # TODO: Are we okay assuming 'end_time' is same for all in this array of responses?
+    elif Model == Post:
+        datestring = data.pop('timestamp', None)
+    data['recorded'] = parser.isoparse(datestring).replace(tzinfo=None) if datestring else data.get('recorded')
+    return data
 
 
 def init_app(app):
@@ -23,6 +36,7 @@ def from_sql(row):
     """ Translates a SQLAlchemy model instance into a dictionary """
     data = row.__dict__.copy()
     data['id'] = row.id
+    # TODO: The following could help include related Models
     # print('============= from_sql ===================')
     # rel = row.__mapper__.relationships
     # all = row.__mapper__
@@ -34,14 +48,14 @@ def from_sql(row):
     return data
 
 
-class GetActive(BaseQuery):
-    """ Some models, such as Post, may want to only fetch records not yet processed """
-    def get_active(self, not_field=None):
-        # if not not_field:
-        #     lookup_not_field = {'Post': 'processed', 'Campaign': 'completed'}
-        #     curr_class = self.__class__.__name__
-        #     not_field = lookup_not_field(curr_class) or None
-        return self.query.filter_by(processed=False)
+# class GetActive(BaseQuery):
+#     """ Some models, such as Post, may want to only fetch records not yet processed """
+#     def get_active(self, not_field=None):
+#         # if not not_field:
+#         #     lookup_not_field = {'Post': 'processed', 'Campaign': 'completed'}
+#         #     curr_class = self.__class__.__name__
+#         #     not_field = lookup_not_field(curr_class) or None
+#         return self.query.filter_by(processed=False)
 
 
 class Brand(db.Model):
@@ -50,7 +64,6 @@ class Brand(db.Model):
 
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(47),                 index=True,  unique=True,  nullable=False)
-    # company = db.Column(db.String(63),            index=False, unique=False, nullable=False)
     instagram_id = db.Column(BIGINT(unsigned=True), index=True,  unique=True,  nullable=True)
     facebook_id = db.Column(BIGINT(unsigned=True),  index=False, unique=False, nullable=True)
     token = db.Column(db.String(255),               index=False, unique=False, nullable=True)
@@ -86,7 +99,7 @@ class User(db.Model):
     created = db.Column(db.DateTime,                index=False, unique=False, nullable=False, default=dt.utcnow)
     insights = db.relationship('Insight',   backref='user', lazy=True, passive_deletes=True)
     audiences = db.relationship('Audience', backref='user', lazy=True, passive_deletes=True)
-    posts = db.relationship('Post', query_class=GetActive, backref='user', lazy=True, passive_deletes=True)
+    posts = db.relationship('Post', backref='user', lazy=True, passive_deletes=True)  # ? query_class=GetActive,
     # # campaigns = backref from Campaign.users with lazy='dynamic'
     UNSAFE = {'token', 'token_expires', 'modified', 'created'}
 
@@ -112,7 +125,7 @@ class User(db.Model):
 class Insight(db.Model):
     """ Data model for insights data on a (influencer's) user's or brands account """
     __tablename__ = 'insights'
-    __table_args__ = (db.UniqueConstraint('recorded', 'name', name='uq_insight_recorded_name'),)
+    __table_args__ = (db.UniqueConstraint('user_id', 'recorded', 'name', name='uq_insights_recorded_name'),)
 
     id = db.Column(db.Integer,      primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey('users.id', ondelete='CASCADE'))
@@ -124,9 +137,7 @@ class Insight(db.Model):
     UNSAFE = {''}
 
     def __init__(self, *args, **kwargs):
-        datestring = kwargs.pop('end_time')
-        kwargs['recorded'] = parser.isoparse(datestring)
-
+        kwargs = fix_date(Insight, kwargs)
         super().__init__(*args, **kwargs)
 
     def __str__(self):
@@ -140,7 +151,7 @@ class Audience(db.Model):
     """ Data model for current information about the user's audience. """
     # TODO: Refactor to parse out the age groups and gender groups
     __tablename__ = 'audiences'
-    __table_args__ = (db.UniqueConstraint('recorded', 'name', name='uq_audiences_recorded_name'),)
+    __table_args__ = (db.UniqueConstraint('user_id', 'recorded', 'name', name='uq_audiences_recorded_name'),)
 
     id = db.Column(db.Integer,      primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey('users.id', ondelete='CASCADE'))
@@ -152,13 +163,12 @@ class Audience(db.Model):
     UNSAFE = {''}
 
     def __init__(self, *args, **kwargs):
-        data, kwargs = kwargs.copy(), {}
-        # Using this copy method to remove the extra data from the API call
+        kwargs = fix_date(Audience, kwargs)
+        data, kwargs = kwargs.copy(), {}  # cleans out the not-needed data from API call
+        kwargs['recorded'] = data.get('recorded')
         kwargs['user_id'] = data.get('user_id')
         kwargs['name'] = re.sub('^audience_', '', data.get('name'))
-        kwargs['value'] = json.dumps(data.get('values')[0].get('value'))
-        datestring = data.get('values')[0].get('end_time')
-        kwargs['recorded'] = parser.isoparse(datestring)
+        kwargs['value'] = data.get('value', json.dumps(data.get('values', [{}])[0].get('value')))
         super().__init__(*args, **kwargs)
 
     def __str__(self):
@@ -210,8 +220,7 @@ class Post(db.Model):
     UNSAFE = {''}
 
     def __init__(self, *args, **kwargs):
-        datestring = kwargs.pop('timestamp')
-        kwargs['recorded'] = parser.isoparse(datestring)
+        kwargs = fix_date(Post, kwargs)
         kwargs['processed'] = True if kwargs.get('processed') in {'on', True} else False
         super().__init__(*args, **kwargs)
 
@@ -279,70 +288,92 @@ def create_many(dataset, Model=User):
     for data in dataset:
         # TODO: check to see if there are issues with the new data
         # TODO: more appropriate approach for unique constraint management
-        # if Model in {Insight, Audience}:
-        #     # make sure this is not a duplicate recorded, name combo
-        #     Model.query.filter(Model.recorded == data.recorded, Model.name == data.name)
         # if no issues, add to DB
         model = Model(**data)
         db.session.add(model)
-        # all_results.append(from_sql(model))
-        all_results.append(model)  # This might be identical as above since id not assigned yet
+        all_results.append(model)
         # safe_results = {k: results[k] for k in results.keys() - Model.UNSAFE}
     # TODO: ? Refactor to use db.session.add_all() ?
     db.session.commit()
     return [from_sql(ea) for ea in all_results]
 
 
-def create_or_update_many(dataset, Model=Post):
+def create_or_update_many(dataset, user_id=None, Model=Post):
     """ Create or Update if the record exists for all of the dataset list """
-    print('============== Create or Update Many ====================')
-    allowed_models = {Post, Insight}
+    print(f'============== Create or Update Many {Model.__name__} ====================')
+    allowed_models = {Post, Insight, Audience}
     if Model not in allowed_models:
         return []
+    composite_unique = ['recorded', 'name'] if Model in {Insight, Audience} else False
+    # Note: initially all Models only had 1 non-pk unique field, except for unused Brand instagram_id field.
+    # However, both the Insight and Audience models have a composite unique requirement (user_id, recorded, name)
+    # insp = db.inspect(Model)
     all_results, add_count, update_count, error_set = [], 0, 0, []
     print(f'---- Initial dataset has {len(dataset)} records ----')
-    # Note: initially all Models only had 1 non-pk unique field, except for unused Brand instagram_id field.
-    # The following should work with multiple single column unique fields.
-    columns = Model.__table__.columns
-    unique = {c.name: [] for c in columns if c.unique}
-    print('----------------- Unique Columns -----------------------')
-    print(unique)
-    table_args = dir(Model.__table_args__)
-    print(table_args.count)
-    print(table_args.index)
-    print(table_args.__doc__)
-    print(table_args)
-    [unique[key].append(val) for ea in dataset for (key, val) in ea.items() if key in unique]
-    # unique now has a key for each unique field, and a list of all the values that we want to assign those fields from the dataset
-    q_to_update = Model.query.filter(or_(*[getattr(Model, key).in_(arr) for key, arr in unique.items()]))
-    match = q_to_update.all()
-    # match is a list of current DB records that have a unique field with a value matching the incoming dataset
-    print(f'---- There seems to be {len(match)} records to update ----')
-    match_dict = {}
-    for key in unique.keys():
-        lookup_record_by_val = {getattr(ea, key): ea for ea in match}
-        match_dict[key] = lookup_record_by_val
-    for data in dataset:
-        # find all records in match that would collide with the values of this data
-        updates = [lookup[int(data[unikey])] for unikey, lookup in match_dict.items() if int(data[unikey]) in lookup]
-        # add if no collisions, update if we can, save a list of unhandled dataset elements.
-        if len(updates) > 0:
-            # dataset.remove(data)
-            if len(updates) == 1:
-                model = updates[0]
-                for k, v in data.items():
-                    setattr(model, k, v)
+    if composite_unique:
+        q = Model.query.filter(user_id == user_id) if user_id else Model.query()
+        match = q.all()
+        print(f'------ Composite Unique for {Model.__name__}: {len(match)} possible matches ----------------')
+        lookup = {tuple([getattr(ea, key) for key in composite_unique]): ea for ea in match}
+        pprint(lookup)
+        for data in dataset:
+            data = fix_date(Model, data)  # fix incoming data 'recorded' as needed for this Model
+            # TODO: The following patch for Audience is not needed once we improve API validation process
+            if Model == Audience:
+                data['name'] = re.sub('^audience_', '', data.get('name'))
+                data['value'] = json.dumps(data.get('values', [{}])[0].get('value'))
+                data.pop('id', None)
+            key = tuple([data.get(ea) for ea in composite_unique])
+            model = lookup.get(key, None)
+            print(f'------- {key} -------')
+            if model:
+                pprint(model)
+                [setattr(model, k, v) for k, v in data.items()]
                 update_count += 1
-                all_results.append(model)
             else:
-                print('------- Got a Multiple Match Record ------')
-                data['id'] = [getattr(ea, 'id') for ea in updates]
-                error_set.append(data)
-        else:
-            model = Model(**data)
-            db.session.add(model)
-            add_count += 1
+                print('No match in existing data')
+                model = Model(**data)
+                db.session.add(model)
+                add_count += 1
             all_results.append(model)
+    else:
+        # The following should work with multiple single column unique fields, but no composite unique requirements
+        print('----------------- Unique Columns -----------------------')  # TODO: remove
+        columns = Model.__table__.columns
+        unique = {c.name: [] for c in columns if c.unique}
+        [unique[key].append(val) for ea in dataset for (key, val) in ea.items() if key in unique]
+        pprint(unique)
+        # [uniq_comp[key].append(val) for ea in dataset for (key, val) in ea.items() ]
+        # unique now has a key for each unique field, and a list of all the values that we want to assign those fields from the dataset
+        q_to_update = Model.query.filter(or_(*[getattr(Model, key).in_(arr) for key, arr in unique.items()]))
+        match = q_to_update.all()
+        # match is a list of current DB records that have a unique field with a value matching the incoming dataset
+        print(f'---- There seems to be {len(match)} records to update ----')
+        match_dict = {}
+        for key in unique.keys():
+            lookup_record_by_val = {getattr(ea, key): ea for ea in match}
+            match_dict[key] = lookup_record_by_val
+        for data in dataset:
+            # find all records in match that would collide with the values of this data
+            updates = [lookup[int(data[unikey])] for unikey, lookup in match_dict.items() if int(data[unikey]) in lookup]
+            # add if no collisions, update if we can, save a list of unhandled dataset elements.
+            if len(updates) > 0:
+                # dataset.remove(data)
+                if len(updates) == 1:
+                    model = updates[0]
+                    for k, v in data.items():
+                        setattr(model, k, v)
+                    update_count += 1
+                    all_results.append(model)
+                else:
+                    print('------- Got a Multiple Match Record ------')
+                    data['id'] = [getattr(ea, 'id') for ea in updates]
+                    error_set.append(data)
+            else:
+                model = Model(**data)
+                db.session.add(model)
+                add_count += 1
+                all_results.append(model)
     print('------------------------------------------------------------------------------')
     print(f'The all results has {len(all_results)} records to commit')
     print(f'This includes {update_count} updated records')
@@ -354,30 +385,18 @@ def create_or_update_many(dataset, Model=Post):
 
 
 def create(data, Model=User):
-    # TODO: Refactor to work as many or one: check if we have a list of obj, or single obj
-    # dataset = [data] if not isinstance(data, list) else data
-    # then use code written in create_many for this dataset
-    print('--------- Inspecting the create function -------------')
-    pprint(data)
+    # TODO: ? Refactor to work as many or one: check if we have a list of obj, or single obj
+    if isinstance(data, list):
+        return create_many(data, Model=Model)
     try:
         model = Model(**data)
+        db.session.add(model)
+        db.session.commit()
     except Exception as e:
         print('**************** DB CREATE Error *******************')
         print(e)
-    print('-------First was data, now model ----------------------------------')
-    pprint(model)
-    db.session.add(model)
-    db.session.commit()
     results = from_sql(model)
-    print('----------model after commit() -------------------------------')
-    pprint(model)
-    print('--------results before safe ---------------------------------')
-    pprint(results)
-    # TODO: Refactor safe_results for when we create many    for k, v in data.items():
     safe_results = {k: results[k] for k in results.keys() - Model.UNSAFE}
-    # TODO: Return a single obj if we created only one?
-    print('---------safe results --------------------------------')
-    pprint(safe_results)
     return safe_results
 
 
@@ -389,16 +408,6 @@ def read(id, Model=User, safe=True):
     safe_results = {k: results[k] for k in results.keys() - Model.UNSAFE}
     output = safe_results if safe else results
     if Model == User:
-        # TODO: Is the following something we want? Corpse code?
-        # ?Find min and max of dates for each Insight.metrics?
-        # output['insight'] = [{name: '', min: '', max: ''}, ...]
-        # insights = [from_sql(ea) for ea in model.insights]
-        # hold = {key: [] for key in Insight.metrics}
-        # print('Hold: ', hold)
-        # print('=======================================')
-        # [hold[ea['name']].append(ea) for ea in insights if ea['name'] in Insight.metrics]
-        # output['insight'] = hold
-        # # output['insight'] = [from_sql(ea) for ea in model.insights]
         if len(model.insights) > 0:
             output['insight'] = True
         if len(model.audiences) > 0:

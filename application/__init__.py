@@ -63,8 +63,10 @@ def process_form(mod, request):
     # I believe this is only needed for campaigns.
     save = {}
     if mod == 'campaign':
-        data = request.form.to_dict(flat=False)  # TODO: add form validate method for security.
+        data = request.form.to_dict(flat=False)  # TODO: add better form validate method for security.
         # capture the relationship collections
+        # TODO: I might be missing how SQLAlchemy intends for use to handle related models
+        # the following may not be needed, or need to be managed differently
         rel_collections = (('brands', model_db.Brand), ('users', model_db.User), ('posts', model_db.Post))
         for rel, Model in rel_collections:
             if rel in data:
@@ -72,7 +74,7 @@ def process_form(mod, request):
                 models = Model.query.filter(Model.id.in_(model_ids)).all()
                 save[rel] = models
     data = request.form.to_dict(flat=True)  # TODO: add form validate method for security.
-    data.update(save)  # update if we did save some relationship collections
+    data.update(save)  # adds to the data dict if we did save some relationship collections
     # If the form has a checkbox for a Boolean in the form, we may need to reformat.
     # currently I think only Campaign and Post have checkboxes
     bool_fields = {'campaign': 'completed', 'post': 'processed'}
@@ -103,12 +105,12 @@ def get_insight(user_id, first=1, last=30*3, ig_id=None, facebook=None):
             for val in ea.get('values'):
                 val['name'], val['user_id'] = ea.get('name'), user_id
                 results.append(val)
-    return model_db.create_or_update_many(results, model_db.Insight)
+    return model_db.create_or_update_many(results, user_id=user_id, Model=model_db.Insight)
 
 
 def get_audience(user_id, ig_id=None, facebook=None):
     """ Get the audience data for the user of user_id """
-    # print('=========================== Get Audience Data ======================')
+    print('=========================== Get Audience Data ======================')
     audience_metric = ','.join(model_db.Audience.metrics)
     ig_period = 'lifetime'
     results, token = [], ''
@@ -120,7 +122,7 @@ def get_audience(user_id, ig_id=None, facebook=None):
     for ea in audience.get('data'):
         ea['user_id'] = user_id
         results.append(ea)
-    return model_db.create_many(results, model_db.Audience)
+    return model_db.create_or_update_many(results, user_id=user_id, Model=model_db.Audience)
 
 
 def get_posts(user_id, ig_id=None, facebook=None):
