@@ -12,8 +12,16 @@ from pprint import pprint
 db = SQLAlchemy()
 
 
-def fix_date(datestring):
-    return parser.isoparse(datestring)
+def fix_date(Model, data):
+    datestring = ''
+    if Model == Insight:
+        datestring = data.pop('end_time', None)
+    elif Model == Audience:
+        datestring = data.get('values')[0].get('end_time') # TODO: Are we okay assuming 'end_time' is same for all in this array of responses?
+    elif Model == Post:
+        datestring = data.pop('timestamp', None)
+    data['recorded'] = parser.isoparse(datestring).replace(tzinfo=None) if datestring else data.get('recorded')
+    return data
 
 
 def init_app(app):
@@ -27,6 +35,7 @@ def from_sql(row):
     """ Translates a SQLAlchemy model instance into a dictionary """
     data = row.__dict__.copy()
     data['id'] = row.id
+    # TODO: The following could help include related Models
     # print('============= from_sql ===================')
     # rel = row.__mapper__.relationships
     # all = row.__mapper__
@@ -128,9 +137,7 @@ class Insight(db.Model):
     UNSAFE = {''}
 
     def __init__(self, *args, **kwargs):
-        datestring = kwargs.pop('end_time')
-        kwargs['recorded'] = fix_date(datestring)
-
+        kwargs = fix_date(Insight, kwargs)
         super().__init__(*args, **kwargs)
 
     def __str__(self):
@@ -156,13 +163,12 @@ class Audience(db.Model):
     UNSAFE = {''}
 
     def __init__(self, *args, **kwargs):
+        kwargs = fix_date(Audience, kwargs)
         data, kwargs = kwargs.copy(), {}  # cleans out the not-needed data from API call
+        kwargs['recorded'] = data.get('recorded')
         kwargs['user_id'] = data.get('user_id')
         kwargs['name'] = re.sub('^audience_', '', data.get('name'))
         kwargs['value'] = json.dumps(data.get('values')[0].get('value'))
-        datestring = data.get('values')[0].get('end_time')
-        # kwargs['recorded'] = parser.isoparse(datestring)
-        kwargs['recorded'] = fix_date(datestring)
         super().__init__(*args, **kwargs)
 
     def __str__(self):
@@ -214,9 +220,7 @@ class Post(db.Model):
     UNSAFE = {''}
 
     def __init__(self, *args, **kwargs):
-        # datestring = kwargs.pop('timestamp')
-        # kwargs['recorded'] = parser.isoparse(datestring)
-        kwargs['recorded'] = fix_date(kwargs.pop('timestamp'))
+        kwargs = fix_date(Post, kwargs)
         kwargs['processed'] = True if kwargs.get('processed') in {'on', True} else False
         super().__init__(*args, **kwargs)
 
@@ -300,31 +304,34 @@ def create_many(dataset, Model=User):
 
 def create_or_update_many(dataset, user_id=None, Model=Post):
     """ Create or Update if the record exists for all of the dataset list """
-    print('============== Create or Update Many ====================')
+    print(f'============== Create or Update Many {Model.__name__} ====================')
     allowed_models = {Post, Insight, Audience}
     if Model not in allowed_models:
         return []
     composite_unique = ['recorded', 'name'] if Model in {Insight, Audience} else False
-    all_results, add_count, update_count, error_set = [], 0, 0, []
-    # insp = db.inspect(Model)
-    print(f'---- Initial dataset has {len(dataset)} records ----')
     # Note: initially all Models only had 1 non-pk unique field, except for unused Brand instagram_id field.
     # However, both the Insight and Audience models have a composite unique requirement (user_id, recorded, name)
+    # insp = db.inspect(Model)
+    all_results, add_count, update_count, error_set = [], 0, 0, []
+    print(f'---- Initial dataset has {len(dataset)} records ----')
     if composite_unique:
         q = Model.query.filter(user_id == user_id) if user_id else Model.query()
         match = q.all()
-        print(f'-------------- Composite Unique for {Model.__name__}: {len(match)} possible matches ------------------------')
+        print(f'------ Composite Unique for {Model.__name__}: {len(match)} possible matches ----------------')
         lookup = {tuple([getattr(ea, key) for key in composite_unique]): ea for ea in match}
+        pprint(lookup)
         for data in dataset:
             # TODO: HERE!
-            # call fix_date for appropriate datestring
-            key = tuple([data.get(key) for key in composite_unique])
+            data = fix_date(Model, data)  # fix incoming data 'recorded' as needed for this Model
+            key = tuple([data.get(ea) for ea in composite_unique])
             model = lookup.get(key, None)
-            pprint(key, model)
+            print(f'------- {key} -------')
             if model:
+                pprint(model)
                 [setattr(model, k, v) for k, v in data.items()]
                 update_count += 1
             else:
+                print('No match in existing data')
                 model = Model(**data)
                 db.session.add(model)
                 add_count += 1
