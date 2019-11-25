@@ -231,6 +231,9 @@ Current Status:
 
 - [x] Setup a real influencer (Noelle Reno) as a confirmed tester.
 - [x] Have real influencer (Noelle Reno) sign up for testing.
+- [ ] Update forms and API digesting with input validation to replace following functionality:
+  - [ ] Currently fix_date used for both create model, and when create_or_update many
+  - [ ] Currently create_or_update_many also has to modify inputs from Audience API calls
   - [ ] Should campaign management view extend base instead of view?
   - [ ] Is current process slow? Move some data collection outside of sign up flow?
   - [ ] Other feedback for expected sign up flow?

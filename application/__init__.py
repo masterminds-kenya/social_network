@@ -108,7 +108,7 @@ def get_insight(user_id, first=1, last=30*3, ig_id=None, facebook=None):
 
 def get_audience(user_id, ig_id=None, facebook=None):
     """ Get the audience data for the user of user_id """
-    # print('=========================== Get Audience Data ======================')
+    print('=========================== Get Audience Data ======================')
     audience_metric = ','.join(model_db.Audience.metrics)
     ig_period = 'lifetime'
     results, token = [], ''
@@ -120,7 +120,7 @@ def get_audience(user_id, ig_id=None, facebook=None):
     for ea in audience.get('data'):
         ea['user_id'] = user_id
         results.append(ea)
-    return model_db.create_many(results, user_id=user_id, Model=model_db.Audience)
+    return model_db.create_or_update_many(results, user_id=user_id, Model=model_db.Audience)
 
 
 def get_posts(user_id, ig_id=None, facebook=None):

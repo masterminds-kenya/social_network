@@ -17,7 +17,7 @@ def fix_date(Model, data):
     if Model == Insight:
         datestring = data.pop('end_time', None)
     elif Model == Audience:
-        datestring = data.get('values')[0].get('end_time') # TODO: Are we okay assuming 'end_time' is same for all in this array of responses?
+        datestring = data.get('values', [{}])[0].get('end_time')  # TODO: Are we okay assuming 'end_time' is same for all in this array of responses?
     elif Model == Post:
         datestring = data.pop('timestamp', None)
     data['recorded'] = parser.isoparse(datestring).replace(tzinfo=None) if datestring else data.get('recorded')
@@ -168,7 +168,7 @@ class Audience(db.Model):
         kwargs['recorded'] = data.get('recorded')
         kwargs['user_id'] = data.get('user_id')
         kwargs['name'] = re.sub('^audience_', '', data.get('name'))
-        kwargs['value'] = json.dumps(data.get('values')[0].get('value'))
+        kwargs['value'] = data.get('value', json.dumps(data.get('values', [{}])[0].get('value')))
         super().__init__(*args, **kwargs)
 
     def __str__(self):
@@ -321,8 +321,12 @@ def create_or_update_many(dataset, user_id=None, Model=Post):
         lookup = {tuple([getattr(ea, key) for key in composite_unique]): ea for ea in match}
         pprint(lookup)
         for data in dataset:
-            # TODO: HERE!
             data = fix_date(Model, data)  # fix incoming data 'recorded' as needed for this Model
+            # TODO: The following patch for Audience is not needed once we improve API validation process
+            if Model == Audience:
+                data['name'] = re.sub('^audience_', '', data.get('name'))
+                data['value'] = json.dumps(data.get('values', [{}])[0].get('value'))
+                data.pop('id', None)
             key = tuple([data.get(ea) for ea in composite_unique])
             model = lookup.get(key, None)
             print(f'------- {key} -------')
