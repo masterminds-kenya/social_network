@@ -3,7 +3,8 @@ from flask import Flask, render_template, abort, request, redirect, url_for  # ,
 from . import model_db
 from . import developer_admin
 from .sheets import create_sheet, update_sheet, read_sheet
-from .api import onboard_login, onboarding, update_campaign, process_form, get_insight, get_audience, get_posts
+from .manage import update_campaign, process_form
+from .api import onboard_login, onboarding, get_insight, get_audience, get_posts
 import json
 from os import environ
 
