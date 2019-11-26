@@ -7,7 +7,7 @@ from datetime import datetime as dt
 from dateutil import parser
 import re
 import json
-from pprint import pprint  # only for debugging
+# from pprint import pprint  # only for debugging
 # TODO: see "Setting up Constraints when using the Declarative ORM Extension" at https://docs.sqlalchemy.org/en/13/core/constraints.html#unique-constraint
 
 db = SQLAlchemy()
@@ -283,22 +283,6 @@ class Campaign(db.Model):
         return '<Campaign: {} | Brands: {} >'.format(name, brands)
 
 
-def create_many(dataset, Model=User):
-    # Currently used for Insight, Audience, and when remaking users from file.
-    all_results = []
-    for data in dataset:
-        # TODO: check to see if there are issues with the new data
-        # TODO: more appropriate approach for unique constraint management
-        # if no issues, add to DB
-        model = Model(**data)
-        db.session.add(model)
-        all_results.append(model)
-        # safe_results = {k: results[k] for k in results.keys() - Model.UNSAFE}
-    # TODO: ? Refactor to use db.session.add_all() ?
-    db.session.commit()
-    return [from_sql(ea) for ea in all_results]
-
-
 def create_or_update_many(dataset, user_id=None, Model=Post):
     """ Create or Update if the record exists for all of the dataset list """
     # print(f'============== Create or Update Many {Model.__name__} ====================')
@@ -316,7 +300,7 @@ def create_or_update_many(dataset, user_id=None, Model=Post):
         match = q.all()
         # print(f'------ Composite Unique for {Model.__name__}: {len(match)} possible matches ----------------')
         lookup = {tuple([getattr(ea, key) for key in composite_unique]): ea for ea in match}
-        pprint(lookup)
+        # pprint(lookup)
         for data in dataset:
             data = fix_date(Model, data)  # fix incoming data 'recorded' as needed for this Model
             # TODO: The following patch for Audience is not needed once we improve API validation process
@@ -328,7 +312,7 @@ def create_or_update_many(dataset, user_id=None, Model=Post):
             model = lookup.get(key, None)
             # print(f'------- {key} -------')
             if model:
-                pprint(model)
+                # pprint(model)
                 [setattr(model, k, v) for k, v in data.items()]
                 update_count += 1
             else:
@@ -343,8 +327,7 @@ def create_or_update_many(dataset, user_id=None, Model=Post):
         columns = Model.__table__.columns
         unique = {c.name: [] for c in columns if c.unique}
         [unique[key].append(val) for ea in dataset for (key, val) in ea.items() if key in unique]
-        pprint(unique)
-        # [uniq_comp[key].append(val) for ea in dataset for (key, val) in ea.items() ]
+        # pprint(unique)
         # unique now has a key for each unique field, and a list of all the values that we want to assign those fields from the dataset
         q_to_update = Model.query.filter(or_(*[getattr(Model, key).in_(arr) for key, arr in unique.items()]))
         match = q_to_update.all()
@@ -357,9 +340,7 @@ def create_or_update_many(dataset, user_id=None, Model=Post):
         for data in dataset:
             # find all records in match that would collide with the values of this data
             updates = [lookup[int(data[unikey])] for unikey, lookup in match_dict.items() if int(data[unikey]) in lookup]
-            # add if no collisions, update if we can, save a list of unhandled dataset elements.
             if len(updates) > 0:
-                # dataset.remove(data)
                 if len(updates) == 1:
                     model = updates[0]
                     for k, v in data.items():
@@ -386,9 +367,6 @@ def create_or_update_many(dataset, user_id=None, Model=Post):
 
 
 def create(data, Model=User):
-    # TODO: ? Refactor to work as many or one: check if we have a list of obj, or single obj
-    if isinstance(data, list):
-        return create_many(data, Model=Model)
     try:
         model = Model(**data)
         db.session.add(model)
@@ -437,6 +415,17 @@ def all(Model=User):
     query = (Model.query.order_by(sort_field))
     models = query.all()
     return models
+
+
+def create_many(dataset, Model=User):
+    """ Currently only used for temporary developer_admin function """
+    all_results = []
+    for data in dataset:
+        model = Model(**data)
+        db.session.add(model)
+        all_results.append(model)
+    db.session.commit()
+    return [from_sql(ea) for ea in all_results]
 
 
 def _create_database():
