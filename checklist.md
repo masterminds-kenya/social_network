@@ -210,6 +210,7 @@ Current Status:
   - [x] Function to update a worksheet
   - [ ] Can read and format desired DB data into worksheet.
 - [x] create a route & view for the sheets data view
+- [s] Add migration functionality?
 - [ ] refactor sheets data view to export to a google worksheet
 - [ ] Login: any additional User and Admin authentication needed?
   - [ ] ?Confirm Google login for Worksheet access?
@@ -231,6 +232,9 @@ Current Status:
 
 - [x] Setup a real influencer (Noelle Reno) as a confirmed tester.
 - [x] Have real influencer (Noelle Reno) sign up for testing.
+- [x] Modularize the codebase: sheets, facebook api, developer_admin, manage
+- [ ] Modularize the codebase more: move routes elsewhere?
+- [ ] ? allow logging in related files (remove all print statements)
 - [ ] Update forms and API digesting with input validation to replace following functionality:
   - [ ] Currently fix_date used for both create model, and when create_or_update many
   - [ ] Currently create_or_update_many also has to modify inputs from Audience API calls

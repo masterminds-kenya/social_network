@@ -35,7 +35,7 @@
   <li><a href="{{ url_for('new_post', mod=mod, id=data.id) }}">Get New Media / Posts</a> </li>
   <li><a href="{{ url_for('new_insight', mod=mod, id=data.id) }}">Get New {{mod|title}} Insights</a> </li>
   <li><a href="{{ url_for('new_audience', mod=mod, id=data.id) }}">Get New Audience Data</a> </li>
-  <li><a href="{{ url_for('migrate_save', mod=mod, id=data.id )}}">Admin - Log {{mod|title}} Data</a> </li>
+  <li><a href="{{ url_for('backup_save', mod=mod, id=data.id )}}">Admin - Log {{mod|title}} Data</a> </li>
   {% endif %}
   <li>CAREFUL BELOW!</li>
   <li><a href="{{ url_for('edit', mod=mod, id=data.id) }}">Update {{ mod|title }}</a></li>
