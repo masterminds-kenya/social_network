@@ -57,7 +57,9 @@ def read_sheet_full(local_env, id=SHARED_SHEET_ID):
 def read_sheet(local_env, id=SHARED_SHEET_ID):
     """ Read a sheet that our app service account has been given permission for. """
     # from pprint import pprint
+    id = id if id else SHARED_SHEET_ID
     print('================== read sheet values =======================')
+    print(id)
     creds = get_creds(local_env, service_config['sheets'])
     if isinstance(creds, str):
         return (creds, 0)

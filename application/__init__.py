@@ -7,7 +7,6 @@ from .api import onboard_login, onboarding, update_campaign, process_form, get_i
 import json
 from os import environ
 
-SHARED_SHEET_ID = '1LyUFeo5in3F-IbR1eMnkp-XeQXD_zvfYraxCJBUkZPs'
 DEPLOYED_URL = environ.get('DEPLOYED_URL')
 LOCAL_URL = 'http://127.0.0.1:8080'
 if environ.get('GAE_INSTANCE'):
@@ -78,13 +77,11 @@ def create_app(config, debug=False, testing=False, config_overrides=None):
     @app.route('/data')
     def data_default():
         return data(None)
-        # id = SHARED_SHEET_ID
-        # return redirect(url_for('data', id=id))
 
     @app.route('/data/view/<string:id>')
     def data(id):
         """ Show the data with Google Sheets """
-        spreadsheet, id = read_sheet(LOCAL_ENV, id=id)
+        spreadsheet, id = read_sheet(LOCAL_ENV, id)
         link = '' if id == 0 else f"https://docs.google.com/spreadsheets/d/{id}/edit#gid=0"
         return render_template('data.html', data=spreadsheet, id=id, link=link)
 
