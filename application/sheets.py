@@ -2,6 +2,7 @@ from os import path
 from googleapiclient.discovery import build
 from google.oauth2 import service_account
 # import google.auth
+from pprint import pprint
 
 SHARED_SHEET_ID = '1LyUFeo5in3F-IbR1eMnkp-XeQXD_zvfYraxCJBUkZPs'
 service_config = {
@@ -39,7 +40,6 @@ def create_sheet(local_env, title):
 
 def read_sheet_full(local_env, id=SHARED_SHEET_ID):
     """ Get the information (not the values) for a worksheet with permissions granted to our app service. """
-    from pprint import pprint
     print('================== read sheet =======================')
     creds = get_creds(local_env, service_config['sheets'])
     if isinstance(creds, str):
@@ -56,7 +56,6 @@ def read_sheet_full(local_env, id=SHARED_SHEET_ID):
 
 def read_sheet(local_env, id=SHARED_SHEET_ID):
     """ Read a sheet that our app service account has been given permission for. """
-    # from pprint import pprint
     id = id if id else SHARED_SHEET_ID
     print('================== read sheet values =======================')
     print(id)
@@ -105,7 +104,6 @@ def compute_A1(arr2d, start='A1', sheet='Sheet1'):
 
 def update_sheet(local_env, id=SHARED_SHEET_ID):
     """ Get the data we want, then append it to the worksheet """
-    # from pprint import pprint
     print('================== update sheet =======================')
     creds = get_creds(local_env, service_config['sheets'])
     if isinstance(creds, str):

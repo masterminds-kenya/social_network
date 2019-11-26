@@ -45,7 +45,7 @@ def get_insight(user_id, first=1, last=30*3, ig_id=None, facebook=None):
 
 def get_audience(user_id, ig_id=None, facebook=None):
     """ Get the audience data for the user of user_id """
-    print('=========================== Get Audience Data ======================')
+    # print('=========================== Get Audience Data ======================')
     audience_metric = ','.join(model_db.Audience.metrics)
     ig_period = 'lifetime'
     results, token = [], ''
@@ -62,7 +62,7 @@ def get_audience(user_id, ig_id=None, facebook=None):
 
 def get_posts(user_id, ig_id=None, facebook=None):
     """ Get media posts """
-    print('==================== Get Posts ====================')
+    # print('==================== Get Posts ====================')
     post_metrics = {key: ','.join(val) for (key, val) in model_db.Post.metrics.items()}
     results, token = [], ''
     if not facebook or not ig_id:
@@ -86,7 +86,7 @@ def get_posts(user_id, ig_id=None, facebook=None):
         pprint(response)
         return []
     media.extend(stories)
-    print(f"----------- Looking up a total of {len(media)} Media Posts, including {len(stories)} Stories ----------- ")
+    # print(f"----------- Looking up a total of {len(media)} Media Posts, including {len(stories)} Stories ----------- ")
     for post in media:
         media_id = post.get('id')
         url = f"https://graph.facebook.com/{media_id}?fields={post_metrics['basic']}"
@@ -121,12 +121,12 @@ def get_ig_info(ig_id, token=None, facebook=None):
     # profile_picture_url, username*, website*
     fields = ['username', 'followers_count', 'follows_count', 'media_count']
     fields = ','.join(fields)
-    print('============ Get IG Info ===================')
+    # print('============ Get IG Info ===================')
     if not token and not facebook:
         return "You must pass a 'token' or 'facebook' reference. "
     url = f"https://graph.facebook.com/v4.0/{ig_id}?fields={fields}"
     res = facebook.get(url).json() if facebook else requests.get(f"{url}&access_token={token}").json()
-    pprint(res)
+    # pprint(res)
     return res
 
 
@@ -183,8 +183,8 @@ def onboarding(URL, request):
     else:
         data['name'] = data.get('username', None) if 'name' not in data else data['name']
         print(f'--------- Found {len(ig_list)} potential IG accounts -----------')
-    print('=================== Data sent to Create User =======================')
-    pprint(data)
+    # print('=================== Data sent to Create User =======================')
+    # pprint(data)
     user = model_db.create(data)
     user_id = user.get('id')
     print('User: ', user_id)

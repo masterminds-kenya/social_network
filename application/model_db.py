@@ -28,6 +28,7 @@ def fix_date(Model, data):
 def init_app(app):
     # Disable track modifications, as it unnecessarily uses memory.
     app.config.setdefault('SQLALCHEMY_TRACK_MODIFICATIONS', False)
+    # app.config.setdefault('SQLALCHEMY_ECHO', True)
     # app.config['MYSQL_DATABASE_CHARSET'] = 'utf8mb4'
     db.init_app(app)
 
@@ -262,8 +263,8 @@ class Campaign(db.Model):
     UNSAFE = {''}
 
     def __init__(self, *args, **kwargs):
-        print('============ Campaign constructor ============')
-        print(kwargs)
+        # print('============ Campaign constructor ============')
+        # print(kwargs)
         # user_id = kwargs.pop('users', None)
         # brand_id = kwargs.pop('brands', None)
         # save related fields
@@ -300,7 +301,7 @@ def create_many(dataset, Model=User):
 
 def create_or_update_many(dataset, user_id=None, Model=Post):
     """ Create or Update if the record exists for all of the dataset list """
-    print(f'============== Create or Update Many {Model.__name__} ====================')
+    # print(f'============== Create or Update Many {Model.__name__} ====================')
     allowed_models = {Post, Insight, Audience}
     if Model not in allowed_models:
         return []
@@ -309,11 +310,11 @@ def create_or_update_many(dataset, user_id=None, Model=Post):
     # However, both the Insight and Audience models have a composite unique requirement (user_id, recorded, name)
     # insp = db.inspect(Model)
     all_results, add_count, update_count, error_set = [], 0, 0, []
-    print(f'---- Initial dataset has {len(dataset)} records ----')
+    # print(f'---- Initial dataset has {len(dataset)} records ----')
     if composite_unique:
         q = Model.query.filter(user_id == user_id) if user_id else Model.query()
         match = q.all()
-        print(f'------ Composite Unique for {Model.__name__}: {len(match)} possible matches ----------------')
+        # print(f'------ Composite Unique for {Model.__name__}: {len(match)} possible matches ----------------')
         lookup = {tuple([getattr(ea, key) for key in composite_unique]): ea for ea in match}
         pprint(lookup)
         for data in dataset:
@@ -325,20 +326,20 @@ def create_or_update_many(dataset, user_id=None, Model=Post):
                 data.pop('id', None)
             key = tuple([data.get(ea) for ea in composite_unique])
             model = lookup.get(key, None)
-            print(f'------- {key} -------')
+            # print(f'------- {key} -------')
             if model:
                 pprint(model)
                 [setattr(model, k, v) for k, v in data.items()]
                 update_count += 1
             else:
-                print('No match in existing data')
+                # print('No match in existing data')
                 model = Model(**data)
                 db.session.add(model)
                 add_count += 1
             all_results.append(model)
     else:
         # The following should work with multiple single column unique fields, but no composite unique requirements
-        print('----------------- Unique Columns -----------------------')  # TODO: remove
+        # print('----------------- Unique Columns -----------------------')  # TODO: remove
         columns = Model.__table__.columns
         unique = {c.name: [] for c in columns if c.unique}
         [unique[key].append(val) for ea in dataset for (key, val) in ea.items() if key in unique]
@@ -348,7 +349,7 @@ def create_or_update_many(dataset, user_id=None, Model=Post):
         q_to_update = Model.query.filter(or_(*[getattr(Model, key).in_(arr) for key, arr in unique.items()]))
         match = q_to_update.all()
         # match is a list of current DB records that have a unique field with a value matching the incoming dataset
-        print(f'---- There seems to be {len(match)} records to update ----')
+        # print(f'---- There seems to be {len(match)} records to update ----')
         match_dict = {}
         for key in unique.keys():
             lookup_record_by_val = {getattr(ea, key): ea for ea in match}
@@ -366,7 +367,7 @@ def create_or_update_many(dataset, user_id=None, Model=Post):
                     update_count += 1
                     all_results.append(model)
                 else:
-                    print('------- Got a Multiple Match Record ------')
+                    # print('------- Got a Multiple Match Record ------')
                     data['id'] = [getattr(ea, 'id') for ea in updates]
                     error_set.append(data)
             else:

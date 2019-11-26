@@ -2,11 +2,12 @@
 from flask import Flask, render_template, abort, request, redirect, url_for  # , current_app
 from . import model_db
 from . import developer_admin
-from .sheets import create_sheet, update_sheet, read_sheet
 from .manage import update_campaign, process_form
 from .api import onboard_login, onboarding, get_insight, get_audience, get_posts
+from .sheets import create_sheet, update_sheet, read_sheet
 import json
 from os import environ
+# from pprint import pprint
 
 DEPLOYED_URL = environ.get('DEPLOYED_URL')
 LOCAL_URL = 'http://127.0.0.1:8080'
@@ -60,7 +61,7 @@ def create_app(config, debug=False, testing=False, config_overrides=None):
         if not Model:
             return f"No such route: {mod}", 404
         count = developer_admin.save(mod, id, Model)
-        print(f"We just backed up {count} model(s)")
+        app.logger.info(f"We just backed up {count} model(s)")
         return redirect(url_for('view', mod='user', id=id))
 
     @app.route('/data/update/<string:id>')
@@ -88,14 +89,15 @@ def create_app(config, debug=False, testing=False, config_overrides=None):
 
     @app.route('/login')
     def login():
-        print('============================= NEW LOGIN ================================')
+        app.logger.info('============================= NEW LOGIN ================================')
         authorization_url = onboard_login(URL)
         return redirect(authorization_url)
 
     @app.route('/callback')
     def callback():
-        print('========================== Authorization Callback =============================')
+        app.logger.info('========================== Authorization Callback =============================')
         view, data, user_id = onboarding(URL, request)
+        # TODO: The following should be cleaned up with better error handling
         if view == 'decide':
             return render_template('decide_ig.html', mod='user', id=user_id, ig_list=data)
         elif view == 'complete':
@@ -108,30 +110,25 @@ def create_app(config, debug=False, testing=False, config_overrides=None):
     @app.route('/campaign/<int:id>/detail', methods=['GET', 'POST'])
     def detail_campaign(id):
         """ Used because campaign function over-rides route for detail view """
-        mod, view = 'campaign', 'results'
-        template, related = f"{mod}.html", {}
-        Model = mod_lookup.get(mod, None)
-        model = Model.query.get(id)
-        print('=========== Campaign Results ===========')
-        if request.method == 'POST':
-            update_campaign(view, request)
-        for user in model.users:
-            related[user] = [ea for ea in user.posts if ea.campaign_id == id]
-            print(len(related[user]))
-        return render_template(template, mod=mod, view=view, data=model, related=related)
+        return campaign(id, view='results')
 
     @app.route('/campaign/<int:id>', methods=['GET', 'POST'])
-    def campaign(id):
-        mod, view = 'campaign', 'management'
+    def campaign(id, view='management'):
+        # mod, view = 'campaign', 'management'
+        mod = 'campaign'
         template, related = f"{mod}.html", {}
         Model = mod_lookup.get(mod, None)
         model = Model.query.get(id)
-        print('=========== Managing Campaign Posts ===========')
+        app.logger.info(f'=========== Campaign {view} ===========')
         if request.method == 'POST':
             update_campaign(view, request)
         for user in model.users:
-            related[user] = [ea for ea in user.posts if not ea.processed]
-            print(len(related[user]))
+            if view == 'results':
+                related[user] = [ea for ea in user.posts if ea.campaign_id == id]
+            elif view == 'management':
+                related[user] = [ea for ea in user.posts if not ea.processed]
+            else:
+                related[user] = []
         return render_template(template, mod=mod, view=view, data=model, related=related)
 
     @app.route('/<string:mod>/<int:id>')
@@ -195,21 +192,24 @@ def create_app(config, debug=False, testing=False, config_overrides=None):
     def new_audience(mod, id):
         """ Get new audience data from API. Input mod for either User or Brand, with given id. """
         audience = get_audience(id)
-        print(f'Audience data for {mod} - {id} ') if audience else (f'No insight data, {mod}')
+        logstring = f'Audience data for {mod} - {id}' if audience else f'No insight data, {mod}'
+        app.logger.info(logstring)
         return redirect(url_for('view', mod=mod, id=id))
 
     @app.route('/<string:mod>/<int:id>/fetch')
     def new_insight(mod, id):
         """ Get new account insight data from API. Input mod for either User or Brand, with given id. """
         insights = get_insight(id)
-        print(f'Insight data for {mod} - {id} ') if insights else (f'No insight data, {mod}')
+        logstring = f'Insight data for {mod} - {id} ' if insights else f'No insight data, {mod}'
+        app.logger.info(logstring)
         return redirect(url_for('insights', mod=mod, id=id))
 
     @app.route('/<string:mod>/<int:id>/posts')
     def new_post(mod, id):
         """ Get new posts data from API. Input mod for either User or Brand, with a given id"""
         posts = get_posts(id)
-        print('we got some posts back') if len(posts) else print('No posts retrieved')
+        logstring = 'we got some posts back' if len(posts) else 'No posts retrieved'
+        app.logger.info(logstring)
         return_path = request.referrer
         return redirect(return_path)
         # return redirect(url_for('view', mod=mod, id=id))
@@ -221,7 +221,7 @@ def create_app(config, debug=False, testing=False, config_overrides=None):
         if not Model:
             return f"No such route: {mod}", 404
         if request.method == 'POST':
-            print('--------- add ------------')
+            app.logger.info(f'--------- add {mod}------------')
             data = process_form(mod, request)
             model = model_db.create(data, Model=Model)
             return redirect(url_for('view', mod=mod, id=model['id']))
@@ -243,7 +243,7 @@ def create_app(config, debug=False, testing=False, config_overrides=None):
         if not Model:
             return f"No such route: {mod}", 404
         if request.method == 'POST':
-            print('--------- edit ------------')
+            app.logger.info(f'--------- edit {mod}------------')
             data = process_form(mod, request)
             model = model_db.update(data, id, Model=Model)
             return redirect(url_for('view', mod=mod, id=model['id']))
@@ -291,9 +291,8 @@ def create_app(config, debug=False, testing=False, config_overrides=None):
     # applications.
     @app.errorhandler(500)
     def server_error(e):
-        print('================== Error Handler =====================')
-        print(e)
-        print('================== End Error Handler =================')
+        app.logger.error('================== Error Handler =====================')
+        app.logger.error(e)
         return """
         An internal error occurred: <pre>{}</pre>
         See logs for full stacktrace.
