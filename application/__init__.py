@@ -1,4 +1,4 @@
-# import logging
+import logging
 from flask import Flask, render_template, abort, request, redirect, url_for  # , current_app
 from . import model_db
 from . import developer_admin
@@ -7,7 +7,6 @@ from .api import onboard_login, onboarding, get_insight, get_audience, get_posts
 from .sheets import create_sheet, update_sheet, read_sheet
 import json
 from os import environ
-# from pprint import pprint
 
 DEPLOYED_URL = environ.get('DEPLOYED_URL')
 LOCAL_URL = 'http://127.0.0.1:8080'
@@ -28,9 +27,9 @@ def create_app(config, debug=False, testing=False, config_overrides=None):
     app.testing = testing
     if config_overrides:
         app.config.update(config_overrides)
-    # # Configure logging
-    # if not app.testing:
-    #     logging.basicConfig(level=logging.INFO)
+    # Configure logging
+    if not app.testing:
+        logging.basicConfig(level=logging.INFO)
     # Setup the data model.
     with app.app_context():
         model = model_db

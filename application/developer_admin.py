@@ -38,4 +38,3 @@ def save(mod, id, Model):
         file.write('\n')
         count += 1
     return count
-    
