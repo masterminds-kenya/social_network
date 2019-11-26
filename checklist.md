@@ -231,6 +231,7 @@ Current Status:
 
 - [x] Setup a real influencer (Noelle Reno) as a confirmed tester.
 - [x] Have real influencer (Noelle Reno) sign up for testing.
+- [ ] Modularize the codebase
 - [ ] Update forms and API digesting with input validation to replace following functionality:
   - [ ] Currently fix_date used for both create model, and when create_or_update many
   - [ ] Currently create_or_update_many also has to modify inputs from Audience API calls
