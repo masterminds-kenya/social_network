@@ -304,7 +304,10 @@ def create(data, Model=User):
         unique = {c.name: data.get(c.name) for c in columns if c.unique}
         pprint(unique)
         model = Model.query.filter(*[getattr(Model, key) == val for key, val in unique.items()]).one_or_none()
-        print(f'----- Instead of Create, we are using existing record with id: {model.id} -----')
+        if model:
+            print(f'----- Instead of Create, we are using existing record with id: {model.id} -----')
+        else:
+            print(f'----- Cannot create due to collision on unique fields. Cannot retrieve existing record')
     # except Exception as e:
     #     print('**************** DB CREATE Error *******************')
     #     print(e)

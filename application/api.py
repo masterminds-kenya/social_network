@@ -177,7 +177,7 @@ def onboarding(url, mod, request):
     if len(ig_list) == 1:
         ig_info = ig_list.pop()
         data['name'] = ig_info.get('username', None)
-        ig_id = ig_info.get('id')
+        ig_id = int(ig_info.get('id'))
         data['instagram_id'] = ig_id
         print('------ Only 1 InstaGram business account --------')
     else:

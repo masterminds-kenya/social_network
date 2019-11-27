@@ -2,7 +2,7 @@ import logging
 from flask import Flask, render_template, abort, request, redirect, url_for  # , current_app
 from . import model_db
 from . import developer_admin
-from .manage import update_campaign, process_form
+from .manage import update_campaign, process_form, post_display
 from .api import onboard_login, onboarding, get_insight, get_audience, get_posts
 from .sheets import create_sheet, update_sheet, read_sheet
 import json
@@ -124,11 +124,13 @@ def create_app(config, debug=False, testing=False, config_overrides=None):
             update_campaign(view, request)
         for user in model.users:
             if view == 'results':
-                related[user] = [ea for ea in user.posts if ea.campaign_id == id]
+                related[user] = [post_display(ea) for ea in user.posts if ea.campaign_id == id]
             elif view == 'management':
                 related[user] = [ea for ea in user.posts if not ea.processed]
             else:
                 related[user] = []
+        print('------------')
+        print(model)
         return render_template(template, mod=mod, view=view, data=model, related=related)
 
     @app.route('/<string:mod>/<int:id>')
@@ -142,12 +144,7 @@ def create_app(config, debug=False, testing=False, config_overrides=None):
         template = 'view.html'
         if mod == 'post':
             template = f"{mod}_{template}"
-            fields = {'id', 'user_id', 'campaign_id', 'processed', 'recorded'}
-            fields.update(Model.metrics['basic'])
-            fields.discard('timestamp')
-            fields.update(Model.metrics[model['media_type']])
-            model = {key: val for (key, val) in model.items() if key in fields}
-            # model = {key: model[key] for key in fields}
+            model = post_display(model)
         elif mod == 'audience':
             template = f"{mod}_{template}"
             model['user'] = model_db.read(model.get('user_id')).get('name')

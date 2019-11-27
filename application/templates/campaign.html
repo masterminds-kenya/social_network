@@ -1,4 +1,4 @@
-{% extends "view.html" %}
+{% extends "base.html" %}
 {% block head %}
 <title>{{ mod|title }} {{ view|title }}</title>
 {% endblock head %}
@@ -8,7 +8,7 @@
 <h1>
   {{ mod|title }} {{ view|title }} -
   {{ data.name|title|e if data.name else data.id }}
-  {% if data.brands|length > 0 %}
+  {% if data.brands|length > 1 %}
   - {{ data.brands|join(", ")|e }}
   {% elif data.brands|length > 0 %}
   - {{ data.brands[0]|e }}
@@ -16,6 +16,7 @@
   - Unassigned Brands
   {% endif %}
 </h1>
+
 <p>
   {% if view == 'management' %}<a href="{{url_for('detail_campaign', id=data.id)}}">Campaign Results</a>
   {% elif view == 'results' %}<a href="{{url_for('view', mod=mod, id=data.id)}}">Campaign Management</a>
@@ -62,6 +63,17 @@
           <p><a href="{{post.permalink}}">{{post.media_type}} | {{post.recorded}}</a></p>
           <p>{{ post.caption|e }}</p>
         </article>
+        <div class="metrics">
+        {% if view == 'results' %}
+        <ul>
+          {% for key, val in post.items() %}
+          {% if key not in ['id', 'user_id', 'campaign_id', 'processed', 'recorded', 'permalink', 'media_type', 'caption'] %}
+          <li>{{key|title}}: {{val}}</li>
+          {% endif %}
+          {% endfor %}
+        </ul>
+        {% endif %}
+        </div>
         <div class="form-group">
           <label for="accept_{{post.id}}">
           <input type="radio" id="accept_{{post.id}}" name="assign_{{post.id}}"

@@ -24,6 +24,19 @@ def update_campaign(ver, request):
     return True
 
 
+def post_display(post):
+    Model = model_db.Post
+    if isinstance(post, Model):
+        post = model_db.from_sql(post)
+    fields = {'id', 'user_id', 'campaign_id', 'processed', 'recorded'}
+    fields.update(Model.metrics['basic'])
+    fields.discard('timestamp')
+    fields.update(Model.metrics[post['media_type']])
+    model = {key: val for (key, val) in post.items() if key in fields}
+    # model = {key: model[key] for key in fields}
+    return model
+
+
 def process_form(mod, request):
     # If Model has relationship collections set in form, then we must capture these before flattening the input
     # I believe this is only needed for campaigns.
