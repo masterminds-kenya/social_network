@@ -149,7 +149,13 @@ Current Status:
 - [x] API call and store post insight metrics for Albums
 - [x] API call and store post insight metrics for Stories
 - [s] WebHook to get Stories data at completion.
-- [ ] Add a logical catch for existing users to re-route to data update
+- [x] Catch and handle attempt to create a duplicate existing User account
+- [ ] Catch and handle if a User account is trying to add an IG account already used by (another) User account
+- [ ] Catch and handle if trying to create an already existing Campaign name
+- [x] Catch and handle attempt to create a duplicate existing Brand account
+- [ ] Allow a Brand to give permissions for FB and IG.
+  - [ ] If Brand name already in system, associate with that existing record
+- [ ]
 - [x] Refactor User data collection functions to work on create and update
 - [x] Can issue new API requests for recent data for existing Influencer Users
 - [x] Admin/Marketing can connect Influencer to Brands through Campaign

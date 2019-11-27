@@ -121,12 +121,12 @@ def get_ig_info(ig_id, token=None, facebook=None):
     # profile_picture_url, username*, website*
     fields = ['username', 'followers_count', 'follows_count', 'media_count']
     fields = ','.join(fields)
-    # print('============ Get IG Info ===================')
+    print('============ Get IG Info ===================')
     if not token and not facebook:
         return "You must pass a 'token' or 'facebook' reference. "
     url = f"https://graph.facebook.com/v4.0/{ig_id}?fields={fields}"
     res = facebook.get(url).json() if facebook else requests.get(f"{url}&access_token={token}").json()
-    # pprint(res)
+    pprint(res)
     return res
 
 
@@ -145,8 +145,8 @@ def find_instagram_id(accounts, facebook=None):
     return ig_list
 
 
-def onboard_login(URL):
-    callback = URL + '/callback'
+def onboard_login(url, mod):
+    callback = url + '/callback/' + mod
     facebook = requests_oauthlib.OAuth2Session(
         FB_CLIENT_ID, redirect_uri=callback, scope=FB_SCOPE
     )
@@ -155,8 +155,8 @@ def onboard_login(URL):
     return authorization_url
 
 
-def onboarding(URL, request):
-    callback = URL + '/callback'
+def onboarding(url, mod, request):
+    callback = url + '/callback/' + mod
     facebook = requests_oauthlib.OAuth2Session(FB_CLIENT_ID, scope=FB_SCOPE, redirect_uri=callback)
     facebook = facebook_compliance_fix(facebook)  # we need to apply a fix for Facebook here
     token = facebook.fetch_token(FB_TOKEN_URL, client_secret=FB_CLIENT_SECRET, authorization_response=request.url)
@@ -183,19 +183,21 @@ def onboarding(URL, request):
     else:
         data['name'] = data.get('username', None) if 'name' not in data else data['name']
         print(f'--------- Found {len(ig_list)} potential IG accounts -----------')
-    # print('=================== Data sent to Create User =======================')
-    # pprint(data)
-    user = model_db.create(data)
-    user_id = user.get('id')
-    print('User: ', user_id)
+    print('=========== Data sent to Create User or Brand account ===============')
+    pprint(data)
+    print(mod)
+    Model = model_db.Brand if mod == 'brand' else model_db.User
+    account = model_db.create(data, Model)
+    account_id = account.get('id')
+    print('account: ', account_id)
     if ig_id:
-        # Relate Data
-        insights = get_insight(user_id, last=90, ig_id=ig_id, facebook=facebook)
-        print('We have IG account insights') if insights else print('No IG account insights')
-        audience = get_audience(user_id, ig_id=ig_id, facebook=facebook)
-        print('Audience data collected') if audience else print('No Audience data')
-        return ('complete', 0, user_id)
+        if mod == 'user':
+            # Relate Data
+            insights = get_insight(account_id, last=90, ig_id=ig_id, facebook=facebook)
+            print('We have IG account insights') if insights else print('No IG account insights')
+            audience = get_audience(account_id, ig_id=ig_id, facebook=facebook)
+            print('Audience data collected') if audience else print('No Audience data')
+        return ('complete', 0, account_id)
     else:
-        # Allow this Facebook user to select one of many of their IG business accounts
-        # TODO: The following 'mod' needs to be updated if this function is used for Brand Model
-        return ('decide', ig_list, user_id)
+        # Allow this Facebook account to select one of many of their IG business accounts
+        return ('decide', ig_list, account_id)

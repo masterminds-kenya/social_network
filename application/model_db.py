@@ -1,13 +1,14 @@
 from flask import Flask
 from flask_sqlalchemy import SQLAlchemy
 # from flask_sqlalchemy import BaseQuery, SQLAlchemy  # if we create custom query
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.dialects.mysql import BIGINT
 from sqlalchemy import or_
 from datetime import datetime as dt
 from dateutil import parser
 import re
 import json
-# from pprint import pprint  # only for debugging
+from pprint import pprint  # only for debugging
 # TODO: see "Setting up Constraints when using the Declarative ORM Extension" at https://docs.sqlalchemy.org/en/13/core/constraints.html#unique-constraint
 
 db = SQLAlchemy()
@@ -26,10 +27,9 @@ def fix_date(Model, data):
 
 
 def init_app(app):
-    # Disable track modifications, as it unnecessarily uses memory.
-    app.config.setdefault('SQLALCHEMY_TRACK_MODIFICATIONS', False)
-    # app.config.setdefault('SQLALCHEMY_ECHO', True)
-    # app.config['MYSQL_DATABASE_CHARSET'] = 'utf8mb4'
+    app.config.setdefault('SQLALCHEMY_TRACK_MODIFICATIONS', False)  # Disabled since it unnecessary uses memory
+    # app.config.setdefault('SQLALCHEMY_ECHO', True)  # Turns on A LOT of logging.
+    # app.config['MYSQL_DATABASE_CHARSET'] = 'utf8mb4'  # Perhaps already set by default in MySQL
     db.init_app(app)
 
 
@@ -75,6 +75,16 @@ class Brand(db.Model):
     # # campaigns = backref from Campaign.brands  with lazy='dynamic'
     UNSAFE = {'token', 'token_expires', 'modified', 'created'}
 
+    def __init__(self, *args, **kwargs):
+        kwargs['facebook_id'] = kwargs.pop('id') if 'facebook_id' not in kwargs and 'id' in kwargs else None
+        kwargs['name'] = kwargs.pop('username', kwargs.get('name'))
+        if 'token_expires' not in kwargs and 'token' in kwargs:
+            # modifications for parsing data from api call
+            token_expires = kwargs['token'].get('token_expires', None)
+            kwargs['token_expires'] = dt.fromtimestamp(token_expires) if token_expires else None
+            kwargs['token'] = kwargs['token'].get('access_token', None)
+        super().__init__(*args, **kwargs)
+
     def __str__(self):
         return f"{self.name}"
 
@@ -87,10 +97,15 @@ class User(db.Model):
         Assumes only 1 Instagram per user, and it must be a business account.
         They must have a Facebook Page connected to their business Instagram account.
     """
+    # TYPES = [
+    #     ('influencer', 'Influencer'),
+    #     ('brand', 'Brand')
+    # ]
     __tablename__ = 'users'
 
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(47),                 index=False, unique=False, nullable=True)
+    # account = db.Column(db.ChoiceType(TYPES))
     instagram_id = db.Column(BIGINT(unsigned=True), index=True,  unique=True,  nullable=True)
     facebook_id = db.Column(BIGINT(unsigned=True),  index=False, unique=False, nullable=True)
     token = db.Column(db.String(255),               index=False, unique=False, nullable=True)
@@ -105,15 +120,13 @@ class User(db.Model):
     UNSAFE = {'token', 'token_expires', 'modified', 'created'}
 
     def __init__(self, *args, **kwargs):
-        had_admin = kwargs.pop('admin', None)
-        if had_admin:
-            print("Source data had an 'admin' parameter that may need to be removed")
         kwargs['facebook_id'] = kwargs.pop('id') if 'facebook_id' not in kwargs and 'id' in kwargs else None
         kwargs['name'] = kwargs.pop('username', kwargs.get('name'))
-        if 'token_expires' not in kwargs:
-            # making a user from api call
-            kwargs['token_expires'] = dt.fromtimestamp(kwargs['token'].get('token_expires')) if 'token' in kwargs and kwargs['token'].get('token_expires') else None
-            kwargs['token'] = kwargs['token'].get('access_token') if 'token' in kwargs and kwargs['token'] else None
+        if 'token_expires' not in kwargs and 'token' in kwargs:
+            # modifications for parsing data from api call
+            token_expires = kwargs['token'].get('token_expires', None)
+            kwargs['token_expires'] = dt.fromtimestamp(token_expires) if token_expires else None
+            kwargs['token'] = kwargs['token'].get('access_token', None)
         super().__init__(*args, **kwargs)
 
     def __str__(self):
@@ -150,7 +163,7 @@ class Insight(db.Model):
 
 class Audience(db.Model):
     """ Data model for current information about the user's audience. """
-    # TODO: Refactor to parse out the age groups and gender groups
+    # TODO: If this data not taken over by Neo4j, then refactor to parse out the age groups and gender groups
     __tablename__ = 'audiences'
     __table_args__ = (db.UniqueConstraint('user_id', 'recorded', 'name', name='uq_audiences_recorded_name'),)
 
@@ -263,12 +276,6 @@ class Campaign(db.Model):
     UNSAFE = {''}
 
     def __init__(self, *args, **kwargs):
-        # print('============ Campaign constructor ============')
-        # print(kwargs)
-        # user_id = kwargs.pop('users', None)
-        # brand_id = kwargs.pop('brands', None)
-        # save related fields
-        # print(f"Users: {user_id}, Brands: {brand_id}")
         kwargs['completed'] = True if kwargs.get('completed') in {'on', True} else False
         super().__init__(*args, **kwargs)
 
@@ -281,6 +288,78 @@ class Campaign(db.Model):
         name = self.name if self.name else self.id
         brands = ', '.join([brand.name for brand in self.brands]) if self.brands else ['NA']
         return '<Campaign: {} | Brands: {} >'.format(name, brands)
+
+
+def create(data, Model=User):
+    try:
+        model = Model(**data)
+        db.session.add(model)
+        db.session.commit()
+    except IntegrityError as error:
+        # most likely only happening on Brand, User, or Campaign
+        print('----------- IntegrityError Condition -------------------')
+        pprint(error)
+        db.session.rollback()
+        columns = Model.__table__.columns
+        unique = {c.name: data.get(c.name) for c in columns if c.unique}
+        pprint(unique)
+        model = Model.query.filter(*[getattr(Model, key) == val for key, val in unique.items()]).one_or_none()
+        print(f'----- Instead of Create, we are using existing record with id: {model.id} -----')
+    # except Exception as e:
+    #     print('**************** DB CREATE Error *******************')
+    #     print(e)
+    results = from_sql(model)
+    safe_results = {k: results[k] for k in results.keys() - Model.UNSAFE}
+    return safe_results
+
+
+def read(id, Model=User, safe=True):
+    model = Model.query.get(id)
+    if not model:
+        return None
+    results = from_sql(model)
+    safe_results = {k: results[k] for k in results.keys() - Model.UNSAFE}
+    output = safe_results if safe else results
+    if Model == User:
+        if len(model.insights) > 0:
+            output['insight'] = True
+        if len(model.audiences) > 0:
+            output['audience'] = [from_sql(ea) for ea in model.audiences]
+    return output
+
+
+def update(data, id, Model=User):
+    # Any checkbox field should have been prepared by process_form()
+    model = Model.query.get(id)
+    for k, v in data.items():
+        setattr(model, k, v)
+    db.session.commit()
+    results = from_sql(model)
+    safe_results = {k: results[k] for k in results.keys() - Model.UNSAFE}
+    return safe_results
+
+
+def delete(id, Model=User):
+    Model.query.filter_by(id=id).delete()
+    db.session.commit()
+
+
+def all(Model=User):
+    sort_field = Model.name if hasattr(Model, 'name') else Model.id
+    query = (Model.query.order_by(sort_field))
+    models = query.all()
+    return models
+
+
+def create_many(dataset, Model=User):
+    """ Currently only used for temporary developer_admin function """
+    all_results = []
+    for data in dataset:
+        model = Model(**data)
+        db.session.add(model)
+        all_results.append(model)
+    db.session.commit()
+    return [from_sql(ea) for ea in all_results]
 
 
 def create_or_update_many(dataset, user_id=None, Model=Post):
@@ -366,70 +445,8 @@ def create_or_update_many(dataset, user_id=None, Model=Post):
     return [from_sql(ea) for ea in all_results]
 
 
-def create(data, Model=User):
-    try:
-        model = Model(**data)
-        db.session.add(model)
-        db.session.commit()
-    except Exception as e:
-        print('**************** DB CREATE Error *******************')
-        print(e)
-    results = from_sql(model)
-    safe_results = {k: results[k] for k in results.keys() - Model.UNSAFE}
-    return safe_results
-
-
-def read(id, Model=User, safe=True):
-    model = Model.query.get(id)
-    if not model:
-        return None
-    results = from_sql(model)
-    safe_results = {k: results[k] for k in results.keys() - Model.UNSAFE}
-    output = safe_results if safe else results
-    if Model == User:
-        if len(model.insights) > 0:
-            output['insight'] = True
-        if len(model.audiences) > 0:
-            output['audience'] = [from_sql(ea) for ea in model.audiences]
-    return output
-
-
-def update(data, id, Model=User):
-    # Any checkbox field should have been prepared by process_form()
-    model = Model.query.get(id)
-    for k, v in data.items():
-        setattr(model, k, v)
-    db.session.commit()
-    results = from_sql(model)
-    safe_results = {k: results[k] for k in results.keys() - Model.UNSAFE}
-    return safe_results
-
-
-def delete(id, Model=User):
-    Model.query.filter_by(id=id).delete()
-    db.session.commit()
-
-
-def all(Model=User):
-    sort_field = Model.name if hasattr(Model, 'name') else Model.id
-    query = (Model.query.order_by(sort_field))
-    models = query.all()
-    return models
-
-
-def create_many(dataset, Model=User):
-    """ Currently only used for temporary developer_admin function """
-    all_results = []
-    for data in dataset:
-        model = Model(**data)
-        db.session.add(model)
-        all_results.append(model)
-    db.session.commit()
-    return [from_sql(ea) for ea in all_results]
-
-
 def _create_database():
-    """ Currently only works if we do not need to drop the tables before creating them """
+    """ May currently only work if we do not need to drop the tables before creating them """
     app = Flask(__name__)
     app.config.from_pyfile('../config.py')
     init_app(app)

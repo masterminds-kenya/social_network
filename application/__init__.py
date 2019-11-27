@@ -10,6 +10,7 @@ from os import environ
 
 DEPLOYED_URL = environ.get('DEPLOYED_URL')
 LOCAL_URL = 'http://127.0.0.1:8080'
+# URL, LOCAL_ENV = '', ''
 if environ.get('GAE_INSTANCE'):
     URL = DEPLOYED_URL
     LOCAL_ENV = False
@@ -86,21 +87,21 @@ def create_app(config, debug=False, testing=False, config_overrides=None):
         link = '' if id == 0 else f"https://docs.google.com/spreadsheets/d/{id}/edit#gid=0"
         return render_template('data.html', data=spreadsheet, id=id, link=link)
 
-    @app.route('/login')
-    def login():
-        app.logger.info('============================= NEW LOGIN ================================')
-        authorization_url = onboard_login(URL)
+    @app.route('/login/<string:mod>')
+    def login(mod):
+        app.logger.info(f'====================== NEW {mod} Account =========================')
+        authorization_url = onboard_login(URL, mod)
         return redirect(authorization_url)
 
-    @app.route('/callback')
-    def callback():
-        app.logger.info('========================== Authorization Callback =============================')
-        view, data, user_id = onboarding(URL, request)
+    @app.route('/callback/<string:mod>')
+    def callback(mod):
+        app.logger.info(f'================= Authorization Callback {mod}===================')
+        view, data, account_id = onboarding(URL, mod, request)
         # TODO: The following should be cleaned up with better error handling
         if view == 'decide':
-            return render_template('decide_ig.html', mod='user', id=user_id, ig_list=data)
+            return render_template('decide_ig.html', mod=mod, id=account_id, ig_list=data)
         elif view == 'complete':
-            return redirect(url_for('view', mod='user', id=user_id))
+            return redirect(url_for('view', mod=mod, id=account_id))
         elif view == 'error':
             return redirect(url_for('error', data=data), code=307)
         else:
@@ -285,9 +286,7 @@ def create_app(config, debug=False, testing=False, config_overrides=None):
             return abort(404)
         return render_template('%s.html' % page_name)
 
-    # Add an error handler. This is useful for debugging the live application,
-    # however, you should disable the output of the exception for production
-    # applications.
+    # TODO: For production, the output of the error should be disabled.
     @app.errorhandler(500)
     def server_error(e):
         app.logger.error('================== Error Handler =====================')
