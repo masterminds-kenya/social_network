@@ -2,7 +2,7 @@ import logging
 from flask import Flask, render_template, abort, request, redirect, url_for  # , current_app
 from . import model_db
 from . import developer_admin
-from .manage import update_campaign, process_form
+from .manage import update_campaign, process_form, post_display
 from .api import onboard_login, onboarding, get_insight, get_audience, get_posts
 from .sheets import create_sheet, update_sheet, read_sheet
 import json
@@ -10,6 +10,7 @@ from os import environ
 
 DEPLOYED_URL = environ.get('DEPLOYED_URL')
 LOCAL_URL = 'http://127.0.0.1:8080'
+# URL, LOCAL_ENV = '', ''
 if environ.get('GAE_INSTANCE'):
     URL = DEPLOYED_URL
     LOCAL_ENV = False
@@ -86,21 +87,21 @@ def create_app(config, debug=False, testing=False, config_overrides=None):
         link = '' if id == 0 else f"https://docs.google.com/spreadsheets/d/{id}/edit#gid=0"
         return render_template('data.html', data=spreadsheet, id=id, link=link)
 
-    @app.route('/login')
-    def login():
-        app.logger.info('============================= NEW LOGIN ================================')
-        authorization_url = onboard_login(URL)
+    @app.route('/login/<string:mod>')
+    def login(mod):
+        app.logger.info(f'====================== NEW {mod} Account =========================')
+        authorization_url = onboard_login(URL, mod)
         return redirect(authorization_url)
 
-    @app.route('/callback')
-    def callback():
-        app.logger.info('========================== Authorization Callback =============================')
-        view, data, user_id = onboarding(URL, request)
+    @app.route('/callback/<string:mod>')
+    def callback(mod):
+        app.logger.info(f'================= Authorization Callback {mod}===================')
+        view, data, account_id = onboarding(URL, mod, request)
         # TODO: The following should be cleaned up with better error handling
         if view == 'decide':
-            return render_template('decide_ig.html', mod='user', id=user_id, ig_list=data)
+            return render_template('decide_ig.html', mod=mod, id=account_id, ig_list=data)
         elif view == 'complete':
-            return redirect(url_for('view', mod='user', id=user_id))
+            return redirect(url_for('view', mod=mod, id=account_id))
         elif view == 'error':
             return redirect(url_for('error', data=data), code=307)
         else:
@@ -123,11 +124,13 @@ def create_app(config, debug=False, testing=False, config_overrides=None):
             update_campaign(view, request)
         for user in model.users:
             if view == 'results':
-                related[user] = [ea for ea in user.posts if ea.campaign_id == id]
+                related[user] = [post_display(ea) for ea in user.posts if ea.campaign_id == id]
             elif view == 'management':
                 related[user] = [ea for ea in user.posts if not ea.processed]
             else:
                 related[user] = []
+        print('------------')
+        print(model)
         return render_template(template, mod=mod, view=view, data=model, related=related)
 
     @app.route('/<string:mod>/<int:id>')
@@ -141,12 +144,7 @@ def create_app(config, debug=False, testing=False, config_overrides=None):
         template = 'view.html'
         if mod == 'post':
             template = f"{mod}_{template}"
-            fields = {'id', 'user_id', 'campaign_id', 'processed', 'recorded'}
-            fields.update(Model.metrics['basic'])
-            fields.discard('timestamp')
-            fields.update(Model.metrics[model['media_type']])
-            model = {key: val for (key, val) in model.items() if key in fields}
-            # model = {key: model[key] for key in fields}
+            model = post_display(model)
         elif mod == 'audience':
             template = f"{mod}_{template}"
             model['user'] = model_db.read(model.get('user_id')).get('name')
@@ -285,9 +283,7 @@ def create_app(config, debug=False, testing=False, config_overrides=None):
             return abort(404)
         return render_template('%s.html' % page_name)
 
-    # Add an error handler. This is useful for debugging the live application,
-    # however, you should disable the output of the exception for production
-    # applications.
+    # TODO: For production, the output of the error should be disabled.
     @app.errorhandler(500)
     def server_error(e):
         app.logger.error('================== Error Handler =====================')

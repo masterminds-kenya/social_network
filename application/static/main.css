@@ -103,21 +103,27 @@ h4, h5, h6{
   display: flex;
   flex-direction: column;
   justify-content: flex-end;
+  order: 1;
   padding: 1rem;
 }
-
 .posts .form-group label {
   white-space: nowrap;
   width: -webkit-max-content;
   width: -moz-max-content;
   width: max-content;
   padding: .2rem 0;
-  order: 1;
 }
+
 .posts article {
   flex-basis: 100%;
   order: 2;
 }
+.posts .metrics {
+  padding: 0 1rem;
+  white-space: nowrap;
+  order: 3;
+}
+
 button {
   border-top: 1px solid #939fef;
   background: #7583dc;
