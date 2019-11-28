@@ -33,18 +33,23 @@ def init_app(app):
     db.init_app(app)
 
 
-def from_sql(row):
+def from_sql(row, related=False, safe=False):
     """ Translates a SQLAlchemy model instance into a dictionary """
     data = row.__dict__.copy()
     data['id'] = row.id
-    # TODO: The following could help include related Models
-    # print('============= from_sql ===================')
-    # rel = row.__mapper__.relationships
-    # all = row.__mapper__
-    # print(dir(rel))
+    print('============= from_sql ===================')
+    print(row.__class__)
+    if related:
+        rel = row.__mapper__.relationships
+        print(rel)
+        # print(dir(rel))
     temp = data.pop('_sa_instance_state', None)
     if not temp:
         print('Not a model instance!')
+    if safe:
+        Model = row.__class__
+        data = {k: data[k] for k in data.keys() - Model.UNSAFE}
+
     # TODO: ? Move the cleaning for safe results to this function?
     return data
 

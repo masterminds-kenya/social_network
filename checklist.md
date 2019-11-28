@@ -184,7 +184,7 @@ Current Status:
     - [x] Campaign form elements nicely on the side of post details
     - [x] Can view already assigned posts and reprocess them - see Campaign Detail
 - [s] ?Influencer can create a Campaign to connect to Brand?
-- [x] Campaign Detail View w/ assigned posts
+- [x] Campaign Collection - Detail View w/ assigned posts
   - [ ] ?Decide if it should show more metrics or results?
   - [ ] ?Update link text from Management page, currently says "Campaign Results"?
   - [x] can view all posts currently assigned to this campaign
@@ -192,6 +192,8 @@ Current Status:
   - [x] Can remove from campaign & back in cue to decide later (marked unprocessed)
   - [x] Can remove to campaign and remove for consideration (marked processed)
   - [x] Will be left with current settings if unchanged when other posts modified
+- [ ] Campaign Results View
+  - [ ] Overview of the campaign metrics
 - [ ] Functionality to Fetch more posts (API call to FB)
   - [x] Can request more posts for a given user
   - [x] redirect back to the page/view that called to get more posts

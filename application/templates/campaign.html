@@ -18,9 +18,10 @@
 </h1>
 
 <p>
-  {% if view == 'management' %}<a href="{{url_for('detail_campaign', id=data.id)}}">Campaign Results</a>
-  {% elif view == 'results' %}<a href="{{url_for('view', mod=mod, id=data.id)}}">Campaign Management</a>
-  {% endif %} |
+  {% if view != 'collected' %}<a href="{{url_for('detail_campaign', id=data.id)}}">Collected Posts</a> |
+  {% elif view != 'management' %}<a href="{{url_for('view', mod=mod, id=data.id)}}">Campaign Management</a> |
+  {% elif view != 'results' %}<a href="{{url_for('results', id=data.id)}}">Campaign Results</a> |
+  {% endif %}
   Last Updated on {{data.modified}} |
   {%if completed%}Finished Campaign{%else%}Active Campaign{%endif%} |
   <a href="{{ url_for('edit', mod=mod, id=data.id) }}">Change Campaign Settings</a>
@@ -64,7 +65,7 @@
           <p>{{ post.caption|e }}</p>
         </article>
         <div class="metrics">
-        {% if view == 'results' %}
+        {% if view == 'collected' %}
         <ul>
           {% for key, val in post.items() %}
           {% if key not in ['id', 'user_id', 'campaign_id', 'processed', 'recorded', 'permalink', 'media_type', 'caption'] %}
@@ -78,7 +79,7 @@
           <label for="accept_{{post.id}}">
           <input type="radio" id="accept_{{post.id}}" name="assign_{{post.id}}"
             {% if view == 'management' %} value="{{data.id}}"
-            {% elif view == 'results' %} value="0" checked
+            {% elif view == 'collected' %} value="0" checked
             {% endif %} >
           Campaign
           </label>
@@ -90,7 +91,7 @@
           <label for="ignore_{{post.id}}">
           <input type="radio" id="ignore_{{post.id}}" name="assign_{{post.id}}"
             {% if view == 'management' %} value="0" checked
-            {% elif view == 'results' %} value="-2"
+            {% elif view == 'collected' %} value="-2"
             {% endif %} >
           Skip
           </label>

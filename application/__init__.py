@@ -1,5 +1,5 @@
 import logging
-from flask import Flask, render_template, abort, request, redirect, url_for  # , current_app
+from flask import Flask, render_template, abort, request, flash, redirect, url_for  # , current_app
 from . import model_db
 from . import developer_admin
 from .manage import update_campaign, process_form, post_display
@@ -19,6 +19,24 @@ else:
     URL = LOCAL_URL
     LOCAL_ENV = True
 mod_lookup = {'brand': model_db.Brand, 'user': model_db.User, 'insight': model_db.Insight, 'audience': model_db.Audience, 'post': model_db.Post, 'campaign': model_db.Campaign}
+
+
+class Result:
+    """ used for campaign results """
+
+    def __init__(self, media_type=None, metrics=set()):
+        self.media_type = media_type
+        self.posts = []
+        self.metrics = Result.lookup_metrics[self.media_type]
+
+    @staticmethod
+    def define_metrics():
+        rejected = {'insight', 'basic'}
+        added = {'comments_count', 'like_count'}
+        metrics = {k: v.extend(added) for k, v in model_db.Post.metrics.items() if k not in rejected}
+        return metrics
+
+    lookup_metrics = define_metrics()
 
 
 def create_app(config, debug=False, testing=False, config_overrides=None):
@@ -107,10 +125,26 @@ def create_app(config, debug=False, testing=False, config_overrides=None):
         else:
             return redirect(url_for('error', data='unknown response'), code=307)
 
+    @app.route('/campaign/<int:id>/results')
+    def results(id):
+        mod, view = 'campaign', 'results'
+        template, related = f"{mod}.html", {}
+        Model = mod_lookup.get(mod, None)
+        campaign = Model.query.get(id)
+        app.logger.info(f'=========== Campaign {view} ===========')
+        rejected = {'insight', 'basic'}
+        added = {'comments_count', 'like_count'}
+        lookup = {k: v.extend(added) for k, v in model_db.Post.metrics.items() if k not in rejected}
+        related = {key: {'posts': [], 'metrics': lookup[key]} for key in lookup}
+        for post in campaign.posts:
+            media_type = post.media_type
+            related[media_type]['posts'].append(post)
+        return render_template(template, mod=mod, view=view, data=campaign, related=related)
+
     @app.route('/campaign/<int:id>/detail', methods=['GET', 'POST'])
     def detail_campaign(id):
         """ Used because campaign function over-rides route for detail view """
-        return campaign(id, view='results')
+        return campaign(id, view='collected')
 
     @app.route('/campaign/<int:id>', methods=['GET', 'POST'])
     def campaign(id, view='management'):
@@ -123,7 +157,7 @@ def create_app(config, debug=False, testing=False, config_overrides=None):
         if request.method == 'POST':
             update_campaign(view, request)
         for user in model.users:
-            if view == 'results':
+            if view == 'collected':
                 related[user] = [post_display(ea) for ea in user.posts if ea.campaign_id == id]
             elif view == 'management':
                 related[user] = [ea for ea in user.posts if not ea.processed]
