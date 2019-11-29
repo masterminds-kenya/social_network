@@ -149,13 +149,17 @@ Current Status:
 - [x] API call and store post insight metrics for Albums
 - [x] API call and store post insight metrics for Stories
 - [s] WebHook to get Stories data at completion.
-- [x] Catch and handle attempt to create a duplicate existing User account
-- [ ] Catch and handle if a User account is trying to add an IG account already used by (another) User account
-- [ ] Catch and handle if trying to create an already existing Campaign name
-- [x] Catch and handle attempt to create a duplicate existing Brand account
+
+- [ ] Decide approach: A) typical form validation & stop submission of existing or B) use existing record.
+  - [ ] If form validate approach, setup user experience that they can select existing record
+  - [ ] If incoming form (or API user/brand) already exists, use existing instead of create new:
+    - [x] Catch and handle attempt to create a duplicate existing User account
+    - [ ] Catch and handle if a User account is trying to add an IG account already used by (another) User account
+    - [ ] Catch and handle if trying to create an already existing Campaign name
+    - [x] Catch and handle attempt to create a duplicate existing Brand account
 - [ ] Allow a Brand to give permissions for FB and IG.
   - [ ] If Brand name already in system, associate with that existing record
-- [ ]
+  - [ ] exactly how this works depends on approach A or B for how to handle validation w/ existing records
 - [x] Refactor User data collection functions to work on create and update
 - [x] Can issue new API requests for recent data for existing Influencer Users
 - [x] Admin/Marketing can connect Influencer to Brands through Campaign

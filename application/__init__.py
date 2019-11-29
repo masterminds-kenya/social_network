@@ -254,6 +254,7 @@ def create_app(config, debug=False, testing=False, config_overrides=None):
         if request.method == 'POST':
             app.logger.info(f'--------- add {mod}------------')
             data = process_form(mod, request)
+            # TODO: ?Check for failing unique column fields, or failing composite unique requirements?
             model = model_db.create(data, Model=Model)
             return redirect(url_for('view', mod=mod, id=model['id']))
         # template = f"{mod}_form.html"
