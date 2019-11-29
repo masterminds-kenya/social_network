@@ -21,22 +21,21 @@ else:
 mod_lookup = {'brand': model_db.Brand, 'user': model_db.User, 'insight': model_db.Insight, 'audience': model_db.Audience, 'post': model_db.Post, 'campaign': model_db.Campaign}
 
 
-class Result:
-    """ used for campaign results """
+# class Result:
+#     """ used for campaign results """
+#     def __init__(self, media_type=None, metrics=set()):
+#         self.media_type = media_type
+#         self.posts = []
+#         self.metrics = Result.lookup_metrics[self.media_type]
 
-    def __init__(self, media_type=None, metrics=set()):
-        self.media_type = media_type
-        self.posts = []
-        self.metrics = Result.lookup_metrics[self.media_type]
+#     @staticmethod
+#     def define_metrics():
+#         rejected = {'insight', 'basic'}
+#         added = {'comments_count', 'like_count'}
+#         metrics = {k: v.extend(added) for k, v in model_db.Post.metrics.items() if k not in rejected}
+#         return metrics
 
-    @staticmethod
-    def define_metrics():
-        rejected = {'insight', 'basic'}
-        added = {'comments_count', 'like_count'}
-        metrics = {k: v.extend(added) for k, v in model_db.Post.metrics.items() if k not in rejected}
-        return metrics
-
-    lookup_metrics = define_metrics()
+#     lookup_metrics = define_metrics()
 
 
 def create_app(config, debug=False, testing=False, config_overrides=None):

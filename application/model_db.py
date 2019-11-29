@@ -1,4 +1,4 @@
-from flask import Flask
+from flask import Flask, flash
 from flask_sqlalchemy import SQLAlchemy
 # from flask_sqlalchemy import BaseQuery, SQLAlchemy  # if we create custom query
 from sqlalchemy.exc import IntegrityError
@@ -311,6 +311,7 @@ def create(data, Model=User):
         model = Model.query.filter(*[getattr(Model, key) == val for key, val in unique.items()]).one_or_none()
         if model:
             print(f'----- Instead of Create, we are using existing record with id: {model.id} -----')
+            flash(f"A {Model.__name__} like that already exists. Instead of creating a new one, we are using the existing one")
         else:
             print(f'----- Cannot create due to collision on unique fields. Cannot retrieve existing record')
     # except Exception as e:
