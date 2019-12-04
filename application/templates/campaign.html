@@ -18,10 +18,9 @@
 </h1>
 
 <p>
-  {% if view != 'collected' %}<a href="{{url_for('detail_campaign', id=data.id)}}">Collected Posts</a> |
-  {% elif view != 'management' %}<a href="{{url_for('view', mod=mod, id=data.id)}}">Campaign Management</a> |
-  {% elif view != 'results' %}<a href="{{url_for('results', id=data.id)}}">Campaign Results</a> |
-  {% endif %}
+  {% if view != 'collected' %}<a href="{{url_for('detail_campaign', id=data.id)}}">Collected Posts</a> | {% endif %}
+  {% if view != 'management' %}<a href="{{url_for('view', mod=mod, id=data.id)}}">Campaign Management</a> | {% endif %}
+  {% if view != 'results' %}<a href="{{url_for('results', id=data.id)}}">Campaign Results</a> | {% endif %}
   Last Updated on {{data.modified}} |
   {%if completed%}Finished Campaign{%else%}Active Campaign{%endif%} |
   <a href="{{ url_for('edit', mod=mod, id=data.id) }}">Change Campaign Settings</a>

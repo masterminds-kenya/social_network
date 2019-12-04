@@ -1,3 +1,4 @@
+from flask import current_app as app
 from . import model_db
 import requests
 import requests_oauthlib
@@ -8,6 +9,8 @@ from datetime import timedelta
 import re
 from pprint import pprint
 
+# TODO: change to app.config.get() instead of environ.get()
+URL = app.config.get('URL')
 FB_CLIENT_ID = environ.get('FB_CLIENT_ID')
 FB_CLIENT_SECRET = environ.get('FB_CLIENT_SECRET')
 FB_AUTHORIZATION_BASE_URL = "https://www.facebook.com/dialog/oauth"
@@ -145,8 +148,8 @@ def find_instagram_id(accounts, facebook=None):
     return ig_list
 
 
-def onboard_login(url, mod):
-    callback = url + '/callback/' + mod
+def onboard_login(mod):
+    callback = URL + '/callback/' + mod
     facebook = requests_oauthlib.OAuth2Session(
         FB_CLIENT_ID, redirect_uri=callback, scope=FB_SCOPE
     )
@@ -155,8 +158,8 @@ def onboard_login(url, mod):
     return authorization_url
 
 
-def onboarding(url, mod, request):
-    callback = url + '/callback/' + mod
+def onboarding(mod, request):
+    callback = URL + '/callback/' + mod
     facebook = requests_oauthlib.OAuth2Session(FB_CLIENT_ID, scope=FB_SCOPE, redirect_uri=callback)
     facebook = facebook_compliance_fix(facebook)  # we need to apply a fix for Facebook here
     token = facebook.fetch_token(FB_TOKEN_URL, client_secret=FB_CLIENT_SECRET, authorization_response=request.url)
