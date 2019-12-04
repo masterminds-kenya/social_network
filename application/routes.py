@@ -1,5 +1,5 @@
 from flask import current_app as app
-from flask import render_template, redirect, url_for, request, abort  # , flash
+from flask import render_template, redirect, url_for, request, abort, flash
 from . import model_db
 from . import developer_admin
 from .manage import update_campaign, process_form, post_display
@@ -37,7 +37,9 @@ def backup_save(mod, id):
     if not Model:
         return f"No such route: {mod}", 404
     count = developer_admin.save(mod, id, Model)
-    app.logger.info(f"We just backed up {count} model(s)")
+    message = f"We just backed up {count} {mod} model(s)"
+    app.logger.info(message)
+    flash(message)
     return redirect(url_for('view', mod='user', id=id))
 
 
@@ -137,7 +139,7 @@ def campaign(id, view='management'):
 
 @app.route('/<string:mod>/<int:id>')
 def view(mod, id):
-    """ Used primarily for specific User or Brand views, but also any data model view. """
+    """ Used primarily for specific User or Brand views, but also any data model view except Campaign. """
     Model = mod_lookup.get(mod, None)
     if not Model:
         return f"No such route: {mod}", 404
@@ -160,6 +162,7 @@ def view(mod, id):
 @app.route('/<string:mod>/<int:id>/insights')
 def insights(mod, id):
     """ For a given User, show the account Insight data. """
+    # TODO: update to also work for Brand
     user = model_db.read(id)
     Model = model_db.Insight
     scheme_color = ['gold', 'purple', 'green']
@@ -192,6 +195,7 @@ def insights(mod, id):
 @app.route('/<string:mod>/<int:id>/audience')
 def new_audience(mod, id):
     """ Get new audience data from API. Input mod for either User or Brand, with given id. """
+    # TODO: update to also work for Brand
     audience = get_audience(id)
     logstring = f'Audience data for {mod} - {id}' if audience else f'No insight data, {mod}'
     app.logger.info(logstring)
@@ -201,6 +205,7 @@ def new_audience(mod, id):
 @app.route('/<string:mod>/<int:id>/fetch')
 def new_insight(mod, id):
     """ Get new account insight data from API. Input mod for either User or Brand, with given id. """
+    # TODO: update to also work for Brand
     insights = get_insight(id)
     logstring = f'Insight data for {mod} - {id} ' if insights else f'No insight data, {mod}'
     app.logger.info(logstring)
@@ -210,6 +215,7 @@ def new_insight(mod, id):
 @app.route('/<string:mod>/<int:id>/posts')
 def new_post(mod, id):
     """ Get new posts data from API. Input mod for either User or Brand, with a given id"""
+    # TODO: ?update to also work for Brand?
     posts = get_posts(id)
     logstring = 'we got some posts back' if len(posts) else 'No posts retrieved'
     app.logger.info(logstring)
@@ -218,53 +224,43 @@ def new_post(mod, id):
     # return redirect(url_for('view', mod=mod, id=id))
 
 
-@app.route('/<string:mod>/add', methods=['GET', 'POST'])
-def add(mod):
-    """ For a given data Model, as indicated by mod, add new data to DB. """
+def add_edit(mod, id=None):
+    """ Adding or Editing a DB record is a similar process handled here. """
+    action = 'Edit' if id else 'Add'
     Model = mod_lookup.get(mod, None)
     if not Model:
         return f"No such route: {mod}", 404
     if request.method == 'POST':
-        app.logger.info(f'--------- add {mod}------------')
+        app.logger.info(f'--------- {action} {mod}------------')
         data = process_form(mod, request)
         # TODO: ?Check for failing unique column fields, or failing composite unique requirements?
-        model = model_db.create(data, Model=Model)
+        if action == 'Edit':
+            model = model_db.update(data, id, Model=Model)
+        else:  # action == 'Add'
+            model = model_db.create(data, Model=Model)
         return redirect(url_for('view', mod=mod, id=model['id']))
-    # template = f"{mod}_form.html"
     template, related = 'form.html', {}
+    model = model_db.read(id, Model=Model) if action == 'Edit' else {}
     if mod == 'campaign':
         template = f"{mod}_{template}"
-        # TODO: Modify query to only get the id and name fields?
+        # add context for Brands and Users, only keeping id and name.
         users = model_db.User.query.all()
         brands = model_db.Brand.query.all()
         related['users'] = [(ea.id, ea.name) for ea in users]
         related['brands'] = [(ea.id, ea.name) for ea in brands]
-    return render_template(template, action='Add', mod=mod, data={}, related=related)
+    return render_template(template, action=action, mod=mod, data=model, related=related)
+
+
+@app.route('/<string:mod>/add', methods=['GET', 'POST'])
+def add(mod):
+    """ For a given data Model, as indicated by mod, add new data to DB. """
+    return add_edit(mod, id=None)
 
 
 @app.route('/<string:mod>/<int:id>/edit', methods=['GET', 'POST'])
 def edit(mod, id):
-    """ Modify the existing DB entry. Model indicated by mod, and provided DB id. """
-    Model = mod_lookup.get(mod, None)
-    if not Model:
-        return f"No such route: {mod}", 404
-    if request.method == 'POST':
-        app.logger.info(f'--------- edit {mod}------------')
-        data = process_form(mod, request)
-        model = model_db.update(data, id, Model=Model)
-        return redirect(url_for('view', mod=mod, id=model['id']))
-    model = model_db.read(id, Model=Model)
-    # template = f"{mod}_form.html"
-    template, related = 'form.html', {}
-    if mod == 'campaign':
-        template = f"{mod}_{template}"
-        # add context for Brands and Users
-        # list of all users & brands, only keep id and name.
-        users = model_db.User.query.all()
-        brands = model_db.Brand.query.all()
-        related['users'] = [(ea.id, ea.name) for ea in users]
-        related['brands'] = [(ea.id, ea.name) for ea in brands]
-    return render_template(template, action='Edit', mod=mod, data=model, related=related)
+    """ Modify the existing DB entry. Model indicated by mod, and provided record id. """
+    return add_edit(mod, id=id)
 
 
 @app.route('/<string:mod>/<int:id>/delete')
