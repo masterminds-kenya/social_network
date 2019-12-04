@@ -1,35 +1,6 @@
 import logging
 from flask import Flask  # , render_template, abort, request, flash, redirect, url_for  # , current_app
 from . import model_db
-# from os import environ
-
-# DEPLOYED_URL = environ.get('DEPLOYED_URL')
-# LOCAL_URL = 'http://127.0.0.1:8080'
-# # URL, LOCAL_ENV = '', ''
-# if environ.get('GAE_INSTANCE'):
-#     URL = DEPLOYED_URL
-#     LOCAL_ENV = False
-# else:
-#     environ["OAUTHLIB_INSECURE_TRANSPORT"] = "1"
-#     URL = LOCAL_URL
-#     LOCAL_ENV = True
-
-
-# class Result:
-#     """ used for campaign results """
-#     def __init__(self, media_type=None, metrics=set()):
-#         self.media_type = media_type
-#         self.posts = []
-#         self.metrics = Result.lookup_metrics[self.media_type]
-
-#     @staticmethod
-#     def define_metrics():
-#         rejected = {'insight', 'basic'}
-#         added = {'comments_count', 'like_count'}
-#         metrics = {k: v.extend(added) for k, v in model_db.Post.metrics.items() if k not in rejected}
-#         return metrics
-
-#     lookup_metrics = define_metrics()
 
 
 def create_app(config, debug=False, testing=False, config_overrides=None):

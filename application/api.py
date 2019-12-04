@@ -3,16 +3,14 @@ from . import model_db
 import requests
 import requests_oauthlib
 from requests_oauthlib.compliance_fixes import facebook_compliance_fix
-from os import environ
 from datetime import datetime as dt
 from datetime import timedelta
 import re
 from pprint import pprint
 
-# TODO: change to app.config.get() instead of environ.get()
 URL = app.config.get('URL')
-FB_CLIENT_ID = environ.get('FB_CLIENT_ID')
-FB_CLIENT_SECRET = environ.get('FB_CLIENT_SECRET')
+FB_CLIENT_ID = app.config.get('FB_CLIENT_ID')
+FB_CLIENT_SECRET = app.config.get('FB_CLIENT_SECRET')
 FB_AUTHORIZATION_BASE_URL = "https://www.facebook.com/dialog/oauth"
 FB_TOKEN_URL = "https://graph.facebook.com/oauth/access_token"
 FB_SCOPE = [
