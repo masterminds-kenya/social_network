@@ -9,6 +9,7 @@
   {% for media_type, obj in related.items() %}
   <section id="{{media_type}}" class="media_results">
     <h2>{{ media_type|title }} Posts</h2>
+    {% if media_type == 'common' or obj['posts']|length %}
     {% for metric, stats in obj['results'].items() %}
     <article class="{{metric}}">
       <h3>{{ metric|title }}</h3>
@@ -17,9 +18,13 @@
         {{stat|title}}: {{value}} |
         {% endfor %}
       </p>
-      <canvas id="{{media_type}}_{{metric}}" height="400px" width="1000px"></canvas>
+      <canvas id="{{media_type}}_{{metric}}" height="200px" width="450px"></canvas>
     </article>
     {% endfor %}
+    {% else %}
+    <p>There are no posts of this kind assigned to this campaign.</p>
+    {% endif %}
+    <hr />
   </section>
   {% endfor %}
 </main>
