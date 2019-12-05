@@ -102,10 +102,18 @@ def results(id):
     Model = mod_lookup.get(mod, None)
     campaign = Model.query.get(id)
     app.logger.info(f'=========== Campaign {view} ===========')
+    # construct data organization with metrics appropriate to each media type
     rejected = {'insight', 'basic'}
     added = {'comments_count', 'like_count'}
     lookup = {k: v.union(added) for k, v in Post.metrics.items() if k not in rejected}
     related = {key: {'posts': [], 'metrics': {metric_clean(el): [] for el in lookup[key]}} for key in lookup}
+    # add key for common metrics summary
+    sets_list = [set([metric_clean(el) for el in sets]) for sets in lookup.values()]
+    start = sets_list.pop()
+    common = start.intersection(*sets_list)
+    print(common)
+    related['common_metrics'] = {key: [] for key in common}
+    # populate metric lists with data from this campaign's currently assigned posts.
     for post in campaign.posts:
         media_type = post.media_type
         related[media_type]['posts'].append(post)
@@ -113,6 +121,8 @@ def results(id):
             found = getattr(post, metric)
             print(found)
             related[media_type]['metrics'][metric].append(int(getattr(post, metric)))
+            if metric in related['common_metrics']:
+                related['common_metrics'][metric].append(int(getattr(post, metric)))
     print('--------related below------------')
     pprint(related)
     return render_template(template, mod=mod, view=view, data=campaign, related=related)
