@@ -1,11 +1,11 @@
 from flask import current_app as app
-from . import model_db
+from .model_db import db_create, db_read, db_create_or_update_many
+from .model_db import metric_clean, Brand, User, Insight, Audience, Post  # , Campaign
 import requests
 import requests_oauthlib
 from requests_oauthlib.compliance_fixes import facebook_compliance_fix
 from datetime import datetime as dt
 from datetime import timedelta
-import re
 from pprint import pprint
 
 URL = app.config.get('URL')
@@ -24,9 +24,9 @@ def get_insight(user_id, first=1, last=30*3, ig_id=None, facebook=None):
     """ Practice getting some insight data with the provided facebook oauth session """
     ig_period = 'day'
     results, token = [], ''
-    insight_metric = ','.join(model_db.Insight.metrics)
+    insight_metric = ','.join(Insight.metrics)
     if not facebook or not ig_id:
-        model = model_db.read(user_id, safe=False)
+        model = db_read(user_id, safe=False)
         ig_id, token = model.get('instagram_id'), model.get('token')
     for i in range(first, last + 2 - 30, 30):
         until = dt.utcnow() - timedelta(days=i)
@@ -41,33 +41,33 @@ def get_insight(user_id, first=1, last=30*3, ig_id=None, facebook=None):
             for val in ea.get('values'):
                 val['name'], val['user_id'] = ea.get('name'), user_id
                 results.append(val)
-    return model_db.create_or_update_many(results, user_id=user_id, Model=model_db.Insight)
+    return db_create_or_update_many(results, user_id=user_id, Model=Insight)
 
 
 def get_audience(user_id, ig_id=None, facebook=None):
     """ Get the audience data for the user of user_id """
     # print('=========================== Get Audience Data ======================')
-    audience_metric = ','.join(model_db.Audience.metrics)
+    audience_metric = ','.join(Audience.metrics)
     ig_period = 'lifetime'
     results, token = [], ''
     if not facebook or not ig_id:
-        model = model_db.read(user_id, safe=False)
+        model = db_read(user_id, safe=False)
         ig_id, token = model.get('instagram_id'), model.get('token')
     url = f"https://graph.facebook.com/{ig_id}/insights?metric={audience_metric}&period={ig_period}"
     audience = facebook.get(url).json() if facebook else requests.get(f"{url}&access_token={token}").json()
     for ea in audience.get('data'):
         ea['user_id'] = user_id
         results.append(ea)
-    return model_db.create_or_update_many(results, user_id=user_id, Model=model_db.Audience)
+    return db_create_or_update_many(results, user_id=user_id, Model=Audience)
 
 
 def get_posts(user_id, ig_id=None, facebook=None):
     """ Get media posts """
     # print('==================== Get Posts ====================')
-    post_metrics = {key: ','.join(val) for (key, val) in model_db.Post.metrics.items()}
+    post_metrics = {key: ','.join(val) for (key, val) in Post.metrics.items()}
     results, token = [], ''
     if not facebook or not ig_id:
-        model = model_db.read(user_id, safe=False)
+        model = db_read(user_id, safe=False)
         ig_id, token = model.get('instagram_id'), model.get('token')
     url = f"https://graph.facebook.com/{ig_id}/stories"
     story_res = facebook.get(url).json() if facebook else requests.get(f"{url}?access_token={token}").json()
@@ -105,14 +105,14 @@ def get_posts(user_id, ig_id=None, facebook=None):
         if insights:
             temp = {ea.get('name'): ea.get('values', [{'value': 0}])[0].get('value', 0) for ea in insights}
             if media_type == 'CAROUSEL_ALBUM':
-                temp = {re.sub('^carousel_album_', '', key): val for key, val in temp.items()}
+                temp = {metric_clean(key): val for key, val in temp.items()}
             res.update(temp)
         else:
             print(f"media {media_id} had NO INSIGHTS for type {media_type} --- {res_insight}")
         # pprint(res)
         # print('---------------------------------------')
         results.append(res)
-    return model_db.create_or_update_many(results, model_db.Post)
+    return db_create_or_update_many(results, Post)
 
 
 def get_ig_info(ig_id, token=None, facebook=None):
@@ -187,8 +187,8 @@ def onboarding(mod, request):
     print('=========== Data sent to Create User or Brand account ===============')
     pprint(data)
     print(mod)
-    Model = model_db.Brand if mod == 'brand' else model_db.User
-    account = model_db.create(data, Model)
+    Model = Brand if mod == 'brand' else User
+    account = db_create(data, Model)
     account_id = account.get('id')
     print('account: ', account_id)
     if ig_id:

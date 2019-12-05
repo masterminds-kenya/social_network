@@ -1,13 +1,15 @@
 from flask import current_app as app
 from flask import render_template, redirect, url_for, request, abort, flash
-from . import model_db
+from .model_db import db_create, db_read, db_update, db_delete, db_all
+from .model_db import Brand, User, Insight, Audience, Post, Campaign, metric_clean
 from . import developer_admin
 from .manage import update_campaign, process_form, post_display
 from .api import onboard_login, onboarding, get_insight, get_audience, get_posts
 from .sheets import create_sheet, update_sheet, read_sheet
 import json
+from pprint import pprint
 
-mod_lookup = {'brand': model_db.Brand, 'user': model_db.User, 'insight': model_db.Insight, 'audience': model_db.Audience, 'post': model_db.Post, 'campaign': model_db.Campaign}
+mod_lookup = {'brand': Brand, 'user': User, 'insight': Insight, 'audience': Audience, 'post': Post, 'campaign': Campaign}
 
 
 @app.route('/')
@@ -94,18 +96,23 @@ def callback(mod):
 
 @app.route('/campaign/<int:id>/results')
 def results(id):
+    """ Campaign Results View """
     mod, view = 'campaign', 'results'
-    template, related = f"{mod}.html", {}
+    template, related = f"{view}_{mod}.html", {}
     Model = mod_lookup.get(mod, None)
     campaign = Model.query.get(id)
     app.logger.info(f'=========== Campaign {view} ===========')
     rejected = {'insight', 'basic'}
     added = {'comments_count', 'like_count'}
-    lookup = {k: v.update(added) for k, v in model_db.Post.metrics.items() if k not in rejected}
-    related = {key: {'posts': [], 'metrics': lookup[key]} for key in lookup}
+    print('----- lookup Dict above -----------')
+    lookup = {k: v.union(added) for k, v in Post.metrics.items() if k not in rejected}
+    related = {key: {'posts': [], 'metrics': [metric_clean(el) for el in lookup[key]]} for key in lookup}
     for post in campaign.posts:
         media_type = post.media_type
         related[media_type]['posts'].append(post)
+
+    print('--------related below------------')
+    pprint(related)
     return render_template(template, mod=mod, view=view, data=campaign, related=related)
 
 
@@ -117,7 +124,6 @@ def detail_campaign(id):
 
 @app.route('/campaign/<int:id>', methods=['GET', 'POST'])
 def campaign(id, view='management'):
-    # mod, view = 'campaign', 'management'
     mod = 'campaign'
     template, related = f"{mod}.html", {}
     Model = mod_lookup.get(mod, None)
@@ -140,10 +146,12 @@ def campaign(id, view='management'):
 @app.route('/<string:mod>/<int:id>')
 def view(mod, id):
     """ Used primarily for specific User or Brand views, but also any data model view except Campaign. """
+    # if mod == 'campaign':
+    #     return campaign(id)
     Model = mod_lookup.get(mod, None)
     if not Model:
         return f"No such route: {mod}", 404
-    model = model_db.read(id, Model=Model)
+    model = db_read(id, Model=Model)
     # model = Model.query.get(id)
     template = 'view.html'
     if mod == 'post':
@@ -151,11 +159,11 @@ def view(mod, id):
         model = post_display(model)
     elif mod == 'audience':
         template = f"{mod}_{template}"
-        model['user'] = model_db.read(model.get('user_id')).get('name')
+        model['user'] = db_read(model.get('user_id')).get('name')
         model['value'] = json.loads(model['value'])
     elif mod == 'insight':
         template = f"{mod}_{template}"
-        model['user'] = model_db.read(model.get('user_id')).get('name')
+        model['user'] = db_read(model.get('user_id')).get('name')
     return render_template(template, mod=mod, data=model)
 
 
@@ -163,8 +171,8 @@ def view(mod, id):
 def insights(mod, id):
     """ For a given User, show the account Insight data. """
     # TODO: update to also work for Brand
-    user = model_db.read(id)
-    Model = model_db.Insight
+    user = db_read(id)
+    Model = Insight
     scheme_color = ['gold', 'purple', 'green']
     dataset = {}
     i = 0
@@ -235,17 +243,17 @@ def add_edit(mod, id=None):
         data = process_form(mod, request)
         # TODO: ?Check for failing unique column fields, or failing composite unique requirements?
         if action == 'Edit':
-            model = model_db.update(data, id, Model=Model)
+            model = db_update(data, id, Model=Model)
         else:  # action == 'Add'
-            model = model_db.create(data, Model=Model)
+            model = db_create(data, Model=Model)
         return redirect(url_for('view', mod=mod, id=model['id']))
     template, related = 'form.html', {}
-    model = model_db.read(id, Model=Model) if action == 'Edit' else {}
+    model = db_read(id, Model=Model) if action == 'Edit' else {}
     if mod == 'campaign':
         template = f"{mod}_{template}"
         # add context for Brands and Users, only keeping id and name.
-        users = model_db.User.query.all()
-        brands = model_db.Brand.query.all()
+        users = User.query.all()
+        brands = Brand.query.all()
         related['users'] = [(ea.id, ea.name) for ea in users]
         related['brands'] = [(ea.id, ea.name) for ea in brands]
     return render_template(template, action=action, mod=mod, data=model, related=related)
@@ -269,7 +277,7 @@ def delete(mod, id):
     Model = mod_lookup.get(mod, None)
     if not Model:
         return f"No such route: {mod}", 404
-    model_db.delete(id, Model=Model)
+    db_delete(id, Model=Model)
     return redirect(url_for('home'))
 
 
@@ -279,7 +287,7 @@ def all(mod):
     Model = mod_lookup.get(mod, None)
     if not Model:
         return f"No such route: {mod}", 404
-    models = model_db.all(Model=Model)
+    models = db_all(Model=Model)
     return render_template('list.html', mod=mod, data=models)
 
 

@@ -1,5 +1,5 @@
 import logging
-from flask import Flask  # , render_template, abort, request, flash, redirect, url_for  # , current_app
+from flask import Flask
 from . import model_db
 
 

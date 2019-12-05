@@ -14,23 +14,15 @@ from pprint import pprint  # only for debugging
 db = SQLAlchemy()
 
 
-def fix_date(Model, data):
-    datestring = ''
-    if Model == Insight:
-        datestring = data.pop('end_time', None)
-    elif Model == Audience:
-        datestring = data.get('values', [{}])[0].get('end_time')  # TODO: Are we okay assuming 'end_time' is same for all in this array of responses?
-    elif Model == Post:
-        datestring = data.pop('timestamp', None)
-    data['recorded'] = parser.isoparse(datestring).replace(tzinfo=None) if datestring else data.get('recorded')
-    return data
-
-
 def init_app(app):
     app.config.setdefault('SQLALCHEMY_TRACK_MODIFICATIONS', False)  # Disabled since it unnecessary uses memory
     # app.config.setdefault('SQLALCHEMY_ECHO', True)  # Turns on A LOT of logging.
     # app.config['MYSQL_DATABASE_CHARSET'] = 'utf8mb4'  # Perhaps already set by default in MySQL
     db.init_app(app)
+
+
+def metric_clean(metric_string):
+    return re.sub('^carousel_album_', '', metric_string)
 
 
 def from_sql(row, related=False, safe=False):
@@ -51,6 +43,18 @@ def from_sql(row, related=False, safe=False):
         data = {k: data[k] for k in data.keys() - Model.UNSAFE}
 
     # TODO: ? Move the cleaning for safe results to this function?
+    return data
+
+
+def fix_date(Model, data):
+    datestring = ''
+    if Model == Insight:
+        datestring = data.pop('end_time', None)
+    elif Model == Audience:
+        datestring = data.get('values', [{}])[0].get('end_time')  # TODO: Are we okay assuming 'end_time' is same for all in this array of responses?
+    elif Model == Post:
+        datestring = data.pop('timestamp', None)
+    data['recorded'] = parser.isoparse(datestring).replace(tzinfo=None) if datestring else data.get('recorded')
     return data
 
 
@@ -295,7 +299,7 @@ class Campaign(db.Model):
         return '<Campaign: {} | Brands: {} >'.format(name, brands)
 
 
-def create(data, Model=User):
+def db_create(data, Model=User):
     try:
         model = Model(**data)
         db.session.add(model)
@@ -322,7 +326,7 @@ def create(data, Model=User):
     return safe_results
 
 
-def read(id, Model=User, safe=True):
+def db_read(id, Model=User, safe=True):
     model = Model.query.get(id)
     if not model:
         return None
@@ -337,7 +341,7 @@ def read(id, Model=User, safe=True):
     return output
 
 
-def update(data, id, Model=User):
+def db_update(data, id, Model=User):
     # Any checkbox field should have been prepared by process_form()
     model = Model.query.get(id)
     for k, v in data.items():
@@ -348,12 +352,12 @@ def update(data, id, Model=User):
     return safe_results
 
 
-def delete(id, Model=User):
+def db_delete(id, Model=User):
     Model.query.filter_by(id=id).delete()
     db.session.commit()
 
 
-def all(Model=User):
+def db_all(Model=User):
     sort_field = Model.name if hasattr(Model, 'name') else Model.id
     query = (Model.query.order_by(sort_field))
     models = query.all()
@@ -371,7 +375,7 @@ def create_many(dataset, Model=User):
     return [from_sql(ea) for ea in all_results]
 
 
-def create_or_update_many(dataset, user_id=None, Model=Post):
+def db_create_or_update_many(dataset, user_id=None, Model=Post):
     """ Create or Update if the record exists for all of the dataset list """
     # print(f'============== Create or Update Many {Model.__name__} ====================')
     allowed_models = {Post, Insight, Audience}
