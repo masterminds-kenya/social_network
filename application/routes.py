@@ -1,0 +1,325 @@
+from flask import current_app as app
+from flask import render_template, redirect, url_for, request, abort, flash
+from .model_db import db_create, db_read, db_update, db_delete, db_all
+from .model_db import Brand, User, Insight, Audience, Post, Campaign, metric_clean
+from . import developer_admin
+from .manage import update_campaign, process_form, post_display
+from .api import onboard_login, onboarding, get_insight, get_audience, get_posts
+from .sheets import create_sheet, update_sheet, read_sheet
+import json
+from statistics import mean, stdev
+from pprint import pprint
+
+mod_lookup = {'brand': Brand, 'user': User, 'insight': Insight, 'audience': Audience, 'post': Post, 'campaign': Campaign}
+
+
+@app.route('/')
+def home():
+    """ Default root route """
+    data = ''
+    return render_template('index.html', data=data)
+
+
+@app.route('/error', methods=['GET', 'POST'])
+def error():
+    err = request.form.get('data')
+    return render_template('error.html', err=err)
+
+
+@app.route('/data/load/')
+def load_user():
+    """ This is a temporary development function. Will be removed for production. """
+    developer_admin.load()
+    return redirect(url_for('all', mod='user'))
+
+
+@app.route('/data/<string:mod>/<int:id>')
+def backup_save(mod, id):
+    """ This is a temporary development function. Will be removed for production. """
+    Model = mod_lookup.get(mod, None)
+    if not Model:
+        return f"No such route: {mod}", 404
+    count = developer_admin.save(mod, id, Model)
+    message = f"We just backed up {count} {mod} model(s)"
+    app.logger.info(message)
+    flash(message)
+    return redirect(url_for('view', mod='user', id=id))
+
+
+@app.route('/data/update/<string:id>')
+def update_data(id):
+    """ Update the worksheet data """
+    spreadsheet, id = update_sheet(id)
+    return redirect(url_for('data', id=id))
+
+
+@app.route('/data/create')
+def create_data():
+    """ Create a worksheet to hold report data """
+    spreadsheet, id = create_sheet('test-title')
+    return redirect(url_for('data', id=id))
+
+
+@app.route('/data')
+def data_default():
+    return data(None)
+
+
+@app.route('/data/view/<string:id>')
+def data(id):
+    """ Show the data with Google Sheets """
+    spreadsheet, id = read_sheet(id)
+    link = '' if id == 0 else f"https://docs.google.com/spreadsheets/d/{id}/edit#gid=0"
+    return render_template('data.html', data=spreadsheet, id=id, link=link)
+
+
+@app.route('/login/<string:mod>')
+def login(mod):
+    app.logger.info(f'====================== NEW {mod} Account =========================')
+    authorization_url = onboard_login(mod)
+    return redirect(authorization_url)
+
+
+@app.route('/callback/<string:mod>')
+def callback(mod):
+    app.logger.info(f'================= Authorization Callback {mod}===================')
+    view, data, account_id = onboarding(mod, request)
+    # TODO: The following should be cleaned up with better error handling
+    if view == 'decide':
+        return render_template('decide_ig.html', mod=mod, id=account_id, ig_list=data)
+    elif view == 'complete':
+        return redirect(url_for('view', mod=mod, id=account_id))
+    elif view == 'error':
+        return redirect(url_for('error', data=data), code=307)
+    else:
+        return redirect(url_for('error', data='unknown response'), code=307)
+
+
+@app.route('/campaign/<int:id>/results')
+def results(id):
+    """ Campaign Results View """
+    mod, view = 'campaign', 'results'
+    template, related = f"{view}_{mod}.html", {}
+    Model = mod_lookup.get(mod, None)
+    campaign = Model.query.get(id)
+    app.logger.info(f'=========== Campaign {view} ===========')
+    # construct data organization with metrics appropriate to each media type
+    rejected = {'insight', 'basic'}
+    added = {'comments_count', 'like_count'}
+    lookup = {k: v.union(added) for k, v in Post.metrics.items() if k not in rejected}
+    related = {key: {'posts': [], 'metrics': {metric_clean(el): [] for el in lookup[key]}} for key in lookup}
+    # add key for common metrics summary
+    sets_list = [set([metric_clean(el) for el in sets]) for sets in lookup.values()]
+    start = sets_list.pop()
+    common = start.intersection(*sets_list)
+    print(common)
+    related['common'] = {'metrics': {key: [] for key in common}}
+    # populate metric lists with data from this campaign's currently assigned posts.
+    for post in campaign.posts:
+        media_type = post.media_type
+        related[media_type]['posts'].append(post)
+        for metric in related[media_type]['metrics']:
+            found = getattr(post, metric)
+            print(found)
+            related[media_type]['metrics'][metric].append(int(getattr(post, metric)))
+            if metric in related['common']['metrics']:
+                related['common']['metrics'][metric].append(int(getattr(post, metric)))
+    print('--------related below------------')
+    pprint(related)
+    # compute stats we want for each media type and common metrics
+    for group in related:
+        related[group]['results'] = {}
+        metrics = related[group]['metrics']
+        for metric, data in metrics.items():
+            print(data)
+            total = sum(data) if len(data) > 0 else 0
+            avg = mean(data) if len(data) > 0 else 0
+            spread = stdev(data) if len(data) > 0 else 0
+            related[group]['results'][metric] = {'total': total, 'average': avg, 'stdev': spread}
+    print('--------related below------------')
+    pprint(related)
+    return render_template(template, mod=mod, view=view, data=campaign, related=related)
+
+
+@app.route('/campaign/<int:id>/detail', methods=['GET', 'POST'])
+def detail_campaign(id):
+    """ Used because campaign function over-rides route for detail view """
+    return campaign(id, view='collected')
+
+
+@app.route('/campaign/<int:id>', methods=['GET', 'POST'])
+def campaign(id, view='management'):
+    mod = 'campaign'
+    template, related = f"{mod}.html", {}
+    Model = mod_lookup.get(mod, None)
+    model = Model.query.get(id)
+    app.logger.info(f'=========== Campaign {view} ===========')
+    if request.method == 'POST':
+        update_campaign(view, request)
+    for user in model.users:
+        if view == 'collected':
+            related[user] = [post_display(ea) for ea in user.posts if ea.campaign_id == id]
+        elif view == 'management':
+            related[user] = [ea for ea in user.posts if not ea.processed]
+        else:
+            related[user] = []
+    print('------------')
+    print(model)
+    return render_template(template, mod=mod, view=view, data=model, related=related)
+
+
+@app.route('/<string:mod>/<int:id>')
+def view(mod, id):
+    """ Used primarily for specific User or Brand views, but also any data model view except Campaign. """
+    # if mod == 'campaign':
+    #     return campaign(id)
+    Model = mod_lookup.get(mod, None)
+    if not Model:
+        return f"No such route: {mod}", 404
+    model = db_read(id, Model=Model)
+    # model = Model.query.get(id)
+    template = 'view.html'
+    if mod == 'post':
+        template = f"{mod}_{template}"
+        model = post_display(model)
+    elif mod == 'audience':
+        template = f"{mod}_{template}"
+        model['user'] = db_read(model.get('user_id')).get('name')
+        model['value'] = json.loads(model['value'])
+    elif mod == 'insight':
+        template = f"{mod}_{template}"
+        model['user'] = db_read(model.get('user_id')).get('name')
+    return render_template(template, mod=mod, data=model)
+
+
+@app.route('/<string:mod>/<int:id>/insights')
+def insights(mod, id):
+    """ For a given User, show the account Insight data. """
+    # TODO: update to also work for Brand
+    user = db_read(id)
+    Model = Insight
+    scheme_color = ['gold', 'purple', 'green']
+    dataset = {}
+    i = 0
+    max_val, min_val = 4, 0
+    for metric in Model.metrics:
+        query = Model.query.filter_by(user_id=id, name=metric).order_by('recorded').all()
+        temp_data = {ea.recorded.strftime("%d %b, %Y"): int(ea.value) for ea in query}
+        max_curr = max(*temp_data.values())
+        min_curr = min(*temp_data.values())
+        max_val = max(max_val, max_curr)
+        min_val = min(max_val, min_curr)
+        chart = {
+            'label': metric,
+            'backgroundColor': scheme_color[i % len(scheme_color)],
+            'borderColor': '#214',
+            'data': list(temp_data.values())
+        }
+        temp = {'chart': chart, 'data_dict': temp_data, 'max': max_curr, 'min': min_curr}
+        dataset[metric] = temp
+        i += 1
+    labels = [ea for ea in dataset['reach']['data_dict'].keys()]
+    max_val = int(1.2 * max_val)
+    min_val = int(0.8 * min_val)
+    steps = 14
+    return render_template('chart.html', user=user['name'], dataset=dataset, labels=labels, max=max_val, min=min_val, steps=steps)
+
+
+@app.route('/<string:mod>/<int:id>/audience')
+def new_audience(mod, id):
+    """ Get new audience data from API. Input mod for either User or Brand, with given id. """
+    # TODO: update to also work for Brand
+    audience = get_audience(id)
+    logstring = f'Audience data for {mod} - {id}' if audience else f'No insight data, {mod}'
+    app.logger.info(logstring)
+    return redirect(url_for('view', mod=mod, id=id))
+
+
+@app.route('/<string:mod>/<int:id>/fetch')
+def new_insight(mod, id):
+    """ Get new account insight data from API. Input mod for either User or Brand, with given id. """
+    # TODO: update to also work for Brand
+    insights = get_insight(id)
+    logstring = f'Insight data for {mod} - {id} ' if insights else f'No insight data, {mod}'
+    app.logger.info(logstring)
+    return redirect(url_for('insights', mod=mod, id=id))
+
+
+@app.route('/<string:mod>/<int:id>/posts')
+def new_post(mod, id):
+    """ Get new posts data from API. Input mod for either User or Brand, with a given id"""
+    # TODO: ?update to also work for Brand?
+    posts = get_posts(id)
+    logstring = 'we got some posts back' if len(posts) else 'No posts retrieved'
+    app.logger.info(logstring)
+    return_path = request.referrer
+    return redirect(return_path)
+    # return redirect(url_for('view', mod=mod, id=id))
+
+
+def add_edit(mod, id=None):
+    """ Adding or Editing a DB record is a similar process handled here. """
+    action = 'Edit' if id else 'Add'
+    Model = mod_lookup.get(mod, None)
+    if not Model:
+        return f"No such route: {mod}", 404
+    if request.method == 'POST':
+        app.logger.info(f'--------- {action} {mod}------------')
+        data = process_form(mod, request)
+        # TODO: ?Check for failing unique column fields, or failing composite unique requirements?
+        if action == 'Edit':
+            model = db_update(data, id, Model=Model)
+        else:  # action == 'Add'
+            model = db_create(data, Model=Model)
+        return redirect(url_for('view', mod=mod, id=model['id']))
+    template, related = 'form.html', {}
+    model = db_read(id, Model=Model) if action == 'Edit' else {}
+    if mod == 'campaign':
+        template = f"{mod}_{template}"
+        # add context for Brands and Users, only keeping id and name.
+        users = User.query.all()
+        brands = Brand.query.all()
+        related['users'] = [(ea.id, ea.name) for ea in users]
+        related['brands'] = [(ea.id, ea.name) for ea in brands]
+    return render_template(template, action=action, mod=mod, data=model, related=related)
+
+
+@app.route('/<string:mod>/add', methods=['GET', 'POST'])
+def add(mod):
+    """ For a given data Model, as indicated by mod, add new data to DB. """
+    return add_edit(mod, id=None)
+
+
+@app.route('/<string:mod>/<int:id>/edit', methods=['GET', 'POST'])
+def edit(mod, id):
+    """ Modify the existing DB entry. Model indicated by mod, and provided record id. """
+    return add_edit(mod, id=id)
+
+
+@app.route('/<string:mod>/<int:id>/delete')
+def delete(mod, id):
+    """ Permanently remove from DB the record for Model indicated by mod and id. """
+    Model = mod_lookup.get(mod, None)
+    if not Model:
+        return f"No such route: {mod}", 404
+    db_delete(id, Model=Model)
+    return redirect(url_for('home'))
+
+
+@app.route('/<string:mod>/list')
+def all(mod):
+    """ List view for all data of Model indicated by mod. """
+    Model = mod_lookup.get(mod, None)
+    if not Model:
+        return f"No such route: {mod}", 404
+    models = db_all(Model=Model)
+    return render_template('list.html', mod=mod, data=models)
+
+
+# Catchall redirect route.
+@app.route('/<string:page_name>/')
+def render_static(page_name):
+    """ Catch all for undefined routes. Return the requested static page. """
+    if page_name == 'favicon.ico':
+        return abort(404)
+    return render_template('%s.html' % page_name)

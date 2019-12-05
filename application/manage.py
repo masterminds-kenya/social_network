@@ -1,4 +1,4 @@
-from . import model_db
+from .model_db import db, from_sql, Brand, User, Post
 
 
 def update_campaign(ver, request):
@@ -12,12 +12,12 @@ def update_campaign(ver, request):
     except ValueError as e:
         # handle error
         return False
-    modified = model_db.Post.query.filter(model_db.Post.id.in_(data.keys())).all()
+    modified = Post.query.filter(Post.id.in_(data.keys())).all()
     for post in modified:
         post.processed = True if data[post.id] != -2 else False
         post.campaign_id = data[post.id] if data[post.id] > 0 else None
     try:
-        model_db.db.session.commit()
+        db.session.commit()
     except Exception as e:
         # handle exception
         return False
@@ -25,9 +25,9 @@ def update_campaign(ver, request):
 
 
 def post_display(post):
-    Model = model_db.Post
+    Model = Post
     if isinstance(post, Model):
-        post = model_db.from_sql(post)
+        post = from_sql(post)
     fields = {'id', 'user_id', 'campaign_id', 'processed', 'recorded'}
     fields.update(Model.metrics['basic'])
     fields.discard('timestamp')
@@ -46,7 +46,7 @@ def process_form(mod, request):
         # capture the relationship collections
         # TODO: I might be missing how SQLAlchemy intends for use to handle related models
         # the following may not be needed, or need to be managed differently
-        rel_collections = (('brands', model_db.Brand), ('users', model_db.User), ('posts', model_db.Post))
+        rel_collections = (('brands', Brand), ('users', User), ('posts', Post))
         for rel, Model in rel_collections:
             if rel in data:
                 model_ids = [int(ea) for ea in data[rel]]

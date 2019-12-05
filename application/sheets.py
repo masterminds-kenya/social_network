@@ -1,3 +1,4 @@
+from flask import current_app as app
 from os import path
 from googleapiclient.discovery import build
 from google.oauth2 import service_account
@@ -5,6 +6,7 @@ from google.oauth2 import service_account
 from pprint import pprint
 
 SHARED_SHEET_ID = '1LyUFeo5in3F-IbR1eMnkp-XeQXD_zvfYraxCJBUkZPs'
+LOCAL_ENV = app.config.get('LOCAL_ENV')
 service_config = {
     'sheets': {
         'file': 'env/sheet_secret.json',
@@ -13,21 +15,21 @@ service_config = {
 }
 
 
-def get_creds(local_env, config):
+def get_creds(config):
     """ Using google.oauth2.service_account to get credentials for the service account """
     if not path.exists(config.get('file')):
         return 'Wrong Path to Secret File'
-    if local_env is True:
+    if LOCAL_ENV is True:
         # Could add local testing credential method.
         return 'Local Test'
     credentials = service_account.Credentials.from_service_account_file(config['file'])
     return credentials.with_scopes(config.get('scopes'))
 
 
-def create_sheet(local_env, title):
+def create_sheet(title):
     """ Get the credentials and create a worksheet. """
     print('================== create sheet =======================')
-    creds = get_creds(local_env, service_config['sheets'])
+    creds = get_creds(service_config['sheets'])
     if isinstance(creds, str):
         return (creds, 0)
     service = build('sheets', 'v4', credentials=creds)
@@ -38,10 +40,10 @@ def create_sheet(local_env, title):
     return (spreadsheet, id)
 
 
-def read_sheet_full(local_env, id=SHARED_SHEET_ID):
+def read_sheet_full(id=SHARED_SHEET_ID):
     """ Get the information (not the values) for a worksheet with permissions granted to our app service. """
     print('================== read sheet =======================')
-    creds = get_creds(local_env, service_config['sheets'])
+    creds = get_creds(service_config['sheets'])
     if isinstance(creds, str):
         return (creds, 0)
     service = build('sheets', 'v4', credentials=creds)
@@ -54,12 +56,12 @@ def read_sheet_full(local_env, id=SHARED_SHEET_ID):
     return (spreadsheet, id)
 
 
-def read_sheet(local_env, id=SHARED_SHEET_ID):
+def read_sheet(id=SHARED_SHEET_ID):
     """ Read a sheet that our app service account has been given permission for. """
     id = id if id else SHARED_SHEET_ID
     print('================== read sheet values =======================')
     print(id)
-    creds = get_creds(local_env, service_config['sheets'])
+    creds = get_creds(service_config['sheets'])
     if isinstance(creds, str):
         return (creds, 0)
     service = build('sheets', 'v4', credentials=creds)
@@ -102,10 +104,10 @@ def compute_A1(arr2d, start='A1', sheet='Sheet1'):
     return f"{sheet}!{start}:{final_col}{final_row}"
 
 
-def update_sheet(local_env, id=SHARED_SHEET_ID):
+def update_sheet(id=SHARED_SHEET_ID):
     """ Get the data we want, then append it to the worksheet """
     print('================== update sheet =======================')
-    creds = get_creds(local_env, service_config['sheets'])
+    creds = get_creds(service_config['sheets'])
     if isinstance(creds, str):
         return (creds, 0)
     service = build('sheets', 'v4', credentials=creds)

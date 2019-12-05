@@ -1,4 +1,4 @@
-from flask import Flask
+from flask import Flask, flash
 from flask_sqlalchemy import SQLAlchemy
 # from flask_sqlalchemy import BaseQuery, SQLAlchemy  # if we create custom query
 from sqlalchemy.exc import IntegrityError
@@ -14,6 +14,38 @@ from pprint import pprint  # only for debugging
 db = SQLAlchemy()
 
 
+def init_app(app):
+    app.config.setdefault('SQLALCHEMY_TRACK_MODIFICATIONS', False)  # Disabled since it unnecessary uses memory
+    # app.config.setdefault('SQLALCHEMY_ECHO', True)  # Turns on A LOT of logging.
+    # app.config['MYSQL_DATABASE_CHARSET'] = 'utf8mb4'  # Perhaps already set by default in MySQL
+    db.init_app(app)
+
+
+def metric_clean(metric_string):
+    return re.sub('^carousel_album_', '', metric_string)
+
+
+def from_sql(row, related=False, safe=False):
+    """ Translates a SQLAlchemy model instance into a dictionary """
+    data = row.__dict__.copy()
+    data['id'] = row.id
+    print('============= from_sql ===================')
+    print(row.__class__)
+    if related:
+        rel = row.__mapper__.relationships
+        print(rel)
+        # print(dir(rel))
+    temp = data.pop('_sa_instance_state', None)
+    if not temp:
+        print('Not a model instance!')
+    if safe:
+        Model = row.__class__
+        data = {k: data[k] for k in data.keys() - Model.UNSAFE}
+
+    # TODO: ? Move the cleaning for safe results to this function?
+    return data
+
+
 def fix_date(Model, data):
     datestring = ''
     if Model == Insight:
@@ -23,29 +55,6 @@ def fix_date(Model, data):
     elif Model == Post:
         datestring = data.pop('timestamp', None)
     data['recorded'] = parser.isoparse(datestring).replace(tzinfo=None) if datestring else data.get('recorded')
-    return data
-
-
-def init_app(app):
-    app.config.setdefault('SQLALCHEMY_TRACK_MODIFICATIONS', False)  # Disabled since it unnecessary uses memory
-    # app.config.setdefault('SQLALCHEMY_ECHO', True)  # Turns on A LOT of logging.
-    # app.config['MYSQL_DATABASE_CHARSET'] = 'utf8mb4'  # Perhaps already set by default in MySQL
-    db.init_app(app)
-
-
-def from_sql(row):
-    """ Translates a SQLAlchemy model instance into a dictionary """
-    data = row.__dict__.copy()
-    data['id'] = row.id
-    # TODO: The following could help include related Models
-    # print('============= from_sql ===================')
-    # rel = row.__mapper__.relationships
-    # all = row.__mapper__
-    # print(dir(rel))
-    temp = data.pop('_sa_instance_state', None)
-    if not temp:
-        print('Not a model instance!')
-    # TODO: ? Move the cleaning for safe results to this function?
     return data
 
 
@@ -290,7 +299,7 @@ class Campaign(db.Model):
         return '<Campaign: {} | Brands: {} >'.format(name, brands)
 
 
-def create(data, Model=User):
+def db_create(data, Model=User):
     try:
         model = Model(**data)
         db.session.add(model)
@@ -306,6 +315,7 @@ def create(data, Model=User):
         model = Model.query.filter(*[getattr(Model, key) == val for key, val in unique.items()]).one_or_none()
         if model:
             print(f'----- Instead of Create, we are using existing record with id: {model.id} -----')
+            flash(f"A {model.__class__.__name__} like that already exists. Instead of creating a new one, we are using the existing one")
         else:
             print(f'----- Cannot create due to collision on unique fields. Cannot retrieve existing record')
     # except Exception as e:
@@ -316,7 +326,7 @@ def create(data, Model=User):
     return safe_results
 
 
-def read(id, Model=User, safe=True):
+def db_read(id, Model=User, safe=True):
     model = Model.query.get(id)
     if not model:
         return None
@@ -331,7 +341,7 @@ def read(id, Model=User, safe=True):
     return output
 
 
-def update(data, id, Model=User):
+def db_update(data, id, Model=User):
     # Any checkbox field should have been prepared by process_form()
     model = Model.query.get(id)
     for k, v in data.items():
@@ -342,12 +352,12 @@ def update(data, id, Model=User):
     return safe_results
 
 
-def delete(id, Model=User):
+def db_delete(id, Model=User):
     Model.query.filter_by(id=id).delete()
     db.session.commit()
 
 
-def all(Model=User):
+def db_all(Model=User):
     sort_field = Model.name if hasattr(Model, 'name') else Model.id
     query = (Model.query.order_by(sort_field))
     models = query.all()
@@ -365,7 +375,7 @@ def create_many(dataset, Model=User):
     return [from_sql(ea) for ea in all_results]
 
 
-def create_or_update_many(dataset, user_id=None, Model=Post):
+def db_create_or_update_many(dataset, user_id=None, Model=Post):
     """ Create or Update if the record exists for all of the dataset list """
     # print(f'============== Create or Update Many {Model.__name__} ====================')
     allowed_models = {Post, Insight, Audience}
