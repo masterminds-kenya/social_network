@@ -104,13 +104,15 @@ def results(id):
     app.logger.info(f'=========== Campaign {view} ===========')
     rejected = {'insight', 'basic'}
     added = {'comments_count', 'like_count'}
-    print('----- lookup Dict above -----------')
     lookup = {k: v.union(added) for k, v in Post.metrics.items() if k not in rejected}
-    related = {key: {'posts': [], 'metrics': [metric_clean(el) for el in lookup[key]]} for key in lookup}
+    related = {key: {'posts': [], 'metrics': {metric_clean(el): [] for el in lookup[key]}} for key in lookup}
     for post in campaign.posts:
         media_type = post.media_type
         related[media_type]['posts'].append(post)
-
+        for metric in related[media_type]['metrics']:
+            found = getattr(post, metric)
+            print(found)
+            related[media_type]['metrics'][metric].append(int(getattr(post, metric)))
     print('--------related below------------')
     pprint(related)
     return render_template(template, mod=mod, view=view, data=campaign, related=related)
