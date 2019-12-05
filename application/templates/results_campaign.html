@@ -1,9 +1,26 @@
 {% extends "campaign.html" %}
+{% block head %}
+{{ super() }}
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.4.0/Chart.min.js"></script>
+{% endblock head %}
 
 {% block content %}
 <main>
-<h2>Results campaign template</h2>
-
-
+  {% for media_type, obj in related.items() %}
+  <section id="{{media_type}}" class="media_results">
+    <h2>{{ media_type|title }} Posts</h2>
+    {% for metric, stats in obj['results'].items() %}
+    <article class="{{metric}}">
+      <h3>{{ metric|title }}</h3>
+      <p>
+        {% for stat, value in stats.items() %}
+        {{stat|title}}: {{value}} |
+        {% endfor %}
+      </p>
+      <canvas id="{{media_type}}_{{metric}}" height="400px" width="1000px"></canvas>
+    </article>
+    {% endfor %}
+  </section>
+  {% endfor %}
 </main>
 {% endblock content %}

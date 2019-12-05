@@ -105,6 +105,7 @@ Current Status:
 - [s] Update many function
 - [s] Refine Brand Model with constructor function for translating from FB.
 - [s] Can update data for existing Brand accounts
+- [ ] Pickle tokens
 - [ ] Keep a DB table of worksheet ids?
   - [ ] Will we have multiple report views?
 - [s] DB Migration: Integrate flask-migrate?
@@ -245,6 +246,7 @@ Current Status:
 - [x] Setup a real influencer (Noelle Reno) as a confirmed tester.
 - [x] Have real influencer (Noelle Reno) sign up for testing.
 - [x] Modularize the codebase: sheets, facebook api, developer_admin, manage
+- [ ] Update template to use for-else: in jinja, the else only runs if no iteration
 - [ ] Modularize the codebase more: move routes elsewhere?
 - [ ] ? allow logging in related files (remove all print statements)
 - [ ] Update forms and API digesting with input validation to replace following functionality:

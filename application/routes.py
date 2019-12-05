@@ -103,39 +103,7 @@ def results(id):
     Model = mod_lookup.get(mod, None)
     campaign = Model.query.get(id)
     app.logger.info(f'=========== Campaign {view} ===========')
-    # construct data organization with metrics appropriate to each media type
-    rejected = {'insight', 'basic'}
-    added = {'comments_count', 'like_count'}
-    lookup = {k: v.union(added) for k, v in Post.metrics.items() if k not in rejected}
-    related = {key: {'posts': [], 'metrics': {metric_clean(el): [] for el in lookup[key]}} for key in lookup}
-    # add key for common metrics summary
-    sets_list = [set([metric_clean(el) for el in sets]) for sets in lookup.values()]
-    start = sets_list.pop()
-    common = start.intersection(*sets_list)
-    print(common)
-    related['common'] = {'metrics': {key: [] for key in common}}
-    # populate metric lists with data from this campaign's currently assigned posts.
-    for post in campaign.posts:
-        media_type = post.media_type
-        related[media_type]['posts'].append(post)
-        for metric in related[media_type]['metrics']:
-            found = getattr(post, metric)
-            print(found)
-            related[media_type]['metrics'][metric].append(int(getattr(post, metric)))
-            if metric in related['common']['metrics']:
-                related['common']['metrics'][metric].append(int(getattr(post, metric)))
-    print('--------related below------------')
-    pprint(related)
-    # compute stats we want for each media type and common metrics
-    for group in related:
-        related[group]['results'] = {}
-        metrics = related[group]['metrics']
-        for metric, data in metrics.items():
-            print(data)
-            total = sum(data) if len(data) > 0 else 0
-            avg = mean(data) if len(data) > 0 else 0
-            spread = stdev(data) if len(data) > 0 else 0
-            related[group]['results'][metric] = {'total': total, 'average': avg, 'stdev': spread}
+    related = campaign.get_results()
     print('--------related below------------')
     pprint(related)
     return render_template(template, mod=mod, view=view, data=campaign, related=related)
