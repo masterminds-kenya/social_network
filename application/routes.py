@@ -7,6 +7,7 @@ from .manage import update_campaign, process_form, post_display
 from .api import onboard_login, onboarding, get_insight, get_audience, get_posts
 from .sheets import create_sheet, update_sheet, read_sheet
 import json
+from statistics import mean, stdev
 from pprint import pprint
 
 mod_lookup = {'brand': Brand, 'user': User, 'insight': Insight, 'audience': Audience, 'post': Post, 'campaign': Campaign}
@@ -112,7 +113,7 @@ def results(id):
     start = sets_list.pop()
     common = start.intersection(*sets_list)
     print(common)
-    related['common_metrics'] = {key: [] for key in common}
+    related['common'] = {'metrics': {key: [] for key in common}}
     # populate metric lists with data from this campaign's currently assigned posts.
     for post in campaign.posts:
         media_type = post.media_type
@@ -121,8 +122,20 @@ def results(id):
             found = getattr(post, metric)
             print(found)
             related[media_type]['metrics'][metric].append(int(getattr(post, metric)))
-            if metric in related['common_metrics']:
-                related['common_metrics'][metric].append(int(getattr(post, metric)))
+            if metric in related['common']['metrics']:
+                related['common']['metrics'][metric].append(int(getattr(post, metric)))
+    print('--------related below------------')
+    pprint(related)
+    # compute stats we want for each media type and common metrics
+    for group in related:
+        related[group]['results'] = {}
+        metrics = related[group]['metrics']
+        for metric, data in metrics.items():
+            print(data)
+            total = sum(data) if len(data) > 0 else 0
+            avg = mean(data) if len(data) > 0 else 0
+            spread = stdev(data) if len(data) > 0 else 0
+            related[group]['results'][metric] = {'total': total, 'average': avg, 'stdev': spread}
     print('--------related below------------')
     pprint(related)
     return render_template(template, mod=mod, view=view, data=campaign, related=related)
