@@ -294,30 +294,37 @@ class Campaign(db.Model):
         rejected = {'insight', 'basic'}
         added = {'comments_count', 'like_count'}
         lookup = {k: v.union(added) for k, v in Post.metrics.items() if k not in rejected}
-        related = {key: {'posts': [], 'metrics': {metric_clean(el): [] for el in lookup[key]}} for key in lookup}
+        # related = {key: {'posts': [], 'metrics': {metric_clean(el): [] for el in lookup[key]}} for key in lookup}
+        related, sets_list = {}, []
+        for media_type, metric_set in lookup.items():
+            temp = [metric_clean(ea) for ea in metric_set]
+            sets_list.append(set(temp))
+            related[media_type] = {'posts': [], 'metrics': {ea: [] for ea in temp}, 'labels': {ea: [] for ea in temp}}
         # add key for common metrics summary
-        sets_list = [set([metric_clean(el) for el in sets]) for sets in lookup.values()]
         start = sets_list.pop()
-        common = start.intersection(*sets_list)
-        related['common'] = {'metrics': {key: [] for key in common}}
+        common = list(start.intersection(*sets_list))
+        related['common'] = {'metrics': {metric: [] for metric in common}, 'labels': {metric: [] for metric in common}}
         # populate metric lists with data from this campaign's currently assigned posts.
         for post in self.posts:
             media_type = post.media_type
             related[media_type]['posts'].append(post)
             for metric in related[media_type]['metrics']:
                 related[media_type]['metrics'][metric].append(int(getattr(post, metric)))
+                related[media_type]['labels'][metric].append(int(getattr(post, 'id')))
                 if metric in related['common']['metrics']:
                     related['common']['metrics'][metric].append(int(getattr(post, metric)))
+                    related['common']['labels'][metric].append(int(getattr(post, 'id')))
         # compute stats we want for each media type and common metrics
         for group in related:
             related[group]['results'] = {}
             metrics = related[group]['metrics']
             for metric, data in metrics.items():
-                total = sum(data) if len(data) > 0 else 0
-                mid = median(data) if len(data) > 0 else 0
-                avg = mean(data) if len(data) > 0 else 0
-                spread = stdev(data) if len(data) > 0 else 0
-                related[group]['results'][metric] = {'total': total, 'median': mid, 'mean': avg, 'stdev': spread}
+                curr = {}
+                curr['total'] = sum(data) if len(data) > 0 else 0
+                curr['mid'] = median(data) if len(data) > 0 else 0
+                curr['avg'] = mean(data) if len(data) > 0 else 0
+                curr['spread'] = stdev(data) if len(data) > 0 else 0
+                related[group]['results'][metric] = curr
         return related
         # end get_results
 
