@@ -17,12 +17,12 @@
       <p>
         {% for stat, value in stats.items() %}
         {{stat|title}}: {{value}} |
-        <!-- create dataset for this media-metric -->
         {% endfor %}
       </p>
       <canvas id="chart_{{dataset.count}}" height="200px" width="450px">
         {% set dataset.count = dataset.count + 1 %}
-        {{ dataset.datatype.append(media_type + ' ' + metric) }}
+        {% set name = media_type|title + ' ' + metric|title %}
+        {{ dataset.datatype.append(name) }}
         {{ dataset.vals.append(obj['metrics'][metric]) }}
         {{ dataset.labels.append(obj['labels'][metric]) }}
       </canvas>
@@ -38,9 +38,13 @@
   <p>
     {{ dataset }}
   </p>
-  <p id="temp"></p>
   <script>
     function makeChart(ctx, metric, vals, labels){
+      console.log(metric);
+      console.log('-------------');
+      console.log(vals);
+      console.log('-------------');
+      console.log(labels);
       let max = Math.max(...vals);
       let min = Math.min(...vals);
       let steps = Math.floor((max - min) / 5);
@@ -48,7 +52,7 @@
         type: 'bar',
         data: {
           labels: labels,
-          datasets: [{label: 'Data',
+          datasets: [{label: metric,
                       backgroundColor: '#214',
                       borderColor: '#214',
                       data: vals
@@ -66,21 +70,22 @@
             }]
           }
         }
-      })
+      });
     }
 
     function showData(){
       let count = {{ dataset.count }};
-      let found_datatype = {{ dataset.datatype }}
+      console.log(count);
+      let found_datatype = {{ dataset.datatype|safe }};
       let found_data = {{ dataset.vals }};
       let found_labels = {{ dataset.labels }};
       for(let i = 0; i < count; i++){
         let name = 'chart_' + i;
         let ctx = document.getElementById(name).getContext('2d');
-        makeChart(ctx, metric, found_data[i], found_labels[i])
+        makeChart(ctx, found_datatype[i], found_data[i], found_labels[i]);
       }
     }
-
+    console.log('hello');
     showData();
   </script>
 </main>
