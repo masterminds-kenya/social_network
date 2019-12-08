@@ -38,9 +38,8 @@
 - [s] Stretch Goal. Not for current feature plan.
 
 Current Status:
-2019-11-20 18:31:19
+2019-12-07 13:03:15
 <!-- Ctrl-Shift-I to generate timestamp -->
-
 
 ### DB Design: Track different businesses and how influencers affect them
 
@@ -109,6 +108,7 @@ Current Status:
 - [ ] Keep a DB table of worksheet ids?
   - [ ] Will we have multiple report views?
 - [s] DB Migration: Integrate flask-migrate?
+- [ ] Revisit method of reporting Campaign Results.
 - [ ] Revisit structure for ON DELETE, ON UPDATE,
 - [ ] Revisit structure for how related tables are loaded (lazy=?)
 - [?] Refine decision for fields from (overall user) insights data.

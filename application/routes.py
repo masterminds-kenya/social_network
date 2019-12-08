@@ -1,13 +1,12 @@
 from flask import current_app as app
 from flask import render_template, redirect, url_for, request, abort, flash
 from .model_db import db_create, db_read, db_update, db_delete, db_all
-from .model_db import Brand, User, Insight, Audience, Post, Campaign, metric_clean
+from .model_db import Brand, User, Insight, Audience, Post, Campaign  # , metric_clean
 from . import developer_admin
 from .manage import update_campaign, process_form, post_display
 from .api import onboard_login, onboarding, get_insight, get_audience, get_posts
 from .sheets import create_sheet, update_sheet, read_sheet
 import json
-from statistics import mean, stdev
 from pprint import pprint
 
 mod_lookup = {'brand': Brand, 'user': User, 'insight': Insight, 'audience': Audience, 'post': Post, 'campaign': Campaign}
@@ -18,6 +17,33 @@ def home():
     """ Default root route """
     data = ''
     return render_template('index.html', data=data)
+
+
+# @app.route('/data/<int:id>/create', methods=['GET', 'POST'])
+# def create_data(id):
+#     """ Create a worksheet to hold report data """
+#     campaign = Campaign.query.get(id)
+#     title = f"{campaign.name}_{dt.now()}"
+#     brands = ['Brand', ', '.join([ea.name for ea in campaign.brands])]
+#     users = ['Influencer', ', '.join([ea.name for ea in campaign.users])]
+#     columns = campaign.report_columns()
+#     results = [[getattr(post, ea, '') for ea in columns] for post in campaign.posts]
+
+#     app.logger.info('Create Data was called')
+#     # data = request.form.to_dict(flat=False)['related']
+#     app.logger.info('=========================')
+#     # app.logger.info(data)
+#     app.logger.info(title)
+#     app.logger.info(brands)
+#     app.logger.info(users)
+#     app.logger.info(columns)
+#     app.logger.info('------------------------')
+#     for row in results:
+#         app.logger.info(row)
+#     app.logger.info('=========================')
+#     # spreadsheet, id = create_sheet(title)
+#     id = '1LyUFeo5in3F-IbR1eMnkp-XeQXD_zvfYraxCJBUkZPs'
+#     return redirect(url_for('data', id=id))
 
 
 @app.route('/error', methods=['GET', 'POST'])
@@ -50,13 +76,6 @@ def backup_save(mod, id):
 def update_data(id):
     """ Update the worksheet data """
     spreadsheet, id = update_sheet(id)
-    return redirect(url_for('data', id=id))
-
-
-@app.route('/data/create')
-def create_data():
-    """ Create a worksheet to hold report data """
-    spreadsheet, id = create_sheet('test-title')
     return redirect(url_for('data', id=id))
 
 
@@ -95,17 +114,20 @@ def callback(mod):
         return redirect(url_for('error', data='unknown response'), code=307)
 
 
-@app.route('/campaign/<int:id>/results')
+@app.route('/campaign/<int:id>/results', methods=['GET', 'POST'])
 def results(id):
-    """ Campaign Results View """
+    """ Campaign Results View (on GET) or generate Worksheet report (on POST) """
     mod, view = 'campaign', 'results'
     template, related = f"{view}_{mod}.html", {}
     Model = mod_lookup.get(mod, None)
     campaign = Model.query.get(id)
+    if request.method == 'POST':
+        spreedsheet, sheet_id = create_sheet(campaign)
+        return redirect(url_for('data', id=sheet_id))
     app.logger.info(f'=========== Campaign {view} ===========')
     related = campaign.get_results()
-    print('--------related below------------')
-    pprint(related)
+    # print('--------related below------------')
+    # pprint(related)
     return render_template(template, mod=mod, view=view, data=campaign, related=related)
 
 
