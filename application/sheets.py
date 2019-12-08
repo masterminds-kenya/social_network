@@ -18,12 +18,16 @@ service_config = {
 
 def get_creds(config):
     """ Using google.oauth2.service_account to get credentials for the service account """
+    app.logger.info('=========== Get Creds ====================')
     if not path.exists(config.get('file')):
+        app.logger.info('Wrong Path to Secret File')
         return 'Wrong Path to Secret File'
     if LOCAL_ENV is True:
         # Could add local testing credential method.
+        app.logger.info("Won't work when running locally")
         return 'Local Test'
     credentials = service_account.Credentials.from_service_account_file(config['file'])
+    app.logger.info(' tried to get credentials ')
     return credentials.with_scopes(config.get('scopes'))
 
 
@@ -33,14 +37,15 @@ def create_sheet(campaign):
     creds = get_creds(service_config['sheets'])
     if isinstance(creds, str):
         return (creds, 0)
-    timestamp = dt.timestamp(dt.now())
-    title = f"{campaign.name}_{timestamp}"
+    timestamp = int(dt.timestamp(dt.now()))
+    name = str(campaign.name).replace(' ', '_')
+    title = f"{name}_{timestamp}"
     app.logger.info(title)
     service = build('sheets', 'v4', credentials=creds)
     spreadsheet = {'properties': {'title': title}}
     spreadsheet = service.spreadsheets().create(body=spreadsheet, fields='spreadsheetId').execute()
     id = spreadsheet.get('spreadsheetId')
-    # print('Spreadsheet ID: {0}'.format(id))
+    app.logger.info(f"Spreadsheet ID from create_sheet: {id}")
     spreadsheet, id = update_sheet(campaign, id=id)
     return (spreadsheet, id)
 
