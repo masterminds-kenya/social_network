@@ -122,8 +122,9 @@ def results(id):
     Model = mod_lookup.get(mod, None)
     campaign = Model.query.get(id)
     if request.method == 'POST':
-        spreedsheet, sheet_id = create_sheet(campaign)
-        return redirect(url_for('data', id=sheet_id))
+        spreadsheet, sheet_id = create_sheet(campaign)
+        link = '' if sheet_id == 0 else f"https://docs.google.com/spreadsheets/d/{id}/edit#gid=0"
+        return render_template('data.html', data=spreadsheet, id=sheet_id, link=link)
     app.logger.info(f'=========== Campaign {view} ===========')
     related = campaign.get_results()
     # print('--------related below------------')

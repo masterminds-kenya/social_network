@@ -16,18 +16,6 @@ service_config = {
 }
 
 
-# class MemoryCache(Cache):
-#     _CACHE = {}
-
-#     def get(self, url):
-#         return MemoryCache._CACHE.get(url)
-
-#     def set(self, url, value):
-#         MemoryCache._CACHE[url] = value
-
-#     # end class MemoryCache
-
-
 def get_creds(config):
     """ Using google.oauth2.service_account to get credentials for the service account """
     app.logger.info('=========== Get Creds ====================')
@@ -38,30 +26,25 @@ def get_creds(config):
     if LOCAL_ENV is True:
         # Could add local testing credential method.
         message = "Won't work when running locally"
-        app.logger.info("Won't work when running locally")
-        return 'Local Test'
+        app.logger.info(message)
+        return message
     credentials = service_account.Credentials.from_service_account_file(config['file'])
-    app.logger.info(' tried to get credentials ')
     return credentials.with_scopes(config.get('scopes'))
 
 
 def create_sheet(campaign, creds=None):
     """ Takes in an instance from the Campaign model. Get the credentials and create a worksheet. """
-    print('================== create sheet =======================')
+    # print('================== create sheet =======================')
     creds = creds if creds else get_creds(service_config['sheets'])
     if isinstance(creds, str):
         return (creds, 0)
     timestamp = int(dt.timestamp(dt.now()))
     name = str(campaign.name).replace(' ', '_')
     title = f"{name}_{timestamp}"
-    app.logger.info(title)
     service = build('sheets', 'v4', credentials=creds, cache_discovery=False)
     spreadsheet = {'properties': {'title': title}}
     spreadsheet = service.spreadsheets().create(body=spreadsheet, fields='spreadsheetId').execute()
-    id = spreadsheet.get('spreadsheetId')
-    app.logger.info('----------------- Spreadsheet was created? ---------------------')
-    app.logger.info(f"Spreadsheet ID from create_sheet: {id}")
-    spreadsheet, id = update_sheet(campaign, id=id)
+    spreadsheet, id = update_sheet(campaign, id=spreadsheet.get('spreadsheetId'), creds=creds)
     return (spreadsheet, id)
 
 
@@ -81,7 +64,7 @@ def read_sheet_full(id=SHARED_SHEET_ID, creds=None):
     return (spreadsheet, id)
 
 
-def read_sheet(id=SHARED_SHEET_ID, creds=None):
+def read_sheet(id=SHARED_SHEET_ID, range_=None, creds=None):
     """ Read a sheet that our app service account has been given permission for. """
     id = id if id else SHARED_SHEET_ID
     print('================== read sheet =======================')
@@ -90,13 +73,13 @@ def read_sheet(id=SHARED_SHEET_ID, creds=None):
     if isinstance(creds, str):
         return (creds, 0)
     service = build('sheets', 'v4', credentials=creds)
-    # range_ = 'Sheet1!A1:B3'
+    range_ = range_ or 'Sheet1!A1:B3'
     value_render_option = 'FORMATTED_VALUE'  # 'FORMATTED_VALUE' | 'UNFORMATTED_VALUE' | 'FORMULA'
     date_time_render_option = 'FORMATTED_STRING'  # 'FORMATTED_STRING' | 'SERIAL_NUMBER'
     major_dimension = 'ROWS'  # 'ROWS' | 'COLUMNS'
     request = service.spreadsheets().values().get(
         spreadsheetId=id,
-        # range=range_,
+        range=range_,
         valueRenderOption=value_render_option,
         dateTimeRenderOption=date_time_render_option,
         majorDimension=major_dimension
@@ -121,22 +104,14 @@ def clean(obj):
 
 def get_vals(campaign):
     """ Get the values we want to put into our worksheet report """
-    default = [["pizza", "burger"], [1004, 312], ['good', 'okay']]
     brands = ['Brand', ', '.join([ea.name for ea in campaign.brands])]
     users = ['Influencer', ', '.join([ea.name for ea in campaign.users])]
     columns = campaign.report_columns()
     results = [[clean(getattr(post, ea, '')) for ea in columns] for post in campaign.posts]
     # all fields need to be serializable, which means all datetime fields should be changed to strings.
-    # data = request.form.to_dict(flat=False)['related']
-    # app.logger.info(data)
-    app.logger.info(brands)
-    app.logger.info(users)
-    app.logger.info(columns)
-    app.logger.info('------------------------')
-    app.logger.info(len(results))
-    app.logger.info('=========================')
     sheet_rows = [brands, users, [''], columns, *results]
-    return sheet_rows if sheet_rows else default
+    app.logger.info(f"-------- Total rows: {len(sheet_rows)}, with {len(results)} rows of posts --------")
+    return sheet_rows
 
 
 def compute_A1(arr2d, start='A1', sheet='Sheet1'):
@@ -163,7 +138,6 @@ def update_sheet(campaign, id=SHARED_SHEET_ID, creds=None):
     major_dimension = 'ROWS'  # 'ROWS' | 'COLUMNS'
     vals = get_vals(campaign)
     range_ = compute_A1(vals) or 'Sheet1!A1:B2'
-
     value_range_body = {
         "majorDimension": major_dimension,
         "range": range_,
@@ -178,6 +152,6 @@ def update_sheet(campaign, id=SHARED_SHEET_ID, creds=None):
         )
     spreadsheet = request.execute()
     id = spreadsheet.get('spreadsheetId')
-    print('---------- Update Done? ----------------')
+    print('---------- Update Done ----------------')
     pprint(spreadsheet)
-    return (spreadsheet, id)
+    return read_sheet(id=id, range_=range_, creds=creds)
