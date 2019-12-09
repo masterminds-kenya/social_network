@@ -293,11 +293,7 @@ class Campaign(db.Model):
         """ These are the columns used for showing the data for Posts assigned to a given Campaign """
         ignore = ['user_id', 'campaign_id', 'processed', 'media_id']
         columns = [ea.name for ea in Post.__table__.columns if ea.name not in ignore]
-        pprint(columns)
-        # columns = [ea for ea in Post.__table__.columns if ea not in ignore]
-
         return columns
-        # end report_columns
 
     def get_results(self):
         """ We want the datasets and summary statistics """
