@@ -32,28 +32,30 @@ def get_creds(config):
     return credentials.with_scopes(config.get('scopes'))
 
 
-def create_sheet(campaign, creds=None):
+def create_sheet(campaign, service=None):
     """ Takes in an instance from the Campaign model. Get the credentials and create a worksheet. """
     # print('================== create sheet =======================')
-    creds = creds if creds else get_creds(service_config['sheets'])
-    if isinstance(creds, str):
-        return (creds, 0)
+    if not service:
+        creds = get_creds(service_config['sheets'])
+        if isinstance(creds, str):
+            return (creds, 0)
+        service = build('sheets', 'v4', credentials=creds, cache_discovery=False)
     timestamp = int(dt.timestamp(dt.now()))
     name = str(campaign.name).replace(' ', '_')
     title = f"{name}_{timestamp}"
-    service = build('sheets', 'v4', credentials=creds, cache_discovery=False)
     spreadsheet = {'properties': {'title': title}}
     spreadsheet = service.spreadsheets().create(body=spreadsheet, fields='spreadsheetId').execute()
-    return update_sheet(campaign, id=spreadsheet.get('spreadsheetId'), creds=creds)
+    return update_sheet(campaign, id=spreadsheet.get('spreadsheetId'), service=service)
 
 
-def read_sheet_full(id=SHARED_SHEET_ID, creds=None):
+def read_sheet_full(id=SHARED_SHEET_ID, service=None):
     """ Get the information (not the values) for a worksheet with permissions granted to our app service. """
     print('================== read sheet full =======================')
-    creds = creds if creds else get_creds(service_config['sheets'])
-    if isinstance(creds, str):
-        return (creds, 0)
-    service = build('sheets', 'v4', credentials=creds)
+    if not service:
+        creds = get_creds(service_config['sheets'])
+        if isinstance(creds, str):
+            return (creds, 0)
+        service = build('sheets', 'v4', credentials=creds, cache_discovery=False)
     ranges = ['Sheet1!A1:B3']
     include_grid_data = True  # Ignored if a field mask was set in the request.
     request = service.spreadsheets().get(spreadsheetId=id, ranges=ranges, includeGridData=include_grid_data)
@@ -63,13 +65,15 @@ def read_sheet_full(id=SHARED_SHEET_ID, creds=None):
     return (spreadsheet, id)
 
 
-def read_sheet(id=SHARED_SHEET_ID, range_=None, creds=None):
+def read_sheet(id=SHARED_SHEET_ID, range_=None, service=None):
     """ Read a sheet that our app service account has been given permission for. """
     print(f'================== read sheet: {id} =======================')
-    creds = creds if creds else get_creds(service_config['sheets'])
-    if isinstance(creds, str):
-        return (creds, 0)
-    service = build('sheets', 'v4', credentials=creds)
+    if not service:
+        creds = get_creds(service_config['sheets'])
+        if isinstance(creds, str):
+            return (creds, 0)
+        service = build('sheets', 'v4', credentials=creds, cache_discovery=False)
+    # TODO: Currently okay if range_ is known. Otherwise we need to figure it so we can see the sheet data.
     range_ = range_ or 'Sheet1!A1:B3'
     value_render_option = 'FORMATTED_VALUE'  # 'FORMATTED_VALUE' | 'UNFORMATTED_VALUE' | 'FORMULA'
     date_time_render_option = 'FORMATTED_STRING'  # 'FORMATTED_STRING' | 'SERIAL_NUMBER'
@@ -85,6 +89,8 @@ def read_sheet(id=SHARED_SHEET_ID, range_=None, creds=None):
     # print('------------------ Spreadsheet print ---------------------')
     # pprint(spreadsheet)
     # TODO refactor to always return the spreadsheet, sheet id, and the link to the sheet.
+    # link = '' if sheet_id in {0, None} else f"https://docs.google.com/spreadsheets/d/{sheet_id}/edit#gid=0"
+
     return (spreadsheet, id)
 
 
@@ -119,13 +125,14 @@ def compute_A1(arr2d, start='A1', sheet='Sheet1'):
     return f"{sheet}!{start}:{final_col}{final_row}"
 
 
-def update_sheet(campaign, id=SHARED_SHEET_ID, creds=None):
+def update_sheet(campaign, id=SHARED_SHEET_ID, service=None):
     """ Get the data we want, then append it to the worksheet """
     print('================== update sheet =======================')
-    creds = creds if creds else get_creds(service_config['sheets'])
-    if isinstance(creds, str):
-        return (creds, 0)
-    service = build('sheets', 'v4', credentials=creds)
+    if not service:
+        creds = get_creds(service_config['sheets'])
+        if isinstance(creds, str):
+            return (creds, 0)
+        service = build('sheets', 'v4', credentials=creds, cache_discovery=False)
     value_input_option = 'USER_ENTERED'  # 'RAW' | 'USER_ENTERED' | 'INPUT_VALUE_OPTION_UNSPECIFIED'
     insert_data_option = 'OVERWRITE'  # 'OVERWITE' | 'INSERT_ROWS'
     major_dimension = 'ROWS'  # 'ROWS' | 'COLUMNS'
@@ -144,4 +151,4 @@ def update_sheet(campaign, id=SHARED_SHEET_ID, creds=None):
         body=value_range_body
         )
     spreadsheet = request.execute()
-    return read_sheet(id=spreadsheet.get('spreadsheetId'), range_=range_, creds=creds)
+    return read_sheet(id=spreadsheet.get('spreadsheetId'), range_=range_, service=service)
