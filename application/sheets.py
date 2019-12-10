@@ -34,6 +34,49 @@ def get_creds(config):
     return credentials.with_scopes(config.get('scopes'))
 
 
+def batch_update(sheet_id, add_users, service=None):
+    """ Used to update permissions """
+    def callback(request_id, response, exception):
+        if exception:
+            # TODO: Handle error
+            app.logger.info(exception)
+        else:
+            app.logger.info(f"Permission Id: {response.get('id')} Request Id: {request_id}")
+
+    if not service:
+        creds = get_creds(service_config['sheets'])
+        if isinstance(creds, str):
+            return (creds, 0)
+        service = build('drive', 'v3', credentials=creds, cache_discovery=False)
+    batch = service.new_batch_http_request(callback=callback)
+    if not isinstance(add_users, list):
+        add_users = [add_users]
+    for user in add_users:
+        user_permission = {
+            'type': 'user',
+            'role': user.get('role', 'reader'),
+            'emailAddress': user.get('emailAddress')
+        }
+        batch.add(service.permissions().create(
+                fileId=sheet_id,
+                body=user_permission,
+                fields='id',
+        ))
+        # domain_permission = {
+        #     'type': 'domain',
+        #     'role': 'reader',
+        #     'domain': 'export-sheet@social-network-255302.iam.gserviceaccount.com'  # app.config.get('DEPLOYED_URL')
+        # }
+        # batch.add(service.permissions().create(
+        #         fileId=sheet_id,
+        #         body=domain_permission,
+        #         fields='id',
+        # ))
+    batch.execute()
+    data = service.files().get(fileId=sheet_id, fields='name, permissions').execute()
+    return data
+
+
 def list_permissions(sheet_id, service=None):
     """ For a given worksheet, list who currently has access to view it. """
     if not service:
@@ -46,9 +89,15 @@ def list_permissions(sheet_id, service=None):
     data = service.files().get(fileId=sheet_id, fields='name, permissions').execute()
     # permission_url = f'https://www.googleapis.com/drive/v3/files/{sheet_id}/permissions'
     pprint(data)
-    # spreadsheet = {'allowed_users': ['fake 1', 'fake 2']}
+    added = {
+             'emailAddress': 'ChristopherLChapman42@gmail.com',
+             'role': 'reader',
+             }
+    data2 = batch_update(sheet_id, added, service=service)
+    print('---------------------')
+    pprint(data2)
     link = f"https://docs.google.com/spreadsheets/d/{sheet_id}/edit#gid=0"
-    return (data, sheet_id, link)
+    return (data2, sheet_id, link)
 
 
 def create_sheet(campaign, service=None):
