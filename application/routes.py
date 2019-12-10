@@ -7,7 +7,7 @@ from .manage import update_campaign, process_form, post_display
 from .api import onboard_login, onboarding, get_insight, get_audience, get_posts
 from .sheets import create_sheet, update_sheet, read_sheet
 import json
-from pprint import pprint
+# from pprint import pprint
 
 mod_lookup = {'brand': Brand, 'user': User, 'insight': Insight, 'audience': Audience, 'post': Post, 'campaign': Campaign}
 
@@ -19,6 +19,7 @@ def home():
     return render_template('index.html', data=data)
 
 
+# TODO: Do we need this route?
 # @app.route('/data/<int:id>/create', methods=['GET', 'POST'])
 # def create_data(id):
 #     """ Create a worksheet to hold report data """
@@ -88,7 +89,7 @@ def data_default():
 @app.route('/data/view/<string:id>')
 def data(id):
     """ Show the data with Google Sheets """
-    # TODO: Do we need this route? 
+    # TODO: Do we need this route?
     spreadsheet, sheet_id, link = read_sheet(id=id)
     return render_template('data.html', data=spreadsheet, campaign_id=None, sheet_id=sheet_id, link=link)
 
@@ -124,9 +125,7 @@ def results(id):
     campaign = Model.query.get(id)
     if request.method == 'POST':
         spreadsheet, sheet_id, link = create_sheet(campaign)
-        # TODO refactor for when create|upate|read return the spreadsheet, sheet id, and the link to the sheet.
-        app.logger.info('-------------- Results after Create & Update ---------------')
-        app.logger.info(f"Sheet ID: {sheet_id} Link: {link}")
+        app.logger.info(f"==== Campaign {view} Create Sheet ====")
         return render_template('data.html', data=spreadsheet, campaign_id=id, sheet_id=sheet_id, link=link)
     app.logger.info(f'=========== Campaign {view} ===========')
     related = campaign.get_results()

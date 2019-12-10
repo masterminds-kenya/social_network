@@ -50,7 +50,7 @@ def create_sheet(campaign, service=None):
 
 def read_sheet_full(id=SHARED_SHEET_ID, service=None):
     """ Get the information (not the values) for a worksheet with permissions granted to our app service. """
-    print('================== read sheet full =======================')
+    app.logger.info('================== read sheet full =======================')
     if not service:
         creds = get_creds(service_config['sheets'])
         if isinstance(creds, str):
@@ -68,7 +68,7 @@ def read_sheet_full(id=SHARED_SHEET_ID, service=None):
 
 def read_sheet(id=SHARED_SHEET_ID, range_=None, service=None):
     """ Read a sheet that our app service account has been given permission for. """
-    print(f'================== read sheet: {id} =======================')
+    app.logger.info(f'================== read sheet: {id} =======================')
     if not service:
         creds = get_creds(service_config['sheets'])
         if isinstance(creds, str):
@@ -87,9 +87,6 @@ def read_sheet(id=SHARED_SHEET_ID, range_=None, service=None):
         majorDimension=major_dimension
         )
     spreadsheet = request.execute()
-    # print('------------------ Spreadsheet print ---------------------')
-    # pprint(spreadsheet)
-    # TODO refactor to always return the spreadsheet, sheet id, and the link to the sheet.
     link = f"https://docs.google.com/spreadsheets/d/{id}/edit#gid=0"
     return (spreadsheet, id, link)
 
@@ -127,7 +124,7 @@ def compute_A1(arr2d, start='A1', sheet='Sheet1'):
 
 def update_sheet(campaign, id=SHARED_SHEET_ID, service=None):
     """ Get the data we want, then append it to the worksheet """
-    print('================== update sheet =======================')
+    app.logger.info('================== update sheet =======================')
     if not service:
         creds = get_creds(service_config['sheets'])
         if isinstance(creds, str):
