@@ -63,8 +63,8 @@ def update_data(campaign_id, sheet_id):
 def data_permissions(campaign_id, sheet_id):
     """ Used for managing permissions to view worksheets """
     app.logger.info(f'===== data permissions route with sheet {sheet_id} ====')
-    spreadsheet, id, link = list_permissions(sheet_id)
-    return render_template('data.html', data=spreadsheet, campaign_id=campaign_id, sheet_id=sheet_id, link=link)
+    data, id, link = list_permissions(sheet_id)
+    return render_template('data.html', data=data, campaign_id=campaign_id, sheet_id=sheet_id, link=link)
 
 
 @app.route('/data')

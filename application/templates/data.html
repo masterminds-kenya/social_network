@@ -13,13 +13,22 @@
   {% endif %}
 </ul>
 {% endif %}
-<p>
-  Worksheet Range: {{ data.get('range', 'Unknown') }}
-</p>
-{% if data.get('allowed_users') %}
-<p>
-  Allowed Users: {{ ', '.join(data['allowed_users']) }}
-</p>
+{% if data.get('range') %}
+<p>Worksheet Range: {{ data['range'] }}</p>
+{% endif %}
+{% if data.get('permissions') %}
+<h3>Allowed Users</h3>
+<ul>
+  {% for ea in data['permissions'] %}
+  <li>
+    {% if ea['deleted'] %}
+    DELETED:
+    {% endif %}
+    {{ea.get('type')}} - {{ea.get('role')}}:
+    <a href="mailto:{{ea.get('emailAddress')}}">{{ea.get('displayName')}}</a>
+  </li>
+  {% endfor %}
+</ul>
 {% elif data.get('values') %}
 <table>
   {% for row in data['values'] %}
@@ -33,7 +42,7 @@
 {% endif %}
 <ul>
   {% if sheet_id %}
-  <li><a href="{{ url_for('data_permissions', sheet_id=sheet_id) }}">View and Manage Access to the Worksheet</a></li>
+  <li><a href="{{ url_for('data_permissions', campaign_id=campaign_id, sheet_id=sheet_id) }}">View and Manage Access to the Worksheet</a></li>
   {% endif %}
   {% if campaign_id %}
   <li><a href="{{ url_for('campaign', id=campaign_id) }}">Return to Campaign Manage Page</a></li>
