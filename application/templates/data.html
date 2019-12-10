@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 {% block head %}
 <title>Data Report</title>
-{% endblock %}
+{% endblock head %}
 
 {% block content %}
 <h1>Data Report</h1>
@@ -13,16 +13,27 @@
   {% endif %}
 </ul>
 {% endif %}
+{% if data.get('range') %}
 <p>
-  {{ data }}
+  Worksheet Range: {{ data['range'] }}
 </p>
+{% endif %}
+{% if data['values'] %}
+<table>
+  {% for row in data['values'] %}
+  <tr>
+    {%for col in row %}
+    <td>{{col}}</td>
+    {% endfor %}
+  </tr>
+  {% endfor %}
+</table>
+{% endif %}
+{% if campaign_id %}
 <ul>
-  <li><a href="{{ url_for('render_static', page_name='test') }}">Test Styles Page</a></li>
-  <li><a href="{{ url_for('load_user') }}">Load User from file</a> </li>
-  <li><a href="{{ url_for('add', mod='user') }}">Add Fake User</a></li>
-  <li><a href="{{ url_for('all', mod='post') }}">List all Posts</a></li>
-  <li><a href="{{ url_for('all', mod='insight') }}">List all Insights</a></li>
-  <li><a href="{{ url_for('all', mod='audience') }}">List all Audience Data</a></li>
+  <li><a href="{{ url_for('campaign', id=campaign_id)}} ">Return to Campaign Manage Page</a></li>
+  <li><a href="{{ url_for('detail_campaign', id=campaign_id)}} ">View Collected Posts for this Campaign</a></li>
 </ul>
+{% endif %}
 
-{% endblock %}
+{% endblock content %}

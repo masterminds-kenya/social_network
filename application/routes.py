@@ -78,18 +78,25 @@ def update_data(campaign_id, sheet_id):
     """ Update the worksheet data """
     campaign = Campaign.query.get(campaign_id)
     spreadsheet, id, link = update_sheet(campaign, id=sheet_id)
-    return render_template('data.html', data=spreadsheet, campaign_id=None, sheet_id=sheet_id, link=link)
+    return render_template('data.html', data=spreadsheet, campaign_id=campaign_id, sheet_id=sheet_id, link=link)
 
 
 @app.route('/data')
 def data_default():
+    # TODO: Do we need this route? Currently not called?
     return data(None)
+
+
+@app.route('/dev_admin')
+def dev_admin():
+    """ Developer Admin view to help while developing the Application """
+    return render_template('admin.html', data=None)
 
 
 @app.route('/data/view/<string:id>')
 def data(id):
     """ Show the data with Google Sheets """
-    # TODO: Do we need this route?
+    # TODO: Do we need this route? Currently only called by unused routes
     spreadsheet, sheet_id, link = read_sheet(id=id)
     return render_template('data.html', data=spreadsheet, campaign_id=None, sheet_id=sheet_id, link=link)
 
@@ -156,8 +163,6 @@ def campaign(id, view='management'):
             related[user] = [ea for ea in user.posts if not ea.processed]
         else:
             related[user] = []
-    print('------------')
-    print(model)
     return render_template(template, mod=mod, view=view, data=model, related=related)
 
 
