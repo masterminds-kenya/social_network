@@ -41,7 +41,7 @@ def home():
 #     for row in results:
 #         app.logger.info(row)
 #     app.logger.info('=========================')
-#     # spreadsheet, id = create_sheet(title)
+#     # spreadsheet, id, link = create_sheet(title)
 #     id = '1LyUFeo5in3F-IbR1eMnkp-XeQXD_zvfYraxCJBUkZPs'
 #     return redirect(url_for('data', id=id))
 
@@ -76,9 +76,8 @@ def backup_save(mod, id):
 def update_data(campaign_id, sheet_id):
     """ Update the worksheet data """
     campaign = Campaign.query.get(campaign_id)
-    spreadsheet, id = update_sheet(campaign, id=sheet_id)
-    # TODO refactor for when create|upate|read return the spreadsheet, sheet id, and the link to the sheet.
-    return redirect(url_for('data', id=sheet_id))
+    spreadsheet, id, link = update_sheet(campaign, id=sheet_id)
+    return render_template('data.html', data=spreadsheet, campaign_id=None, sheet_id=sheet_id, link=link)
 
 
 @app.route('/data')
@@ -89,9 +88,8 @@ def data_default():
 @app.route('/data/view/<string:id>')
 def data(id):
     """ Show the data with Google Sheets """
-    spreadsheet, sheet_id = read_sheet(id=id)
-    link = '' if sheet_id in {0, None} else f"https://docs.google.com/spreadsheets/d/{sheet_id}/edit#gid=0"
-    # TODO refactor for when create|upate|read return the spreadsheet, sheet id, and the link to the sheet.
+    # TODO: Do we need this route? 
+    spreadsheet, sheet_id, link = read_sheet(id=id)
     return render_template('data.html', data=spreadsheet, campaign_id=None, sheet_id=sheet_id, link=link)
 
 
@@ -125,9 +123,8 @@ def results(id):
     Model = mod_lookup.get(mod, None)
     campaign = Model.query.get(id)
     if request.method == 'POST':
-        spreadsheet, sheet_id = create_sheet(campaign)
+        spreadsheet, sheet_id, link = create_sheet(campaign)
         # TODO refactor for when create|upate|read return the spreadsheet, sheet id, and the link to the sheet.
-        link = '' if sheet_id in {0, None} else f"https://docs.google.com/spreadsheets/d/{sheet_id}/edit#gid=0"
         app.logger.info('-------------- Results after Create & Update ---------------')
         app.logger.info(f"Sheet ID: {sheet_id} Link: {link}")
         return render_template('data.html', data=spreadsheet, campaign_id=id, sheet_id=sheet_id, link=link)

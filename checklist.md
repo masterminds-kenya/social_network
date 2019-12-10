@@ -19,11 +19,12 @@
 | :heavy_check_mark: | Campaign create & edit - can connect Users & Brands |
 | :heavy_check_mark: | Posts can be assigned as in or out of campaign |
 |                    | **Milestone 3 Completion**           |
-|                    | Generate reports to Google sheets    |
+| :heavy_check_mark: | Generate reports to Google sheets    |
 |                    | Give permissions to view google sheets      |
 |                    | Site content and style, basic UI and graphs |
-|                    | Testing, on-boarding, error handling |
 |                    | **Milestone 4 Completion**           |
+|                    | Hosting and Facebook settings on Bacchus accounts |
+|                    | Testing, on-boarding, error handling |
 |                    | Facebook App approved and go live    |
 |                    | **Initial Contract Completion**      |
 
@@ -150,7 +151,6 @@ Current Status:
 - [x] API call and store post insight metrics for Albums
 - [x] API call and store post insight metrics for Stories
 - [s] WebHook to get Stories data at completion.
-
 - [ ] Decide approach: A) typical form validation & stop submission of existing or B) use existing record.
   - [ ] If form validate approach, setup user experience that they can select existing record
   - [ ] If incoming form (or API user/brand) already exists, use existing instead of create new:
@@ -198,13 +198,13 @@ Current Status:
   - [x] Can remove to campaign and remove for consideration (marked processed)
   - [x] Will be left with current settings if unchanged when other posts modified
 - [ ] Campaign Results View
-  - [ ] Overview of the campaign metrics
-- [ ] Functionality to Fetch more posts (API call to FB)
+  - [x] Overview of the campaign metrics
+- [x] Functionality to Fetch more posts (API call to FB)
   - [x] Can request more posts for a given user
   - [x] redirect back to the page/view that called to get more posts
-  - [ ] Will limit request to only get new posts since last request
+  - [s] Will limit request to only get new posts since last request
   - [x] In case we do get duplicates, it will NOT create duplicates in DB
-      - [x] Will update if our DB info is out-of-date
+    - [x] Will update if our DB info is out-of-date
   - [ ] Visual feedback that it is processing but not ready to render new view
 - [ ] Fetch more Insights (of the account, not of media)
   - [x] Can get a history the the user (or brand) account insights
@@ -221,9 +221,10 @@ Current Status:
     - [ ] Do we need to have marketing user own the worksheet and App allowed to edit?
   - [x] Function to create a worksheet
   - [x] Function to update a worksheet
-  - [ ] Can read and format desired DB data into worksheet.
+  - [x] Can read and format desired DB data into worksheet.
 - [x] create a route & view for the sheets data view
 - [s] Add migration functionality?
+- [ ] Move hosting and FaceBook settings to Bacchus
 - [ ] refactor sheets data view to export to a google worksheet
 - [ ] Login: any additional User and Admin authentication needed?
   - [ ] ?Confirm Google login for Worksheet access?
@@ -247,8 +248,8 @@ Current Status:
 - [x] Have real influencer (Noelle Reno) sign up for testing.
 - [x] Modularize the codebase: sheets, facebook api, developer_admin, manage
 - [ ] Update template to use for-else: in jinja, the else only runs if no iteration
-- [ ] Modularize the codebase more: move routes elsewhere?
-- [ ] ? allow logging in related files (remove all print statements)
+- [x] Modularize the codebase more: move routes elsewhere?
+- [x] ? allow logging in related files (remove all print statements) == from flask import current_app as app
 - [ ] Update forms and API digesting with input validation to replace following functionality:
   - [ ] Currently fix_date used for both create model, and when create_or_update many
   - [ ] Currently create_or_update_many also has to modify inputs from Audience API calls

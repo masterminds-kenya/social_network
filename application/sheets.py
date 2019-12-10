@@ -62,7 +62,8 @@ def read_sheet_full(id=SHARED_SHEET_ID, service=None):
     spreadsheet = request.execute()
     id = spreadsheet.get('spreadsheetId')
     pprint(spreadsheet)
-    return (spreadsheet, id)
+    link = f"https://docs.google.com/spreadsheets/d/{id}/edit#gid=0"
+    return (spreadsheet, id, link)
 
 
 def read_sheet(id=SHARED_SHEET_ID, range_=None, service=None):
@@ -89,9 +90,8 @@ def read_sheet(id=SHARED_SHEET_ID, range_=None, service=None):
     # print('------------------ Spreadsheet print ---------------------')
     # pprint(spreadsheet)
     # TODO refactor to always return the spreadsheet, sheet id, and the link to the sheet.
-    # link = '' if sheet_id in {0, None} else f"https://docs.google.com/spreadsheets/d/{sheet_id}/edit#gid=0"
-
-    return (spreadsheet, id)
+    link = f"https://docs.google.com/spreadsheets/d/{id}/edit#gid=0"
+    return (spreadsheet, id, link)
 
 
 def clean(obj):
