@@ -1,4 +1,4 @@
-from flask import Flask, flash
+from flask import Flask, flash, current_app
 from flask_sqlalchemy import SQLAlchemy
 # from flask_sqlalchemy import BaseQuery, SQLAlchemy  # if we create custom query
 from sqlalchemy.exc import IntegrityError
@@ -7,6 +7,7 @@ from sqlalchemy import or_
 from datetime import datetime as dt
 from dateutil import parser
 import re
+from statistics import mean, median, stdev
 import json
 from pprint import pprint  # only for debugging
 # TODO: see "Setting up Constraints when using the Declarative ORM Extension" at https://docs.sqlalchemy.org/en/13/core/constraints.html#unique-constraint
@@ -288,6 +289,51 @@ class Campaign(db.Model):
         kwargs['completed'] = True if kwargs.get('completed') in {'on', True} else False
         super().__init__(*args, **kwargs)
 
+    def report_columns(self):
+        """ These are the columns used for showing the data for Posts assigned to a given Campaign """
+        ignore = ['user_id', 'campaign_id', 'processed', 'media_id']
+        columns = [ea.name for ea in Post.__table__.columns if ea.name not in ignore]
+        return columns
+
+    def get_results(self):
+        """ We want the datasets and summary statistics """
+        rejected = {'insight', 'basic'}
+        added = {'comments_count', 'like_count'}
+        lookup = {k: v.union(added) for k, v in Post.metrics.items() if k not in rejected}
+        # related = {key: {'posts': [], 'metrics': {metric_clean(el): [] for el in lookup[key]}} for key in lookup}
+        related, sets_list = {}, []
+        for media_type, metric_set in lookup.items():
+            temp = [metric_clean(ea) for ea in metric_set]
+            sets_list.append(set(temp))
+            related[media_type] = {'posts': [], 'metrics': {ea: [] for ea in temp}, 'labels': {ea: [] for ea in temp}}
+        # add key for common metrics summary
+        start = sets_list.pop()
+        common = list(start.intersection(*sets_list))
+        related['common'] = {'metrics': {metric: [] for metric in common}, 'labels': {metric: [] for metric in common}}
+        # populate metric lists with data from this campaign's currently assigned posts.
+        for post in self.posts:
+            media_type = post.media_type
+            related[media_type]['posts'].append(post)
+            for metric in related[media_type]['metrics']:
+                related[media_type]['metrics'][metric].append(int(getattr(post, metric)))
+                related[media_type]['labels'][metric].append(int(getattr(post, 'id')))
+                if metric in related['common']['metrics']:
+                    related['common']['metrics'][metric].append(int(getattr(post, metric)))
+                    related['common']['labels'][metric].append(int(getattr(post, 'id')))
+        # compute stats we want for each media type and common metrics
+        for group in related:
+            related[group]['results'] = {}
+            metrics = related[group]['metrics']
+            for metric, data in metrics.items():
+                curr = {}
+                curr['total'] = sum(data) if len(data) > 0 else 0
+                curr['mid'] = median(data) if len(data) > 0 else 0
+                curr['avg'] = mean(data) if len(data) > 0 else 0
+                curr['spread'] = stdev(data) if len(data) > 0 else 0
+                related[group]['results'][metric] = curr
+        return related
+        # end get_results
+
     def __str__(self):
         name = self.name if self.name else self.id
         brands = ', '.join([brand.name for brand in self.brands]) if self.brands else ['NA']
@@ -314,10 +360,11 @@ def db_create(data, Model=User):
         pprint(unique)
         model = Model.query.filter(*[getattr(Model, key) == val for key, val in unique.items()]).one_or_none()
         if model:
-            print(f'----- Instead of Create, we are using existing record with id: {model.id} -----')
-            flash(f"A {model.__class__.__name__} like that already exists. Instead of creating a new one, we are using the existing one")
+            message = f"A {model.__class__.__name__}, with already exists (id: {model.id}). Using existing."
         else:
-            print(f'----- Cannot create due to collision on unique fields. Cannot retrieve existing record')
+            message = f'Cannot create due to collision on unique fields. Cannot retrieve existing record'
+        current_app.logger.info(message)
+        flash(message)
     # except Exception as e:
     #     print('**************** DB CREATE Error *******************')
     #     print(e)

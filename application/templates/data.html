@@ -5,17 +5,16 @@
 
 {% block content %}
 <h1>Data Report</h1>
-{% if link and id %}
+{% if link and sheet_id %}
 <ul>
   <li><a href="{{ link }}">View Google Worksheet</a> </li>
-  <li><a href="{{ url_for('update_data', id) }}">Update Report</a></li>
+  {% if campaign_id %}
+  <li><a href="{{ url_for('update_data', campaign_id=campaign_id, sheet_id=sheet_id) }}">Update Report</a></li>
+  {% endif %}
 </ul>
 {% endif %}
 <p>
   {{ data }}
-</p>
-<p>
-    <a href="{{ url_for('create_data') }}">Create New Worksheet</a>
 </p>
 <ul>
   <li><a href="{{ url_for('render_static', page_name='test') }}">Test Styles Page</a></li>

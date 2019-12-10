@@ -1,9 +1,95 @@
 {% extends "campaign.html" %}
-
+{% block head %}
+{{ super() }}
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.4.0/Chart.min.js"></script>
+{% endblock head %}
+{% block header %}
+{{ super() }}
+<form method="POST" enctype="multipart/form-data">
+  <input type="hidden" name="related" value="{{related}}" />
+  <button type="submit" class="btn btn-success">Create Google Sheet Report</button>
+</form>
+{% endblock header %}
 {% block content %}
 <main>
-<h2>Results campaign template</h2>
+  {% set dataset = namespace(count=0, datatype=[], vals=[], labels=[]) %}
+  {% for media_type, obj in related.items() %}
+  <section id="{{media_type}}" class="media_results">
+    <h2>{{ media_type|title }} Posts</h2>
+    {% if media_type == 'common' or obj['posts']|length %}
+    {% for metric, stats in obj['results'].items() %}
+    <article class="{{metric}}">
+      <h3>{{ metric|title }}</h3>
+      <p>
+        {% for stat, value in stats.items() %}
+        {{stat|title}}: {{value}} |
+        {% endfor %}
+      </p>
+      <canvas id="chart_{{dataset.count}}" height="200px" width="450px">
+        {% set dataset.count = dataset.count + 1 %}
+        {% set name = media_type|title + ' ' + metric|title %}
+        {{ dataset.datatype.append(name) }}
+        {{ dataset.vals.append(obj['metrics'][metric]) }}
+        {{ dataset.labels.append(obj['labels'][metric]) }}
+      </canvas>
+    </article>
+    {% endfor %}
+    {% else %}
+    <p>There are no posts of this kind assigned to this campaign.</p>
+    {% endif %}
+    <hr />
+  </section>
+  {% endfor %}
+  <h2>End of Data</h2>
+  <script>
+    function makeChart(ctx, metric, vals, labels){
+      console.log(metric);
+      console.log('-------------');
+      console.log(vals);
+      console.log('-------------');
+      console.log(labels);
+      let max = Math.max(...vals);
+      let min = Math.min(...vals);
+      let steps = Math.floor((max - min) / 5);
+      new Chart(ctx, {
+        type: 'bar',
+        data: {
+          labels: labels,
+          datasets: [{label: metric,
+                      backgroundColor: '#214',
+                      borderColor: '#214',
+                      data: vals
+                    }]
+        },
+        options: {
+          responsive: false,
+          scales: {
+            yAxes: [{
+              ticks: {
+                max: max,
+                min: min,
+                stepSize: steps
+              }
+            }]
+          }
+        }
+      });
+    }
 
-
+    function showData(){
+      let count = {{ dataset.count }};
+      console.log(count);
+      let found_datatype = {{ dataset.datatype|safe }};
+      let found_data = {{ dataset.vals }};
+      let found_labels = {{ dataset.labels }};
+      for(let i = 0; i < count; i++){
+        let name = 'chart_' + i;
+        let ctx = document.getElementById(name).getContext('2d');
+        makeChart(ctx, found_datatype[i], found_data[i], found_labels[i]);
+      }
+    }
+    console.log('hello');
+    showData();
+  </script>
 </main>
 {% endblock content %}

@@ -1,14 +1,13 @@
 from flask import current_app as app
 from flask import render_template, redirect, url_for, request, abort, flash
 from .model_db import db_create, db_read, db_update, db_delete, db_all
-from .model_db import Brand, User, Insight, Audience, Post, Campaign, metric_clean
+from .model_db import Brand, User, Insight, Audience, Post, Campaign  # , metric_clean
 from . import developer_admin
 from .manage import update_campaign, process_form, post_display
 from .api import onboard_login, onboarding, get_insight, get_audience, get_posts
 from .sheets import create_sheet, update_sheet, read_sheet
 import json
-from statistics import mean, stdev
-from pprint import pprint
+# from pprint import pprint
 
 mod_lookup = {'brand': Brand, 'user': User, 'insight': Insight, 'audience': Audience, 'post': Post, 'campaign': Campaign}
 
@@ -18,6 +17,34 @@ def home():
     """ Default root route """
     data = ''
     return render_template('index.html', data=data)
+
+
+# TODO: Do we need this route?
+# @app.route('/data/<int:id>/create', methods=['GET', 'POST'])
+# def create_data(id):
+#     """ Create a worksheet to hold report data """
+#     campaign = Campaign.query.get(id)
+#     title = f"{campaign.name}_{dt.now()}"
+#     brands = ['Brand', ', '.join([ea.name for ea in campaign.brands])]
+#     users = ['Influencer', ', '.join([ea.name for ea in campaign.users])]
+#     columns = campaign.report_columns()
+#     results = [[getattr(post, ea, '') for ea in columns] for post in campaign.posts]
+
+#     app.logger.info('Create Data was called')
+#     # data = request.form.to_dict(flat=False)['related']
+#     app.logger.info('=========================')
+#     # app.logger.info(data)
+#     app.logger.info(title)
+#     app.logger.info(brands)
+#     app.logger.info(users)
+#     app.logger.info(columns)
+#     app.logger.info('------------------------')
+#     for row in results:
+#         app.logger.info(row)
+#     app.logger.info('=========================')
+#     # spreadsheet, id, link = create_sheet(title)
+#     id = '1LyUFeo5in3F-IbR1eMnkp-XeQXD_zvfYraxCJBUkZPs'
+#     return redirect(url_for('data', id=id))
 
 
 @app.route('/error', methods=['GET', 'POST'])
@@ -46,18 +73,12 @@ def backup_save(mod, id):
     return redirect(url_for('view', mod='user', id=id))
 
 
-@app.route('/data/update/<string:id>')
-def update_data(id):
+@app.route('/data/update/<int:campaign_id>/<string:sheet_id>')
+def update_data(campaign_id, sheet_id):
     """ Update the worksheet data """
-    spreadsheet, id = update_sheet(id)
-    return redirect(url_for('data', id=id))
-
-
-@app.route('/data/create')
-def create_data():
-    """ Create a worksheet to hold report data """
-    spreadsheet, id = create_sheet('test-title')
-    return redirect(url_for('data', id=id))
+    campaign = Campaign.query.get(campaign_id)
+    spreadsheet, id, link = update_sheet(campaign, id=sheet_id)
+    return render_template('data.html', data=spreadsheet, campaign_id=None, sheet_id=sheet_id, link=link)
 
 
 @app.route('/data')
@@ -68,9 +89,9 @@ def data_default():
 @app.route('/data/view/<string:id>')
 def data(id):
     """ Show the data with Google Sheets """
-    spreadsheet, id = read_sheet(id)
-    link = '' if id == 0 else f"https://docs.google.com/spreadsheets/d/{id}/edit#gid=0"
-    return render_template('data.html', data=spreadsheet, id=id, link=link)
+    # TODO: Do we need this route?
+    spreadsheet, sheet_id, link = read_sheet(id=id)
+    return render_template('data.html', data=spreadsheet, campaign_id=None, sheet_id=sheet_id, link=link)
 
 
 @app.route('/login/<string:mod>')
@@ -95,49 +116,21 @@ def callback(mod):
         return redirect(url_for('error', data='unknown response'), code=307)
 
 
-@app.route('/campaign/<int:id>/results')
+@app.route('/campaign/<int:id>/results', methods=['GET', 'POST'])
 def results(id):
-    """ Campaign Results View """
+    """ Campaign Results View (on GET) or generate Worksheet report (on POST) """
     mod, view = 'campaign', 'results'
     template, related = f"{view}_{mod}.html", {}
     Model = mod_lookup.get(mod, None)
     campaign = Model.query.get(id)
+    if request.method == 'POST':
+        spreadsheet, sheet_id, link = create_sheet(campaign)
+        app.logger.info(f"==== Campaign {view} Create Sheet ====")
+        return render_template('data.html', data=spreadsheet, campaign_id=id, sheet_id=sheet_id, link=link)
     app.logger.info(f'=========== Campaign {view} ===========')
-    # construct data organization with metrics appropriate to each media type
-    rejected = {'insight', 'basic'}
-    added = {'comments_count', 'like_count'}
-    lookup = {k: v.union(added) for k, v in Post.metrics.items() if k not in rejected}
-    related = {key: {'posts': [], 'metrics': {metric_clean(el): [] for el in lookup[key]}} for key in lookup}
-    # add key for common metrics summary
-    sets_list = [set([metric_clean(el) for el in sets]) for sets in lookup.values()]
-    start = sets_list.pop()
-    common = start.intersection(*sets_list)
-    print(common)
-    related['common'] = {'metrics': {key: [] for key in common}}
-    # populate metric lists with data from this campaign's currently assigned posts.
-    for post in campaign.posts:
-        media_type = post.media_type
-        related[media_type]['posts'].append(post)
-        for metric in related[media_type]['metrics']:
-            found = getattr(post, metric)
-            print(found)
-            related[media_type]['metrics'][metric].append(int(getattr(post, metric)))
-            if metric in related['common']['metrics']:
-                related['common']['metrics'][metric].append(int(getattr(post, metric)))
-    print('--------related below------------')
-    pprint(related)
-    # compute stats we want for each media type and common metrics
-    for group in related:
-        related[group]['results'] = {}
-        metrics = related[group]['metrics']
-        for metric, data in metrics.items():
-            print(data)
-            total = sum(data) if len(data) > 0 else 0
-            avg = mean(data) if len(data) > 0 else 0
-            spread = stdev(data) if len(data) > 0 else 0
-            related[group]['results'][metric] = {'total': total, 'average': avg, 'stdev': spread}
-    print('--------related below------------')
-    pprint(related)
+    related = campaign.get_results()
+    # print('--------related below------------')
+    # pprint(related)
     return render_template(template, mod=mod, view=view, data=campaign, related=related)
 
 
