@@ -7,11 +7,14 @@ from datetime import datetime as dt
 from pprint import pprint
 
 SHARED_SHEET_ID = '1LyUFeo5in3F-IbR1eMnkp-XeQXD_zvfYraxCJBUkZPs'
+# permission_url = 'https://www.googleapis.com/drive/v3/files/fileId/permissions'
+
 LOCAL_ENV = app.config.get('LOCAL_ENV')
 service_config = {
     'sheets': {
         'file': 'env/sheet_secret.json',
         'scopes': ['https://www.googleapis.com/auth/spreadsheets']
+        # ['https://www.googleapis.com/auth/spreadsheets', 'https://www.googleapis.com/auth/drive']
         }
 }
 
@@ -30,6 +33,18 @@ def get_creds(config):
         return message
     credentials = service_account.Credentials.from_service_account_file(config['file'])
     return credentials.with_scopes(config.get('scopes'))
+
+
+def list_permissions(sheet_id, service=None):
+    """ For a given worksheet, list who currently has access to view it. """
+    if not service:
+        creds = get_creds(service_config['sheets'])
+        if isinstance(creds, str):
+            return (creds, 0)
+        # service = build('sheets', 'v4', credentials=creds, cache_discovery=False)
+    spreadsheet = {'allowed_users': ['fake 1', 'fake 2']}
+    link = f"https://docs.google.com/spreadsheets/d/{sheet_id}/edit#gid=0"
+    return (spreadsheet, sheet_id, link)
 
 
 def create_sheet(campaign, service=None):

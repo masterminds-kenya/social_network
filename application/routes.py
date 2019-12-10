@@ -5,7 +5,7 @@ from .model_db import Brand, User, Insight, Audience, Post, Campaign  # , metric
 from . import developer_admin
 from .manage import update_campaign, process_form, post_display
 from .api import onboard_login, onboarding, get_insight, get_audience, get_posts
-from .sheets import create_sheet, update_sheet, read_sheet
+from .sheets import create_sheet, update_sheet, read_sheet, list_permissions
 import json
 # from pprint import pprint
 
@@ -19,38 +19,16 @@ def home():
     return render_template('index.html', data=data)
 
 
-# TODO: Do we need this route?
-# @app.route('/data/<int:id>/create', methods=['GET', 'POST'])
-# def create_data(id):
-#     """ Create a worksheet to hold report data """
-#     campaign = Campaign.query.get(id)
-#     title = f"{campaign.name}_{dt.now()}"
-#     brands = ['Brand', ', '.join([ea.name for ea in campaign.brands])]
-#     users = ['Influencer', ', '.join([ea.name for ea in campaign.users])]
-#     columns = campaign.report_columns()
-#     results = [[getattr(post, ea, '') for ea in columns] for post in campaign.posts]
-
-#     app.logger.info('Create Data was called')
-#     # data = request.form.to_dict(flat=False)['related']
-#     app.logger.info('=========================')
-#     # app.logger.info(data)
-#     app.logger.info(title)
-#     app.logger.info(brands)
-#     app.logger.info(users)
-#     app.logger.info(columns)
-#     app.logger.info('------------------------')
-#     for row in results:
-#         app.logger.info(row)
-#     app.logger.info('=========================')
-#     # spreadsheet, id, link = create_sheet(title)
-#     id = '1LyUFeo5in3F-IbR1eMnkp-XeQXD_zvfYraxCJBUkZPs'
-#     return redirect(url_for('data', id=id))
-
-
 @app.route('/error', methods=['GET', 'POST'])
 def error():
     err = request.form.get('data')
     return render_template('error.html', err=err)
+
+
+@app.route('/dev_admin')
+def dev_admin():
+    """ Developer Admin view to help while developing the Application """
+    return render_template('admin.html', data=None)
 
 
 @app.route('/data/load/')
@@ -81,16 +59,18 @@ def update_data(campaign_id, sheet_id):
     return render_template('data.html', data=spreadsheet, campaign_id=campaign_id, sheet_id=sheet_id, link=link)
 
 
+@app.route('/data/permissions/<int:campaign_id>/<string:sheet_id>')
+def data_permissions(campaign_id, sheet_id):
+    """ Used for managing permissions to view worksheets """
+    app.logger.info(f'===== data permissions route with sheet {sheet_id} ====')
+    spreadsheet, id, link = list_permissions(sheet_id)
+    return render_template('data.html', data=spreadsheet, campaign_id=campaign_id, sheet_id=sheet_id, link=link)
+
+
 @app.route('/data')
 def data_default():
     # TODO: Do we need this route? Currently not called?
     return data(None)
-
-
-@app.route('/dev_admin')
-def dev_admin():
-    """ Developer Admin view to help while developing the Application """
-    return render_template('admin.html', data=None)
 
 
 @app.route('/data/view/<string:id>')

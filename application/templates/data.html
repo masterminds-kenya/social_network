@@ -13,27 +13,32 @@
   {% endif %}
 </ul>
 {% endif %}
-{% if data.get('range') %}
 <p>
-  Worksheet Range: {{ data['range'] }}
+  Worksheet Range: {{ data.get('range', 'Unknown') }}
 </p>
-{% endif %}
-{% if data['values'] %}
+{% if data.get('allowed_users') %}
+<p>
+  Allowed Users: {{ ', '.join(data['allowed_users']) }}
+</p>
+{% elif data.get('values') %}
 <table>
   {% for row in data['values'] %}
   <tr>
-    {%for col in row %}
+    {% for col in row %}
     <td>{{col}}</td>
     {% endfor %}
   </tr>
   {% endfor %}
 </table>
 {% endif %}
-{% if campaign_id %}
 <ul>
-  <li><a href="{{ url_for('campaign', id=campaign_id)}} ">Return to Campaign Manage Page</a></li>
-  <li><a href="{{ url_for('detail_campaign', id=campaign_id)}} ">View Collected Posts for this Campaign</a></li>
+  {% if sheet_id %}
+  <li><a href="{{ url_for('data_permissions', sheet_id=sheet_id) }}">View and Manage Access to the Worksheet</a></li>
+  {% endif %}
+  {% if campaign_id %}
+  <li><a href="{{ url_for('campaign', id=campaign_id) }}">Return to Campaign Manage Page</a></li>
+  <li><a href="{{ url_for('detail_campaign', id=campaign_id) }}">View Collected Posts for this Campaign</a></li>
+  {% endif %}
 </ul>
-{% endif %}
 
 {% endblock content %}
