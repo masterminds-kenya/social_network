@@ -72,11 +72,13 @@ def backup_save(mod, id):
     return redirect(url_for('view', mod='user', id=id))
 
 
-@app.route('/data/update/<string:id>')
-def update_data(id):
+@app.route('/data/update/<int:campaign_id>/<string:sheet_id>')
+def update_data(campaign_id, sheet_id):
     """ Update the worksheet data """
-    spreadsheet, id = update_sheet(id)
-    return redirect(url_for('data', id=id))
+    campaign = Campaign.query.get(campaign_id)
+    spreadsheet, id = update_sheet(campaign, id=sheet_id)
+    # TODO refactor for when create|upate|read return the spreadsheet, sheet id, and the link to the sheet.
+    return redirect(url_for('data', id=sheet_id))
 
 
 @app.route('/data')
@@ -87,9 +89,10 @@ def data_default():
 @app.route('/data/view/<string:id>')
 def data(id):
     """ Show the data with Google Sheets """
-    spreadsheet, id = read_sheet(id)
-    link = '' if id == 0 else f"https://docs.google.com/spreadsheets/d/{id}/edit#gid=0"
-    return render_template('data.html', data=spreadsheet, id=id, link=link)
+    spreadsheet, sheet_id = read_sheet(id=id)
+    link = '' if sheet_id in {0, None} else f"https://docs.google.com/spreadsheets/d/{sheet_id}/edit#gid=0"
+    # TODO refactor for when create|upate|read return the spreadsheet, sheet id, and the link to the sheet.
+    return render_template('data.html', data=spreadsheet, campaign_id=None, sheet_id=sheet_id, link=link)
 
 
 @app.route('/login/<string:mod>')
@@ -123,8 +126,11 @@ def results(id):
     campaign = Model.query.get(id)
     if request.method == 'POST':
         spreadsheet, sheet_id = create_sheet(campaign)
-        link = '' if sheet_id == 0 else f"https://docs.google.com/spreadsheets/d/{id}/edit#gid=0"
-        return render_template('data.html', data=spreadsheet, id=sheet_id, link=link)
+        # TODO refactor for when create|upate|read return the spreadsheet, sheet id, and the link to the sheet.
+        link = '' if sheet_id in {0, None} else f"https://docs.google.com/spreadsheets/d/{sheet_id}/edit#gid=0"
+        app.logger.info('-------------- Results after Create & Update ---------------')
+        app.logger.info(f"Sheet ID: {sheet_id} Link: {link}")
+        return render_template('data.html', data=spreadsheet, campaign_id=id, sheet_id=sheet_id, link=link)
     app.logger.info(f'=========== Campaign {view} ===========')
     related = campaign.get_results()
     # print('--------related below------------')

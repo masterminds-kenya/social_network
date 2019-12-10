@@ -44,8 +44,7 @@ def create_sheet(campaign, creds=None):
     service = build('sheets', 'v4', credentials=creds, cache_discovery=False)
     spreadsheet = {'properties': {'title': title}}
     spreadsheet = service.spreadsheets().create(body=spreadsheet, fields='spreadsheetId').execute()
-    spreadsheet, id = update_sheet(campaign, id=spreadsheet.get('spreadsheetId'), creds=creds)
-    return (spreadsheet, id)
+    return update_sheet(campaign, id=spreadsheet.get('spreadsheetId'), creds=creds)
 
 
 def read_sheet_full(id=SHARED_SHEET_ID, creds=None):
@@ -66,9 +65,7 @@ def read_sheet_full(id=SHARED_SHEET_ID, creds=None):
 
 def read_sheet(id=SHARED_SHEET_ID, range_=None, creds=None):
     """ Read a sheet that our app service account has been given permission for. """
-    id = id if id else SHARED_SHEET_ID
-    print('================== read sheet =======================')
-    print(id)
+    print(f'================== read sheet: {id} =======================')
     creds = creds if creds else get_creds(service_config['sheets'])
     if isinstance(creds, str):
         return (creds, 0)
@@ -85,13 +82,9 @@ def read_sheet(id=SHARED_SHEET_ID, range_=None, creds=None):
         majorDimension=major_dimension
         )
     spreadsheet = request.execute()
-    sheet_vals = spreadsheet.get('values')
-    if sheet_vals:
-        for row in sheet_vals:
-            print(', '.join(row))
-    id = spreadsheet.get('spreadsheetId')
-    print('------------------ Spreadsheet print ---------------------')
-    pprint(spreadsheet)
+    # print('------------------ Spreadsheet print ---------------------')
+    # pprint(spreadsheet)
+    # TODO refactor to always return the spreadsheet, sheet id, and the link to the sheet.
     return (spreadsheet, id)
 
 
@@ -110,7 +103,7 @@ def get_vals(campaign):
     results = [[clean(getattr(post, ea, '')) for ea in columns] for post in campaign.posts]
     # all fields need to be serializable, which means all datetime fields should be changed to strings.
     sheet_rows = [brands, users, [''], columns, *results]
-    app.logger.info(f"-------- Total rows: {len(sheet_rows)}, with {len(results)} rows of posts --------")
+    app.logger.info(f"-------- get_vals Total rows: {len(sheet_rows)}, with {len(results)} rows of posts --------")
     return sheet_rows
 
 
@@ -151,7 +144,4 @@ def update_sheet(campaign, id=SHARED_SHEET_ID, creds=None):
         body=value_range_body
         )
     spreadsheet = request.execute()
-    id = spreadsheet.get('spreadsheetId')
-    print('---------- Update Done ----------------')
-    pprint(spreadsheet)
-    return read_sheet(id=id, range_=range_, creds=creds)
+    return read_sheet(id=spreadsheet.get('spreadsheetId'), range_=range_, creds=creds)
