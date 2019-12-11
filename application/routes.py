@@ -70,7 +70,6 @@ def data_permissions(campaign_id, sheet_id, perm_id=None):
     action = 'Edit' if perm_id else 'Add'
     if request.method == 'POST':
         app.logger.info(f'--------- {action} Permissions ------------')
-        # data = process_form(mod, request)
         data = request.form.to_dict(flat=True)  # TODO: add form validate method for security.
         if action == 'Edit':
             # model = db_update(data, id, Model=Model)
@@ -81,14 +80,6 @@ def data_permissions(campaign_id, sheet_id, perm_id=None):
         return render_template('data.html', sheet=sheet, campaign_id=campaign_id)
 
     return render_template(template, action=action, data=data, sheet=sheet, campaign_id=campaign_id)
-
-    # added = {
-    #         'emailAddress': 'ChristopherLChapman42@gmail.com',
-    #         'role': 'reader',
-    #         }
-    # data, id, link = perm_add(sheet_id, added)
-    # # data, id, link = list_permissions(sheet_id)
-    # return render_template('data.html', data=data, campaign_id=campaign_id, sheet_id=sheet_id, link=link)
 
 
 @app.route('/data')

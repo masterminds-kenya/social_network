@@ -105,6 +105,9 @@ Current Status:
 - [s] Update many function
 - [s] Refine Brand Model with constructor function for translating from FB.
 - [s] Can update data for existing Brand accounts
+- [ ] Update User & Brand to be the same user table
+  - [ ] Default account insights history, 360 days.
+  - [ ] Export Influencer/Brand metrics to google worksheet.
 - [ ] Pickle tokens
 - [ ] Keep a DB table of worksheet ids?
   - [ ] Will we have multiple report views?
@@ -116,6 +119,7 @@ Current Status:
 
 ### Site Functionality
 
+- [ ] Add Brand account metrics to the Campaign report
 - [x] Confirm DB connection works
 - [x] CREATE: Confirm we can add users to DB
 - [x] READ:   Confirm we can retrieve user info from DB.
