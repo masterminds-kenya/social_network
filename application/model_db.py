@@ -30,15 +30,15 @@ def from_sql(row, related=False, safe=False):
     """ Translates a SQLAlchemy model instance into a dictionary """
     data = row.__dict__.copy()
     data['id'] = row.id
-    print('============= from_sql ===================')
-    print(row.__class__)
+    current_app.logger.info('============= from_sql ===================')
+    current_app.logger.info(row.__class__)
     if related:
         rel = row.__mapper__.relationships
-        print(rel)
-        # print(dir(rel))
+        # TODO: Attach rel to data
+        pprint(rel)
     temp = data.pop('_sa_instance_state', None)
     if not temp:
-        print('Not a model instance!')
+        current_app.logger.info('Not a model instance!')
     if safe:
         Model = row.__class__
         data = {k: data[k] for k in data.keys() - Model.UNSAFE}
@@ -495,12 +495,12 @@ def db_create_or_update_many(dataset, user_id=None, Model=Post):
                 db.session.add(model)
                 add_count += 1
                 all_results.append(model)
-    print('------------------------------------------------------------------------------')
-    print(f'The all results has {len(all_results)} records to commit')
-    print(f'This includes {update_count} updated records')
-    print(f'This includes {add_count} added records')
-    print(f'We were unable to handle {len(error_set)} of the incoming dataset items')
-    print('------------------------------------------------------------------------------')
+    current_app.logger.info('------------------------------------------------------------------------------')
+    current_app.logger.info(f'The all results has {len(all_results)} records to commit')
+    current_app.logger.info(f'This includes {update_count} updated records')
+    current_app.logger.info(f'This includes {add_count} added records')
+    current_app.logger.info(f'We were unable to handle {len(error_set)} of the incoming dataset items')
+    current_app.logger.info('------------------------------------------------------------------------------')
     db.session.commit()
     return [from_sql(ea) for ea in all_results]
 

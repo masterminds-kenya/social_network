@@ -13,14 +13,13 @@ service_config = {
     'sheets': {
         'file': 'env/sheet_secret.json',
         'scopes': ['https://www.googleapis.com/auth/spreadsheets', 'https://www.googleapis.com/auth/drive']
-        # ['https://www.googleapis.com/auth/spreadsheets']
         }
 }
 
 
 def get_creds(config):
     """ Using google.oauth2.service_account to get credentials for the service account """
-    app.logger.info('=========== Get Creds ====================')
+    app.logger.info('---------- Get Creds ----------')
     if not path.exists(config.get('file')):
         message = 'Wrong Path to Secret File'
         app.logger.info(message)
@@ -83,6 +82,17 @@ def perm_add(sheet_id, add_users, service=None):
     return perm_list(sheet_id, service=service)
 
 
+def all_files(*args, service=None):
+    """ List, and possibly manage, all files owned by the app """
+    if not service:
+        creds = get_creds(service_config['sheets'])
+        if isinstance(creds, str):
+            return (creds, 0)
+        service = build('drive', 'v3', credentials=creds, cache_discovery=False)
+    files_list = service.files().list().execute().get('items', [])
+    return files_list
+
+
 def perm_list(sheet_id, service=None):
     """ For a given worksheet, list who currently has access to view it. """
     if not service:
@@ -90,8 +100,6 @@ def perm_list(sheet_id, service=None):
         if isinstance(creds, str):
             return (creds, 0)
         service = build('drive', 'v3', credentials=creds, cache_discovery=False)
-    # list all files
-    # files_list = service.files().list().execute().get('items', [])
     data = service.files().get(fileId=sheet_id, fields='name, id, permissions').execute()
     pprint(data)
     data['id'] = data.get('id', data.get('fileId', sheet_id))
@@ -100,7 +108,7 @@ def perm_list(sheet_id, service=None):
 
 
 def create_sheet(campaign, service=None):
-    """ Takes in an instance from the Campaign model. Get the credentials and create a worksheet. """
+    """ Takes in an instance from the Campaign model and create a worksheet. """
     app.logger.info('================== create sheet =======================')
     if not service:
         creds = get_creds(service_config['sheets'])
@@ -156,7 +164,6 @@ def read_sheet(id=SHARED_SHEET_ID, range_=None, service=None):
     spreadsheet = request.execute()
     spreadsheet['id'] = spreadsheet.get('spreadsheetId', id)
     spreadsheet['link'] = spreadsheet.get('link', f"https://docs.google.com/spreadsheets/d/{id}/edit#gid=0")
-    link = f"https://docs.google.com/spreadsheets/d/{id}/edit#gid=0"
     return spreadsheet
 
 
@@ -175,7 +182,7 @@ def get_vals(campaign):
     results = [[clean(getattr(post, ea, '')) for ea in columns] for post in campaign.posts]
     # all fields need to be serializable, which means all datetime fields should be changed to strings.
     sheet_rows = [brands, users, [''], columns, *results]
-    app.logger.info(f"-------- get_vals Total rows: {len(sheet_rows)}, with {len(results)} rows of posts --------")
+    # app.logger.info(f"-------- get_vals Total rows: {len(sheet_rows)}, with {len(results)} rows of posts --------")
     return sheet_rows
 
 
@@ -187,7 +194,7 @@ def compute_A1(arr2d, start='A1', sheet='Sheet1'):
     col, row = 'A', 1
     final_col = chr(ord(col) + col_count)
     final_row = row_count + row
-    app.logger.info(f"Row Count: {row_count}, Column Count: {col_count}")
+    # app.logger.info(f"Row Count: {row_count}, Column Count: {col_count}")
     return f"{sheet}!{start}:{final_col}{final_row}"
 
 

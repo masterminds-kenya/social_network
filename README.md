@@ -1,7 +1,30 @@
 # social_network
 
 **Author**: Chris L Chapman
-**Version**: 0.0.1
+**Version**: 0.1.0
+
+## Architecture
+
+Designed to be deployed on Google Cloud App Engine, using:
+
+- MySQL
+- Python 3.7
+- Google Worksheet API v4
+- Google Drive API v3
+- Facebook Graph API v4.0, with InstaGram Insights and Media
+
+Core packages required for this application:
+
+- flask
+- gunicorn
+- flask-sqlalchemy
+- pymysql
+- google-api-python-client
+- requests-oauthlib
+- google-auth
+- google-auth-httplib2
+- google-auth-oauthlib
+- python-dateutil
 
 ## Deployment
 
