@@ -5,7 +5,7 @@ from .model_db import Brand, User, Insight, Audience, Post, Campaign  # , metric
 from . import developer_admin
 from .manage import update_campaign, process_form, post_display
 from .api import onboard_login, onboarding, get_insight, get_audience, get_posts
-from .sheets import create_sheet, update_sheet, read_sheet, list_permissions
+from .sheets import create_sheet, update_sheet, read_sheet, perm_add, perm_list
 import json
 # from pprint import pprint
 
@@ -55,16 +55,40 @@ def backup_save(mod, id):
 def update_data(campaign_id, sheet_id):
     """ Update the worksheet data """
     campaign = Campaign.query.get(campaign_id)
-    spreadsheet, id, link = update_sheet(campaign, id=sheet_id)
-    return render_template('data.html', data=spreadsheet, campaign_id=campaign_id, sheet_id=sheet_id, link=link)
+    sheet = update_sheet(campaign, id=sheet_id)
+    # TODO: refactor to use redirect(url_for('data', campaign_id=campaign_id, sheet_id=sheet['id']))
+    return render_template('data.html', sheet=sheet, campaign_id=campaign_id)
 
 
-@app.route('/data/permissions/<int:campaign_id>/<string:sheet_id>')
-def data_permissions(campaign_id, sheet_id):
+@app.route('/data/permissions/<int:campaign_id>/<string:sheet_id>', methods=['GET', 'POST'])
+def data_permissions(campaign_id, sheet_id, perm_id=None):
     """ Used for managing permissions to view worksheets """
     app.logger.info(f'===== data permissions route with sheet {sheet_id} ====')
-    data, id, link = list_permissions(sheet_id)
-    return render_template('data.html', data=data, campaign_id=campaign_id, sheet_id=sheet_id, link=link)
+    template = 'form_permission.html'
+    sheet = perm_list(sheet_id)
+    data = next((x for x in sheet.get('permissions', []) if x.id == perm_id), {}) if perm_id else {}
+    action = 'Edit' if perm_id else 'Add'
+    if request.method == 'POST':
+        app.logger.info(f'--------- {action} Permissions ------------')
+        # data = process_form(mod, request)
+        data = request.form.to_dict(flat=True)  # TODO: add form validate method for security.
+        if action == 'Edit':
+            # model = db_update(data, id, Model=Model)
+            pass
+        else:  # action == 'Add'
+            sheet = perm_add(sheet_id, data)
+        # TODO: refactor to use redirect(url_for('data', campaign_id=campaign_id, sheet_id=sheet['id']))
+        return render_template('data.html', sheet=sheet, campaign_id=campaign_id)
+
+    return render_template(template, action=action, data=data, sheet=sheet, campaign_id=campaign_id)
+
+    # added = {
+    #         'emailAddress': 'ChristopherLChapman42@gmail.com',
+    #         'role': 'reader',
+    #         }
+    # data, id, link = perm_add(sheet_id, added)
+    # # data, id, link = list_permissions(sheet_id)
+    # return render_template('data.html', data=data, campaign_id=campaign_id, sheet_id=sheet_id, link=link)
 
 
 @app.route('/data')
@@ -77,8 +101,9 @@ def data_default():
 def data(id):
     """ Show the data with Google Sheets """
     # TODO: Do we need this route? Currently only called by unused routes
-    spreadsheet, sheet_id, link = read_sheet(id=id)
-    return render_template('data.html', data=spreadsheet, campaign_id=None, sheet_id=sheet_id, link=link)
+    # TODO: refactor so url_for('data', campaign_id=campaign_id, sheet_id=sheet['id'])
+    sheet = read_sheet(id=id)
+    return render_template('data.html', sheet=sheet, campaign_id=None)
 
 
 @app.route('/login/<string:mod>')
@@ -111,9 +136,10 @@ def results(id):
     Model = mod_lookup.get(mod, None)
     campaign = Model.query.get(id)
     if request.method == 'POST':
-        spreadsheet, sheet_id, link = create_sheet(campaign)
+        sheet = create_sheet(campaign)
         app.logger.info(f"==== Campaign {view} Create Sheet ====")
-        return render_template('data.html', data=spreadsheet, campaign_id=id, sheet_id=sheet_id, link=link)
+        # TODO: refactor to use redirect(url_for('data', campaign_id=campaign_id, sheet_id=sheet['id']))
+        return render_template('data.html', sheet=sheet, campaign_id=id)
     app.logger.info(f'=========== Campaign {view} ===========')
     related = campaign.get_results()
     # print('--------related below------------')

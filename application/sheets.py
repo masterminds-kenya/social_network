@@ -34,8 +34,13 @@ def get_creds(config):
     return credentials.with_scopes(config.get('scopes'))
 
 
-def batch_update(sheet_id, add_users, service=None):
-    """ Used to update permissions """
+def perm_add(sheet_id, add_users, service=None):
+    """ Used to update permissions. Currently Only add users.
+        add_users can be a list of strings, with each string an email address to give reader permissions.
+        add_users can be a list of objects, each with a 'emailAddress' key, and an option 'role' key.
+        add_users can be a single entity of either of the above.
+        This function returns a dictionary that includes all permissions for the provided sheet, & URL for the sheet.
+    """
     def callback(request_id, response, exception):
         if exception:
             # TODO: Handle error
@@ -52,6 +57,8 @@ def batch_update(sheet_id, add_users, service=None):
     if not isinstance(add_users, list):
         add_users = [add_users]
     for user in add_users:
+        if isinstance(user, str):
+            user = {'emailAddress': user}
         user_permission = {
             'type': 'user',
             'role': user.get('role', 'reader'),
@@ -73,11 +80,10 @@ def batch_update(sheet_id, add_users, service=None):
         #         fields='id',
         # ))
     batch.execute()
-    data = service.files().get(fileId=sheet_id, fields='name, permissions').execute()
-    return data
+    return perm_list(sheet_id, service=service)
 
 
-def list_permissions(sheet_id, service=None):
+def perm_list(sheet_id, service=None):
     """ For a given worksheet, list who currently has access to view it. """
     if not service:
         creds = get_creds(service_config['sheets'])
@@ -86,23 +92,16 @@ def list_permissions(sheet_id, service=None):
         service = build('drive', 'v3', credentials=creds, cache_discovery=False)
     # list all files
     # files_list = service.files().list().execute().get('items', [])
-    data = service.files().get(fileId=sheet_id, fields='name, permissions').execute()
-    # permission_url = f'https://www.googleapis.com/drive/v3/files/{sheet_id}/permissions'
+    data = service.files().get(fileId=sheet_id, fields='name, id, permissions').execute()
     pprint(data)
-    added = {
-             'emailAddress': 'ChristopherLChapman42@gmail.com',
-             'role': 'reader',
-             }
-    data2 = batch_update(sheet_id, added, service=service)
-    print('---------------------')
-    pprint(data2)
-    link = f"https://docs.google.com/spreadsheets/d/{sheet_id}/edit#gid=0"
-    return (data2, sheet_id, link)
+    data['id'] = data.get('id', data.get('fileId', sheet_id))
+    data['link'] = data.get('link', f"https://docs.google.com/spreadsheets/d/{sheet_id}/edit#gid=0")
+    return data
 
 
 def create_sheet(campaign, service=None):
     """ Takes in an instance from the Campaign model. Get the credentials and create a worksheet. """
-    # print('================== create sheet =======================')
+    app.logger.info('================== create sheet =======================')
     if not service:
         creds = get_creds(service_config['sheets'])
         if isinstance(creds, str):
@@ -155,8 +154,10 @@ def read_sheet(id=SHARED_SHEET_ID, range_=None, service=None):
         majorDimension=major_dimension
         )
     spreadsheet = request.execute()
+    spreadsheet['id'] = spreadsheet.get('spreadsheetId', id)
+    spreadsheet['link'] = spreadsheet.get('link', f"https://docs.google.com/spreadsheets/d/{id}/edit#gid=0")
     link = f"https://docs.google.com/spreadsheets/d/{id}/edit#gid=0"
-    return (spreadsheet, id, link)
+    return spreadsheet
 
 
 def clean(obj):
