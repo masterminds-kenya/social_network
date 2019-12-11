@@ -107,15 +107,17 @@ class User(db.Model):
         Assumes only 1 Instagram per user, and it must be a business account.
         They must have a Facebook Page connected to their business Instagram account.
     """
-    # TYPES = [
-    #     ('influencer', 'Influencer'),
-    #     ('brand', 'Brand')
-    # ]
+    TYPES = [
+        ('influencer', 'Influencer'),
+        ('brand', 'Brand'),
+        ('manager', 'Manager'),
+        ('admin', 'Admin')
+    ]
     __tablename__ = 'users'
 
     id = db.Column(db.Integer, primary_key=True)
+    role = db.Column(db.ChoiceType(TYPES), default='influencer', unique=False, nullable=False)
     name = db.Column(db.String(47),                 index=False, unique=False, nullable=True)
-    # account = db.Column(db.ChoiceType(TYPES))
     instagram_id = db.Column(BIGINT(unsigned=True), index=True,  unique=True,  nullable=True)
     facebook_id = db.Column(BIGINT(unsigned=True),  index=False, unique=False, nullable=True)
     token = db.Column(db.String(255),               index=False, unique=False, nullable=True)

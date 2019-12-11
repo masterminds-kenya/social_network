@@ -9,7 +9,7 @@ from .sheets import create_sheet, update_sheet, read_sheet, perm_add, perm_list
 import json
 # from pprint import pprint
 
-mod_lookup = {'brand': Brand, 'user': User, 'insight': Insight, 'audience': Audience, 'post': Post, 'campaign': Campaign}
+mod_lookup = {'brand': User, 'user': User, 'insight': Insight, 'audience': Audience, 'post': Post, 'campaign': Campaign}
 
 
 @app.route('/')
