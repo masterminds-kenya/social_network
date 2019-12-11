@@ -20,7 +20,7 @@
 | :heavy_check_mark: | Posts can be assigned as in or out of campaign |
 |                    | **Milestone 3 Completion**           |
 | :heavy_check_mark: | Generate reports to Google sheets    |
-|                    | Give permissions to view google sheets      |
+| :heavy_check_mark: | Give permissions to view google sheets      |
 |                    | Site content and style, basic UI and graphs |
 |                    | **Milestone 4 Completion**           |
 |                    | Hosting and Facebook settings on Bacchus accounts |
@@ -39,7 +39,7 @@
 - [s] Stretch Goal. Not for current feature plan.
 
 Current Status:
-2019-12-09 19:46:34
+2019-12-10 16:32:41
 <!-- Ctrl-Shift-I to generate timestamp -->
 
 ### DB Design: Track different businesses and how influencers affect them
@@ -212,20 +212,28 @@ Current Status:
   - [ ] In case we do get duplicates, it will NOT create duplicates in DB
       - [ ] Will update if our DB info is out-of-date
 - [x] Add Google Sheet API to GCloud app.
-- [ ] Add functionality to export Marketing data to a Google worksheet.
+- [x] Add Google Drive API to GCloud app.
+- [x] Add functionality to export Marketing data to a Google worksheet.
   - [x] App can navigate credentials to allow full Google Sheet API features.
-  - [ ] Resolve: if sheet owned by App, can marketing modify or use it?
-    - [ ] Give permission to other users to view an app owned spreadsheet
-    - [x] Able to read and edit a worksheet created elsewhere, and permissions given to our app.
-    - [ ] Embed the worksheet as a view in our app, if user is authorized (req add login)
-    - [ ] Do we need to have marketing user own the worksheet and App allowed to edit?
+  - [x] Resolve: if sheet owned by App, can marketing modify or use it?
+    - [x] Give permission to other users to view an app owned spreadsheet
+    - [x] Able to read and edit a worksheet created elsewhere & hard-coded in
+    - [s] Embed the worksheet as a view in our app (after admin login feature)
+    - [n] Do we need to have marketing user own the worksheet and App allowed to edit?
   - [x] Function to create a worksheet
   - [x] Function to update a worksheet
   - [x] Can read and format desired DB data into worksheet.
 - [x] create a route & view for the sheets data view
+- [ ] For a given worksheet, ability to edit existing permissions
+- [ ] For a given worksheet, ability to delete existing permissions
+- [ ] For a given worksheet, ability to delete the file
+- [ ] More Drive files management
+  - [ ] List all files
+  - [ ] Manage those files
+- [ ] Attach worksheets to the Campaign model so we not always creating new.
 - [s] Add migration functionality?
 - [ ] Move hosting and FaceBook settings to Bacchus
-- [ ] refactor sheets data view to export to a google worksheet
+- [x] refactor sheets data view to export to a google worksheet
 - [ ] Login: any additional User and Admin authentication needed?
   - [ ] ?Confirm Google login for Worksheet access?
   - [ ] ?Add our own App Auth: User management, adding/updating, auth, password, etc.
@@ -254,14 +262,15 @@ Current Status:
   - [ ] Currently fix_date used for both create model, and when create_or_update many
   - [ ] Currently create_or_update_many also has to modify inputs from Audience API calls
   - [ ] Should campaign management view extend base instead of view?
-  - [ ] Is current process slow? Move some data collection outside of sign up flow?
+  - [ ] Is current onboard process slow? Delay some data collection?
   - [ ] Other feedback for expected sign up flow?
   - [ ] Review data options to confirm our desired data collection.
 - [ ] Create Test Users (need a FB page and Instagram business account).
 - [ ] Test influencer flow after completion (Have Noelle go through process again)
 - [ ] Regex for A1 notation starting cell.
-- [ ] Code Refactor: move routes to their own files
-- [ ] Code Refactor: more modular code structure
-- [ ] Form Validate: Add method to validate form. Ensure other values cannot be injected.
+- [x] Code Refactor: move routes to their own files
+- [x] Code Refactor: more modular code structure
+- [ ] Revisit Code Refactor: even more modular code structure?
+- [ ] Form Validate: Add method to validate form. Safe against form injection?
 - [ ] Error handling on adding user with duplicate email address.
 - [ ] Error handling on adding user with duplicate name.

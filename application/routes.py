@@ -56,7 +56,7 @@ def update_data(campaign_id, sheet_id):
     """ Update the worksheet data """
     campaign = Campaign.query.get(campaign_id)
     sheet = update_sheet(campaign, id=sheet_id)
-    # TODO: refactor to use redirect(url_for('data', campaign_id=campaign_id, sheet_id=sheet['id']))
+    # TODO: ?refactor to use redirect(url_for('data', campaign_id=campaign_id, sheet_id=sheet['id']))
     return render_template('data.html', sheet=sheet, campaign_id=campaign_id)
 
 
@@ -77,7 +77,7 @@ def data_permissions(campaign_id, sheet_id, perm_id=None):
             pass
         else:  # action == 'Add'
             sheet = perm_add(sheet_id, data)
-        # TODO: refactor to use redirect(url_for('data', campaign_id=campaign_id, sheet_id=sheet['id']))
+        # TODO: ?refactor to use redirect(url_for('data', campaign_id=campaign_id, sheet_id=sheet['id']))
         return render_template('data.html', sheet=sheet, campaign_id=campaign_id)
 
     return render_template(template, action=action, data=data, sheet=sheet, campaign_id=campaign_id)
@@ -101,7 +101,7 @@ def data_default():
 def data(id):
     """ Show the data with Google Sheets """
     # TODO: Do we need this route? Currently only called by unused routes
-    # TODO: refactor so url_for('data', campaign_id=campaign_id, sheet_id=sheet['id'])
+    # TODO: ?refactor so url_for('data', campaign_id=campaign_id, sheet_id=sheet['id'])
     sheet = read_sheet(id=id)
     return render_template('data.html', sheet=sheet, campaign_id=None)
 
@@ -138,7 +138,7 @@ def results(id):
     if request.method == 'POST':
         sheet = create_sheet(campaign)
         app.logger.info(f"==== Campaign {view} Create Sheet ====")
-        # TODO: refactor to use redirect(url_for('data', campaign_id=campaign_id, sheet_id=sheet['id']))
+        # TODO: ?refactor to use redirect(url_for('data', campaign_id=campaign_id, sheet_id=sheet['id']))
         return render_template('data.html', sheet=sheet, campaign_id=id)
     app.logger.info(f'=========== Campaign {view} ===========')
     related = campaign.get_results()
