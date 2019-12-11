@@ -39,7 +39,7 @@
 - [s] Stretch Goal. Not for current feature plan.
 
 Current Status:
-2019-12-07 13:03:15
+2019-12-09 19:46:34
 <!-- Ctrl-Shift-I to generate timestamp -->
 
 ### DB Design: Track different businesses and how influencers affect them

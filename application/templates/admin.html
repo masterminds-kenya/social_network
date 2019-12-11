@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+{% block head %}
+<title>Developer Admin Page</title>
+{% endblock %}
+
+{% block content %}
+<h1>Dev Admin Page</h1>
+<p>
+  {{ data }}
+</p>
+<ul>
+  <li><a href="{{ url_for('render_static', page_name='test') }}">Test Styles Page</a></li>
+  <li><a href="{{ url_for('load_user') }}">Load User from file</a> </li>
+  <li><a href="{{ url_for('add', mod='user') }}">Add Fake User</a></li>
+  <li><a href="{{ url_for('all', mod='post') }}">List all Posts</a></li>
+  <li><a href="{{ url_for('all', mod='insight') }}">List all Insights</a></li>
+  <li><a href="{{ url_for('all', mod='audience') }}">List all Audience Data</a></li>
+</ul>
+
+{% endblock %}

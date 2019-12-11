@@ -7,11 +7,13 @@ from datetime import datetime as dt
 from pprint import pprint
 
 SHARED_SHEET_ID = '1LyUFeo5in3F-IbR1eMnkp-XeQXD_zvfYraxCJBUkZPs'
+
 LOCAL_ENV = app.config.get('LOCAL_ENV')
 service_config = {
     'sheets': {
         'file': 'env/sheet_secret.json',
-        'scopes': ['https://www.googleapis.com/auth/spreadsheets']
+        'scopes': ['https://www.googleapis.com/auth/spreadsheets', 'https://www.googleapis.com/auth/drive']
+        # ['https://www.googleapis.com/auth/spreadsheets']
         }
 }
 
@@ -32,9 +34,74 @@ def get_creds(config):
     return credentials.with_scopes(config.get('scopes'))
 
 
+def perm_add(sheet_id, add_users, service=None):
+    """ Used to update permissions. Currently Only add users.
+        add_users can be a list of strings, with each string an email address to give reader permissions.
+        add_users can be a list of objects, each with a 'emailAddress' key, and an option 'role' key.
+        add_users can be a single entity of either of the above.
+        This function returns a dictionary that includes all permissions for the provided sheet, & URL for the sheet.
+    """
+    def callback(request_id, response, exception):
+        if exception:
+            # TODO: Handle error
+            app.logger.info(exception)
+        else:
+            app.logger.info(f"Permission Id: {response.get('id')} Request Id: {request_id}")
+
+    if not service:
+        creds = get_creds(service_config['sheets'])
+        if isinstance(creds, str):
+            return (creds, 0)
+        service = build('drive', 'v3', credentials=creds, cache_discovery=False)
+    batch = service.new_batch_http_request(callback=callback)
+    if not isinstance(add_users, list):
+        add_users = [add_users]
+    for user in add_users:
+        if isinstance(user, str):
+            user = {'emailAddress': user}
+        user_permission = {
+            'type': 'user',
+            'role': user.get('role', 'reader'),
+            'emailAddress': user.get('emailAddress')
+        }
+        batch.add(service.permissions().create(
+                fileId=sheet_id,
+                body=user_permission,
+                fields='id',
+        ))
+        # domain_permission = {
+        #     'type': 'domain',
+        #     'role': 'reader',
+        #     'domain': 'export-sheet@social-network-255302.iam.gserviceaccount.com'  # app.config.get('DEPLOYED_URL')
+        # }
+        # batch.add(service.permissions().create(
+        #         fileId=sheet_id,
+        #         body=domain_permission,
+        #         fields='id',
+        # ))
+    batch.execute()
+    return perm_list(sheet_id, service=service)
+
+
+def perm_list(sheet_id, service=None):
+    """ For a given worksheet, list who currently has access to view it. """
+    if not service:
+        creds = get_creds(service_config['sheets'])
+        if isinstance(creds, str):
+            return (creds, 0)
+        service = build('drive', 'v3', credentials=creds, cache_discovery=False)
+    # list all files
+    # files_list = service.files().list().execute().get('items', [])
+    data = service.files().get(fileId=sheet_id, fields='name, id, permissions').execute()
+    pprint(data)
+    data['id'] = data.get('id', data.get('fileId', sheet_id))
+    data['link'] = data.get('link', f"https://docs.google.com/spreadsheets/d/{sheet_id}/edit#gid=0")
+    return data
+
+
 def create_sheet(campaign, service=None):
     """ Takes in an instance from the Campaign model. Get the credentials and create a worksheet. """
-    # print('================== create sheet =======================')
+    app.logger.info('================== create sheet =======================')
     if not service:
         creds = get_creds(service_config['sheets'])
         if isinstance(creds, str):
@@ -87,8 +154,10 @@ def read_sheet(id=SHARED_SHEET_ID, range_=None, service=None):
         majorDimension=major_dimension
         )
     spreadsheet = request.execute()
+    spreadsheet['id'] = spreadsheet.get('spreadsheetId', id)
+    spreadsheet['link'] = spreadsheet.get('link', f"https://docs.google.com/spreadsheets/d/{id}/edit#gid=0")
     link = f"https://docs.google.com/spreadsheets/d/{id}/edit#gid=0"
-    return (spreadsheet, id, link)
+    return spreadsheet
 
 
 def clean(obj):

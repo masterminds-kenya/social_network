@@ -1,28 +1,52 @@
 {% extends "base.html" %}
 {% block head %}
 <title>Data Report</title>
-{% endblock %}
+{% endblock head %}
 
 {% block content %}
 <h1>Data Report</h1>
-{% if link and sheet_id %}
 <ul>
-  <li><a href="{{ link }}">View Google Worksheet</a> </li>
+  <li><a href="{{ sheet['link'] }}">View Google Worksheet</a> </li>
   {% if campaign_id %}
-  <li><a href="{{ url_for('update_data', campaign_id=campaign_id, sheet_id=sheet_id) }}">Update Report</a></li>
+  <li><a href="{{ url_for('update_data', campaign_id=campaign_id, sheet_id=sheet['id']) }}">Update Data in Report</a></li>
+  <li><a href="{{ url_for('data_permissions', campaign_id=campaign_id, sheet_id=sheet['id']) }}">View and Manage Access to the Worksheet</a></li>
+  <li><a href="{{ url_for('campaign', id=campaign_id) }}">Return to Campaign Manage Page</a></li>
+  <li><a href="{{ url_for('detail_campaign', id=campaign_id) }}">View Collected Posts for this Campaign</a></li>
   {% endif %}
 </ul>
+{% if sheet.get('range') %}
+<p>Worksheet Range: {{ sheet['range'] }}</p>
 {% endif %}
-<p>
-  {{ data }}
-</p>
+{% if sheet.get('permissions') %}
+<h3>Allowed Users</h3>
 <ul>
-  <li><a href="{{ url_for('render_static', page_name='test') }}">Test Styles Page</a></li>
-  <li><a href="{{ url_for('load_user') }}">Load User from file</a> </li>
-  <li><a href="{{ url_for('add', mod='user') }}">Add Fake User</a></li>
-  <li><a href="{{ url_for('all', mod='post') }}">List all Posts</a></li>
-  <li><a href="{{ url_for('all', mod='insight') }}">List all Insights</a></li>
-  <li><a href="{{ url_for('all', mod='audience') }}">List all Audience Data</a></li>
+  {% for ea in sheet['permissions'] %}
+  <li>
+    {% if ea['deleted'] %}
+    DELETED:
+    {% endif %}
+    {{ea.get('type')}} - {{ea.get('role')}}:
+    <a href="mailto:{{ea.get('emailAddress')}}">{{ea.get('displayName')}}</a>
+  </li>
+  {% endfor %}
 </ul>
+{% elif sheet.get('values') %}
+<table>
+  {% for row in sheet['values'] %}
+  <tr>
+    {% for col in row %}
+    <td>{{col}}</td>
+    {% endfor %}
+  </tr>
+  {% endfor %}
+</table>
+{% endif %}
+{% if campaign_id %}
+<ul>
+  <li><a href="{{ url_for('data_permissions', campaign_id=campaign_id, sheet_id=sheet['id']) }}">View and Manage Access to the Worksheet</a></li>
+  <li><a href="{{ url_for('campaign', id=campaign_id) }}">Return to Campaign Manage Page</a></li>
+  <li><a href="{{ url_for('detail_campaign', id=campaign_id) }}">View Collected Posts for this Campaign</a></li>
+</ul>
+{% endif %}
 
-{% endblock %}
+{% endblock content %}
