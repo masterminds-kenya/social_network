@@ -60,4 +60,8 @@ def process_form(mod, request):
     # TODO: Add logic to find all Boolean fields in models and handle appropriately.
     if mod in bool_fields:
         data[bool_fields[mod]] = True if data.get(bool_fields[mod]) in {'on', True} else False
+    if mod == 'brand':
+        data['role'] = 'brand'
+    elif mod == 'user':
+        data['role'] = 'influencer'
     return data

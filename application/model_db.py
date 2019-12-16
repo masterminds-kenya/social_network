@@ -1,5 +1,6 @@
 from flask import Flask, flash, current_app
 from flask_sqlalchemy import SQLAlchemy
+# from sqlalchemy.orm import aliased
 # from flask_sqlalchemy import BaseQuery, SQLAlchemy  # if we create custom query
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.dialects.mysql import BIGINT
@@ -74,18 +75,14 @@ class User(db.Model):
         Assumes only 1 Instagram per user, and it must be a business account.
         They must have a Facebook Page connected to their business Instagram account.
     """
-    TYPES = [
-        ('influencer', 'Influencer'),
-        ('brand', 'Brand'),
-        ('manager', 'Manager'),
-        ('admin', 'Admin')
-    ]
+    roles = ('influencer', 'brand', 'manager', 'admin')
+    # __abstract__ = True
     __tablename__ = 'users'
 
-    id = db.Column(db.Integer, primary_key=True)
     # role = db.Column(db.ChoiceType(TYPES), default='influencer', unique=False, nullable=False)
     # TODO: https://techspot.zzzeek.org/2011/01/14/the-enum-recipe/
-    role = db.Column(db.Enum('influencer', 'brand', 'manager', 'admin', name='user_roles'))
+    id = db.Column(db.Integer, primary_key=True)
+    role = db.Column(db.Enum(*roles, name='user_roles'), default='influencer', nullable=False)
     name = db.Column(db.String(47),                 index=False, unique=False, nullable=True)
     instagram_id = db.Column(BIGINT(unsigned=True), index=True,  unique=True,  nullable=True)
     facebook_id = db.Column(BIGINT(unsigned=True),  index=False, unique=False, nullable=True)
@@ -115,6 +112,23 @@ class User(db.Model):
 
     def __repr__(self):
         return '<User {}>'.format(self.name)
+
+
+# Brand = aliased(User)
+
+
+# class Brand(GenericUser):
+#     __tablename__ = 'brands'
+#     id = db.Column(db.Integer, primary_key=True)
+
+#     def __init__(self, *args, **kwargs):
+#         kwargs['role'] = 'brand'
+#         super().__init__(*args, **kwargs)
+
+
+# class User(GenericUser):
+#     __tablename__ = 'users'
+#     id = db.Column(db.Integer, primary_key=True)
 
 
 class Insight(db.Model):
@@ -253,7 +267,7 @@ class Campaign(db.Model):
     created = db.Column(db.DateTime,    index=False, unique=False, nullable=False, default=dt.utcnow)
     users = db.relationship('User', secondary=user_campaign, backref=db.backref('campaigns', lazy='dynamic'))
     # 'Brand' HERE
-    brands = db.relationship('User', secondary=brand_campaign, backref=db.backref('campaigns', lazy='dynamic'))
+    brands = db.relationship('User', secondary=brand_campaign, backref=db.backref('brand_campaigns', lazy='dynamic'))
     posts = db.relationship('Post', backref='campaign', lazy=True)
     UNSAFE = {''}
 

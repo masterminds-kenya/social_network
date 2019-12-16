@@ -188,7 +188,9 @@ def onboarding(mod, request):
     print('=========== Data sent to Create Influencer or Brand account ===============')
     pprint(data)
     print(mod)
+    # Model = Brand if mod == 'brand' else User
     Model = User
+    data['role'] = 'brand' if mod == 'brand' else 'influencer'
     account = db_create(data, Model)
     account_id = account.get('id')
     print('account: ', account_id)
