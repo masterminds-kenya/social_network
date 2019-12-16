@@ -69,41 +69,8 @@ def fix_date(Model, data):
 #         return self.query.filter_by(processed=False)
 
 
-class Brand(db.Model):
-    """ Data model for brand accounts. """
-    __tablename__ = 'brands'
-
-    id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String(47),                 index=True,  unique=True,  nullable=False)
-    instagram_id = db.Column(BIGINT(unsigned=True), index=True,  unique=True,  nullable=True)
-    facebook_id = db.Column(BIGINT(unsigned=True),  index=False, unique=False, nullable=True)
-    token = db.Column(db.String(255),               index=False, unique=False, nullable=True)
-    token_expires = db.Column(db.DateTime,          index=False, unique=False, nullable=True)
-    notes = db.Column(db.String(191),               index=False, unique=False, nullable=True)
-    modified = db.Column(db.DateTime,               index=False, unique=False, nullable=False, default=dt.utcnow, onupdate=dt.utcnow)
-    created = db.Column(db.DateTime,                index=False, unique=False, nullable=False, default=dt.utcnow)
-    # # campaigns = backref from Campaign.brands  with lazy='dynamic'
-    UNSAFE = {'token', 'token_expires', 'modified', 'created'}
-
-    def __init__(self, *args, **kwargs):
-        kwargs['facebook_id'] = kwargs.pop('id') if 'facebook_id' not in kwargs and 'id' in kwargs else None
-        kwargs['name'] = kwargs.pop('username', kwargs.get('name'))
-        if 'token_expires' not in kwargs and 'token' in kwargs:
-            # modifications for parsing data from api call
-            token_expires = kwargs['token'].get('token_expires', None)
-            kwargs['token_expires'] = dt.fromtimestamp(token_expires) if token_expires else None
-            kwargs['token'] = kwargs['token'].get('access_token', None)
-        super().__init__(*args, **kwargs)
-
-    def __str__(self):
-        return f"{self.name}"
-
-    def __repr__(self):
-        return '<Brand {}>'.format(self.name)
-
-
 class User(db.Model):
-    """ Data model for user (influencer) accounts.
+    """ Data model for user (influencer or brand) accounts.
         Assumes only 1 Instagram per user, and it must be a business account.
         They must have a Facebook Page connected to their business Instagram account.
     """
@@ -116,7 +83,9 @@ class User(db.Model):
     __tablename__ = 'users'
 
     id = db.Column(db.Integer, primary_key=True)
-    role = db.Column(db.ChoiceType(TYPES), default='influencer', unique=False, nullable=False)
+    # role = db.Column(db.ChoiceType(TYPES), default='influencer', unique=False, nullable=False)
+    # TODO: https://techspot.zzzeek.org/2011/01/14/the-enum-recipe/
+    role = db.Column(db.Enum('influencer', 'brand', 'manager', 'admin', name='user_roles'))
     name = db.Column(db.String(47),                 index=False, unique=False, nullable=True)
     instagram_id = db.Column(BIGINT(unsigned=True), index=True,  unique=True,  nullable=True)
     facebook_id = db.Column(BIGINT(unsigned=True),  index=False, unique=False, nullable=True)
@@ -149,7 +118,7 @@ class User(db.Model):
 
 
 class Insight(db.Model):
-    """ Data model for insights data on a (influencer's) user's or brands account """
+    """ Data model for insights data on a (influencer or brand) user's account """
     __tablename__ = 'insights'
     __table_args__ = (db.UniqueConstraint('user_id', 'recorded', 'name', name='uq_insights_recorded_name'),)
 
@@ -267,7 +236,7 @@ user_campaign = db.Table(
 brand_campaign = db.Table(
     'brand_campaigns',
     db.Column('id',          db.Integer, primary_key=True),
-    db.Column('brand_id',    db.Integer, db.ForeignKey('brands.id',    ondelete="CASCADE")),
+    db.Column('brand_id',    db.Integer, db.ForeignKey('users.id',    ondelete="CASCADE")),
     db.Column('campaign_id', db.Integer, db.ForeignKey('campaigns.id', ondelete="CASCADE"))
 )
 
@@ -283,7 +252,8 @@ class Campaign(db.Model):
     modified = db.Column(db.DateTime,   index=False, unique=False, nullable=False, default=dt.utcnow, onupdate=dt.utcnow)
     created = db.Column(db.DateTime,    index=False, unique=False, nullable=False, default=dt.utcnow)
     users = db.relationship('User', secondary=user_campaign, backref=db.backref('campaigns', lazy='dynamic'))
-    brands = db.relationship('Brand', secondary=brand_campaign, backref=db.backref('campaigns', lazy='dynamic'))
+    # 'Brand' HERE
+    brands = db.relationship('User', secondary=brand_campaign, backref=db.backref('campaigns', lazy='dynamic'))
     posts = db.relationship('Post', backref='campaign', lazy=True)
     UNSAFE = {''}
 
@@ -338,12 +308,12 @@ class Campaign(db.Model):
 
     def __str__(self):
         name = self.name if self.name else self.id
-        brands = ', '.join([brand.name for brand in self.brands]) if self.brands else ['NA']
+        brands = ', '.join([brand.name for brand in self.brands]) if self.brands else 'NA'
         return f"Campaign: {name} with Brand(s): {brands}"
 
     def __repr__(self):
         name = self.name if self.name else self.id
-        brands = ', '.join([brand.name for brand in self.brands]) if self.brands else ['NA']
+        brands = ', '.join([brand.name for brand in self.brands]) if self.brands else 'NA'
         return '<Campaign: {} | Brands: {} >'.format(name, brands)
 
 
@@ -406,9 +376,12 @@ def db_delete(id, Model=User):
     db.session.commit()
 
 
-def db_all(Model=User):
+def db_all(Model=User, role=None):
     sort_field = Model.name if hasattr(Model, 'name') else Model.id
     query = (Model.query.order_by(sort_field))
+    if Model == User:
+        role_type = role if role else 'influencer'
+        query = query.filter_by(role=role_type)
     models = query.all()
     return models
 
@@ -431,7 +404,7 @@ def db_create_or_update_many(dataset, user_id=None, Model=Post):
     if Model not in allowed_models:
         return []
     composite_unique = ['recorded', 'name'] if Model in {Insight, Audience} else False
-    # Note: initially all Models only had 1 non-pk unique field, except for unused Brand instagram_id field.
+    # Note: initially all Models only had 1 non-pk unique field
     # However, both the Insight and Audience models have a composite unique requirement (user_id, recorded, name)
     # insp = db.inspect(Model)
     all_results, add_count, update_count, error_set = [], 0, 0, []

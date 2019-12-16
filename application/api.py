@@ -1,6 +1,6 @@
 from flask import current_app as app
 from .model_db import db_create, db_read, db_create_or_update_many
-from .model_db import metric_clean, Brand, User, Insight, Audience, Post  # , Campaign
+from .model_db import metric_clean, User, Insight, Audience, Post  # , Campaign
 import requests
 import requests_oauthlib
 from requests_oauthlib.compliance_fixes import facebook_compliance_fix
@@ -169,6 +169,7 @@ def onboarding(mod, request):
         return ('error', facebook_user_data, None)
     # TODO: use a better constructor for the user account.
     data = facebook_user_data.copy()  # .to_dict(flat=True)
+    data['role'] = 'influencer' if mod == 'user' else mod  # data['role'] may now be 'brand' or 'user'
     data['token'] = token
     accounts = data.pop('accounts')
     # Collect IG usernames for all options
@@ -184,20 +185,19 @@ def onboarding(mod, request):
     else:
         data['name'] = data.get('username', None) if 'name' not in data else data['name']
         print(f'--------- Found {len(ig_list)} potential IG accounts -----------')
-    print('=========== Data sent to Create User or Brand account ===============')
+    print('=========== Data sent to Create Influencer or Brand account ===============')
     pprint(data)
     print(mod)
-    Model = Brand if mod == 'brand' else User
+    Model = User
     account = db_create(data, Model)
     account_id = account.get('id')
     print('account: ', account_id)
     if ig_id:
-        if mod == 'user':
-            # Relate Data
-            insights = get_insight(account_id, last=90, ig_id=ig_id, facebook=facebook)
-            print('We have IG account insights') if insights else print('No IG account insights')
-            audience = get_audience(account_id, ig_id=ig_id, facebook=facebook)
-            print('Audience data collected') if audience else print('No Audience data')
+        # Relate Data
+        insights = get_insight(account_id, last=90, ig_id=ig_id, facebook=facebook)
+        print('We have IG account insights') if insights else print('No IG account insights')
+        audience = get_audience(account_id, ig_id=ig_id, facebook=facebook)
+        print('Audience data collected') if audience else print('No Audience data')
         return ('complete', 0, account_id)
     else:
         # Allow this Facebook account to select one of many of their IG business accounts

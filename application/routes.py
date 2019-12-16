@@ -1,7 +1,7 @@
 from flask import current_app as app
 from flask import render_template, redirect, url_for, request, abort, flash
 from .model_db import db_create, db_read, db_update, db_delete, db_all
-from .model_db import Brand, User, Insight, Audience, Post, Campaign  # , metric_clean
+from .model_db import User, Insight, Audience, Post, Campaign  # , metric_clean
 from . import developer_admin
 from .manage import update_campaign, process_form, post_display
 from .api import onboard_login, onboarding, get_insight, get_audience, get_posts
@@ -272,8 +272,8 @@ def add_edit(mod, id=None):
     if mod == 'campaign':
         template = f"{mod}_{template}"
         # add context for Brands and Users, only keeping id and name.
-        users = User.query.all()
-        brands = Brand.query.all()
+        users = User.query.filter_by(role='influencer').all()
+        brands = User.query.filter_by(role='brand').all()
         related['users'] = [(ea.id, ea.name) for ea in users]
         related['brands'] = [(ea.id, ea.name) for ea in brands]
     return render_template(template, action=action, mod=mod, data=model, related=related)
@@ -307,7 +307,7 @@ def all(mod):
     Model = mod_lookup.get(mod, None)
     if not Model:
         return f"No such route: {mod}", 404
-    models = db_all(Model=Model)
+    models = db_all(Model=Model, role=mod) if mod == 'brand' else db_all(Model=Model)
     return render_template('list.html', mod=mod, data=models)
 
 
