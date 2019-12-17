@@ -9,7 +9,16 @@ from .sheets import create_sheet, update_sheet, read_sheet, perm_add, perm_list
 import json
 # from pprint import pprint
 
-mod_lookup = {'brand': User, 'user': User, 'insight': Insight, 'audience': Audience, 'post': Post, 'campaign': Campaign}
+
+def mod_lookup(mod):
+    """ Associate to the appropriate Model, or raise error if 'mod' is not an expected value """
+    if not isinstance(mod, str):
+        raise TypeError('Expected a string input')
+    lookup = {'brand': User, 'user': User, 'insight': Insight, 'audience': Audience, 'post': Post, 'campaign': Campaign}
+    Model = lookup.get(mod, None)
+    if not Model:
+        raise ValueError('That is not a valid route.')
+    return Model
 
 
 @app.route('/')
@@ -41,7 +50,7 @@ def load_user():
 @app.route('/data/<string:mod>/<int:id>')
 def backup_save(mod, id):
     """ This is a temporary development function. Will be removed for production. """
-    Model = mod_lookup.get(mod, None)
+    Model = mod_lookup(mod)
     if not Model:
         return f"No such route: {mod}", 404
     count = developer_admin.save(mod, id, Model)
@@ -53,7 +62,7 @@ def backup_save(mod, id):
 
 @app.route('/data/update/<int:campaign_id>/<string:sheet_id>')
 def update_data(campaign_id, sheet_id):
-    """ Update the worksheet data """
+    """ Update the given worksheet (sheet_id) data from the given campaign (campaign_id) """
     campaign = Campaign.query.get(campaign_id)
     sheet = update_sheet(campaign, id=sheet_id)
     # TODO: ?refactor to use redirect(url_for('data', campaign_id=campaign_id, sheet_id=sheet['id']))
@@ -99,6 +108,7 @@ def data(id):
 
 @app.route('/login/<string:mod>')
 def login(mod):
+    """ Initiate the creation of a new Influencer or Brand, as indicated by 'mod' """
     app.logger.info(f'====================== NEW {mod} Account =========================')
     authorization_url = onboard_login(mod)
     return redirect(authorization_url)
@@ -106,6 +116,7 @@ def login(mod):
 
 @app.route('/callback/<string:mod>')
 def callback(mod):
+    """ Handle the callback for Facebook authorization. Create new influencer or brand user as indicated by 'mod'. """
     app.logger.info(f'================= Authorization Callback {mod}===================')
     view, data, account_id = onboarding(mod, request)
     # TODO: The following should be cleaned up with better error handling
@@ -124,8 +135,7 @@ def results(id):
     """ Campaign Results View (on GET) or generate Worksheet report (on POST) """
     mod, view = 'campaign', 'results'
     template, related = f"{view}_{mod}.html", {}
-    Model = mod_lookup.get(mod, None)
-    campaign = Model.query.get(id)
+    campaign = Campaign.query.get(id)
     if request.method == 'POST':
         sheet = create_sheet(campaign)
         app.logger.info(f"==== Campaign {view} Create Sheet ====")
@@ -146,9 +156,13 @@ def detail_campaign(id):
 
 @app.route('/campaign/<int:id>', methods=['GET', 'POST'])
 def campaign(id, view='management'):
+    """ Defaults to management of assigning posts to a campaign.
+        When view is 'collected', user can review and re-assess posts already assigned to the campaign.
+        On POST, updates the assigned media posts as indicated by the submitted form.
+     """
     mod = 'campaign'
     template, related = f"{mod}.html", {}
-    Model = mod_lookup.get(mod, None)
+    Model = mod_lookup(mod)
     model = Model.query.get(id)
     app.logger.info(f'=========== Campaign {view} ===========')
     if request.method == 'POST':
@@ -168,7 +182,7 @@ def view(mod, id):
     """ Used primarily for specific User or Brand views, but also any data model view except Campaign. """
     # if mod == 'campaign':
     #     return campaign(id)
-    Model = mod_lookup.get(mod, None)
+    Model = mod_lookup(mod)
     if not Model:
         return f"No such route: {mod}", 404
     model = db_read(id, Model=Model)
@@ -189,7 +203,7 @@ def view(mod, id):
 
 @app.route('/<string:mod>/<int:id>/insights')
 def insights(mod, id):
-    """ For a given User, show the account Insight data. """
+    """ For a given User (influencer or brand), show the account Insight data. """
     user = db_read(id)
     Model = Insight
     scheme_color = ['gold', 'purple', 'green']
@@ -221,7 +235,7 @@ def insights(mod, id):
 
 @app.route('/<string:mod>/<int:id>/audience')
 def new_audience(mod, id):
-    """ Get new audience data from API. Input mod for either User or Brand, with given id. """
+    """ Get new audience data from API for either. Input mod for either User or Brand, with given id. """
     audience = get_audience(id)
     logstring = f'Audience data for {mod} - {id}' if audience else f'No insight data, {mod}'
     app.logger.info(logstring)
@@ -251,7 +265,7 @@ def new_post(mod, id):
 def add_edit(mod, id=None):
     """ Adding or Editing a DB record is a similar process handled here. """
     action = 'Edit' if id else 'Add'
-    Model = mod_lookup.get(mod, None)
+    Model = mod_lookup(mod)
     if not Model:
         return f"No such route: {mod}", 404
     if request.method == 'POST':
@@ -290,7 +304,7 @@ def edit(mod, id):
 @app.route('/<string:mod>/<int:id>/delete')
 def delete(mod, id):
     """ Permanently remove from DB the record for Model indicated by mod and id. """
-    Model = mod_lookup.get(mod, None)
+    Model = mod_lookup(mod)
     if not Model:
         return f"No such route: {mod}", 404
     db_delete(id, Model=Model)
@@ -303,7 +317,7 @@ def all(mod):
     app.logger.info(f"-------- List all {mod} --------")
     app.logger.info(f" {app.config.get('URL')} ")
     app.logger.info(app.config.get('CLOUDSQL_CONNECTION_NAME'))
-    Model = mod_lookup.get(mod, None)
+    Model = mod_lookup(mod)
     if not Model:
         return f"No such route: {mod}", 404
     models = db_all(Model=Model, role=mod) if mod == 'brand' else db_all(Model=Model)

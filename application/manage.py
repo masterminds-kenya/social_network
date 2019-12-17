@@ -2,6 +2,7 @@ from .model_db import db, from_sql, User, Post
 
 
 def update_campaign(ver, request):
+    """ Handle adding or removing posts assigned to a campaign, as well removing posts from the processing cue. """
     form_dict = request.form.to_dict(flat=True)  # TODO: add form validate method for security.
     # Radio Button | Management | Results | Manage Outcome  | Result Outcome
     # accept       |  data.id   |    0    | camp_id = val   | leave alone
@@ -25,6 +26,7 @@ def update_campaign(ver, request):
 
 
 def post_display(post):
+    """ Since different media post types have different metrics, we only want to show the appropriate fields. """
     Model = Post
     if isinstance(post, Model):
         post = from_sql(post)
@@ -38,6 +40,7 @@ def post_display(post):
 
 
 def process_form(mod, request):
+    """ Take the request.form and return the appropriate data with modifications as needed for the Model. """
     # If Model has relationship collections set in form, then we must capture these before flattening the input
     # I believe this is only needed for campaigns.
     save = {}
