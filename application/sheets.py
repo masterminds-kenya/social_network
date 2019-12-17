@@ -7,8 +7,6 @@ from datetime import datetime as dt
 from pprint import pprint
 
 SHARED_SHEET_ID = '1LyUFeo5in3F-IbR1eMnkp-XeQXD_zvfYraxCJBUkZPs'
-
-LOCAL_ENV = app.config.get('LOCAL_ENV')
 service_config = {
     'sheets': {
         'file': 'env/sheet_secret.json',
@@ -24,7 +22,7 @@ def get_creds(config):
         message = 'Wrong Path to Secret File'
         app.logger.error(message)
         raise FileNotFoundError(message)
-    if LOCAL_ENV is True:
+    if app.config.get('LOCAL_ENV') is True:
         # Could add local testing credential method.
         message = "Won't work when running locally"
         app.logger.error(message)
@@ -166,11 +164,15 @@ def get_vals(campaign):
     """ Get the values we want to put into our worksheet report """
     brands = ['Brand', ', '.join([ea.name for ea in campaign.brands])]
     users = ['Influencer', ', '.join([ea.name for ea in campaign.users])]
+    brand_data = [('brand name', 'notes', 'impressions', 'reach', 'follower_count', 'instagram_id', 'modified', 'created')]
+    brand_data = [campaign.brands[0].insight_report(label_only=True)]
+    for brand in campaign.brands:
+        brand_data.append(brand.insight_report())
     columns = campaign.report_columns()
     results = [[clean(getattr(post, ea, '')) for ea in columns] for post in campaign.posts]
     # all fields need to be serializable, which means all datetime fields should be changed to strings.
-    sheet_rows = [brands, users, [''], columns, *results]
-    # app.logger.info(f"-------- get_vals Total rows: {len(sheet_rows)}, with {len(results)} rows of posts --------")
+    sheet_rows = [brands, users, [''], *brand_data, [''], columns, *results]
+    app.logger.info(f"-------- get_vals Total rows: {len(sheet_rows)}, with {len(results)} rows of posts --------")
     return sheet_rows
 
 

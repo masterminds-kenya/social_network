@@ -107,6 +107,24 @@ class User(db.Model):
             kwargs['token'] = kwargs['token'].get('access_token', None)
         super().__init__(*args, **kwargs)
 
+    def insight_report(self, label_only=False):
+        """ Used for reporting typical insight metrics for a Brand (or other user) """
+        from .sheets import clean
+        insight_metrics = list(Insight.metrics)
+        measurements = [('Median', median), ('Average', mean), ('StDev', stdev)]
+        insight_labels = [f"{metric} {ea[0]}" for metric in insight_metrics for ea in measurements]
+        if label_only:
+            return ['Name', 'Notes', *insight_labels, 'instagram_id', 'modified', 'created']
+        if self.instagram_id is None:
+            insight_data = [0 for ea in insight_labels]
+        else:
+            temp = {key: [] for key in insight_metrics}
+            for insight in self.insights:
+                temp[insight.name].append(int(insight.value))
+            insight_data = [ea[1](temp[metric]) for metric in insight_metrics for ea in measurements]
+        report = [self.name, self.notes, *insight_data, getattr(self, 'instagram_id', ''), clean(self.modified), clean(self.created)]
+        return report
+
     def __str__(self):
         return self.name
 
