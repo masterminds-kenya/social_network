@@ -7,7 +7,7 @@
 
 Designed to be deployed on Google Cloud App Engine, using:
 
-- MySQL
+- MySQL 5.7
 - Python 3.7
 - Google Worksheet API v4
 - Google Drive API v3

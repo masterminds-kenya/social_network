@@ -1,7 +1,7 @@
 from flask import current_app as app
 from flask import render_template, redirect, url_for, request, abort, flash
 from .model_db import db_create, db_read, db_update, db_delete, db_all
-from .model_db import Brand, User, Insight, Audience, Post, Campaign  # , metric_clean
+from .model_db import User, Insight, Audience, Post, Campaign  # , metric_clean
 from . import developer_admin
 from .manage import update_campaign, process_form, post_display
 from .api import onboard_login, onboarding, get_insight, get_audience, get_posts
@@ -9,7 +9,7 @@ from .sheets import create_sheet, update_sheet, read_sheet, perm_add, perm_list
 import json
 # from pprint import pprint
 
-mod_lookup = {'brand': Brand, 'user': User, 'insight': Insight, 'audience': Audience, 'post': Post, 'campaign': Campaign}
+mod_lookup = {'brand': User, 'user': User, 'insight': Insight, 'audience': Audience, 'post': Post, 'campaign': Campaign}
 
 
 @app.route('/')
@@ -70,7 +70,6 @@ def data_permissions(campaign_id, sheet_id, perm_id=None):
     action = 'Edit' if perm_id else 'Add'
     if request.method == 'POST':
         app.logger.info(f'--------- {action} Permissions ------------')
-        # data = process_form(mod, request)
         data = request.form.to_dict(flat=True)  # TODO: add form validate method for security.
         if action == 'Edit':
             # model = db_update(data, id, Model=Model)
@@ -81,14 +80,6 @@ def data_permissions(campaign_id, sheet_id, perm_id=None):
         return render_template('data.html', sheet=sheet, campaign_id=campaign_id)
 
     return render_template(template, action=action, data=data, sheet=sheet, campaign_id=campaign_id)
-
-    # added = {
-    #         'emailAddress': 'ChristopherLChapman42@gmail.com',
-    #         'role': 'reader',
-    #         }
-    # data, id, link = perm_add(sheet_id, added)
-    # # data, id, link = list_permissions(sheet_id)
-    # return render_template('data.html', data=data, campaign_id=campaign_id, sheet_id=sheet_id, link=link)
 
 
 @app.route('/data')
@@ -199,7 +190,6 @@ def view(mod, id):
 @app.route('/<string:mod>/<int:id>/insights')
 def insights(mod, id):
     """ For a given User, show the account Insight data. """
-    # TODO: update to also work for Brand
     user = db_read(id)
     Model = Insight
     scheme_color = ['gold', 'purple', 'green']
@@ -232,7 +222,6 @@ def insights(mod, id):
 @app.route('/<string:mod>/<int:id>/audience')
 def new_audience(mod, id):
     """ Get new audience data from API. Input mod for either User or Brand, with given id. """
-    # TODO: update to also work for Brand
     audience = get_audience(id)
     logstring = f'Audience data for {mod} - {id}' if audience else f'No insight data, {mod}'
     app.logger.info(logstring)
@@ -242,7 +231,6 @@ def new_audience(mod, id):
 @app.route('/<string:mod>/<int:id>/fetch')
 def new_insight(mod, id):
     """ Get new account insight data from API. Input mod for either User or Brand, with given id. """
-    # TODO: update to also work for Brand
     insights = get_insight(id)
     logstring = f'Insight data for {mod} - {id} ' if insights else f'No insight data, {mod}'
     app.logger.info(logstring)
@@ -252,7 +240,6 @@ def new_insight(mod, id):
 @app.route('/<string:mod>/<int:id>/posts')
 def new_post(mod, id):
     """ Get new posts data from API. Input mod for either User or Brand, with a given id"""
-    # TODO: ?update to also work for Brand?
     posts = get_posts(id)
     logstring = 'we got some posts back' if len(posts) else 'No posts retrieved'
     app.logger.info(logstring)
@@ -281,8 +268,8 @@ def add_edit(mod, id=None):
     if mod == 'campaign':
         template = f"{mod}_{template}"
         # add context for Brands and Users, only keeping id and name.
-        users = User.query.all()
-        brands = Brand.query.all()
+        users = User.query.filter_by(role='influencer').all()
+        brands = User.query.filter_by(role='brand').all()
         related['users'] = [(ea.id, ea.name) for ea in users]
         related['brands'] = [(ea.id, ea.name) for ea in brands]
     return render_template(template, action=action, mod=mod, data=model, related=related)
@@ -316,7 +303,7 @@ def all(mod):
     Model = mod_lookup.get(mod, None)
     if not Model:
         return f"No such route: {mod}", 404
-    models = db_all(Model=Model)
+    models = db_all(Model=Model, role=mod) if mod == 'brand' else db_all(Model=Model)
     return render_template('list.html', mod=mod, data=models)
 
 

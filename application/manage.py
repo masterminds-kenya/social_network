@@ -1,4 +1,4 @@
-from .model_db import db, from_sql, Brand, User, Post
+from .model_db import db, from_sql, User, Post
 
 
 def update_campaign(ver, request):
@@ -46,7 +46,7 @@ def process_form(mod, request):
         # capture the relationship collections
         # TODO: I might be missing how SQLAlchemy intends for use to handle related models
         # the following may not be needed, or need to be managed differently
-        rel_collections = (('brands', Brand), ('users', User), ('posts', Post))
+        rel_collections = (('brands', User), ('users', User), ('posts', Post))
         for rel, Model in rel_collections:
             if rel in data:
                 model_ids = [int(ea) for ea in data[rel]]
@@ -60,4 +60,8 @@ def process_form(mod, request):
     # TODO: Add logic to find all Boolean fields in models and handle appropriately.
     if mod in bool_fields:
         data[bool_fields[mod]] = True if data.get(bool_fields[mod]) in {'on', True} else False
+    if mod == 'brand':
+        data['role'] = 'brand'
+    elif mod == 'user':
+        data['role'] = 'influencer'
     return data
