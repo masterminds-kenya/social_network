@@ -54,7 +54,7 @@ Current Status:
 - [s] Update ON DELETE for a User's posts.
 - [s] Model for capturing the limited time FB/IG stories
 - [x] Fix DB setup: use utf8mb4 so we can handle emojis
-- [x] posts (media) seem to have 3 types: Story, Album, and Photo/Video
+- [x] posts (media) seem to have 4 types: Story, Album, Photo, and Video
   - [x]  All IG Media also has some general returnable fields:
     - [x]  caption  - except emoji problem
     - [x]  comments_count
@@ -105,9 +105,14 @@ Current Status:
 - [s] Update many function
 - [s] Refine Brand Model with constructor function for translating from FB.
 - [s] Can update data for existing Brand accounts
-- [ ] Update User & Brand to be the same user table
-  - [ ] Default account insights history, 360 days.
-  - [x] Export Influencer/Brand metrics to google worksheet.
+- [x] Update User & Brand to be the same user table
+- [x] Refactor to single User Model for all types: influencer, brand, manager, admin
+- [ ] Add Insight metric 'online_followers'
+- [ ] Insight metrics for IG profile interactions.
+- [ ] Business Discovery data: followers_count, media_count, other?
+- [ ] Default account insights history, 360 days.
+- [x] Campaign worksheet exports summary of Brand account metrics (if IG account was associated)
+- [ ] Export Influencer/Brand metrics to google worksheet.
 - [ ] Pickle tokens
 - [n] Keep a DB table of worksheet ids?
   - [s] Will we have multiple report views?
@@ -227,8 +232,10 @@ Current Status:
   - [x] Function to create a worksheet
   - [x] Function to update a worksheet
   - [x] Can read and format desired DB data into worksheet.
+  - [x] Includes a report for the brand insight metrics on the campaign report
+  - [ ] Separate google sheet reports for influencer or brand metrics
 - [x] create a route & view for the sheets data view
-- [ ] For a given worksheet, ability to edit existing permissions
+- [x] For a given worksheet, ability to edit existing permissions
 - [ ] For a given worksheet, ability to delete existing permissions
 - [ ] For a given worksheet, ability to delete the file
 - [ ] More Drive files management
@@ -247,6 +254,7 @@ Current Status:
 
 - [x] Start style design based on Bacchus style guide and website
 - [x] Begin update for our context
+- [ ] Update all 'user' references to 'influencer' as appropriate
 - [ ] Page styling of admin sections to assist in clear reports and navigation
 - [ ] Attractive page styling for Influencer sign up portal & documents (ToS, privacy, etc)
 - [ ] Content for Influencer sign-up portal (home view) to give them confidence in the process.
