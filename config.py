@@ -1,26 +1,24 @@
 from os import environ
 
-CLIENT_ID = environ.get("CLIENT_ID")
-CLIENT_SECRET = environ.get("CLIENT_SECRET")
-FB_CLIENT_ID = environ.get("FB_CLIENT_ID")
-FB_CLIENT_SECRET = environ.get("FB_CLIENT_SECRET")
 # class Config:
 #     """ Flask configuration variables """
 SECRET_KEY = environ.get('SECRET_KEY')  # for session cookies & flash messages
 # FLASK_APP = environ.get('FLASK_APP')
 # FLASK_ENV = environ.get('FLASK_ENV')
+FB_CLIENT_ID = environ.get("FB_CLIENT_ID")
+FB_CLIENT_SECRET = environ.get("FB_CLIENT_SECRET")
+PROJECT_NAME = environ.get('PROJECT_NAME')
 PROJECT_ID = environ.get('PROJECT_ID')
+PROJECT_REGION = environ.get('PROJECT_REGION')
+CLOUDSQL_INSTANCE = environ.get('DB_INSTANCE')
 CLOUDSQL_USER = environ.get('DB_USER')
 CLOUDSQL_PASSWORD = environ.get('DB_PASSWORD')
 CLOUDSQL_DATABASE = environ.get('DB_NAME')
-PROJECT_REGION = environ.get('PROJECT_REGION')
-PROJECT_NAME = environ.get('PROJECT_NAME')
 # Set the following value to the Cloud SQL connection name, e.g.
 #   "project:region:cloudsql-instance".
 # You must also update the value in app.yaml.
 # CLOUDSQL_CONNECTION_NAME = f'{PROJECT_ID}:{PROJECT_REGION}:{DB_INSTANCE}'
 CLOUDSQL_CONNECTION_NAME = environ.get('DB_CONNECTION_NAME')
-
 # The CloudSQL proxy is used locally to connect to the cloudsql instance.
 # To start the proxy, use:
 #   $ cloud_sql_proxy -instances=your-connection-name=tcp:3306

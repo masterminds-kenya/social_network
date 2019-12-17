@@ -94,7 +94,7 @@ def data(id):
     # TODO: Do we need this route? Currently only called by unused routes
     # TODO: ?refactor so url_for('data', campaign_id=campaign_id, sheet_id=sheet['id'])
     sheet = read_sheet(id=id)
-    return render_template('data.html', sheet=sheet, campaign_id=None)
+    return render_template('data.html', sheet=sheet, campaign_id=id)
 
 
 @app.route('/login/<string:mod>')
@@ -300,6 +300,9 @@ def delete(mod, id):
 @app.route('/<string:mod>/list')
 def all(mod):
     """ List view for all data of Model indicated by mod. """
+    app.logger.info(f"-------- List all {mod} --------")
+    app.logger.info(f" {app.config.get('URL')} ")
+    app.logger.info(app.config.get('CLOUDSQL_CONNECTION_NAME'))
     Model = mod_lookup.get(mod, None)
     if not Model:
         return f"No such route: {mod}", 404

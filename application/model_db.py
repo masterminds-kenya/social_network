@@ -18,7 +18,7 @@ db = SQLAlchemy()
 def init_app(app):
     app.config.setdefault('SQLALCHEMY_TRACK_MODIFICATIONS', False)  # Disabled since it unnecessary uses memory
     # app.config.setdefault('SQLALCHEMY_ECHO', True)  # Turns on A LOT of logging.
-    # app.config['MYSQL_DATABASE_CHARSET'] = 'utf8mb4'  # Perhaps already set by default in MySQL
+    app.config['MYSQL_DATABASE_CHARSET'] = 'utf8mb4'  # Perhaps already set by default in MySQL
     db.init_app(app)
 
 

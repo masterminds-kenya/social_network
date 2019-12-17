@@ -21,9 +21,9 @@
 |                    | **Milestone 3 Completion**           |
 | :heavy_check_mark: | Generate reports to Google sheets    |
 | :heavy_check_mark: | Give permissions to view google sheets      |
-|                    | Site content and style, basic UI and graphs |
-|                    | **Milestone 4 Completion**           |
 |                    | Hosting and Facebook settings on Bacchus accounts |
+|                    | **Milestone 4 Completion**           |
+|                    | Site content and style, basic UI and graphs |
 |                    | Testing, on-boarding, error handling |
 |                    | Facebook App approved and go live    |
 |                    | **Initial Contract Completion**      |
