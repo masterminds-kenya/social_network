@@ -387,12 +387,16 @@ def db_delete(id, Model=User):
 
 
 def db_all(Model=User, role=None):
+    """ Returns all of the records for the indicated Model, or for User Model returns either brands or influencers. """
+    current_app.logger.info('=============== called db_all =================')
     sort_field = Model.name if hasattr(Model, 'name') else Model.id
     query = (Model.query.order_by(sort_field))
     if Model == User:
         role_type = role if role else 'influencer'
         query = query.filter_by(role=role_type)
+    current_app.logger.info('Set the query')
     models = query.all()
+    current_app.logger.info('Query made')
     return models
 
 

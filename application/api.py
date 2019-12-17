@@ -132,6 +132,9 @@ def get_ig_info(ig_id, token=None, facebook=None):
 
 
 def find_instagram_id(accounts, facebook=None):
+    """ For an influencer or brand, we can discover all of their instagram business accounts they have.
+        This depends on them having their expected associated facebook page (for each).
+    """
     ig_list = []
     pages = [page.get('id') for page in accounts.get('data')] if accounts and 'data' in accounts else None
     # TODO: Update logic for user w/ many pages/instagram-accounts. Currently assumes last found instagram account
@@ -147,6 +150,7 @@ def find_instagram_id(accounts, facebook=None):
 
 
 def onboard_login(mod):
+    """ Process the initiation of creating a new influencer or brand user with facebook authorization. """
     callback = URL + '/callback/' + mod
     facebook = requests_oauthlib.OAuth2Session(
         FB_CLIENT_ID, redirect_uri=callback, scope=FB_SCOPE
@@ -157,6 +161,7 @@ def onboard_login(mod):
 
 
 def onboarding(mod, request):
+    """ Verify the authorization request and create the appropriate influencer or brand user. """
     callback = URL + '/callback/' + mod
     facebook = requests_oauthlib.OAuth2Session(FB_CLIENT_ID, scope=FB_SCOPE, redirect_uri=callback)
     facebook = facebook_compliance_fix(facebook)  # we need to apply a fix for Facebook here
