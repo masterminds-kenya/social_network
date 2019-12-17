@@ -107,10 +107,10 @@ Current Status:
 - [s] Can update data for existing Brand accounts
 - [ ] Update User & Brand to be the same user table
   - [ ] Default account insights history, 360 days.
-  - [ ] Export Influencer/Brand metrics to google worksheet.
+  - [x] Export Influencer/Brand metrics to google worksheet.
 - [ ] Pickle tokens
-- [ ] Keep a DB table of worksheet ids?
-  - [ ] Will we have multiple report views?
+- [n] Keep a DB table of worksheet ids?
+  - [s] Will we have multiple report views?
 - [s] DB Migration: Integrate flask-migrate?
 - [ ] Revisit method of reporting Campaign Results.
 - [ ] Revisit structure for ON DELETE, ON UPDATE,
@@ -119,7 +119,7 @@ Current Status:
 
 ### Site Functionality
 
-- [ ] Add Brand account metrics to the Campaign report
+- [x] Add Brand account metrics to the Campaign report
 - [x] Confirm DB connection works
 - [x] CREATE: Confirm we can add users to DB
 - [x] READ:   Confirm we can retrieve user info from DB.

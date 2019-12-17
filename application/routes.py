@@ -190,7 +190,6 @@ def view(mod, id):
 @app.route('/<string:mod>/<int:id>/insights')
 def insights(mod, id):
     """ For a given User, show the account Insight data. """
-    # TODO: update to also work for Brand
     user = db_read(id)
     Model = Insight
     scheme_color = ['gold', 'purple', 'green']
@@ -223,7 +222,6 @@ def insights(mod, id):
 @app.route('/<string:mod>/<int:id>/audience')
 def new_audience(mod, id):
     """ Get new audience data from API. Input mod for either User or Brand, with given id. """
-    # TODO: update to also work for Brand
     audience = get_audience(id)
     logstring = f'Audience data for {mod} - {id}' if audience else f'No insight data, {mod}'
     app.logger.info(logstring)
@@ -233,7 +231,6 @@ def new_audience(mod, id):
 @app.route('/<string:mod>/<int:id>/fetch')
 def new_insight(mod, id):
     """ Get new account insight data from API. Input mod for either User or Brand, with given id. """
-    # TODO: update to also work for Brand
     insights = get_insight(id)
     logstring = f'Insight data for {mod} - {id} ' if insights else f'No insight data, {mod}'
     app.logger.info(logstring)
@@ -243,7 +240,6 @@ def new_insight(mod, id):
 @app.route('/<string:mod>/<int:id>/posts')
 def new_post(mod, id):
     """ Get new posts data from API. Input mod for either User or Brand, with a given id"""
-    # TODO: ?update to also work for Brand?
     posts = get_posts(id)
     logstring = 'we got some posts back' if len(posts) else 'No posts retrieved'
     app.logger.info(logstring)

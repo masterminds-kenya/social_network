@@ -1,6 +1,5 @@
 from flask import Flask, flash, current_app
 from flask_sqlalchemy import SQLAlchemy
-# from sqlalchemy.orm import aliased
 # from flask_sqlalchemy import BaseQuery, SQLAlchemy  # if we create custom query
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.dialects.mysql import BIGINT
@@ -76,10 +75,8 @@ class User(db.Model):
         They must have a Facebook Page connected to their business Instagram account.
     """
     roles = ('influencer', 'brand', 'manager', 'admin')
-    # __abstract__ = True
     __tablename__ = 'users'
 
-    # role = db.Column(db.ChoiceType(TYPES), default='influencer', unique=False, nullable=False)
     # TODO: https://techspot.zzzeek.org/2011/01/14/the-enum-recipe/
     id = db.Column(db.Integer, primary_key=True)
     role = db.Column(db.Enum(*roles, name='user_roles'), default='influencer', nullable=False)
@@ -130,23 +127,6 @@ class User(db.Model):
 
     def __repr__(self):
         return '<User {}>'.format(self.name)
-
-
-# Brand = aliased(User)
-
-
-# class Brand(GenericUser):
-#     __tablename__ = 'brands'
-#     id = db.Column(db.Integer, primary_key=True)
-
-#     def __init__(self, *args, **kwargs):
-#         kwargs['role'] = 'brand'
-#         super().__init__(*args, **kwargs)
-
-
-# class User(GenericUser):
-#     __tablename__ = 'users'
-#     id = db.Column(db.Integer, primary_key=True)
 
 
 class Insight(db.Model):
@@ -284,7 +264,6 @@ class Campaign(db.Model):
     modified = db.Column(db.DateTime,   index=False, unique=False, nullable=False, default=dt.utcnow, onupdate=dt.utcnow)
     created = db.Column(db.DateTime,    index=False, unique=False, nullable=False, default=dt.utcnow)
     users = db.relationship('User', secondary=user_campaign, backref=db.backref('campaigns', lazy='dynamic'))
-    # 'Brand' HERE
     brands = db.relationship('User', secondary=brand_campaign, backref=db.backref('brand_campaigns', lazy='dynamic'))
     posts = db.relationship('Post', backref='campaign', lazy=True)
     UNSAFE = {''}
@@ -304,7 +283,6 @@ class Campaign(db.Model):
         rejected = {'insight', 'basic'}
         added = {'comments_count', 'like_count'}
         lookup = {k: v.union(added) for k, v in Post.metrics.items() if k not in rejected}
-        # related = {key: {'posts': [], 'metrics': {metric_clean(el): [] for el in lookup[key]}} for key in lookup}
         related, sets_list = {}, []
         for media_type, metric_set in lookup.items():
             temp = [metric_clean(ea) for ea in metric_set]
