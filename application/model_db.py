@@ -50,7 +50,7 @@ def fix_date(Model, data):
     if Model in {Insight, OnlineFollowers}:
         datestring = data.pop('end_time', None)
     elif Model == Audience:
-        datestring = data.get('values', [{}])[0].get('end_time')  # TODO: Typically list has only 1 element.
+        datestring = data.get('values', [{}])[0].get('end_time')  # We expect the list to have only 1 element.
     elif Model == Post:
         datestring = data.pop('timestamp', None)
     data['recorded'] = parser.isoparse(datestring).replace(tzinfo=None) if datestring else data.get('recorded')
@@ -144,14 +144,18 @@ class OnlineFollowers(db.Model):
         kwargs = fix_date(OnlineFollowers, kwargs)
         super().__init__(*args, **kwargs)
 
-    # end class OnlineFollowers
+    def __str__(self):
+        return int(self.value)
+
+    def __repr__(self):
+        return f"<OnlineFollowers {self.recorded} | Hour: {self.hour} | User {self.user_id} >"
 
 
 class Insight(db.Model):
     """ Data model for insights data on a (influencer or brand) user's account """
-    # composite_unique = ('user_id', 'recorded', 'name')
+    composite_unique = ('user_id', 'recorded', 'name')
     __tablename__ = 'insights'
-    __table_args__ = (db.UniqueConstraint('user_id', 'recorded', 'name', name='uq_insights_recorded_name'),)
+    __table_args__ = (db.UniqueConstraint(*composite_unique, name='uq_insights_recorded_name'),)
 
     id = db.Column(db.Integer,      primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey('users.id', ondelete='CASCADE'))
@@ -180,8 +184,9 @@ class Insight(db.Model):
 class Audience(db.Model):
     """ Data model for current information about the user's audience. """
     # TODO: If this data not taken over by Neo4j, then refactor to parse out the age groups and gender groups
+    composite_unique = ('user_id', 'recorded', 'name')
     __tablename__ = 'audiences'
-    __table_args__ = (db.UniqueConstraint('user_id', 'recorded', 'name', name='uq_audiences_recorded_name'),)
+    __table_args__ = (db.UniqueConstraint(*composite_unique, name='uq_audiences_recorded_name'),)
 
     id = db.Column(db.Integer,      primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey('users.id', ondelete='CASCADE'))
@@ -438,9 +443,10 @@ def db_create_or_update_many(dataset, user_id=None, Model=Post):
     allowed_models = {Post, Insight, Audience}
     if Model not in allowed_models:
         return []
-    composite_unique = ['recorded', 'name'] if Model in {Insight, Audience} else False
+    # composite_unique = ['recorded', 'name'] if Model in {Insight, Audience} else False
+    composite_unique = getattr(Model, 'composite_unique', None)
     # Note: initially all Models only had 1 non-pk unique field
-    # However, both the Insight and Audience models have a composite unique requirement (user_id, recorded, name)
+    # However, those with table_args setting composite unique restrictions have a composite_unique class property.
     # insp = db.inspect(Model)
     all_results, add_count, update_count, error_set = [], 0, 0, []
     # print(f'---- Initial dataset has {len(dataset)} records ----')
