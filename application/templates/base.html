@@ -40,7 +40,9 @@
 {% endblock content %}
 <footer>
   <p>
-    <a href="{{ url_for('render_static', page_name='privacy') }}">Privacy</a> | <a href="{{ url_for('render_static', page_name='tos') }}">Terms of Service</a>
+    <a href="{{ url_for('home')}}">Home</a> |
+    <a href="{{ url_for('render_static', page_name='privacy') }}">Privacy</a> |
+    <a href="{{ url_for('render_static', page_name='tos') }}">Terms of Service</a>
   </p>
 </footer>
 </body>
