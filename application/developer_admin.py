@@ -23,7 +23,7 @@ def load():
 
 
 def save(mod, id, Model):
-    if mod == 'user':
+    if mod in {'brand', 'influencer', 'user'}:
         filename = USER_FILE
     model = db_read(id, Model=Model, safe=False)
     del model['id']

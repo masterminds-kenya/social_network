@@ -254,7 +254,7 @@ Current Status:
 
 - [x] Start style design based on Bacchus style guide and website
 - [x] Begin update for our context
-- [ ] Privacy and tos pages.
+- [x] Privacy and tos pages.
 - [ ] Update all 'user' references to 'influencer' as appropriate
 - [ ] Page styling of admin sections to assist in clear reports and navigation
 - [ ] Attractive page styling for Influencer sign up portal & documents (ToS, privacy, etc)

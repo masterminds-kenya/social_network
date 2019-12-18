@@ -30,8 +30,8 @@ def from_sql(row, related=False, safe=False):
     """ Translates a SQLAlchemy model instance into a dictionary """
     data = row.__dict__.copy()
     data['id'] = row.id
-    current_app.logger.info('============= from_sql ===================')
-    current_app.logger.info(row.__class__)
+    # current_app.logger.info('============= from_sql ===================')
+    # current_app.logger.info(row.__class__)
     if related:
         rel = row.__mapper__.relationships
         # TODO: Attach rel to data
@@ -42,8 +42,6 @@ def from_sql(row, related=False, safe=False):
     if safe:
         Model = row.__class__
         data = {k: data[k] for k in data.keys() - Model.UNSAFE}
-
-    # TODO: ? Move the cleaning for safe results to this function?
     return data
 
 
@@ -126,7 +124,7 @@ class User(db.Model):
         return self.name
 
     def __repr__(self):
-        return '<User {}>'.format(self.name)
+        return '<User - {}: {}>'.format(self.role, self.name)
 
 
 class Insight(db.Model):
@@ -350,18 +348,18 @@ def db_create(data, Model=User):
     # except Exception as e:
     #     print('**************** DB CREATE Error *******************')
     #     print(e)
-    results = from_sql(model)
-    safe_results = {k: results[k] for k in results.keys() - Model.UNSAFE}
-    return safe_results
+    results = from_sql(model, safe=True)
+    # safe_results = {k: results[k] for k in results.keys() - Model.UNSAFE}
+    return results
 
 
 def db_read(id, Model=User, safe=True):
     model = Model.query.get(id)
     if not model:
         return None
-    results = from_sql(model)
-    safe_results = {k: results[k] for k in results.keys() - Model.UNSAFE}
-    output = safe_results if safe else results
+    output = from_sql(model, safe=safe)
+    # safe_results = {k: results[k] for k in results.keys() - Model.UNSAFE}
+    # output = safe_results if safe else results
     if Model == User:
         if len(model.insights) > 0:
             output['insight'] = True
@@ -376,9 +374,9 @@ def db_update(data, id, Model=User):
     for k, v in data.items():
         setattr(model, k, v)
     db.session.commit()
-    results = from_sql(model)
-    safe_results = {k: results[k] for k in results.keys() - Model.UNSAFE}
-    return safe_results
+    results = from_sql(model, safe=True)
+    # safe_results = {k: results[k] for k in results.keys() - Model.UNSAFE}
+    return results
 
 
 def db_delete(id, Model=User):

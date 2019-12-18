@@ -45,7 +45,7 @@ def get_insight(user_id, first=1, last=30*3, ig_id=None, facebook=None):
 
 
 def get_audience(user_id, ig_id=None, facebook=None):
-    """ Get the audience data for the user of user_id """
+    """ Get the audience data for the (influencer or brand) user with given user_id """
     # print('=========================== Get Audience Data ======================')
     audience_metric = ','.join(Audience.metrics)
     ig_period = 'lifetime'
@@ -62,7 +62,7 @@ def get_audience(user_id, ig_id=None, facebook=None):
 
 
 def get_posts(user_id, ig_id=None, facebook=None):
-    """ Get media posts """
+    """ Get media posts for the (influencer or brand) user with given user_id """
     # print('==================== Get Posts ====================')
     post_metrics = {key: ','.join(val) for (key, val) in Post.metrics.items()}
     results, token = [], ''
@@ -122,6 +122,7 @@ def get_ig_info(ig_id, token=None, facebook=None):
     # profile_picture_url, username*, website*
     fields = ['username', 'followers_count', 'follows_count', 'media_count']
     fields = ','.join(fields)
+    # TODO: Save the followers_count, and media_count to DB somewhere.
     print('============ Get IG Info ===================')
     if not token and not facebook:
         return "You must pass a 'token' or 'facebook' reference. "
@@ -137,7 +138,6 @@ def find_instagram_id(accounts, facebook=None):
     """
     ig_list = []
     pages = [page.get('id') for page in accounts.get('data')] if accounts and 'data' in accounts else None
-    # TODO: Update logic for user w/ many pages/instagram-accounts. Currently assumes last found instagram account
     if pages:
         print(f'================= Pages count: {len(pages)} =================================')
         for page in pages:
@@ -174,6 +174,7 @@ def onboarding(mod, request):
         return ('error', facebook_user_data, None)
     # TODO: use a better constructor for the user account.
     data = facebook_user_data.copy()  # .to_dict(flat=True)
+    # TODO User: confirm the following line can just always be set to 'mod'.
     data['role'] = 'influencer' if mod == 'user' else mod  # data['role'] may now be 'brand' or 'user'
     data['token'] = token
     accounts = data.pop('accounts')

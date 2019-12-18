@@ -42,7 +42,7 @@
   <li>
     <strong>{{ user.name }}</strong> |
     posts last retrieved on {{user.modified}} |
-    <a href="{{ url_for('new_post', mod='user', id=user.id) }}">retrieve new {{user.name}} posts</a>
+    <a href="{{ url_for('new_post', mod='influencer', id=user.id) }}">retrieve new {{user.name}} posts</a>
     <br />
   </li>
   {% endfor %}
@@ -100,7 +100,7 @@
       {% endfor %}
       {% if related[user]|length < 1 %}
       {% if view=='management' %}
-      <p><a href="{{ url_for('new_post', mod='user', id=user.id) }}">retrieve new {{user.name}} posts</a></p>
+      <p><a href="{{ url_for('new_post', mod='influencer', id=user.id) }}">retrieve new {{user.name}} posts</a></p>
       {% endif %}
       {% else %}
       <button type="submit" value="Confirm Assignments">Confirm Assignments</button>

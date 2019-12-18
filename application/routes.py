@@ -14,7 +14,7 @@ def mod_lookup(mod):
     """ Associate to the appropriate Model, or raise error if 'mod' is not an expected value """
     if not isinstance(mod, str):
         raise TypeError('Expected a string input')
-    lookup = {'brand': User, 'user': User, 'insight': Insight, 'audience': Audience, 'post': Post, 'campaign': Campaign}
+    lookup = {'brand': User, 'influencer': User, 'insight': Insight, 'audience': Audience, 'post': Post, 'campaign': Campaign}
     Model = lookup.get(mod, None)
     if not Model:
         raise ValueError('That is not a valid route.')
@@ -44,20 +44,18 @@ def dev_admin():
 def load_user():
     """ This is a temporary development function. Will be removed for production. """
     developer_admin.load()
-    return redirect(url_for('all', mod='user'))
+    return redirect(url_for('all', mod='influencer'))
 
 
 @app.route('/data/<string:mod>/<int:id>')
 def backup_save(mod, id):
     """ This is a temporary development function. Will be removed for production. """
     Model = mod_lookup(mod)
-    if not Model:
-        return f"No such route: {mod}", 404
     count = developer_admin.save(mod, id, Model)
     message = f"We just backed up {count} {mod} model(s)"
     app.logger.info(message)
     flash(message)
-    return redirect(url_for('view', mod='user', id=id))
+    return redirect(url_for('view', mod='influencer', id=id))
 
 
 @app.route('/data/update/<int:campaign_id>/<string:sheet_id>')
@@ -183,8 +181,6 @@ def view(mod, id):
     # if mod == 'campaign':
     #     return campaign(id)
     Model = mod_lookup(mod)
-    if not Model:
-        return f"No such route: {mod}", 404
     model = db_read(id, Model=Model)
     # model = Model.query.get(id)
     template = 'view.html'
@@ -259,15 +255,12 @@ def new_post(mod, id):
     app.logger.info(logstring)
     return_path = request.referrer
     return redirect(return_path)
-    # return redirect(url_for('view', mod=mod, id=id))
 
 
 def add_edit(mod, id=None):
     """ Adding or Editing a DB record is a similar process handled here. """
     action = 'Edit' if id else 'Add'
     Model = mod_lookup(mod)
-    if not Model:
-        return f"No such route: {mod}", 404
     if request.method == 'POST':
         app.logger.info(f'--------- {action} {mod}------------')
         data = process_form(mod, request)
@@ -305,8 +298,6 @@ def edit(mod, id):
 def delete(mod, id):
     """ Permanently remove from DB the record for Model indicated by mod and id. """
     Model = mod_lookup(mod)
-    if not Model:
-        return f"No such route: {mod}", 404
     db_delete(id, Model=Model)
     return redirect(url_for('home'))
 
@@ -318,8 +309,6 @@ def all(mod):
     app.logger.info(f" {app.config.get('URL')} ")
     app.logger.info(app.config.get('CLOUDSQL_CONNECTION_NAME'))
     Model = mod_lookup(mod)
-    if not Model:
-        return f"No such route: {mod}", 404
     models = db_all(Model=Model, role=mod) if mod == 'brand' else db_all(Model=Model)
     return render_template('list.html', mod=mod, data=models)
 

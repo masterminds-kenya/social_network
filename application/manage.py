@@ -65,6 +65,8 @@ def process_form(mod, request):
         data[bool_fields[mod]] = True if data.get(bool_fields[mod]) in {'on', True} else False
     if mod == 'brand':
         data['role'] = 'brand'
-    elif mod == 'user':
+    elif mod == 'influencer':
+        data['role'] = 'influencer'
+    elif mod == 'user':  # TODO User: confirm we can remove mod == 'user'
         data['role'] = 'influencer'
     return data

@@ -28,10 +28,10 @@
 {% endblock data_view %}
 
 {% block modify %}
-{% if mod in ['user', 'brand', 'campaign'] %}
+{% if mod in ['influencer', 'brand', 'campaign'] %}
 <h3>Modify Record</h3>
 <ul>
-  {% if mod == 'user' or mod == 'brand' %}
+  {% if mod == 'influencer' or mod == 'brand' %}
   <li><a href="{{ url_for('new_post', mod=mod, id=data.id) }}">Get New Media / Posts</a> </li>
   <li><a href="{{ url_for('new_insight', mod=mod, id=data.id) }}">Get New {{mod|title}} Insights</a> </li>
   <li><a href="{{ url_for('new_audience', mod=mod, id=data.id) }}">Get New Audience Data</a> </li>
