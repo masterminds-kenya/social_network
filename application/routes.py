@@ -4,7 +4,7 @@ from .model_db import db_create, db_read, db_update, db_delete, db_all
 from .model_db import User, Insight, Audience, Post, Campaign  # , metric_clean
 from . import developer_admin
 from .manage import update_campaign, process_form, post_display
-from .api import onboard_login, onboarding, get_insight, get_audience, get_posts
+from .api import onboard_login, onboarding, get_insight, get_audience, get_posts, get_online_followers
 from .sheets import create_sheet, update_sheet, read_sheet, perm_add, perm_list
 import json
 # from pprint import pprint
@@ -160,19 +160,18 @@ def campaign(id, view='management'):
      """
     mod = 'campaign'
     template, related = f"{mod}.html", {}
-    Model = mod_lookup(mod)
-    model = Model.query.get(id)
+    campaign = Campaign.query.get(id)
     app.logger.info(f'=========== Campaign {view} ===========')
     if request.method == 'POST':
         update_campaign(view, request)
-    for user in model.users:
+    for user in campaign.users:
         if view == 'collected':
             related[user] = [post_display(ea) for ea in user.posts if ea.campaign_id == id]
         elif view == 'management':
             related[user] = [ea for ea in user.posts if not ea.processed]
         else:
             related[user] = []
-    return render_template(template, mod=mod, view=view, data=model, related=related)
+    return render_template(template, mod=mod, view=view, data=campaign, related=related)
 
 
 @app.route('/<string:mod>/<int:id>')
@@ -234,6 +233,15 @@ def new_audience(mod, id):
     """ Get new audience data from API for either. Input mod for either User or Brand, with given id. """
     audience = get_audience(id)
     logstring = f'Audience data for {mod} - {id}' if audience else f'No insight data, {mod}'
+    app.logger.info(logstring)
+    return redirect(url_for('view', mod=mod, id=id))
+
+
+@app.route('/<string:mod>/<int:id>/followers')
+def followers(mod, id):
+    """ Get followers report """
+    follow_report = get_online_followers(id)
+    logstring = f"Online Followers for {mod} - {id}" if follow_report else f"No data for {mod} - {id}"
     app.logger.info(logstring)
     return redirect(url_for('view', mod=mod, id=id))
 

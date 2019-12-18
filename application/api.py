@@ -20,34 +20,62 @@ FB_SCOPE = [
         ]
 
 
-def get_insight(user_id, first=1, last=30*3, ig_id=None, facebook=None):
+def get_insight(user_id, first=1, influence_last=30*2, profile_last=30*1, ig_id=None, facebook=None):
     """ Practice getting some insight data with the provided facebook oauth session """
     ig_period = 'day'
     results, token = [], ''
-    insight_metric = ','.join(Insight.metrics)
+    if not facebook or not ig_id:
+        user = db_read(user_id, safe=False)
+        ig_id, token = user.get('instagram_id'), user.get('token')
+    # TODO: Query for this user's most recent influence_metric and most recent profile_metric
+    # adjust each version of last to not overlap from previous request. Use mod to make it a multiple of 30.
+    for insight_metrics, last in [(Insight.influence_metrics, influence_last), (Insight.profile_metrics, profile_last)]:
+        metric = ','.join(insight_metrics)
+        for i in range(first, last + 2 - 30, 30):
+            until = dt.utcnow() - timedelta(days=i)
+            since = until - timedelta(days=30)
+            url = f"https://graph.facebook.com/{ig_id}/insights?metric={metric}&period={ig_period}&since={since}&until={until}"
+            response = facebook.get(url).json() if facebook else requests.get(f"{url}&access_token={token}").json()
+            insights = response.get('data')
+            if not insights:
+                print('Error: ', response.get('error'))
+                return None
+            pprint(insights)
+            for ea in insights:
+                for val in ea.get('values'):
+                    val['name'], val['user_id'] = ea.get('name'), user_id
+                    results.append(val)
+    return db_create_or_update_many(results, user_id=user_id, Model=Insight)
+
+
+def get_online_followers(user_id, ig_id=None, facebook=None):
+    """ Just want to get Facebook API response for online_followers for a period of time """
+    app.logger.info('================= Get Online Followers data ==============')
+    ig_period, metric, token = 'lifetime', 'online_followers', ''
     if not facebook or not ig_id:
         model = db_read(user_id, safe=False)
         ig_id, token = model.get('instagram_id'), model.get('token')
-    for i in range(first, last + 2 - 30, 30):
-        until = dt.utcnow() - timedelta(days=i)
-        since = until - timedelta(days=30)
-        url = f"https://graph.facebook.com/{ig_id}/insights?metric={insight_metric}&period={ig_period}&since={since}&until={until}"
-        response = facebook.get(url).json() if facebook else requests.get(f"{url}&access_token={token}").json()
-        test_insights = response.get('data')
-        if not test_insights:
-            print('Error: ', response.get('error'))
-            return None
-        for ea in test_insights:
-            for val in ea.get('values'):
-                val['name'], val['user_id'] = ea.get('name'), user_id
-                results.append(val)
-    return db_create_or_update_many(results, user_id=user_id, Model=Insight)
+    until = dt.utcnow() - timedelta(days=1)
+    since = until - timedelta(days=30)
+    url = f"https://graph.facebook.com/{ig_id}/insights?metric={metric}&period={ig_period}&since={since}&until={until}"
+    response = facebook.get(url).json() if facebook else requests.get(f"{url}&access_token={token}").json()
+    data = response.get('data')
+    if not data:
+        app.logger.info(f"Online Followers Error: {response.get('error')}")
+        return None
+    results = []
+    for day in data[0].get('values', []):  # We expect only 1 element in the 'data' list
+        recorded = day.get('end_time')
+        for hour, val in day.get('value', {}).items():
+            results.append({'user_id': user_id, 'hour': int(hour), 'value': int(val), 'end_time': recorded})
+    return db_create_or_update_many(results, user_id=user_id, Model=Audience)
 
 
 def get_audience(user_id, ig_id=None, facebook=None):
     """ Get the audience data for the (influencer or brand) user with given user_id """
-    # print('=========================== Get Audience Data ======================')
+    app.logger.info('=========================== Get Audience Data ======================')
     audience_metric = ','.join(Audience.metrics)
+    app.logger.info(audience_metric)
     ig_period = 'lifetime'
     results, token = [], ''
     if not facebook or not ig_id:
@@ -55,6 +83,10 @@ def get_audience(user_id, ig_id=None, facebook=None):
         ig_id, token = model.get('instagram_id'), model.get('token')
     url = f"https://graph.facebook.com/{ig_id}/insights?metric={audience_metric}&period={ig_period}"
     audience = facebook.get(url).json() if facebook else requests.get(f"{url}&access_token={token}").json()
+    if not audience.get('data'):
+        app.logger.info(f"Error: {audience.get('error')}")
+        return None
+    pprint(audience.get('data'))
     for ea in audience.get('data'):
         ea['user_id'] = user_id
         results.append(ea)
@@ -63,7 +95,7 @@ def get_audience(user_id, ig_id=None, facebook=None):
 
 def get_posts(user_id, ig_id=None, facebook=None):
     """ Get media posts for the (influencer or brand) user with given user_id """
-    # print('==================== Get Posts ====================')
+    app.logger.info('==================== Get Posts ====================')
     post_metrics = {key: ','.join(val) for (key, val) in Post.metrics.items()}
     results, token = [], ''
     if not facebook or not ig_id:
@@ -109,8 +141,8 @@ def get_posts(user_id, ig_id=None, facebook=None):
             res.update(temp)
         else:
             print(f"media {media_id} had NO INSIGHTS for type {media_type} --- {res_insight}")
-        # pprint(res)
-        # print('---------------------------------------')
+        pprint(res)
+        print('---------------------------------------')
         results.append(res)
     return db_create_or_update_many(results, Post)
 
@@ -187,11 +219,11 @@ def onboarding(mod, request):
         data['name'] = ig_info.get('username', None)
         ig_id = int(ig_info.get('id'))
         data['instagram_id'] = ig_id
-        print('------ Only 1 InstaGram business account --------')
+        app.logger.info('------ Only 1 InstaGram business account --------')
     else:
         data['name'] = data.get('username', None) if 'name' not in data else data['name']
         print(f'--------- Found {len(ig_list)} potential IG accounts -----------')
-    print('=========== Data sent to Create Influencer or Brand account ===============')
+    app.logger.info('=========== Data sent to Create Influencer or Brand account ===============')
     pprint(data)
     print(mod)
     # Model = Brand if mod == 'brand' else User

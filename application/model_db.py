@@ -47,10 +47,10 @@ def from_sql(row, related=False, safe=False):
 
 def fix_date(Model, data):
     datestring = ''
-    if Model == Insight:
+    if Model in {Insight, OnlineFollowers}:
         datestring = data.pop('end_time', None)
     elif Model == Audience:
-        datestring = data.get('values', [{}])[0].get('end_time')  # TODO: Are we okay assuming 'end_time' is same for all in this array of responses?
+        datestring = data.get('values', [{}])[0].get('end_time')  # TODO: Typically list has only 1 element.
     elif Model == Post:
         datestring = data.pop('timestamp', None)
     data['recorded'] = parser.isoparse(datestring).replace(tzinfo=None) if datestring else data.get('recorded')
@@ -88,8 +88,9 @@ class User(db.Model):
     created = db.Column(db.DateTime,                index=False, unique=False, nullable=False, default=dt.utcnow)
     insights = db.relationship('Insight',   backref='user', lazy=True, passive_deletes=True)
     audiences = db.relationship('Audience', backref='user', lazy=True, passive_deletes=True)
-    posts = db.relationship('Post', backref='user', lazy=True, passive_deletes=True)  # ? query_class=GetActive,
+    posts = db.relationship('Post',         backref='user', lazy=True, passive_deletes=True)  # ? query_class=GetActive,
     # # campaigns = backref from Campaign.users with lazy='dynamic'
+    # # brand_campaigns = backref from Campaign.brands with lazy='dynamic'
     UNSAFE = {'token', 'token_expires', 'modified', 'created'}
 
     def __init__(self, *args, **kwargs):
@@ -109,7 +110,7 @@ class User(db.Model):
         measurements = [('Median', median), ('Average', mean), ('StDev', stdev)]
         insight_labels = [f"{metric} {ea[0]}" for metric in insight_metrics for ea in measurements]
         if label_only:
-            return ['Name', 'Notes', *insight_labels, 'instagram_id', 'modified', 'created']
+            return ['Brand Name', 'Notes', *insight_labels, 'instagram_id', 'modified', 'created']
         if self.instagram_id is None:
             insight_data = [0 for ea in insight_labels]
         else:
@@ -127,8 +128,28 @@ class User(db.Model):
         return '<User - {}: {}>'.format(self.role, self.name)
 
 
+class OnlineFollowers(db.Model):
+    """ Data model for 'online_followers' for a user (influencer or brand) """
+    composite_unique = ('user_id', 'recorded', 'hour')
+    __tablename__ = 'onlinefollowers'
+    __table_args__ = (db.UniqueConstraint(*composite_unique, name='uq_onlinefollowers_recorded_hour'),)
+
+    id = db.Column(db.Integer,      primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id', ondelete='CASCADE'))
+    recorded = db.Column(db.DateTime, index=False, unique=False, nullable=False)
+    hour = db.Column(db.Integer,      index=False, unique=False, nullable=False)
+    value = db.Column(db.Integer,     index=False, unique=False, nullable=True)
+
+    def __init__(self, *args, **kwargs):
+        kwargs = fix_date(OnlineFollowers, kwargs)
+        super().__init__(*args, **kwargs)
+
+    # end class OnlineFollowers
+
+
 class Insight(db.Model):
     """ Data model for insights data on a (influencer or brand) user's account """
+    # composite_unique = ('user_id', 'recorded', 'name')
     __tablename__ = 'insights'
     __table_args__ = (db.UniqueConstraint('user_id', 'recorded', 'name', name='uq_insights_recorded_name'),)
 
@@ -138,7 +159,11 @@ class Insight(db.Model):
     name = db.Column(db.String(47),            index=False, unique=False, nullable=False)
     value = db.Column(db.Integer,              index=False, unique=False, nullable=True)
     # # user = backref from User.insights with lazy='select' (synonym for True)
-    metrics = {'impressions', 'reach', 'follower_count'}
+    influence_metrics = {'impressions', 'reach'}
+    profile_metrics = {'phone_call_clicks', 'text_message_clicks', 'email_contacts',
+                       'get_directions_clicks', 'website_clicks', 'profile_views', 'follower_count'}
+    lifetime_metrics = {'online_followers'}
+    metrics = influence_metrics.union(profile_metrics)
     UNSAFE = {''}
 
     def __init__(self, *args, **kwargs):
@@ -386,15 +411,13 @@ def db_delete(id, Model=User):
 
 def db_all(Model=User, role=None):
     """ Returns all of the records for the indicated Model, or for User Model returns either brands or influencers. """
-    current_app.logger.info('=============== called db_all =================')
+    # current_app.logger.info('=============== called db_all =================')
     sort_field = Model.name if hasattr(Model, 'name') else Model.id
     query = (Model.query.order_by(sort_field))
     if Model == User:
         role_type = role if role else 'influencer'
         query = query.filter_by(role=role_type)
-    current_app.logger.info('Set the query')
     models = query.all()
-    current_app.logger.info('Query made')
     return models
 
 
@@ -411,7 +434,7 @@ def create_many(dataset, Model=User):
 
 def db_create_or_update_many(dataset, user_id=None, Model=Post):
     """ Create or Update if the record exists for all of the dataset list """
-    # print(f'============== Create or Update Many {Model.__name__} ====================')
+    current_app.logger.info(f'============== Create or Update Many {Model.__name__} ====================')
     allowed_models = {Post, Insight, Audience}
     if Model not in allowed_models:
         return []
@@ -421,8 +444,8 @@ def db_create_or_update_many(dataset, user_id=None, Model=Post):
     # insp = db.inspect(Model)
     all_results, add_count, update_count, error_set = [], 0, 0, []
     # print(f'---- Initial dataset has {len(dataset)} records ----')
-    if composite_unique:
-        q = Model.query.filter(user_id == user_id) if user_id else Model.query()
+    if composite_unique and user_id:
+        q = Model.query.filter(Model.user_id == user_id)
         match = q.all()
         # print(f'------ Composite Unique for {Model.__name__}: {len(match)} possible matches ----------------')
         lookup = {tuple([getattr(ea, key) for key in composite_unique]): ea for ea in match}

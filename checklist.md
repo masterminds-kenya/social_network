@@ -110,7 +110,7 @@ Current Status:
 - [ ] Add Insight metric 'online_followers'
 - [ ] Insight metrics for IG profile interactions.
 - [ ] Business Discovery data: followers_count, media_count, other?
-- [ ] Default account insights history, 360 days.
+- [x] Default account insights history, 360 days.
 - [x] Campaign worksheet exports summary of Brand account metrics (if IG account was associated)
 - [ ] Export Influencer/Brand metrics to google worksheet.
 - [ ] Pickle tokens
@@ -199,8 +199,8 @@ Current Status:
     - [x] Can view already assigned posts and reprocess them - see Campaign Detail
 - [s] ?Influencer can create a Campaign to connect to Brand?
 - [x] Campaign Collection - Detail View w/ assigned posts
-  - [ ] ?Decide if it should show more metrics or results?
-  - [ ] ?Update link text from Management page, currently says "Campaign Results"?
+  - [ ] ?Decide if it should show more or fewer metrics or results?
+  - [x] ?Update link text from Management page, currently says "Campaign Results"?
   - [x] can view all posts currently assigned to this campaign
   - [x] can navigate to Campaign Manage view to add posts to campaign
   - [x] Can remove from campaign & back in cue to decide later (marked unprocessed)
@@ -255,7 +255,7 @@ Current Status:
 - [x] Start style design based on Bacchus style guide and website
 - [x] Begin update for our context
 - [x] Privacy and tos pages.
-- [ ] Update all 'user' references to 'influencer' as appropriate
+- [x] Update all 'user' references to 'influencer' as appropriate
 - [ ] Page styling of admin sections to assist in clear reports and navigation
 - [ ] Attractive page styling for Influencer sign up portal & documents (ToS, privacy, etc)
 - [ ] Content for Influencer sign-up portal (home view) to give them confidence in the process.
