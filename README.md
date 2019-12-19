@@ -12,6 +12,7 @@ Designed to be deployed on Google Cloud App Engine, using:
 - Google Worksheet API v4
 - Google Drive API v3
 - Facebook Graph API v4.0, with InstaGram Insights and Media
+  - Facebook scope: 'pages_show_list', 'instagram_basic', 'instagram_manage_insights',
 
 Core packages required for this application:
 

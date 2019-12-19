@@ -88,7 +88,7 @@ class User(db.Model):
     created = db.Column(db.DateTime,                index=False, unique=False, nullable=False, default=dt.utcnow)
     insights = db.relationship('Insight',          backref='user', lazy=True, passive_deletes=True)
     audiences = db.relationship('Audience',        backref='user', lazy=True, passive_deletes=True)
-    # aud_count = db.relationship('OnlineFollowers', backref='user', lazy=True, passive_deletes=True)
+    aud_count = db.relationship('OnlineFollowers', backref='user', lazy=True, passive_deletes=True)
     posts = db.relationship('Post',                backref='user', lazy=True, passive_deletes=True)  # ? query_class=GetActive,
     # # campaigns = backref from Campaign.users with lazy='dynamic'
     # # brand_campaigns = backref from Campaign.brands with lazy='dynamic'
@@ -141,7 +141,6 @@ class OnlineFollowers(db.Model):
     hour = db.Column(db.Integer,      index=False, unique=False, nullable=False)
     value = db.Column(db.Integer,     index=False, unique=False, nullable=True)
     # # user = backref from User.audcount with lazy='select' (synonym for True)
-
     metric = 'online_followers'
 
     def __init__(self, *args, **kwargs):
@@ -248,7 +247,6 @@ class Post(db.Model):
     taps_back = db.Column(db.Integer,           index=False,  unique=False, nullable=True)
     # # user = backref from User.posts with lazy='select' (synonym for True)
     # # campaign = backref from Campaign.posts with lazy='select' (synonym for True)
-
     metrics = {}
     metrics['basic'] = {'media_type', 'caption', 'comments_count', 'like_count', 'permalink', 'timestamp'}
     metrics['insight'] = {'impressions', 'reach'}
@@ -260,7 +258,7 @@ class Post(db.Model):
 
     def __init__(self, *args, **kwargs):
         kwargs = fix_date(Post, kwargs)
-        kwargs['processed'] = True if kwargs.get('processed') in {'on', True} else False
+        kwargs['processed'] = True if kwargs.get('processed') in {'on', True} else False  # TODO: ?is this needed?
         super().__init__(*args, **kwargs)
 
     def __str__(self):
