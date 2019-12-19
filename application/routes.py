@@ -81,13 +81,13 @@ def data_permissions(campaign_id, sheet_id, perm_id=None):
         app.logger.info(f'--------- {action} Permissions ------------')
         data = request.form.to_dict(flat=True)  # TODO: add form validate method for security.
         if action == 'Edit':
+            # TODO: Manage updating the sheet permissions
             # model = db_update(data, id, Model=Model)
             pass
         else:  # action == 'Add'
             sheet = perm_add(sheet_id, data)
         # TODO: ?refactor to use redirect(url_for('data', campaign_id=campaign_id, sheet_id=sheet['id']))
         return render_template('data.html', sheet=sheet, campaign_id=campaign_id)
-
     return render_template(template, action=action, data=data, sheet=sheet, campaign_id=campaign_id)
 
 
@@ -192,7 +192,7 @@ def view(mod, id):
         template = f"{mod}_{template}"
         model['user'] = db_read(model.get('user_id')).get('name')
         value = json.loads(model['value'])
-        if not isinstance(value, dict):
+        if not isinstance(value, dict):  # For the id_data Audience records
             value = {'value': value}
         model['value'] = value
     elif mod == 'insight':
@@ -209,7 +209,7 @@ def insights(mod, id):
     dataset, i = {}, 0
     for metrics in (Insight.influence_metrics, Insight.profile_metrics, OnlineFollowers.metric):
         # update the following to associate with the model regardless of where the metrics came from.
-
+        # TODO: ??
         max_val, min_val = 4, float('inf')
         for metric in metrics:
             if metrics == 'online_followers':
@@ -238,7 +238,7 @@ def insights(mod, id):
     labels = [ea for ea in dataset['reach']['data_dict'].keys()]
     max_val = int(1.2 * max_val)
     min_val = int(0.8 * min_val)
-    steps = 14
+    steps = 14  # TODO: Update steps as appropriate for the metric / chart.
     return render_template('chart.html', user=user['name'], dataset=dataset, labels=labels, max=max_val, min=min_val, steps=steps)
 
 
@@ -253,7 +253,7 @@ def new_audience(mod, id):
 
 @app.route('/<string:mod>/<int:id>/followers')
 def followers(mod, id):
-    """ Get followers report """
+    """ Get 'online_followers' report """
     follow_report = get_online_followers(id)
     logstring = f"Online Followers for {mod} - {id}" if follow_report else f"No data for {mod} - {id}"
     app.logger.info(logstring)
@@ -337,5 +337,6 @@ def all(mod):
 def render_static(page_name):
     """ Catch all for undefined routes. Return the requested static page. """
     if page_name == 'favicon.ico':
+        # TODO: Create favicon.ico for site
         return abort(404)
     return render_template('%s.html' % page_name)
