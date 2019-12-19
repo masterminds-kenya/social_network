@@ -38,9 +38,9 @@ def get_insight(user_id, first=1, influence_last=30*2, profile_last=30*1, ig_id=
             response = facebook.get(url).json() if facebook else requests.get(f"{url}&access_token={token}").json()
             insights = response.get('data')
             if not insights:
-                print('Error: ', response.get('error'))
+                app.logger.error('Error: ', response.get('error'))
                 return None
-            pprint(insights)
+            # pprint(insights)
             for ea in insights:
                 for val in ea.get('values'):
                     val['name'], val['user_id'] = ea.get('name'), user_id
@@ -73,7 +73,7 @@ def get_online_followers(user_id, ig_id=None, facebook=None):
         end_time = day.get('end_time')
         for hour, val in day.get('value', {}).items():
             results.append({'user_id': user_id, 'hour': int(hour), 'value': int(val), 'end_time': end_time})
-    pprint(results)
+    # pprint(results)
     return db_create_or_update_many(results, user_id=user_id, Model=OnlineFollowers)
 
 
@@ -90,9 +90,9 @@ def get_audience(user_id, ig_id=None, facebook=None):
     url = f"https://graph.facebook.com/{ig_id}/insights?metric={audience_metric}&period={ig_period}"
     audience = facebook.get(url).json() if facebook else requests.get(f"{url}&access_token={token}").json()
     if not audience.get('data'):
-        app.logger.info(f"Error: {audience.get('error')}")
+        app.logger.error(f"Error: {audience.get('error')}")
         return None
-    pprint(audience.get('data'))
+    # pprint(audience.get('data'))
     for ea in audience.get('data'):
         ea['user_id'] = user_id
         results.append(ea)
@@ -111,18 +111,14 @@ def get_posts(user_id, ig_id=None, facebook=None):
     story_res = facebook.get(url).json() if facebook else requests.get(f"{url}?access_token={token}").json()
     stories = story_res.get('data')
     if not isinstance(stories, list):
-        print('Error: ', story_res.get('error'))
-        print('--------------- something wrong with story posts ----------------')
-        pprint(story_res)
+        app.logger.error('Error: ', story_res.get('error'))
         return []
     story_ids = {ea.get('id') for ea in stories}
     url = f"https://graph.facebook.com/{ig_id}/media"
     response = facebook.get(url).json() if facebook else requests.get(f"{url}?access_token={token}").json()
     media = response.get('data')
     if not isinstance(media, list):
-        print('Error: ', response.get('error'))
-        print('--------------- Something wrong with media posts ----------------')
-        pprint(response)
+        app.logger.error('Error: ', response.get('error'))
         return []
     media.extend(stories)
     # print(f"----------- Looking up a total of {len(media)} Media Posts, including {len(stories)} Stories ----------- ")
@@ -136,7 +132,7 @@ def get_posts(user_id, ig_id=None, facebook=None):
         res['media_type'] = media_type
         metrics = post_metrics.get(media_type, post_metrics['insight'])
         if metrics == post_metrics['insight']:  # TODO: remove after tested
-            print(f"----- Match not found for {media_type} media_type parameter -----")  # TODO: remove after tested
+            app.logger.error(f" Match not found for {media_type} media_type parameter ")  # TODO: remove after tested
         url = f"https://graph.facebook.com/{media_id}/insights?metric={metrics}"
         res_insight = facebook.get(url).json() if facebook else requests.get(f"{url}&access_token={token}").json()
         insights = res_insight.get('data')
@@ -146,7 +142,7 @@ def get_posts(user_id, ig_id=None, facebook=None):
                 temp = {metric_clean(key): val for key, val in temp.items()}
             res.update(temp)
         else:
-            print(f"media {media_id} had NO INSIGHTS for type {media_type} --- {res_insight}")
+            app.logger.info(f"media {media_id} had NO INSIGHTS for type {media_type} --- {res_insight}")
         # pprint(res)
         # print('---------------------------------------')
         results.append(res)
@@ -161,9 +157,11 @@ def get_ig_info(ig_id, token=None, facebook=None):
     fields = ['username', *Audience.ig_data]
     fields = ','.join(fields)
     # TODO: Save the followers_count, and media_count to DB somewhere.
-    print('============ Get IG Info ===================')
+    # print('============ Get IG Info ===================')
     if not token and not facebook:
-        return "You must pass a 'token' or 'facebook' reference. "
+        logstring = "You must pass a 'token' or 'facebook' reference. "
+        app.logger.error(logstring)
+        return logstring
     url = f"https://graph.facebook.com/v4.0/{ig_id}?fields={fields}"
     res = facebook.get(url).json() if facebook else requests.get(f"{url}&access_token={token}").json()
     end_time = dt.utcnow().isoformat(timespec='seconds') + '+0000'
@@ -180,7 +178,7 @@ def find_instagram_id(accounts, facebook=None):
     ig_list = []
     pages = [page.get('id') for page in accounts.get('data')] if accounts and 'data' in accounts else None
     if pages:
-        print(f'================= Pages count: {len(pages)} =================================')
+        app.logger.info(f'============ Pages count: {len(pages)} ============')
         for page in pages:
             instagram_data = facebook.get(f"https://graph.facebook.com/v4.0/{page}?fields=instagram_business_account").json()
             ig_business = instagram_data.get('instagram_business_account', None)
@@ -237,15 +235,15 @@ def onboarding(mod, request):
                 # temp = {'name': name, 'values': [value]}
                 models.append(Audience(name=name, values=[value]))
         data['audiences'] = models
-        app.logger.info('------ Only 1 InstaGram business account --------')
+        app.logger.info('------ Only 1 InstaGram business account ------')
     else:
         data['name'] = data.get('username', None) if 'name' not in data else data['name']
-        print(f'--------- Found {len(ig_list)} potential IG accounts -----------')
-    app.logger.info('=========== Data sent to Create User account ===============')
-    pprint(data)
+        app.logger.info(f'------ Found {len(ig_list)} potential IG accounts ------')
+    # app.logger.info('=========== Data sent to Create User account ===============')
+    # pprint(data)
     account = db_create(data)
     account_id = account.get('id')
-    print('account: ', account_id)
+    app.logger.info(f"New {mod} User: {account_id}")
     if ig_id:
         # Relate Data
         insights = get_insight(account_id, ig_id=ig_id, facebook=facebook)

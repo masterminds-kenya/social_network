@@ -35,6 +35,7 @@ def from_sql(row, related=False, safe=False):
     if related:
         rel = row.__mapper__.relationships
         # TODO: Attach rel to data
+        current_app.logger.info('--------- Related ------------')
         pprint(rel)
     temp = data.pop('_sa_instance_state', None)
     if not temp:
@@ -106,21 +107,27 @@ class User(db.Model):
     def insight_report(self, label_only=False):
         """ Used for reporting typical insight metrics for a Brand (or other user) """
         from .sheets import clean
-        insight_metrics = list(Insight.metrics)
-        measurements = [('Median', median), ('Average', mean), ('StDev', stdev)]
-        # TODO: Update to more specific choices for which stats to run on which metric.
-        # Can potentially use the distinction of Insight.influece_metrics vs Insight.profile_metrics
-        # TODO: Also incorporate the OnlineFollowers for this (usually brand) user.
-        insight_labels = [f"{metric} {ea[0]}" for metric in insight_metrics for ea in measurements]
+        big_metrics = list(Insight.influence_metrics)
+        big_stat = [('Median', median), ('Average', mean), ('StDev', stdev)]
+        insight_labels = [f"{metric} {ea[0]}" for metric in big_metrics for ea in big_stat]
+        small_metrics = list(Insight.profile_metrics)
+        small_stat = [('Total', sum), ('Average', mean)]
+        small_metric_labels = [f"{metric} {ea[0]}" for metric in small_metrics for ea in small_stat]
+        insight_labels.extend(small_metric_labels)
+        # TODO: Incorporate the OnlineFollowers for this (usually brand) user.
         if label_only:
             return ['Brand Name', 'Notes', *insight_labels, 'instagram_id', 'modified', 'created']
-        if self.instagram_id is None:
+        if self.instagram_id is None or not self.insights:
             insight_data = [0 for ea in insight_labels]
         else:
-            temp = {key: [] for key in insight_metrics}
-            for insight in self.insights:
-                temp[insight.name].append(int(insight.value))
-            insight_data = [ea[1](temp[metric]) for metric in insight_metrics for ea in measurements]
+            # TODO: Update to more specific choices for which stats to run on which metric.
+            insight_data = []
+            for metrics, measure in [(big_metrics, big_stat), (small_metrics, small_stat)]:
+                temp = {key: [] for key in metrics}
+                for insight in self.insights:
+                    temp[insight.name].append(int(insight.value))
+                data = [ea[1](temp[metric]) for metric in metrics for ea in measure]
+                insight_data.extend(data)
         report = [self.name, self.notes, *insight_data, getattr(self, 'instagram_id', ''), clean(self.modified), clean(self.created)]
         return report
 
@@ -344,7 +351,7 @@ class Campaign(db.Model):
                 curr['total'] = sum(data) if len(data) > 0 else 0
                 curr['mid'] = median(data) if len(data) > 0 else 0
                 curr['avg'] = mean(data) if len(data) > 0 else 0
-                curr['spread'] = stdev(data) if len(data) > 0 else 0
+                curr['spread'] = stdev(data) if len(data) > 1 else 0
                 related[group]['results'][metric] = curr
         return related
         # end get_results
@@ -367,7 +374,7 @@ def db_create(data, Model=User):
         db.session.commit()
     except IntegrityError as error:
         # most likely only happening on Brand, User, or Campaign
-        print('----------- IntegrityError Condition -------------------')
+        current_app.logger.info('----------- IntegrityError Condition -------------------')
         pprint(error)
         db.session.rollback()
         columns = Model.__table__.columns
@@ -447,7 +454,6 @@ def db_create_or_update_many(dataset, user_id=None, Model=Post):
         return []
     # composite_unique = ['recorded', 'name'] if Model in {Insight, Audience} else False
     composite_unique = [ea for ea in getattr(Model, 'composite_unique', []) if ea != 'user_id']
-    current_app.logger.info(f" Composite Unique from Model: {composite_unique} ")
     # Note: initially all Models only had 1 non-pk unique field
     # However, those with table_args setting composite unique restrictions have a composite_unique class property.
     # insp = db.inspect(Model)
@@ -457,7 +463,7 @@ def db_create_or_update_many(dataset, user_id=None, Model=Post):
         match = Model.query.filter(Model.user_id == user_id).all()
         # print(f'------ Composite Unique for {Model.__name__}: {len(match)} possible matches ----------------')
         lookup = {tuple([getattr(ea, key) for key in composite_unique]): ea for ea in match}
-        pprint(lookup)
+        # pprint(lookup)
         for data in dataset:
             data = fix_date(Model, data)  # fix incoming data 'recorded' as needed for this Model
             # TODO: The following patch for Audience is not needed once we improve API validation process

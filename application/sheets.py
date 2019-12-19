@@ -18,6 +18,7 @@ service_config = {
 def get_creds(config):
     """ Using google.oauth2.service_account to get credentials for the service account """
     app.logger.info('---------- Get Creds ----------')
+    creds = None
     if not path.exists(config.get('file')):
         message = 'Wrong Path to Secret File'
         app.logger.error(message)
@@ -27,8 +28,19 @@ def get_creds(config):
         message = "Won't work when running locally"
         app.logger.error(message)
         raise EnvironmentError(message)
-    credentials = service_account.Credentials.from_service_account_file(config['file'])
-    return credentials.with_scopes(config.get('scopes'))
+    try:
+        credentials = service_account.Credentials.from_service_account_file(config['file'])
+        app.logger.info("Created the service account credentials")
+    except Exception as e:
+        app.logger.error("Could not get credentials")
+        app.logger.error(e)
+    try:
+        creds = credentials.with_scopes(config.get('scopes'))
+        app.logger.info("Credentials with scopes!")
+    except Exception as e:
+        app.logger.error("Could not get Scopes for credentials")
+        app.logger.error(e)
+    return creds
 
 
 def perm_add(sheet_id, add_users, service=None):
@@ -110,6 +122,7 @@ def create_sheet(campaign, service=None):
     title = f"{name}_{timestamp}"
     spreadsheet = {'properties': {'title': title}}
     spreadsheet = service.spreadsheets().create(body=spreadsheet, fields='spreadsheetId').execute()
+    app.logger.info(f"spreadsheet id: {spreadsheet.get('spreadsheetId')}")
     return update_sheet(campaign, id=spreadsheet.get('spreadsheetId'), service=service)
 
 
@@ -189,7 +202,7 @@ def compute_A1(arr2d, start='A1', sheet='Sheet1'):
 
 def update_sheet(campaign, id=SHARED_SHEET_ID, service=None):
     """ Get the data we want, then append it to the worksheet """
-    app.logger.info('================== update sheet =======================')
+    app.logger.info(f'================== update sheet {id} =======================')
     if not service:
         creds = get_creds(service_config['sheets'])
         service = build('sheets', 'v4', credentials=creds, cache_discovery=False)
@@ -210,5 +223,8 @@ def update_sheet(campaign, id=SHARED_SHEET_ID, service=None):
         insertDataOption=insert_data_option,
         body=value_range_body
         )
-    spreadsheet = request.execute()
+    try:
+        spreadsheet = request.execute()
+    except Exception as e:
+        app.logger.error(f"Could not update sheet: {e}")
     return read_sheet(id=spreadsheet.get('spreadsheetId'), range_=range_, service=service)
