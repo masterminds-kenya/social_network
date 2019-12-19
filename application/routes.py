@@ -1,7 +1,7 @@
 from flask import current_app as app
 from flask import render_template, redirect, url_for, request, abort, flash
 from .model_db import db_create, db_read, db_update, db_delete, db_all
-from .model_db import User, Insight, Audience, Post, Campaign  # , metric_clean
+from .model_db import User, OnlineFollowers, Insight, Audience, Post, Campaign  # , metric_clean
 from . import developer_admin
 from .manage import update_campaign, process_form, post_display
 from .api import onboard_login, onboarding, get_insight, get_audience, get_posts, get_online_followers
@@ -14,7 +14,9 @@ def mod_lookup(mod):
     """ Associate to the appropriate Model, or raise error if 'mod' is not an expected value """
     if not isinstance(mod, str):
         raise TypeError('Expected a string input')
-    lookup = {'brand': User, 'influencer': User, 'insight': Insight, 'audience': Audience, 'post': Post, 'campaign': Campaign}
+    lookup = {'brand': User, 'influencer': User, 'onlinefollowers': OnlineFollowers,
+              'insight': Insight, 'audience': Audience, 'post': Post, 'campaign': Campaign
+              }
     Model = lookup.get(mod, None)
     if not Model:
         raise ValueError('That is not a valid route.')
@@ -189,7 +191,10 @@ def view(mod, id):
     elif mod == 'audience':
         template = f"{mod}_{template}"
         model['user'] = db_read(model.get('user_id')).get('name')
-        model['value'] = json.loads(model['value'])
+        value = json.loads(model['value'])
+        if not isinstance(value, dict):
+            value = {'value': value}
+        model['value'] = value
     elif mod == 'insight':
         template = f"{mod}_{template}"
         model['user'] = db_read(model.get('user_id')).get('name')
@@ -200,27 +205,36 @@ def view(mod, id):
 def insights(mod, id):
     """ For a given User (influencer or brand), show the account Insight data. """
     user = db_read(id)
-    Model = Insight
-    scheme_color = ['gold', 'purple', 'green']
-    dataset = {}
-    i = 0
-    max_val, min_val = 4, 0
-    for metric in Model.metrics:
-        query = Model.query.filter_by(user_id=id, name=metric).order_by('recorded').all()
-        temp_data = {ea.recorded.strftime("%d %b, %Y"): int(ea.value) for ea in query}
-        max_curr = max(*temp_data.values())
-        min_curr = min(*temp_data.values())
-        max_val = max(max_val, max_curr)
-        min_val = min(max_val, min_curr)
-        chart = {
-            'label': metric,
-            'backgroundColor': scheme_color[i % len(scheme_color)],
-            'borderColor': '#214',
-            'data': list(temp_data.values())
-        }
-        temp = {'chart': chart, 'data_dict': temp_data, 'max': max_curr, 'min': min_curr}
-        dataset[metric] = temp
-        i += 1
+    scheme_color = ['gold', 'purple', 'green', 'blue']
+    dataset, i = {}, 0
+    for metrics in (Insight.influence_metrics, Insight.profile_metrics, OnlineFollowers.metric):
+        # update the following to associate with the model regardless of where the metrics came from.
+
+        max_val, min_val = 4, float('inf')
+        for metric in metrics:
+            if metrics == 'online_followers':
+                # query = OnlineFollowers.query.filter_by(user_id=id).order_by('recorded', 'hour').all()
+                query = []
+                if len(query):
+                    temp_data = {(ea.recorded.strftime("%d %b, %Y"), int(ea.hour)): int(ea.value) for ea in query}
+                else:
+                    temp_data = {'key1': max_val, 'key2': min_val}
+            else:
+                query = Insight.query.filter_by(user_id=id, name=metric).order_by('recorded').all()
+                temp_data = {ea.recorded.strftime("%d %b, %Y"): int(ea.value) for ea in query}
+            max_curr = max(*temp_data.values())
+            min_curr = min(*temp_data.values())
+            max_val = max(max_val, max_curr)
+            min_val = min(max_val, min_curr)
+            chart = {
+                'label': metric,
+                'backgroundColor': scheme_color[i % len(scheme_color)],
+                'borderColor': '#214',
+                'data': list(temp_data.values())
+            }
+            temp = {'chart': chart, 'data_dict': temp_data, 'max': max_curr, 'min': min_curr}
+            dataset[metric] = temp
+            i += 1
     labels = [ea for ea in dataset['reach']['data_dict'].keys()]
     max_val = int(1.2 * max_val)
     min_val = int(0.8 * min_val)
@@ -313,9 +327,6 @@ def delete(mod, id):
 @app.route('/<string:mod>/list')
 def all(mod):
     """ List view for all data of Model indicated by mod. """
-    app.logger.info(f"-------- List all {mod} --------")
-    app.logger.info(f" {app.config.get('URL')} ")
-    app.logger.info(app.config.get('CLOUDSQL_CONNECTION_NAME'))
     Model = mod_lookup(mod)
     models = db_all(Model=Model, role=mod) if mod == 'brand' else db_all(Model=Model)
     return render_template('list.html', mod=mod, data=models)

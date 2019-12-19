@@ -1,6 +1,6 @@
 from flask import current_app as app
 from .model_db import db_create, db_read, db_create_or_update_many
-from .model_db import metric_clean, User, Insight, Audience, Post  # , Campaign
+from .model_db import metric_clean, User, Insight, Audience, Post, OnlineFollowers  # , Campaign
 import requests
 import requests_oauthlib
 from requests_oauthlib.compliance_fixes import facebook_compliance_fix
@@ -21,7 +21,7 @@ FB_SCOPE = [
 
 
 def get_insight(user_id, first=1, influence_last=30*2, profile_last=30*1, ig_id=None, facebook=None):
-    """ Practice getting some insight data with the provided facebook oauth session """
+    """ Get the insight metrics for the User. """
     ig_period = 'day'
     results, token = [], ''
     if not facebook or not ig_id:
@@ -49,9 +49,9 @@ def get_insight(user_id, first=1, influence_last=30*2, profile_last=30*1, ig_id=
 
 
 def get_online_followers(user_id, ig_id=None, facebook=None):
-    """ Just want to get Facebook API response for online_followers for a period of time """
+    """ Just want to get Facebook API response for online_followers for the maximum of the previous 30 days """
     app.logger.info('================= Get Online Followers data ==============')
-    ig_period, metric, token = 'lifetime', 'online_followers', ''
+    ig_period, metric, token = 'lifetime', OnlineFollowers.metric, ''
     if not facebook or not ig_id:
         model = db_read(user_id, safe=False)
         ig_id, token = model.get('instagram_id'), model.get('token')
@@ -68,7 +68,9 @@ def get_online_followers(user_id, ig_id=None, facebook=None):
         recorded = day.get('end_time')
         for hour, val in day.get('value', {}).items():
             results.append({'user_id': user_id, 'hour': int(hour), 'value': int(val), 'end_time': recorded})
-    return db_create_or_update_many(results, user_id=user_id, Model=Audience)
+    pprint(results)
+    return results
+    # return db_create_or_update_many(results, user_id=user_id, Model=OnlineFollowers)
 
 
 def get_audience(user_id, ig_id=None, facebook=None):
@@ -141,8 +143,8 @@ def get_posts(user_id, ig_id=None, facebook=None):
             res.update(temp)
         else:
             print(f"media {media_id} had NO INSIGHTS for type {media_type} --- {res_insight}")
-        pprint(res)
-        print('---------------------------------------')
+        # pprint(res)
+        # print('---------------------------------------')
         results.append(res)
     return db_create_or_update_many(results, Post)
 
@@ -152,7 +154,7 @@ def get_ig_info(ig_id, token=None, facebook=None):
     # Possible fields. Fields with asterisk (*) are public and can be returned by and edge using field expansion:
     # biography*, id*, ig_id, followers_count*, follows_count, media_count*, name,
     # profile_picture_url, username*, website*
-    fields = ['username', 'followers_count', 'follows_count', 'media_count']
+    fields = ['username', *Audience.ig_data]
     fields = ','.join(fields)
     # TODO: Save the followers_count, and media_count to DB somewhere.
     print('============ Get IG Info ===================')
@@ -160,6 +162,9 @@ def get_ig_info(ig_id, token=None, facebook=None):
         return "You must pass a 'token' or 'facebook' reference. "
     url = f"https://graph.facebook.com/v4.0/{ig_id}?fields={fields}"
     res = facebook.get(url).json() if facebook else requests.get(f"{url}&access_token={token}").json()
+    end_time = dt.utcnow().isoformat(timespec='seconds') + '+0000'
+    for name in Audience.ig_data:
+        res[name] = {'end_time': end_time, 'value': res.get(name)}
     pprint(res)
     return res
 
@@ -207,34 +212,39 @@ def onboarding(mod, request):
     # TODO: use a better constructor for the user account.
     data = facebook_user_data.copy()  # .to_dict(flat=True)
     # TODO User: confirm the following line can just always be set to 'mod'.
-    data['role'] = 'influencer' if mod == 'user' else mod  # data['role'] may now be 'brand' or 'user'
+    data['role'] = mod
     data['token'] = token
     accounts = data.pop('accounts')
     # Collect IG usernames for all options
     ig_list = find_instagram_id(accounts, facebook=facebook)
-    # If they only have 1 ig account, continue making things
+    # If they only have 1 ig account, assign the appropriate instagram_id
     ig_id = None
     if len(ig_list) == 1:
         ig_info = ig_list.pop()
         data['name'] = ig_info.get('username', None)
+        # data['followers_count'] = ig_info.get('followers_count', None)
+        # data['media_count'] = ig_info.get('media_count', None)
         ig_id = int(ig_info.get('id'))
         data['instagram_id'] = ig_id
+        models = []
+        for name in Audience.ig_data:  # {'media_count', 'followers_count'}
+            value = ig_info.get(name, None)
+            if value:
+                # temp = {'name': name, 'values': [value]}
+                models.append(Audience(name=name, values=[value]))
+        data['audiences'] = models
         app.logger.info('------ Only 1 InstaGram business account --------')
     else:
         data['name'] = data.get('username', None) if 'name' not in data else data['name']
         print(f'--------- Found {len(ig_list)} potential IG accounts -----------')
-    app.logger.info('=========== Data sent to Create Influencer or Brand account ===============')
+    app.logger.info('=========== Data sent to Create User account ===============')
     pprint(data)
-    print(mod)
-    # Model = Brand if mod == 'brand' else User
-    Model = User
-    data['role'] = 'brand' if mod == 'brand' else 'influencer'
-    account = db_create(data, Model)
+    account = db_create(data)
     account_id = account.get('id')
     print('account: ', account_id)
     if ig_id:
         # Relate Data
-        insights = get_insight(account_id, last=90, ig_id=ig_id, facebook=facebook)
+        insights = get_insight(account_id, ig_id=ig_id, facebook=facebook)
         print('We have IG account insights') if insights else print('No IG account insights')
         audience = get_audience(account_id, ig_id=ig_id, facebook=facebook)
         print('Audience data collected') if audience else print('No Audience data')

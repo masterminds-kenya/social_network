@@ -17,10 +17,11 @@
       <h3>{{account.username}} </h3>
       <input type="hidden" name="name" id="name" value="{{account.username}}" />
       <input type="hidden" name="instagram_id" id="ig_id" value="{{account.id}}" />
+      <input type="hidden" name="followers_count" id="followers_count" value="{{account.followers_count}}" />
+      <input type="hidden" name="media_count" id="media_count" value="{{account.media_count}}" />
     </div>
     <ul>
       <li>followers count: {{account.followers_count}}</li>
-      <li>follows count: {{account.follows_count}}</li>
       <li>media_count: {{account.media_count}} </li>
     </ul>
     <button type="submit" class="btn btn-success">{{account.username}}</button>
@@ -28,4 +29,3 @@
   {% endfor %}
 </main>
 {% endblock content %}
-

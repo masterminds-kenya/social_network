@@ -86,9 +86,10 @@ class User(db.Model):
     notes = db.Column(db.String(191),               index=False, unique=False, nullable=True)
     modified = db.Column(db.DateTime,               index=False, unique=False, nullable=False, default=dt.utcnow, onupdate=dt.utcnow)
     created = db.Column(db.DateTime,                index=False, unique=False, nullable=False, default=dt.utcnow)
-    insights = db.relationship('Insight',   backref='user', lazy=True, passive_deletes=True)
-    audiences = db.relationship('Audience', backref='user', lazy=True, passive_deletes=True)
-    posts = db.relationship('Post',         backref='user', lazy=True, passive_deletes=True)  # ? query_class=GetActive,
+    insights = db.relationship('Insight',          backref='user', lazy=True, passive_deletes=True)
+    audiences = db.relationship('Audience',        backref='user', lazy=True, passive_deletes=True)
+    # aud_count = db.relationship('OnlineFollowers', backref='user', lazy=True, passive_deletes=True)
+    posts = db.relationship('Post',                backref='user', lazy=True, passive_deletes=True)  # ? query_class=GetActive,
     # # campaigns = backref from Campaign.users with lazy='dynamic'
     # # brand_campaigns = backref from Campaign.brands with lazy='dynamic'
     UNSAFE = {'token', 'token_expires', 'modified', 'created'}
@@ -139,6 +140,9 @@ class OnlineFollowers(db.Model):
     recorded = db.Column(db.DateTime, index=False, unique=False, nullable=False)
     hour = db.Column(db.Integer,      index=False, unique=False, nullable=False)
     value = db.Column(db.Integer,     index=False, unique=False, nullable=True)
+    # # user = backref from User.audcount with lazy='select' (synonym for True)
+
+    metric = 'online_followers'
 
     def __init__(self, *args, **kwargs):
         kwargs = fix_date(OnlineFollowers, kwargs)
@@ -166,7 +170,6 @@ class Insight(db.Model):
     influence_metrics = {'impressions', 'reach'}
     profile_metrics = {'phone_call_clicks', 'text_message_clicks', 'email_contacts',
                        'get_directions_clicks', 'website_clicks', 'profile_views', 'follower_count'}
-    lifetime_metrics = {'online_followers'}
     metrics = influence_metrics.union(profile_metrics)
     UNSAFE = {''}
 
@@ -195,6 +198,7 @@ class Audience(db.Model):
     value = db.Column(db.Text,                 index=False, unique=False, nullable=True)
     # # user = backref from User.audiences with lazy='select' (synonym for True)
     metrics = {'audience_city', 'audience_country', 'audience_gender_age'}
+    ig_data = {'media_count', 'followers_count'}  # these are added from process_form for User.
     UNSAFE = {''}
 
     def __init__(self, *args, **kwargs):
@@ -282,7 +286,7 @@ brand_campaign = db.Table(
 
 
 class Campaign(db.Model):
-    """ Relationship between Users and Brands """
+    """ Model to manage the Campaign relationship between influencers and brands """
     __tablename__ = 'campaigns'
 
     id = db.Column(db.Integer,       primary_key=True)
@@ -518,6 +522,7 @@ def db_create_or_update_many(dataset, user_id=None, Model=Post):
     current_app.logger.info(f'We were unable to handle {len(error_set)} of the incoming dataset items')
     current_app.logger.info('------------------------------------------------------------------------------')
     db.session.commit()
+    current_app.logger.info('All records saved')
     return [from_sql(ea) for ea in all_results]
 
 
