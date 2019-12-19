@@ -207,18 +207,19 @@ def insights(mod, id):
     user = db_read(id)
     scheme_color = ['gold', 'purple', 'green', 'blue']
     dataset, i = {}, 0
-    for metrics in (Insight.influence_metrics, Insight.profile_metrics, OnlineFollowers.metric):
+    max_val, min_val = 4, float('inf')
+    for metrics in (Insight.influence_metrics, Insight.profile_metrics, OnlineFollowers.metrics):
         # update the following to associate with the model regardless of where the metrics came from.
         # TODO: ??
-        max_val, min_val = 4, float('inf')
         for metric in metrics:
-            if metrics == 'online_followers':
+            if metrics == OnlineFollowers.metrics:
+                app.logger.info('--- Online Followers ---')
                 # query = OnlineFollowers.query.filter_by(user_id=id).order_by('recorded', 'hour').all()
                 query = []
                 if len(query):
                     temp_data = {(ea.recorded.strftime("%d %b, %Y"), int(ea.hour)): int(ea.value) for ea in query}
                 else:
-                    temp_data = {'key1': max_val, 'key2': min_val}
+                    temp_data = {'key1': 1, 'key2': 0}
             else:
                 query = Insight.query.filter_by(user_id=id, name=metric).order_by('recorded').all()
                 temp_data = {ea.recorded.strftime("%d %b, %Y"): int(ea.value) for ea in query}

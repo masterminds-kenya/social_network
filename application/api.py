@@ -51,7 +51,7 @@ def get_insight(user_id, first=1, influence_last=30*2, profile_last=30*1, ig_id=
 def get_online_followers(user_id, ig_id=None, facebook=None):
     """ Just want to get Facebook API response for online_followers for the maximum of the previous 30 days """
     app.logger.info('================= Get Online Followers data ==============')
-    ig_period, metric, token = 'lifetime', OnlineFollowers.metric, ''
+    ig_period, metric, token = 'lifetime', OnlineFollowers.metrics[0], ''
     if not facebook or not ig_id:
         model = db_read(user_id, safe=False)
         ig_id, token = model.get('instagram_id'), model.get('token')

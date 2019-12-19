@@ -141,7 +141,7 @@ class OnlineFollowers(db.Model):
     hour = db.Column(db.Integer,      index=False, unique=False, nullable=False)
     value = db.Column(db.Integer,     index=False, unique=False, nullable=True)
     # # user = backref from User.audcount with lazy='select' (synonym for True)
-    metric = 'online_followers'
+    metrics = ['online_followers']
 
     def __init__(self, *args, **kwargs):
         kwargs = fix_date(OnlineFollowers, kwargs)
