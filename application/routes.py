@@ -1,10 +1,10 @@
 from flask import current_app as app
 from flask import render_template, redirect, url_for, request, abort, flash
 from .model_db import db_create, db_read, db_update, db_delete, db_all
-from .model_db import User, Insight, Audience, Post, Campaign  # , metric_clean
+from .model_db import User, OnlineFollowers, Insight, Audience, Post, Campaign  # , metric_clean
 from . import developer_admin
 from .manage import update_campaign, process_form, post_display
-from .api import onboard_login, onboarding, get_insight, get_audience, get_posts
+from .api import onboard_login, onboarding, get_insight, get_audience, get_posts, get_online_followers
 from .sheets import create_sheet, update_sheet, read_sheet, perm_add, perm_list
 import json
 # from pprint import pprint
@@ -14,7 +14,9 @@ def mod_lookup(mod):
     """ Associate to the appropriate Model, or raise error if 'mod' is not an expected value """
     if not isinstance(mod, str):
         raise TypeError('Expected a string input')
-    lookup = {'brand': User, 'user': User, 'insight': Insight, 'audience': Audience, 'post': Post, 'campaign': Campaign}
+    lookup = {'brand': User, 'influencer': User, 'onlinefollowers': OnlineFollowers,
+              'insight': Insight, 'audience': Audience, 'post': Post, 'campaign': Campaign
+              }
     Model = lookup.get(mod, None)
     if not Model:
         raise ValueError('That is not a valid route.')
@@ -44,20 +46,18 @@ def dev_admin():
 def load_user():
     """ This is a temporary development function. Will be removed for production. """
     developer_admin.load()
-    return redirect(url_for('all', mod='user'))
+    return redirect(url_for('all', mod='influencer'))
 
 
 @app.route('/data/<string:mod>/<int:id>')
 def backup_save(mod, id):
     """ This is a temporary development function. Will be removed for production. """
     Model = mod_lookup(mod)
-    if not Model:
-        return f"No such route: {mod}", 404
     count = developer_admin.save(mod, id, Model)
     message = f"We just backed up {count} {mod} model(s)"
     app.logger.info(message)
     flash(message)
-    return redirect(url_for('view', mod='user', id=id))
+    return redirect(url_for('view', mod='influencer', id=id))
 
 
 @app.route('/data/update/<int:campaign_id>/<string:sheet_id>')
@@ -162,19 +162,18 @@ def campaign(id, view='management'):
      """
     mod = 'campaign'
     template, related = f"{mod}.html", {}
-    Model = mod_lookup(mod)
-    model = Model.query.get(id)
+    campaign = Campaign.query.get(id)
     app.logger.info(f'=========== Campaign {view} ===========')
     if request.method == 'POST':
         update_campaign(view, request)
-    for user in model.users:
+    for user in campaign.users:
         if view == 'collected':
             related[user] = [post_display(ea) for ea in user.posts if ea.campaign_id == id]
         elif view == 'management':
             related[user] = [ea for ea in user.posts if not ea.processed]
         else:
             related[user] = []
-    return render_template(template, mod=mod, view=view, data=model, related=related)
+    return render_template(template, mod=mod, view=view, data=campaign, related=related)
 
 
 @app.route('/<string:mod>/<int:id>')
@@ -183,8 +182,6 @@ def view(mod, id):
     # if mod == 'campaign':
     #     return campaign(id)
     Model = mod_lookup(mod)
-    if not Model:
-        return f"No such route: {mod}", 404
     model = db_read(id, Model=Model)
     # model = Model.query.get(id)
     template = 'view.html'
@@ -194,7 +191,10 @@ def view(mod, id):
     elif mod == 'audience':
         template = f"{mod}_{template}"
         model['user'] = db_read(model.get('user_id')).get('name')
-        model['value'] = json.loads(model['value'])
+        value = json.loads(model['value'])
+        if not isinstance(value, dict):
+            value = {'value': value}
+        model['value'] = value
     elif mod == 'insight':
         template = f"{mod}_{template}"
         model['user'] = db_read(model.get('user_id')).get('name')
@@ -205,27 +205,36 @@ def view(mod, id):
 def insights(mod, id):
     """ For a given User (influencer or brand), show the account Insight data. """
     user = db_read(id)
-    Model = Insight
-    scheme_color = ['gold', 'purple', 'green']
-    dataset = {}
-    i = 0
-    max_val, min_val = 4, 0
-    for metric in Model.metrics:
-        query = Model.query.filter_by(user_id=id, name=metric).order_by('recorded').all()
-        temp_data = {ea.recorded.strftime("%d %b, %Y"): int(ea.value) for ea in query}
-        max_curr = max(*temp_data.values())
-        min_curr = min(*temp_data.values())
-        max_val = max(max_val, max_curr)
-        min_val = min(max_val, min_curr)
-        chart = {
-            'label': metric,
-            'backgroundColor': scheme_color[i % len(scheme_color)],
-            'borderColor': '#214',
-            'data': list(temp_data.values())
-        }
-        temp = {'chart': chart, 'data_dict': temp_data, 'max': max_curr, 'min': min_curr}
-        dataset[metric] = temp
-        i += 1
+    scheme_color = ['gold', 'purple', 'green', 'blue']
+    dataset, i = {}, 0
+    for metrics in (Insight.influence_metrics, Insight.profile_metrics, OnlineFollowers.metric):
+        # update the following to associate with the model regardless of where the metrics came from.
+
+        max_val, min_val = 4, float('inf')
+        for metric in metrics:
+            if metrics == 'online_followers':
+                # query = OnlineFollowers.query.filter_by(user_id=id).order_by('recorded', 'hour').all()
+                query = []
+                if len(query):
+                    temp_data = {(ea.recorded.strftime("%d %b, %Y"), int(ea.hour)): int(ea.value) for ea in query}
+                else:
+                    temp_data = {'key1': max_val, 'key2': min_val}
+            else:
+                query = Insight.query.filter_by(user_id=id, name=metric).order_by('recorded').all()
+                temp_data = {ea.recorded.strftime("%d %b, %Y"): int(ea.value) for ea in query}
+            max_curr = max(*temp_data.values())
+            min_curr = min(*temp_data.values())
+            max_val = max(max_val, max_curr)
+            min_val = min(max_val, min_curr)
+            chart = {
+                'label': metric,
+                'backgroundColor': scheme_color[i % len(scheme_color)],
+                'borderColor': '#214',
+                'data': list(temp_data.values())
+            }
+            temp = {'chart': chart, 'data_dict': temp_data, 'max': max_curr, 'min': min_curr}
+            dataset[metric] = temp
+            i += 1
     labels = [ea for ea in dataset['reach']['data_dict'].keys()]
     max_val = int(1.2 * max_val)
     min_val = int(0.8 * min_val)
@@ -238,6 +247,15 @@ def new_audience(mod, id):
     """ Get new audience data from API for either. Input mod for either User or Brand, with given id. """
     audience = get_audience(id)
     logstring = f'Audience data for {mod} - {id}' if audience else f'No insight data, {mod}'
+    app.logger.info(logstring)
+    return redirect(url_for('view', mod=mod, id=id))
+
+
+@app.route('/<string:mod>/<int:id>/followers')
+def followers(mod, id):
+    """ Get followers report """
+    follow_report = get_online_followers(id)
+    logstring = f"Online Followers for {mod} - {id}" if follow_report else f"No data for {mod} - {id}"
     app.logger.info(logstring)
     return redirect(url_for('view', mod=mod, id=id))
 
@@ -259,15 +277,12 @@ def new_post(mod, id):
     app.logger.info(logstring)
     return_path = request.referrer
     return redirect(return_path)
-    # return redirect(url_for('view', mod=mod, id=id))
 
 
 def add_edit(mod, id=None):
     """ Adding or Editing a DB record is a similar process handled here. """
     action = 'Edit' if id else 'Add'
     Model = mod_lookup(mod)
-    if not Model:
-        return f"No such route: {mod}", 404
     if request.method == 'POST':
         app.logger.info(f'--------- {action} {mod}------------')
         data = process_form(mod, request)
@@ -305,8 +320,6 @@ def edit(mod, id):
 def delete(mod, id):
     """ Permanently remove from DB the record for Model indicated by mod and id. """
     Model = mod_lookup(mod)
-    if not Model:
-        return f"No such route: {mod}", 404
     db_delete(id, Model=Model)
     return redirect(url_for('home'))
 
@@ -314,12 +327,7 @@ def delete(mod, id):
 @app.route('/<string:mod>/list')
 def all(mod):
     """ List view for all data of Model indicated by mod. """
-    app.logger.info(f"-------- List all {mod} --------")
-    app.logger.info(f" {app.config.get('URL')} ")
-    app.logger.info(app.config.get('CLOUDSQL_CONNECTION_NAME'))
     Model = mod_lookup(mod)
-    if not Model:
-        return f"No such route: {mod}", 404
     models = db_all(Model=Model, role=mod) if mod == 'brand' else db_all(Model=Model)
     return render_template('list.html', mod=mod, data=models)
 

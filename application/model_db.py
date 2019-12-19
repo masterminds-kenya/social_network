@@ -30,8 +30,8 @@ def from_sql(row, related=False, safe=False):
     """ Translates a SQLAlchemy model instance into a dictionary """
     data = row.__dict__.copy()
     data['id'] = row.id
-    current_app.logger.info('============= from_sql ===================')
-    current_app.logger.info(row.__class__)
+    # current_app.logger.info('============= from_sql ===================')
+    # current_app.logger.info(row.__class__)
     if related:
         rel = row.__mapper__.relationships
         # TODO: Attach rel to data
@@ -42,17 +42,15 @@ def from_sql(row, related=False, safe=False):
     if safe:
         Model = row.__class__
         data = {k: data[k] for k in data.keys() - Model.UNSAFE}
-
-    # TODO: ? Move the cleaning for safe results to this function?
     return data
 
 
 def fix_date(Model, data):
     datestring = ''
-    if Model == Insight:
+    if Model in {Insight, OnlineFollowers}:
         datestring = data.pop('end_time', None)
     elif Model == Audience:
-        datestring = data.get('values', [{}])[0].get('end_time')  # TODO: Are we okay assuming 'end_time' is same for all in this array of responses?
+        datestring = data.get('values', [{}])[0].get('end_time')  # We expect the list to have only 1 element.
     elif Model == Post:
         datestring = data.pop('timestamp', None)
     data['recorded'] = parser.isoparse(datestring).replace(tzinfo=None) if datestring else data.get('recorded')
@@ -88,10 +86,12 @@ class User(db.Model):
     notes = db.Column(db.String(191),               index=False, unique=False, nullable=True)
     modified = db.Column(db.DateTime,               index=False, unique=False, nullable=False, default=dt.utcnow, onupdate=dt.utcnow)
     created = db.Column(db.DateTime,                index=False, unique=False, nullable=False, default=dt.utcnow)
-    insights = db.relationship('Insight',   backref='user', lazy=True, passive_deletes=True)
-    audiences = db.relationship('Audience', backref='user', lazy=True, passive_deletes=True)
-    posts = db.relationship('Post', backref='user', lazy=True, passive_deletes=True)  # ? query_class=GetActive,
+    insights = db.relationship('Insight',          backref='user', lazy=True, passive_deletes=True)
+    audiences = db.relationship('Audience',        backref='user', lazy=True, passive_deletes=True)
+    # aud_count = db.relationship('OnlineFollowers', backref='user', lazy=True, passive_deletes=True)
+    posts = db.relationship('Post',                backref='user', lazy=True, passive_deletes=True)  # ? query_class=GetActive,
     # # campaigns = backref from Campaign.users with lazy='dynamic'
+    # # brand_campaigns = backref from Campaign.brands with lazy='dynamic'
     UNSAFE = {'token', 'token_expires', 'modified', 'created'}
 
     def __init__(self, *args, **kwargs):
@@ -111,7 +111,7 @@ class User(db.Model):
         measurements = [('Median', median), ('Average', mean), ('StDev', stdev)]
         insight_labels = [f"{metric} {ea[0]}" for metric in insight_metrics for ea in measurements]
         if label_only:
-            return ['Name', 'Notes', *insight_labels, 'instagram_id', 'modified', 'created']
+            return ['Brand Name', 'Notes', *insight_labels, 'instagram_id', 'modified', 'created']
         if self.instagram_id is None:
             insight_data = [0 for ea in insight_labels]
         else:
@@ -126,13 +126,40 @@ class User(db.Model):
         return self.name
 
     def __repr__(self):
-        return '<User {}>'.format(self.name)
+        return '<User - {}: {}>'.format(self.role, self.name)
+
+
+class OnlineFollowers(db.Model):
+    """ Data model for 'online_followers' for a user (influencer or brand) """
+    composite_unique = ('user_id', 'recorded', 'hour')
+    __tablename__ = 'onlinefollowers'
+    __table_args__ = (db.UniqueConstraint(*composite_unique, name='uq_onlinefollowers_recorded_hour'),)
+
+    id = db.Column(db.Integer,      primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id', ondelete='CASCADE'))
+    recorded = db.Column(db.DateTime, index=False, unique=False, nullable=False)
+    hour = db.Column(db.Integer,      index=False, unique=False, nullable=False)
+    value = db.Column(db.Integer,     index=False, unique=False, nullable=True)
+    # # user = backref from User.audcount with lazy='select' (synonym for True)
+
+    metric = 'online_followers'
+
+    def __init__(self, *args, **kwargs):
+        kwargs = fix_date(OnlineFollowers, kwargs)
+        super().__init__(*args, **kwargs)
+
+    def __str__(self):
+        return int(self.value)
+
+    def __repr__(self):
+        return f"<OnlineFollowers {self.recorded} | Hour: {self.hour} | User {self.user_id} >"
 
 
 class Insight(db.Model):
     """ Data model for insights data on a (influencer or brand) user's account """
+    composite_unique = ('user_id', 'recorded', 'name')
     __tablename__ = 'insights'
-    __table_args__ = (db.UniqueConstraint('user_id', 'recorded', 'name', name='uq_insights_recorded_name'),)
+    __table_args__ = (db.UniqueConstraint(*composite_unique, name='uq_insights_recorded_name'),)
 
     id = db.Column(db.Integer,      primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey('users.id', ondelete='CASCADE'))
@@ -140,7 +167,10 @@ class Insight(db.Model):
     name = db.Column(db.String(47),            index=False, unique=False, nullable=False)
     value = db.Column(db.Integer,              index=False, unique=False, nullable=True)
     # # user = backref from User.insights with lazy='select' (synonym for True)
-    metrics = {'impressions', 'reach', 'follower_count'}
+    influence_metrics = {'impressions', 'reach'}
+    profile_metrics = {'phone_call_clicks', 'text_message_clicks', 'email_contacts',
+                       'get_directions_clicks', 'website_clicks', 'profile_views', 'follower_count'}
+    metrics = influence_metrics.union(profile_metrics)
     UNSAFE = {''}
 
     def __init__(self, *args, **kwargs):
@@ -157,8 +187,9 @@ class Insight(db.Model):
 class Audience(db.Model):
     """ Data model for current information about the user's audience. """
     # TODO: If this data not taken over by Neo4j, then refactor to parse out the age groups and gender groups
+    composite_unique = ('user_id', 'recorded', 'name')
     __tablename__ = 'audiences'
-    __table_args__ = (db.UniqueConstraint('user_id', 'recorded', 'name', name='uq_audiences_recorded_name'),)
+    __table_args__ = (db.UniqueConstraint(*composite_unique, name='uq_audiences_recorded_name'),)
 
     id = db.Column(db.Integer,      primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey('users.id', ondelete='CASCADE'))
@@ -167,6 +198,7 @@ class Audience(db.Model):
     value = db.Column(db.Text,                 index=False, unique=False, nullable=True)
     # # user = backref from User.audiences with lazy='select' (synonym for True)
     metrics = {'audience_city', 'audience_country', 'audience_gender_age'}
+    ig_data = {'media_count', 'followers_count'}  # these are added from process_form for User.
     UNSAFE = {''}
 
     def __init__(self, *args, **kwargs):
@@ -254,7 +286,7 @@ brand_campaign = db.Table(
 
 
 class Campaign(db.Model):
-    """ Relationship between Users and Brands """
+    """ Model to manage the Campaign relationship between influencers and brands """
     __tablename__ = 'campaigns'
 
     id = db.Column(db.Integer,       primary_key=True)
@@ -350,18 +382,18 @@ def db_create(data, Model=User):
     # except Exception as e:
     #     print('**************** DB CREATE Error *******************')
     #     print(e)
-    results = from_sql(model)
-    safe_results = {k: results[k] for k in results.keys() - Model.UNSAFE}
-    return safe_results
+    results = from_sql(model, safe=True)
+    # safe_results = {k: results[k] for k in results.keys() - Model.UNSAFE}
+    return results
 
 
 def db_read(id, Model=User, safe=True):
     model = Model.query.get(id)
     if not model:
         return None
-    results = from_sql(model)
-    safe_results = {k: results[k] for k in results.keys() - Model.UNSAFE}
-    output = safe_results if safe else results
+    output = from_sql(model, safe=safe)
+    # safe_results = {k: results[k] for k in results.keys() - Model.UNSAFE}
+    # output = safe_results if safe else results
     if Model == User:
         if len(model.insights) > 0:
             output['insight'] = True
@@ -376,9 +408,9 @@ def db_update(data, id, Model=User):
     for k, v in data.items():
         setattr(model, k, v)
     db.session.commit()
-    results = from_sql(model)
-    safe_results = {k: results[k] for k in results.keys() - Model.UNSAFE}
-    return safe_results
+    results = from_sql(model, safe=True)
+    # safe_results = {k: results[k] for k in results.keys() - Model.UNSAFE}
+    return results
 
 
 def db_delete(id, Model=User):
@@ -388,15 +420,13 @@ def db_delete(id, Model=User):
 
 def db_all(Model=User, role=None):
     """ Returns all of the records for the indicated Model, or for User Model returns either brands or influencers. """
-    current_app.logger.info('=============== called db_all =================')
+    # current_app.logger.info('=============== called db_all =================')
     sort_field = Model.name if hasattr(Model, 'name') else Model.id
     query = (Model.query.order_by(sort_field))
     if Model == User:
         role_type = role if role else 'influencer'
         query = query.filter_by(role=role_type)
-    current_app.logger.info('Set the query')
     models = query.all()
-    current_app.logger.info('Query made')
     return models
 
 
@@ -413,18 +443,19 @@ def create_many(dataset, Model=User):
 
 def db_create_or_update_many(dataset, user_id=None, Model=Post):
     """ Create or Update if the record exists for all of the dataset list """
-    # print(f'============== Create or Update Many {Model.__name__} ====================')
+    current_app.logger.info(f'============== Create or Update Many {Model.__name__} ====================')
     allowed_models = {Post, Insight, Audience}
     if Model not in allowed_models:
         return []
-    composite_unique = ['recorded', 'name'] if Model in {Insight, Audience} else False
+    # composite_unique = ['recorded', 'name'] if Model in {Insight, Audience} else False
+    composite_unique = getattr(Model, 'composite_unique', None)
     # Note: initially all Models only had 1 non-pk unique field
-    # However, both the Insight and Audience models have a composite unique requirement (user_id, recorded, name)
+    # However, those with table_args setting composite unique restrictions have a composite_unique class property.
     # insp = db.inspect(Model)
     all_results, add_count, update_count, error_set = [], 0, 0, []
     # print(f'---- Initial dataset has {len(dataset)} records ----')
-    if composite_unique:
-        q = Model.query.filter(user_id == user_id) if user_id else Model.query()
+    if composite_unique and user_id:
+        q = Model.query.filter(Model.user_id == user_id)
         match = q.all()
         # print(f'------ Composite Unique for {Model.__name__}: {len(match)} possible matches ----------------')
         lookup = {tuple([getattr(ea, key) for key in composite_unique]): ea for ea in match}
@@ -491,6 +522,7 @@ def db_create_or_update_many(dataset, user_id=None, Model=Post):
     current_app.logger.info(f'We were unable to handle {len(error_set)} of the incoming dataset items')
     current_app.logger.info('------------------------------------------------------------------------------')
     db.session.commit()
+    current_app.logger.info('All records saved')
     return [from_sql(ea) for ea in all_results]
 
 

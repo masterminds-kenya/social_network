@@ -17,7 +17,7 @@
   <nav>
     <ul>
       <li><a href="{{ url_for('home') }}">Home</a></li>
-      <li><a href="{{ url_for('all', mod='user') }}">Users</a></li>
+      <li><a href="{{ url_for('all', mod='influencer') }}">Influencers</a></li>
       <li><a href="{{ url_for('all', mod='brand') }}">Brands</a></li>
       <li><a href="{{ url_for('all', mod='campaign') }}">Campaigns</a></li>
       <li><a href="{{ url_for('dev_admin') }}">Developer Admin</a></li>
@@ -40,7 +40,9 @@
 {% endblock content %}
 <footer>
   <p>
-    <a href="{{ url_for('render_static', page_name='privacy') }}">Privacy</a> | <a href="{{ url_for('render_static', page_name='tos') }}">Terms of Service</a>
+    <a href="{{ url_for('home')}}">Home</a> |
+    <a href="{{ url_for('render_static', page_name='privacy') }}">Privacy</a> |
+    <a href="{{ url_for('render_static', page_name='tos') }}">Terms of Service</a>
   </p>
 </footer>
 </body>

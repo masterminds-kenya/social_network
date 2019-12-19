@@ -164,7 +164,6 @@ def get_vals(campaign):
     """ Get the values we want to put into our worksheet report """
     brands = ['Brand', ', '.join([ea.name for ea in campaign.brands])]
     users = ['Influencer', ', '.join([ea.name for ea in campaign.users])]
-    brand_data = [('brand name', 'notes', 'impressions', 'reach', 'follower_count', 'instagram_id', 'modified', 'created')]
     brand_data = [campaign.brands[0].insight_report(label_only=True)]
     for brand in campaign.brands:
         brand_data.append(brand.insight_report())

@@ -18,7 +18,7 @@
 </ul>
 <h3>Other Options</h3>
 <ul>
-  <li><a href="{{url_for('add', mod=mod)}}">Add {% if mod == 'user' %}Fake {%endif%}{{mod.capitalize()}}</a></li>
+  <li><a href="{{url_for('add', mod=mod)}}">Add {% if mod == 'influencer' %}Fake {%endif%}{{mod.capitalize()}}</a></li>
   {% if mod == 'campaign' %}
   <li><a href="{{ url_for('add', mod='brand')}}">Add Brand</a></li>
   {% endif %}

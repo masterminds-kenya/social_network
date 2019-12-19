@@ -1,4 +1,4 @@
-from .model_db import db, from_sql, User, Post
+from .model_db import db, from_sql, User, Post, Audience
 
 
 def update_campaign(ver, request):
@@ -56,6 +56,19 @@ def process_form(mod, request):
                 models = Model.query.filter(Model.id.in_(model_ids)).all()
                 save[rel] = models
     data = request.form.to_dict(flat=True)  # TODO: add form validate method for security.
+    if mod in User.roles:
+        # assign User.role
+        data['role'] = data.get('role', mod)
+        # handle IG media_count & followers_count here since it would break on User update.
+        # The following only occurs on the first time the IG account is connected to this User.
+        # So we can assume we are making new Audience records for this IG data.
+        models = []
+        for name in Audience.ig_data:  # {'media_count', 'followers_count'}
+            value = data.pop(name, None)
+            if value:
+                # temp = {'name': name, 'values': [value]}
+                models.append(Audience(name=name, values=[value]))
+        save['audiences'] = models
     data.update(save)  # adds to the data dict if we did save some relationship collections
     # If the form has a checkbox for a Boolean in the form, we may need to reformat.
     # currently I think only Campaign and Post have checkboxes
@@ -63,8 +76,4 @@ def process_form(mod, request):
     # TODO: Add logic to find all Boolean fields in models and handle appropriately.
     if mod in bool_fields:
         data[bool_fields[mod]] = True if data.get(bool_fields[mod]) in {'on', True} else False
-    if mod == 'brand':
-        data['role'] = 'brand'
-    elif mod == 'user':
-        data['role'] = 'influencer'
     return data

@@ -15,7 +15,7 @@
   {% if data.facebook_id %}
   <p>Facebook ID is known</p>
   {% endif %}
-  {% if mod == 'user' %}
+  {% if mod in ['influencer', 'brand'] %}
   <div class="form-group">
       <label for="instagram_id">Instagram Id</label>
       <input type="text" name="instagram_id" id="instagram_id" value="{{data.instagram_id}}" class="form-control"/>
