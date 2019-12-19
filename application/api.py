@@ -20,7 +20,7 @@ FB_SCOPE = [
         ]
 
 
-def get_insight(user_id, first=1, influence_last=30*2, profile_last=30*1, ig_id=None, facebook=None):
+def get_insight(user_id, first=1, influence_last=30*12, profile_last=30*3, ig_id=None, facebook=None):
     """ Get the insight metrics for the User. """
     ig_period = 'day'
     results, token = [], ''
@@ -213,7 +213,6 @@ def onboarding(mod, request):
         return ('error', facebook_user_data, None)
     # TODO: use a better constructor for the user account.
     data = facebook_user_data.copy()  # .to_dict(flat=True)
-    # TODO User: confirm the following line can just always be set to 'mod'.
     data['role'] = mod
     data['token'] = token
     accounts = data.pop('accounts')
@@ -224,15 +223,12 @@ def onboarding(mod, request):
     if len(ig_list) == 1:
         ig_info = ig_list.pop()
         data['name'] = ig_info.get('username', None)
-        # data['followers_count'] = ig_info.get('followers_count', None)
-        # data['media_count'] = ig_info.get('media_count', None)
         ig_id = int(ig_info.get('id'))
         data['instagram_id'] = ig_id
         models = []
         for name in Audience.ig_data:  # {'media_count', 'followers_count'}
             value = ig_info.get(name, None)
             if value:
-                # temp = {'name': name, 'values': [value]}
                 models.append(Audience(name=name, values=[value]))
         data['audiences'] = models
         app.logger.info('------ Only 1 InstaGram business account ------')

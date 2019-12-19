@@ -155,20 +155,12 @@ class User(db.Model):
         if self.instagram_id is None or not self.insights:
             insight_data = [0 for ea in insight_labels]
         else:
-            # TODO: Update to more specific choices for which stats to run on which metric.
-            # insight_data = []
             met_stat = {metric: big_stat for metric in big_metrics}
             met_stat.update({metric: small_stat for metric in small_metrics})
             temp = {key: [] for key in met_stat}
             for insight in self.insights:
                 temp[insight.name].append(int(insight.value))
             insight_data = [stat[1](temp[metric]) for metric, stats in met_stat.items() for stat in stats]
-            # for metrics, measure in [(big_metrics, big_stat), (small_metrics, small_stat)]:
-            #     temp = {key: [] for key in metrics}
-            #     for insight in self.insights:
-            #         temp[insight.name].append(int(insight.value))
-            #     data = [ea[1](temp[metric]) for metric in metrics for ea in measure]
-            #     insight_data.extend(data)
         report = [self.name, self.notes, *insight_data, getattr(self, 'instagram_id', ''), clean(self.modified), clean(self.created)]
         return report
 
