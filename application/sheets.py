@@ -113,6 +113,7 @@ def create_sheet(campaign, service=None):
     return update_sheet(campaign, id=spreadsheet.get('spreadsheetId'), service=service)
 
 
+# TODO: ? Is this going to be used, or it should be deleted?
 def read_sheet_full(id=SHARED_SHEET_ID, service=None):
     """ Get the information (not the values) for a worksheet with permissions granted to our app service. """
     app.logger.info('================== read sheet full =======================')
@@ -131,7 +132,7 @@ def read_sheet_full(id=SHARED_SHEET_ID, service=None):
 
 def read_sheet(id=SHARED_SHEET_ID, range_=None, service=None):
     """ Read a sheet that our app service account has been given permission for. """
-    app.logger.info(f'================== read sheet: {id} =======================')
+    app.logger.info(f'============== read sheet: {id} =====================')
     if not service:
         creds = get_creds(service_config['sheets'])
         service = build('sheets', 'v4', credentials=creds, cache_discovery=False)
@@ -168,8 +169,8 @@ def get_vals(campaign):
     for brand in campaign.brands:
         brand_data.append(brand.insight_report())
     columns = campaign.report_columns()
-    results = [[clean(getattr(post, ea, '')) for ea in columns] for post in campaign.posts]
     # all fields need to be serializable, which means all datetime fields should be changed to strings.
+    results = [[clean(getattr(post, ea, '')) for ea in columns] for post in campaign.posts]
     sheet_rows = [brands, users, [''], *brand_data, [''], columns, *results]
     app.logger.info(f"-------- get_vals Total rows: {len(sheet_rows)}, with {len(results)} rows of posts --------")
     return sheet_rows
@@ -183,7 +184,6 @@ def compute_A1(arr2d, start='A1', sheet='Sheet1'):
     col, row = 'A', 1
     final_col = chr(ord(col) + col_count)
     final_row = row_count + row
-    # app.logger.info(f"Row Count: {row_count}, Column Count: {col_count}")
     return f"{sheet}!{start}:{final_col}{final_row}"
 
 

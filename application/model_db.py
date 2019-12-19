@@ -198,7 +198,7 @@ class Audience(db.Model):
     value = db.Column(db.Text,                 index=False, unique=False, nullable=True)
     # # user = backref from User.audiences with lazy='select' (synonym for True)
     metrics = {'audience_city', 'audience_country', 'audience_gender_age'}
-    ig_data = {'media_count', 'followers_count'}  # these are added from process_form for User.
+    ig_data = {'media_count', 'followers_count'}  # these are created when assigning an instagram_id to a User
     UNSAFE = {''}
 
     def __init__(self, *args, **kwargs):
@@ -336,6 +336,7 @@ class Campaign(db.Model):
                     related['common']['labels'][metric].append(int(getattr(post, 'id')))
         # compute stats we want for each media type and common metrics
         for group in related:
+            # TODO: Modify the stats used as appropriate for the metric
             related[group]['results'] = {}
             metrics = related[group]['metrics']
             for metric, data in metrics.items():
@@ -383,7 +384,6 @@ def db_create(data, Model=User):
     #     print('**************** DB CREATE Error *******************')
     #     print(e)
     results = from_sql(model, safe=True)
-    # safe_results = {k: results[k] for k in results.keys() - Model.UNSAFE}
     return results
 
 
@@ -392,8 +392,6 @@ def db_read(id, Model=User, safe=True):
     if not model:
         return None
     output = from_sql(model, safe=safe)
-    # safe_results = {k: results[k] for k in results.keys() - Model.UNSAFE}
-    # output = safe_results if safe else results
     if Model == User:
         if len(model.insights) > 0:
             output['insight'] = True
@@ -404,6 +402,7 @@ def db_read(id, Model=User, safe=True):
 
 def db_update(data, id, Model=User):
     # Any checkbox field should have been prepared by process_form()
+    # TODO: Look into using the method Model.update
     model = Model.query.get(id)
     for k, v in data.items():
         setattr(model, k, v)
@@ -420,14 +419,13 @@ def db_delete(id, Model=User):
 
 def db_all(Model=User, role=None):
     """ Returns all of the records for the indicated Model, or for User Model returns either brands or influencers. """
-    # current_app.logger.info('=============== called db_all =================')
     sort_field = Model.name if hasattr(Model, 'name') else Model.id
+    # TODO: For each model declare default sort, then use that here.
     query = (Model.query.order_by(sort_field))
     if Model == User:
         role_type = role if role else 'influencer'
         query = query.filter_by(role=role_type)
-    models = query.all()
-    return models
+    return query.all()
 
 
 def create_many(dataset, Model=User):
@@ -438,7 +436,7 @@ def create_many(dataset, Model=User):
         db.session.add(model)
         all_results.append(model)
     db.session.commit()
-    return [from_sql(ea) for ea in all_results]
+    return [from_sql(ea, safe=False) for ea in all_results]
 
 
 def db_create_or_update_many(dataset, user_id=None, Model=Post):
@@ -455,8 +453,7 @@ def db_create_or_update_many(dataset, user_id=None, Model=Post):
     all_results, add_count, update_count, error_set = [], 0, 0, []
     # print(f'---- Initial dataset has {len(dataset)} records ----')
     if composite_unique and user_id:
-        q = Model.query.filter(Model.user_id == user_id)
-        match = q.all()
+        match = Model.query.filter(Model.user_id == user_id).all()
         # print(f'------ Composite Unique for {Model.__name__}: {len(match)} possible matches ----------------')
         lookup = {tuple([getattr(ea, key) for key in composite_unique]): ea for ea in match}
         # pprint(lookup)
@@ -472,6 +469,7 @@ def db_create_or_update_many(dataset, user_id=None, Model=Post):
             # print(f'------- {key} -------')
             if model:
                 # pprint(model)
+                # TODO: Look into Model.upate method
                 [setattr(model, k, v) for k, v in data.items()]
                 update_count += 1
             else:
@@ -499,7 +497,7 @@ def db_create_or_update_many(dataset, user_id=None, Model=Post):
         for data in dataset:
             # find all records in match that would collide with the values of this data
             updates = [lookup[int(data[unikey])] for unikey, lookup in match_dict.items() if int(data[unikey]) in lookup]
-            if len(updates) > 0:
+            if len(updates):
                 if len(updates) == 1:
                     model = updates[0]
                     for k, v in data.items():
@@ -515,12 +513,12 @@ def db_create_or_update_many(dataset, user_id=None, Model=Post):
                 db.session.add(model)
                 add_count += 1
                 all_results.append(model)
-    current_app.logger.info('------------------------------------------------------------------------------')
-    current_app.logger.info(f'The all results has {len(all_results)} records to commit')
-    current_app.logger.info(f'This includes {update_count} updated records')
-    current_app.logger.info(f'This includes {add_count} added records')
-    current_app.logger.info(f'We were unable to handle {len(error_set)} of the incoming dataset items')
-    current_app.logger.info('------------------------------------------------------------------------------')
+    print('------------------------------------------------------------------------------')
+    print(f'The all results has {len(all_results)} records to commit')
+    print(f'This includes {update_count} updated records')
+    print(f'This includes {add_count} added records')
+    print(f'We were unable to handle {len(error_set)} of the incoming dataset items')
+    print('------------------------------------------------------------------------------')
     db.session.commit()
     current_app.logger.info('All records saved')
     return [from_sql(ea) for ea in all_results]

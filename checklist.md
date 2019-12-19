@@ -23,6 +23,7 @@
 | :heavy_check_mark: | Give permissions to view google sheets      |
 | :heavy_check_mark: | Hosting and Facebook settings on Bacchus accounts |
 |                    | **Milestone 4 Completion**           |
+|                    | Admin & Manager Pages require login |
 |                    | Site content and style, basic UI and graphs |
 |                    | Testing, on-boarding, error handling |
 |                    | Facebook App approved and go live    |
@@ -39,7 +40,7 @@
 - [s] Stretch Goal. Not for current feature plan.
 
 Current Status:
-2019-12-10 16:32:41
+2019-12-18 16:43:40
 <!-- Ctrl-Shift-I to generate timestamp -->
 
 ### DB Design: Track different businesses and how influencers affect them
@@ -108,11 +109,11 @@ Current Status:
 - [x] Update User & Brand to be the same user table
 - [x] Refactor to single User Model for all types: influencer, brand, manager, admin
 - [ ] Add Insight metric 'online_followers'
-- [ ] Insight metrics for IG profile interactions.
-- [ ] Business Discovery data: followers_count, media_count, other?
+- [x] Insight metrics for IG profile interactions.
+- [x] Business Discovery data: followers_count, media_count. Others are more account info.
 - [x] Default account insights history, 360 days.
 - [x] Campaign worksheet exports summary of Brand account metrics (if IG account was associated)
-- [ ] Export Influencer/Brand metrics to google worksheet.
+- [ ]
 - [ ] Pickle tokens
 - [n] Keep a DB table of worksheet ids?
   - [s] Will we have multiple report views?
@@ -120,7 +121,7 @@ Current Status:
 - [ ] Revisit method of reporting Campaign Results.
 - [ ] Revisit structure for ON DELETE, ON UPDATE,
 - [ ] Revisit structure for how related tables are loaded (lazy=?)
-- [?] Refine decision for fields from (overall user) insights data.
+- [x] Refine decision for fields from (overall user) insights data.
 
 ### Site Functionality
 
@@ -160,16 +161,16 @@ Current Status:
 - [x] API call and store post insight metrics for Albums
 - [x] API call and store post insight metrics for Stories
 - [s] WebHook to get Stories data at completion.
-- [ ] Decide approach: A) typical form validation & stop submission of existing or B) use existing record.
-  - [ ] If form validate approach, setup user experience that they can select existing record
-  - [ ] If incoming form (or API user/brand) already exists, use existing instead of create new:
+- [?] Decide approach: A) typical form validation & stop submission of existing or B) use existing record.
+  - [n] If form validate approach, setup user experience that they can select existing record
+  - [x] If incoming form (or API user/brand) already exists, use existing instead of create new:
     - [x] Catch and handle attempt to create a duplicate existing User account
     - [ ] Catch and handle if a User account is trying to add an IG account already used by (another) User account
     - [ ] Catch and handle if trying to create an already existing Campaign name
     - [x] Catch and handle attempt to create a duplicate existing Brand account
-- [ ] Allow a Brand to give permissions for FB and IG.
-  - [ ] If Brand name already in system, associate with that existing record
-  - [ ] exactly how this works depends on approach A or B for how to handle validation w/ existing records
+- [x] Allow a Brand to give permissions for FB and IG.
+  - [x] If Brand name already in system, associate with that existing record
+  - [x] exactly how this works depends on approach A or B for how to handle validation w/ existing records
 - [x] Refactor User data collection functions to work on create and update
 - [x] Can issue new API requests for recent data for existing Influencer Users
 - [x] Admin/Marketing can connect Influencer to Brands through Campaign
@@ -177,8 +178,8 @@ Current Status:
   - [x] Create Brand
   - [x] Create Campaign
   - [x] Assign Users to Campaign
-- [ ] User detail view reports current number of posts we have stored
-- [ ] For User Model: add followers_count, follows_count, media_count
+- [s] User detail view reports current number of posts we have stored
+- [x] For User, the InstaGram followers_count, media_count are stored as an Audience record.
 - [x] Post Detail view
   - [x] Only show the appropriate fields the media_type
     - [x] Before rendering template, limit object to only have appropriate fields.
@@ -215,11 +216,12 @@ Current Status:
   - [x] In case we do get duplicates, it will NOT create duplicates in DB
     - [x] Will update if our DB info is out-of-date
   - [ ] Visual feedback that it is processing but not ready to render new view
+  - [ ] Calling for more Audience data should also call for update on ig_data metrics.
 - [ ] Fetch more Insights (of the account, not of media)
   - [x] Can get a history the the user (or brand) account insights
   - [ ] Will limit request to only get new insights since last request
-  - [ ] In case we do get duplicates, it will NOT create duplicates in DB
-      - [ ] Will update if our DB info is out-of-date
+  - [x] In case we do get duplicates, it will NOT create duplicates in DB
+    - [x] Will update if our DB info is out-of-date
 - [x] Add Google Sheet API to GCloud app.
 - [x] Add Google Drive API to GCloud app.
 - [x] Add functionality to export Marketing data to a Google worksheet.
@@ -233,7 +235,7 @@ Current Status:
   - [x] Function to update a worksheet
   - [x] Can read and format desired DB data into worksheet.
   - [x] Includes a report for the brand insight metrics on the campaign report
-  - [ ] Separate google sheet reports for influencer or brand metrics
+  - [ ] From User detail view, can export influencer/brand account metrics to google sheet.
 - [x] create a route & view for the sheets data view
 - [x] For a given worksheet, ability to edit existing permissions
 - [ ] For a given worksheet, ability to delete existing permissions
@@ -241,9 +243,9 @@ Current Status:
 - [ ] More Drive files management
   - [ ] List all files
   - [ ] Manage those files
-- [ ] Attach worksheets to the Campaign model so we not always creating new.
+- [s] Attach worksheets to the Campaign model so we not always creating new.
 - [s] Add migration functionality?
-- [ ] Move hosting and FaceBook settings to Bacchus
+- [x] Move hosting and FaceBook settings to Bacchus
 - [x] refactor sheets data view to export to a google worksheet
 - [ ] Login: any additional User and Admin authentication needed?
   - [ ] ?Confirm Google login for Worksheet access?
@@ -266,6 +268,7 @@ Current Status:
 ### Code Structure, Testing, Clean up
 
 - [x] Setup a real influencer (Noelle Reno) as a confirmed tester.
+- [ ] Test that decide_ig.html form works with the dict as a set value.
 - [x] Have real influencer (Noelle Reno) sign up for testing.
 - [x] Modularize the codebase: sheets, facebook api, developer_admin, manage
 - [ ] Update template to use for-else: in jinja, the else only runs if no iteration
