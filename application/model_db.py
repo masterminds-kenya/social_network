@@ -26,6 +26,13 @@ def metric_clean(metric_string):
     return re.sub('^carousel_album_', '', metric_string)
 
 
+def clean(obj):
+    """ Make sure this obj is serializable. Datetime objects should be turned to strings. """
+    if isinstance(obj, dt):
+        return obj.isoformat()
+    return obj
+
+
 def from_sql(row, related=False, safe=False):
     """ Translates a SQLAlchemy model instance into a dictionary """
     data = row.__dict__.copy()
@@ -104,8 +111,37 @@ class User(db.Model):
             kwargs['token'] = kwargs['token'].get('access_token', None)
         super().__init__(*args, **kwargs)
 
-    def insight_report(self, label_only=False):
-        """ Used for reporting typical insight metrics for a Brand (or other user) """
+    def insight_report(self):
+        """ Collect all of the Insights (including OnlineFollowers) and prepare for data dump on a sheet """
+        report = [
+            [f"{self.role.capitalize()} Name", self.name],
+            ["Notes", self.notes],
+            ["Instagram ID", self.instagram_id],
+            [''],
+            ["Insights", len(self.insights), "records"],
+            ["Name", "Value", "Date Recorded"]
+        ]
+        for insight in self.insights:
+            report.append([insight.name, insight.value, clean(insight.recorded)])
+        report.extend([
+            [''],
+            ["Online Followers", len(self.aud_count), "records"],
+            ["Date", "Hour", "Value"]
+        ])
+        for data in self.aud_count:
+            report.append([clean(data.recorded), int(data.hour), int(data.value)])
+        report.extend([
+            [''],
+            ["Audience Information", len(self.audiences), "records"],
+            ["Date Recorded", "Name", "Value"]
+        ])
+        for audience in self.audiences:
+            report.append([clean(audience.recorded), audience.name, audience.value])
+        report.append([''])
+        return report
+
+    def insight_summary(self, label_only=False):
+        """ Used for giving summary stats of insight metrics for a Brand (or other user) """
         from .sheets import clean
         big_metrics = list(Insight.influence_metrics)
         big_stat = [('Median', median), ('Average', mean), ('StDev', stdev)]
@@ -311,11 +347,12 @@ class Campaign(db.Model):
         kwargs['completed'] = True if kwargs.get('completed') in {'on', True} else False
         super().__init__(*args, **kwargs)
 
-    def report_columns(self):
+    def report_posts(self):
         """ These are the columns used for showing the data for Posts assigned to a given Campaign """
         ignore = ['user_id', 'campaign_id', 'processed', 'media_id']
         columns = [ea.name for ea in Post.__table__.columns if ea.name not in ignore]
-        return columns
+        data = [[clean(getattr(post, ea, '')) for ea in columns] for post in self.posts]
+        return [columns, *data]
 
     def get_results(self):
         """ We want the datasets and summary statistics """

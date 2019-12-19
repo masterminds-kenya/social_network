@@ -178,14 +178,16 @@ def get_vals(campaign):
     """ Get the values we want to put into our worksheet report """
     brands = ['Brand', ', '.join([ea.name for ea in campaign.brands])]
     users = ['Influencer', ', '.join([ea.name for ea in campaign.users])]
-    brand_data = [campaign.brands[0].insight_report(label_only=True)]
+    brand_data = [campaign.brands[0].insight_summary(label_only=True)]
     for brand in campaign.brands:
-        brand_data.append(brand.insight_report())
-    columns = campaign.report_columns()
+        brand_data.append(brand.insight_summary())
+    results = campaign.report_posts()
     # all fields need to be serializable, which means all datetime fields should be changed to strings.
-    results = [[clean(getattr(post, ea, '')) for ea in columns] for post in campaign.posts]
-    sheet_rows = [brands, users, [''], *brand_data, [''], columns, *results]
-    app.logger.info(f"-------- get_vals Total rows: {len(sheet_rows)}, with {len(results)} rows of posts --------")
+    # results = [[clean(getattr(post, ea, '')) for ea in columns] for post in campaign.posts]
+    sheet_rows = [brands, users, [''], *brand_data, [''], *results]
+    for brand in campaign.brands:
+        sheet_rows.extend(brand.insight_report())
+    app.logger.info(f"-------- get_vals Total rows: {len(sheet_rows)}, with {len(results) - 1} rows of posts --------")
     return sheet_rows
 
 
@@ -226,5 +228,6 @@ def update_sheet(campaign, id=SHARED_SHEET_ID, service=None):
     try:
         spreadsheet = request.execute()
     except Exception as e:
+        spreadsheet = {}
         app.logger.error(f"Could not update sheet: {e}")
     return read_sheet(id=spreadsheet.get('spreadsheetId'), range_=range_, service=service)
