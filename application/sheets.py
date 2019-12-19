@@ -167,13 +167,6 @@ def read_sheet(id=SHARED_SHEET_ID, range_=None, service=None):
     return spreadsheet
 
 
-def clean(obj):
-    """ Make sure this obj is serializable. Datetime objects should be turned to strings. """
-    if isinstance(obj, dt):
-        return obj.isoformat()
-    return obj
-
-
 def get_vals(campaign):
     """ Get the values we want to put into our worksheet report """
     brands = ['Brand', ', '.join([ea.name for ea in campaign.brands])]
@@ -182,9 +175,7 @@ def get_vals(campaign):
     for brand in campaign.brands:
         brand_data.append(brand.insight_summary())
     results = campaign.report_posts()
-    # all fields need to be serializable, which means all datetime fields should be changed to strings.
-    # results = [[clean(getattr(post, ea, '')) for ea in columns] for post in campaign.posts]
-    sheet_rows = [brands, users, [''], *brand_data, [''], *results]
+    sheet_rows = [brands, users, [''], *brand_data, [''], *results, ['']]
     for brand in campaign.brands:
         sheet_rows.extend(brand.insight_report())
     app.logger.info(f"-------- get_vals Total rows: {len(sheet_rows)}, with {len(results) - 1} rows of posts --------")

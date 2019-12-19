@@ -142,7 +142,6 @@ class User(db.Model):
 
     def insight_summary(self, label_only=False):
         """ Used for giving summary stats of insight metrics for a Brand (or other user) """
-        from .sheets import clean
         big_metrics = list(Insight.influence_metrics)
         big_stat = [('Median', median), ('Average', mean), ('StDev', stdev)]
         insight_labels = [f"{metric} {ea[0]}" for metric in big_metrics for ea in big_stat]
@@ -185,7 +184,7 @@ class OnlineFollowers(db.Model):
     recorded = db.Column(db.DateTime, index=False, unique=False, nullable=False)
     hour = db.Column(db.Integer,      index=False, unique=False, nullable=False)
     value = db.Column(db.Integer,     index=False, unique=False, nullable=True)
-    # # user = backref from User.audcount with lazy='select' (synonym for True)
+    # # user = backref from User.aud_count with lazy='select' (synonym for True)
     metrics = ['online_followers']
 
     def __init__(self, *args, **kwargs):
@@ -349,7 +348,7 @@ class Campaign(db.Model):
 
     def report_posts(self):
         """ These are the columns used for showing the data for Posts assigned to a given Campaign """
-        ignore = ['user_id', 'campaign_id', 'processed', 'media_id']
+        ignore = ['id', 'user_id', 'campaign_id', 'processed']  # ? 'media_id'
         columns = [ea.name for ea in Post.__table__.columns if ea.name not in ignore]
         data = [[clean(getattr(post, ea, '')) for ea in columns] for post in self.posts]
         return [columns, *data]
@@ -437,7 +436,7 @@ def db_read(id, Model=User, safe=True):
         return None
     output = from_sql(model, safe=safe)
     if Model == User:
-        if len(model.insights) or len(model.audcount):
+        if len(model.insights) or len(model.aud_count):
             output['insight'] = True
         if len(model.audiences) > 0:
             output['audience'] = [from_sql(ea) for ea in model.audiences]

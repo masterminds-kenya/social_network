@@ -268,6 +268,7 @@ Current Status:
 ### Code Structure, Testing, Clean up
 
 - [x] Setup a real influencer (Noelle Reno) as a confirmed tester.
+- [ ] ! Google sheet/drive: Use bacchus service_agent instead of development site service_agent!
 - [ ] Test that decide_ig.html form works with the dict as a set value.
 - [x] Have real influencer (Noelle Reno) sign up for testing.
 - [x] Modularize the codebase: sheets, facebook api, developer_admin, manage
