@@ -26,6 +26,13 @@ def metric_clean(metric_string):
     return re.sub('^carousel_album_', '', metric_string)
 
 
+def clean(obj):
+    """ Make sure this obj is serializable. Datetime objects should be turned to strings. """
+    if isinstance(obj, dt):
+        return obj.isoformat()
+    return obj
+
+
 def from_sql(row, related=False, safe=False):
     """ Translates a SQLAlchemy model instance into a dictionary """
     data = row.__dict__.copy()
@@ -35,6 +42,7 @@ def from_sql(row, related=False, safe=False):
     if related:
         rel = row.__mapper__.relationships
         # TODO: Attach rel to data
+        current_app.logger.info('--------- Related ------------')
         pprint(rel)
     temp = data.pop('_sa_instance_state', None)
     if not temp:
@@ -75,7 +83,6 @@ class User(db.Model):
     roles = ('influencer', 'brand', 'manager', 'admin')
     __tablename__ = 'users'
 
-    # TODO: https://techspot.zzzeek.org/2011/01/14/the-enum-recipe/
     id = db.Column(db.Integer, primary_key=True)
     role = db.Column(db.Enum(*roles, name='user_roles'), default='influencer', nullable=False)
     name = db.Column(db.String(47),                 index=False, unique=False, nullable=True)
@@ -104,21 +111,56 @@ class User(db.Model):
             kwargs['token'] = kwargs['token'].get('access_token', None)
         super().__init__(*args, **kwargs)
 
-    def insight_report(self, label_only=False):
-        """ Used for reporting typical insight metrics for a Brand (or other user) """
-        from .sheets import clean
-        insight_metrics = list(Insight.metrics)
-        measurements = [('Median', median), ('Average', mean), ('StDev', stdev)]
-        insight_labels = [f"{metric} {ea[0]}" for metric in insight_metrics for ea in measurements]
+    def insight_report(self):
+        """ Collect all of the Insights (including OnlineFollowers) and prepare for data dump on a sheet """
+        report = [
+            [f"{self.role.capitalize()} Name", self.name],
+            ["Notes", self.notes],
+            ["Instagram ID", self.instagram_id],
+            [''],
+            ["Insights", len(self.insights), "records"],
+            ["Name", "Value", "Date Recorded"]
+        ]
+        for insight in self.insights:
+            report.append([insight.name, insight.value, clean(insight.recorded)])
+        report.extend([
+            [''],
+            ["Online Followers", len(self.aud_count), "records"],
+            ["Date", "Hour", "Value"]
+        ])
+        for data in self.aud_count:
+            report.append([clean(data.recorded), int(data.hour), int(data.value)])
+        report.extend([
+            [''],
+            ["Audience Information", len(self.audiences), "records"],
+            ["Date Recorded", "Name", "Value"]
+        ])
+        for audience in self.audiences:
+            report.append([clean(audience.recorded), audience.name, audience.value])
+        report.append([''])
+        return report
+
+    def insight_summary(self, label_only=False):
+        """ Used for giving summary stats of insight metrics for a Brand (or other user) """
+        big_metrics = list(Insight.influence_metrics)
+        big_stat = [('Median', median), ('Average', mean), ('StDev', stdev)]
+        insight_labels = [f"{metric} {ea[0]}" for metric in big_metrics for ea in big_stat]
+        small_metrics = list(Insight.profile_metrics)
+        small_stat = [('Total', sum), ('Average', mean)]
+        small_metric_labels = [f"{metric} {ea[0]}" for metric in small_metrics for ea in small_stat]
+        insight_labels.extend(small_metric_labels)
+        # TODO: Incorporate the OnlineFollowers for this (usually brand) user.
         if label_only:
             return ['Brand Name', 'Notes', *insight_labels, 'instagram_id', 'modified', 'created']
-        if self.instagram_id is None:
+        if self.instagram_id is None or not self.insights:
             insight_data = [0 for ea in insight_labels]
         else:
-            temp = {key: [] for key in insight_metrics}
+            met_stat = {metric: big_stat for metric in big_metrics}
+            met_stat.update({metric: small_stat for metric in small_metrics})
+            temp = {key: [] for key in met_stat}
             for insight in self.insights:
                 temp[insight.name].append(int(insight.value))
-            insight_data = [ea[1](temp[metric]) for metric in insight_metrics for ea in measurements]
+            insight_data = [stat[1](temp[metric]) for metric, stats in met_stat.items() for stat in stats]
         report = [self.name, self.notes, *insight_data, getattr(self, 'instagram_id', ''), clean(self.modified), clean(self.created)]
         return report
 
@@ -140,8 +182,8 @@ class OnlineFollowers(db.Model):
     recorded = db.Column(db.DateTime, index=False, unique=False, nullable=False)
     hour = db.Column(db.Integer,      index=False, unique=False, nullable=False)
     value = db.Column(db.Integer,     index=False, unique=False, nullable=True)
-    # # user = backref from User.audcount with lazy='select' (synonym for True)
-    metric = 'online_followers'
+    # # user = backref from User.aud_count with lazy='select' (synonym for True)
+    metrics = ['online_followers']
 
     def __init__(self, *args, **kwargs):
         kwargs = fix_date(OnlineFollowers, kwargs)
@@ -302,11 +344,12 @@ class Campaign(db.Model):
         kwargs['completed'] = True if kwargs.get('completed') in {'on', True} else False
         super().__init__(*args, **kwargs)
 
-    def report_columns(self):
+    def report_posts(self):
         """ These are the columns used for showing the data for Posts assigned to a given Campaign """
-        ignore = ['user_id', 'campaign_id', 'processed', 'media_id']
+        ignore = ['id', 'user_id', 'campaign_id', 'processed']  # ? 'media_id'
         columns = [ea.name for ea in Post.__table__.columns if ea.name not in ignore]
-        return columns
+        data = [[clean(getattr(post, ea, '')) for ea in columns] for post in self.posts]
+        return [columns, *data]
 
     def get_results(self):
         """ We want the datasets and summary statistics """
@@ -342,7 +385,7 @@ class Campaign(db.Model):
                 curr['total'] = sum(data) if len(data) > 0 else 0
                 curr['mid'] = median(data) if len(data) > 0 else 0
                 curr['avg'] = mean(data) if len(data) > 0 else 0
-                curr['spread'] = stdev(data) if len(data) > 0 else 0
+                curr['spread'] = stdev(data) if len(data) > 1 else 0
                 related[group]['results'][metric] = curr
         return related
         # end get_results
@@ -365,7 +408,7 @@ def db_create(data, Model=User):
         db.session.commit()
     except IntegrityError as error:
         # most likely only happening on Brand, User, or Campaign
-        print('----------- IntegrityError Condition -------------------')
+        current_app.logger.info('----------- IntegrityError Condition -------------------')
         pprint(error)
         db.session.rollback()
         columns = Model.__table__.columns
@@ -391,7 +434,7 @@ def db_read(id, Model=User, safe=True):
         return None
     output = from_sql(model, safe=safe)
     if Model == User:
-        if len(model.insights) > 0:
+        if len(model.insights) or len(model.aud_count):
             output['insight'] = True
         if len(model.audiences) > 0:
             output['audience'] = [from_sql(ea) for ea in model.audiences]
@@ -440,11 +483,11 @@ def create_many(dataset, Model=User):
 def db_create_or_update_many(dataset, user_id=None, Model=Post):
     """ Create or Update if the record exists for all of the dataset list """
     current_app.logger.info(f'============== Create or Update Many {Model.__name__} ====================')
-    allowed_models = {Post, Insight, Audience}
+    allowed_models = {Post, Insight, Audience, OnlineFollowers}
     if Model not in allowed_models:
         return []
     # composite_unique = ['recorded', 'name'] if Model in {Insight, Audience} else False
-    composite_unique = getattr(Model, 'composite_unique', None)
+    composite_unique = [ea for ea in getattr(Model, 'composite_unique', []) if ea != 'user_id']
     # Note: initially all Models only had 1 non-pk unique field
     # However, those with table_args setting composite unique restrictions have a composite_unique class property.
     # insp = db.inspect(Model)
@@ -467,7 +510,7 @@ def db_create_or_update_many(dataset, user_id=None, Model=Post):
             # print(f'------- {key} -------')
             if model:
                 # pprint(model)
-                # TODO: Look into Model.upate method
+                # TODO: Look into Model.update method
                 [setattr(model, k, v) for k, v in data.items()]
                 update_count += 1
             else:

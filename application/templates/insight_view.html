@@ -2,16 +2,7 @@
 
 {% block data_view %}
 <h3>Insight View</h3>
-{% for datum in data.keys() %}
-<h4>{{datum.capitalize()}} </h4>
-<ul>
-  {% for val in data[datum] %}
-  <li>{{val.value}}, {{val.recorded}} </li>
-  {% endfor %}
-</ul>
-{% endfor %}
-{% endblock %}
-
-{% block modify %}
-<h3>No Data Editing</h3>
-{% endblock %}
+<p>
+  {{ data }}
+</p>
+{% endblock data_view %}

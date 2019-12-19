@@ -11,8 +11,11 @@ Designed to be deployed on Google Cloud App Engine, using:
 - Python 3.7
 - Google Worksheet API v4
 - Google Drive API v3
-- Facebook Graph API v4.0, with InstaGram Insights and Media
-  - Facebook scope: 'pages_show_list', 'instagram_basic', 'instagram_manage_insights',
+- Facebook Graph API v4.0, with the following scope:
+  - pages_show_list
+  - instagram_basic
+  - instagram_manage_insights
+- Facebook allows access to Instagram Insights, Media, & account information.
 
 Core packages required for this application:
 
@@ -21,21 +24,21 @@ Core packages required for this application:
 - flask-sqlalchemy
 - pymysql
 - google-api-python-client
-- requests-oauthlib
-- google-auth
 - google-auth-httplib2
-- google-auth-oauthlib
+- google-auth
+- requests-oauthlib
 - python-dateutil
 
 ## Deployment
 
-Current [Dev Proof-of-Concept Site](https://social-network-255302.appspot.com/)
+[Deployed Site](https://www.bacchusinfluencerplatform.com)
+[Development Site](https://social-network-255302.appspot.com/)
 
-We are currently deploying on google cloud (gcloud), with the Google App Engine standard environment. Some packages and code would need to be modified if we switched to App Engine flex, or other gcloud deploy services. Our project is written in python, creating a flask server with a MySQL database, and connecting to Google Sheets for some generated reports. For deployment, Gcloud is expecting a pip requirements file (requirements.txt), an app.yaml file (indicating what python version to use, and environment variables), and a main.py file for our server code file. Gcloud also allows an ignore file - `.gcloudignore` which follows the same concepts from `.gitignore` files, as well as additional techniques for allowing files otherwise ignored in the `.gitignore` file. Locally we are using pipenv to help us track dependencies and packages only needed in the development environment. However, the `Pipfile` and `Pipfile.lock` files should be in the ignore file for uploading to gcloud, but still be tracked in the Git repository.
+We are currently deploying on google cloud (gcloud), with the Google App Engine standard environment. Some packages and code would need to be modified if we switched to App Engine flex, or other gcloud deploy services. Google Cloud (GCloud) is expecting a pip requirements file (`requirements.txt`), a `app.yaml` file (indicating what python version to use, and environment variables), and a `main.py` file as a point of entry for the application server to run. Gcloud also allows an ignore file - `.gcloudignore` which follows the same concepts from `.gitignore` files, as well as additional techniques for allowing files otherwise ignored in the `.gitignore` file.
 
 ## Development notes
 
-We are expecting an `.env` file at the root of the project so the `config.py` works correctly. For deployment, we also need to update the `app.yaml` file with the appropriate environment variables.
+For local development, we are using pipenv to help us track dependencies and packages only needed in the development environment. The local development files, `Pipfile` and `Pipfile.lock`, need to be in the `.gcloudignore` file, but still tracked in the Git repository. We are expecting an un-tracked `.env` file at the root of the project so the `config.py` works correctly, locally while these same settings should be duplicated in the `app.yaml` for the deployed site to work.
 
 When running locally, we can proxy the database. This requires a cloud_sql_proxy file, and knowing the DB_CONNECTION_NAME. In the terminal, substituting as needed, execute the following command:
 
@@ -43,11 +46,18 @@ When running locally, we can proxy the database. This requires a cloud_sql_proxy
 ./cloud_sql_proxy -instances="DB_CONNECTION_NAME"=tcp:3306
 ```
 
+We can login to the SQL terminal, knowing the correct user and password, with the Google Cloud CLI (replace <username> as appropriate).
+
+```bash
+gcloud sql connect socialnetwork --user=<username>
+```
+
 We can create the database tables by running:
 
 ``` bash
 python application/model_db.py
 ```
+
 
 ### Current Feature Development
 
