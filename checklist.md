@@ -108,12 +108,11 @@ Current Status:
 - [s] Can update data for existing Brand accounts
 - [x] Update User & Brand to be the same user table
 - [x] Refactor to single User Model for all types: influencer, brand, manager, admin
-- [ ] Add Insight metric 'online_followers'
+- [x] Add Insight metric 'online_followers'
 - [x] Insight metrics for IG profile interactions.
 - [x] Business Discovery data: followers_count, media_count. Others are more account info.
 - [x] Default account insights history, 360 days.
 - [x] Campaign worksheet exports summary of Brand account metrics (if IG account was associated)
-- [ ]
 - [ ] Pickle tokens
 - [n] Keep a DB table of worksheet ids?
   - [s] Will we have multiple report views?
@@ -216,7 +215,7 @@ Current Status:
   - [x] In case we do get duplicates, it will NOT create duplicates in DB
     - [x] Will update if our DB info is out-of-date
   - [ ] Visual feedback that it is processing but not ready to render new view
-  - [ ] Calling for more Audience data should also call for update on ig_data metrics.
+  - [x] Calling for more Audience data should also call for update on ig_data metrics.
 - [ ] Fetch more Insights (of the account, not of media)
   - [x] Can get a history the the user (or brand) account insights
   - [ ] Will limit request to only get new insights since last request

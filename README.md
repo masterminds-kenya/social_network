@@ -1,7 +1,7 @@
 # social_network
 
 **Author**: Chris L Chapman
-**Version**: 0.1.0
+**Version**: 0.2.0
 
 ## Architecture
 
@@ -32,11 +32,12 @@ Core packages required for this application:
 ## Deployment
 
 [Deployed Site](https://www.bacchusinfluencerplatform.com)
-[Development Site](https://social-network-255302.appspot.com/)
 
 We are currently deploying on google cloud (gcloud), with the Google App Engine standard environment. Some packages and code would need to be modified if we switched to App Engine flex, or other gcloud deploy services. Google Cloud (GCloud) is expecting a pip requirements file (`requirements.txt`), a `app.yaml` file (indicating what python version to use, and environment variables), and a `main.py` file as a point of entry for the application server to run. Gcloud also allows an ignore file - `.gcloudignore` which follows the same concepts from `.gitignore` files, as well as additional techniques for allowing files otherwise ignored in the `.gitignore` file.
 
 ## Development notes
+
+[Development Site](https://social-network-255302.appspot.com/)
 
 For local development, we are using pipenv to help us track dependencies and packages only needed in the development environment. The local development files, `Pipfile` and `Pipfile.lock`, need to be in the `.gcloudignore` file, but still tracked in the Git repository. We are expecting an un-tracked `.env` file at the root of the project so the `config.py` works correctly, locally while these same settings should be duplicated in the `app.yaml` for the deployed site to work.
 
