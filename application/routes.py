@@ -225,7 +225,7 @@ def insights(mod, id):
             max_curr = max(*temp_data.values())
             min_curr = min(*temp_data.values())
             max_val = max(max_val, max_curr)
-            min_val = min(max_val, min_curr)
+            min_val = min(min_val, min_curr)
             chart = {
                 'label': metric,
                 'backgroundColor': scheme_color[i % len(scheme_color)],
@@ -238,7 +238,7 @@ def insights(mod, id):
     labels = [ea for ea in dataset['reach']['data_dict'].keys()]
     max_val = int(1.2 * max_val)
     min_val = int(0.8 * min_val)
-    steps = 14  # TODO: Update steps as appropriate for the metric / chart.
+    steps = len(labels) // 25  # TODO: Update steps as appropriate for the metric / chart.
     return render_template('chart.html', user=user['name'], dataset=dataset, labels=labels, max=max_val, min=min_val, steps=steps)
 
 
