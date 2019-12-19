@@ -75,7 +75,6 @@ class User(db.Model):
     roles = ('influencer', 'brand', 'manager', 'admin')
     __tablename__ = 'users'
 
-    # TODO: https://techspot.zzzeek.org/2011/01/14/the-enum-recipe/
     id = db.Column(db.Integer, primary_key=True)
     role = db.Column(db.Enum(*roles, name='user_roles'), default='influencer', nullable=False)
     name = db.Column(db.String(47),                 index=False, unique=False, nullable=True)
@@ -109,6 +108,9 @@ class User(db.Model):
         from .sheets import clean
         insight_metrics = list(Insight.metrics)
         measurements = [('Median', median), ('Average', mean), ('StDev', stdev)]
+        # TODO: Update to more specific choices for which stats to run on which metric.
+        # Can potentially use the distinction of Insight.influece_metrics vs Insight.profile_metrics
+        # TODO: Also incorporate the OnlineFollowers for this (usually brand) user.
         insight_labels = [f"{metric} {ea[0]}" for metric in insight_metrics for ea in measurements]
         if label_only:
             return ['Brand Name', 'Notes', *insight_labels, 'instagram_id', 'modified', 'created']
@@ -391,7 +393,7 @@ def db_read(id, Model=User, safe=True):
         return None
     output = from_sql(model, safe=safe)
     if Model == User:
-        if len(model.insights) > 0:
+        if len(model.insights) or len(model.audcount):
             output['insight'] = True
         if len(model.audiences) > 0:
             output['audience'] = [from_sql(ea) for ea in model.audiences]
@@ -440,11 +442,12 @@ def create_many(dataset, Model=User):
 def db_create_or_update_many(dataset, user_id=None, Model=Post):
     """ Create or Update if the record exists for all of the dataset list """
     current_app.logger.info(f'============== Create or Update Many {Model.__name__} ====================')
-    allowed_models = {Post, Insight, Audience}
+    allowed_models = {Post, Insight, Audience, OnlineFollowers}
     if Model not in allowed_models:
         return []
     # composite_unique = ['recorded', 'name'] if Model in {Insight, Audience} else False
-    composite_unique = getattr(Model, 'composite_unique', None)
+    composite_unique = [ea for ea in getattr(Model, 'composite_unique', []) if ea != 'user_id']
+    current_app.logger.info(f" Composite Unique from Model: {composite_unique} ")
     # Note: initially all Models only had 1 non-pk unique field
     # However, those with table_args setting composite unique restrictions have a composite_unique class property.
     # insp = db.inspect(Model)
@@ -454,7 +457,7 @@ def db_create_or_update_many(dataset, user_id=None, Model=Post):
         match = Model.query.filter(Model.user_id == user_id).all()
         # print(f'------ Composite Unique for {Model.__name__}: {len(match)} possible matches ----------------')
         lookup = {tuple([getattr(ea, key) for key in composite_unique]): ea for ea in match}
-        # pprint(lookup)
+        pprint(lookup)
         for data in dataset:
             data = fix_date(Model, data)  # fix incoming data 'recorded' as needed for this Model
             # TODO: The following patch for Audience is not needed once we improve API validation process
@@ -467,7 +470,7 @@ def db_create_or_update_many(dataset, user_id=None, Model=Post):
             # print(f'------- {key} -------')
             if model:
                 # pprint(model)
-                # TODO: Look into Model.upate method
+                # TODO: Look into Model.update method
                 [setattr(model, k, v) for k, v in data.items()]
                 update_count += 1
             else:

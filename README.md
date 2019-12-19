@@ -24,8 +24,9 @@ Core packages required for this application:
 - flask-sqlalchemy
 - pymysql
 - google-api-python-client
-- requests-oauthlib
 - google-auth-httplib2
+- google-auth
+- requests-oauthlib
 - python-dateutil
 
 ## Deployment

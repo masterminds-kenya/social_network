@@ -45,13 +45,18 @@ def get_insight(user_id, first=1, influence_last=30*2, profile_last=30*1, ig_id=
                 for val in ea.get('values'):
                     val['name'], val['user_id'] = ea.get('name'), user_id
                     results.append(val)
-    return db_create_or_update_many(results, user_id=user_id, Model=Insight)
+    models = db_create_or_update_many(results, user_id=user_id, Model=Insight)
+    follow_report = get_online_followers(user_id, ig_id=ig_id, facebook=facebook)
+    logstring = f"We have Online Followers data!" if follow_report else "No follow report"
+    app.logger.info(logstring)
+    return (models, follow_report)
 
 
 def get_online_followers(user_id, ig_id=None, facebook=None):
     """ Just want to get Facebook API response for online_followers for the maximum of the previous 30 days """
     app.logger.info('================= Get Online Followers data ==============')
-    ig_period, metric, token = 'lifetime', OnlineFollowers.metrics[0], ''
+    ig_period, token = 'lifetime', ''
+    metric = ','.join(OnlineFollowers.metrics)
     if not facebook or not ig_id:
         model = db_read(user_id, safe=False)
         ig_id, token = model.get('instagram_id'), model.get('token')
@@ -65,12 +70,11 @@ def get_online_followers(user_id, ig_id=None, facebook=None):
         return None
     results = []
     for day in data[0].get('values', []):  # We expect only 1 element in the 'data' list
-        recorded = day.get('end_time')
+        end_time = day.get('end_time')
         for hour, val in day.get('value', {}).items():
-            results.append({'user_id': user_id, 'hour': int(hour), 'value': int(val), 'end_time': recorded})
+            results.append({'user_id': user_id, 'hour': int(hour), 'value': int(val), 'end_time': end_time})
     pprint(results)
-    return results
-    # return db_create_or_update_many(results, user_id=user_id, Model=OnlineFollowers)
+    return db_create_or_update_many(results, user_id=user_id, Model=OnlineFollowers)
 
 
 def get_audience(user_id, ig_id=None, facebook=None):

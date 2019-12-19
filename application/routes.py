@@ -214,8 +214,7 @@ def insights(mod, id):
         for metric in metrics:
             if metrics == OnlineFollowers.metrics:
                 app.logger.info('--- Online Followers ---')
-                # query = OnlineFollowers.query.filter_by(user_id=id).order_by('recorded', 'hour').all()
-                query = []
+                query = OnlineFollowers.query.filter_by(user_id=id).order_by('recorded', 'hour').all()
                 if len(query):
                     temp_data = {(ea.recorded.strftime("%d %b, %Y"), int(ea.hour)): int(ea.value) for ea in query}
                 else:
