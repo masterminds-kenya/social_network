@@ -1,4 +1,5 @@
 from flask import Flask, flash, current_app
+from flask_login import UserMixin
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.dialects.mysql import BIGINT
@@ -63,7 +64,7 @@ def fix_date(Model, data):
     return data
 
 
-class User(db.Model):
+class User(UserMixin, db.Model):
     """ Data model for user (influencer or brand) accounts.
         Assumes only 1 Instagram per user, and it must be a business account.
         They must have a Facebook Page connected to their business Instagram account.
@@ -74,6 +75,8 @@ class User(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     role = db.Column(db.Enum(*roles, name='user_roles'), default='influencer', nullable=False)
     name = db.Column(db.String(47),                 index=False, unique=False, nullable=True)
+    # email = db.Column(db.string(191),               index=False, unique=True,  nullable=True)
+    # password = db.Column(db.string(191),            index=False, unique=False, nullable=True)
     instagram_id = db.Column(BIGINT(unsigned=True), index=True,  unique=True,  nullable=True)
     facebook_id = db.Column(BIGINT(unsigned=True),  index=False, unique=False, nullable=True)
     token = db.Column(db.String(255),               index=False, unique=False, nullable=True)

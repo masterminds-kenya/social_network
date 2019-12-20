@@ -1,10 +1,7 @@
 {% extends "base.html" %}
-{% block head %}
-<title>Home Index Page</title>
-{% endblock %}
 
 {% block content %}
-<h1>Influencer Sign Up Portal</h1>
+<h1>Bacchus Influencer Platform</h1>
 <p>
    This application is currently in the development stages. To sign up as a test user,
    the developers must add your Facebook username. Then you confirm through
@@ -12,13 +9,19 @@
 </p>
 <p>After that, you can use the link below to create a new Influencer account.</p>
 
-<h2>Join the platform as an Influencer</h2>
-<ul>
-  <li><a href="{{ url_for('login', mod='influencer') }}">FaceBook &amp; InstaGram Authorization as Influencer</a></li>
-</ul>
+<h2>Join the Platform!</h2>
+<p>To take advantage of the platform, you will be asked to confirm that we have your
+   permission to view your InstaGram insights. 
+</p>
+<h3>
+  <a href="{{ url_for('fb_login', mod='influencer') }}">
+    Join as an Influencer
+  </a>
+</h3>
+<h3>
+  <a href="{{ url_for('fb_login', mod='brand') }}">
+    Join as a Brand partner
+  </a>
+</h3>
 
-<h2>Join the platform as a Brand</h2>
-<ul>
-  <li><a href="{{ url_for('login', mod='brand') }}">FaceBook &amp; InstaGram Authorization as Brand</a></li>
-</ul>
 {% endblock %}

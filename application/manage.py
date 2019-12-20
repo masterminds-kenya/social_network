@@ -56,7 +56,7 @@ def process_form(mod, request):
                 models = Model.query.filter(Model.id.in_(model_ids)).all()
                 save[rel] = models
     data = request.form.to_dict(flat=True)
-    if mod in User.roles:
+    if mod in ['login', *User.roles]:
         # assign User.role
         data['role'] = data.get('role', mod)
         # handle IG media_count & followers_count here since it would break on User update.
@@ -72,7 +72,7 @@ def process_form(mod, request):
     data.update(save)  # adds to the data dict if we did save some relationship collections
     # If the form has a checkbox for a Boolean in the form, we may need to reformat.
     # currently I think only Campaign and Post have checkboxes
-    bool_fields = {'campaign': 'completed', 'post': 'processed'}
+    bool_fields = {'campaign': 'completed', 'post': 'processed', 'login': 'remember'}
     # TODO: Add logic to find all Boolean fields in models and handle appropriately.
     if mod in bool_fields:
         data[bool_fields[mod]] = True if data.get(bool_fields[mod]) in {'on', True} else False

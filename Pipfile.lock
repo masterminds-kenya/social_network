@@ -1,7 +1,7 @@
 {
     "_meta": {
         "hash": {
-            "sha256": "38cfd03af65411aa5cc0e7a579b63e6efa1c96d14fc0fbbcd2585c9bd2b54a8d"
+            "sha256": "f5f1306e4def71084e90a9a3617bc53553ce0031c3f186499e9be8e2247d966d"
         },
         "pipfile-spec": 6,
         "requires": {
@@ -52,6 +52,13 @@
             "index": "pypi",
             "version": "==1.1.1"
         },
+        "flask-login": {
+            "hashes": [
+                "sha256:c815c1ac7b3e35e2081685e389a665f2c74d7e077cb93cecabaea352da4752ec"
+            ],
+            "index": "pypi",
+            "version": "==0.4.1"
+        },
         "flask-sqlalchemy": {
             "hashes": [
                 "sha256:0078d8663330dc05a74bc72b3b6ddc441b9a744e2f56fe60af1a5bfc81334327",
@@ -94,10 +101,10 @@
         },
         "httplib2": {
             "hashes": [
-                "sha256:34537dcdd5e0f2386d29e0e2c6d4a1703a3b982d34c198a5102e6e5d6194b107",
-                "sha256:409fa5509298f739b34d5a652df762cb0042507dc93f6633e306b11289d6249d"
+                "sha256:1d1f4ad7a6e55d325830ab274190f98894e069850a871fac19921caf4363259d",
+                "sha256:a5f914f18f99cb9541660454a159e3b3c63241fc3ab60005bb88d97cc7a4fb58"
             ],
-            "version": "==0.14.0"
+            "version": "==0.15.0"
         },
         "idna": {
             "hashes": [
@@ -227,11 +234,10 @@
         },
         "uritemplate": {
             "hashes": [
-                "sha256:01c69f4fe8ed503b2951bef85d996a9d22434d2431584b5b107b2981ff416fbd",
-                "sha256:1b9c467a940ce9fb9f50df819e8ddd14696f89b9a8cc87ac77952ba416e0a8fd",
-                "sha256:c02643cebe23fc8adb5e6becffe201185bf06c40bda5c0b4028a93f1527d011d"
+                "sha256:07620c3f3f8eed1f12600845892b0e036a2420acf513c53f7de0abd911a5894f",
+                "sha256:5af8ad10cec94f215e3f48112de2022e1d5a37ed427fbd88652fa908f2ab7cae"
             ],
-            "version": "==3.0.0"
+            "version": "==3.0.1"
         },
         "urllib3": {
             "hashes": [

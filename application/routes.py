@@ -1,5 +1,7 @@
 from flask import current_app as app
 from flask import render_template, redirect, url_for, request, abort, flash
+from flask_login import current_user, login_user, logout_user, login_required
+from werkzeug.security import generate_password_hash, check_password_hash
 from .model_db import db_create, db_read, db_update, db_delete, db_all
 from .model_db import User, OnlineFollowers, Insight, Audience, Post, Campaign  # , metric_clean
 from . import developer_admin
@@ -27,6 +29,55 @@ def home():
     """ Default root route """
     data = ''
     return render_template('index.html', data=data)
+
+
+@app.route('/signup', methods=['GET', 'POST'])
+def signup():
+    """ Using Flask-Login to create a new user (manager or admin) account """
+    app.logger.info(f'--------- Sign Up User ------------')
+    ignore = ['']
+    signup_roles = [role for role in User.roles if role not in ignore]
+
+    if request.method == 'POST':
+        mod = request.form.role
+        if mod not in signup_roles:
+            raise ValueError("That is not a valid role selection")
+        data = process_form(mod, request)
+        user = User.query.filter_by(name=data['name']).first()
+        if user:
+            flash("That name is already in use.")
+            return redirect(url_for('signup'))
+        user = User.query.filter_by(email=data['email']).first()
+        if user:
+            flash("That email is already in use.")
+            return redirect(url_for('signup'))
+        user = db_create(data)
+        flash("You have created a new user account!")
+        return redirect(url_for('view', mod=mod, id=user['id']))
+
+    return render_template('signup.html', signup_roles=signup_roles)
+
+
+@app.route('/login', methods=['GET', 'POST'])
+def login():
+    """ This the the manual login process. """
+    if request.method == 'POST':
+        data = process_form('login', request)
+        user = User.query.filter_by(email=data['email']).first()
+        if not user or not check_password_hash(user.password, data['password']):
+            flash("Those login details did not work.")
+            return redirect(url_for('login'))
+        login_user(user, remember=data['remember'])
+        return redirect(url_for('view', mod=user['role'], id=user['id']))
+    return render_template('signup.html', signup_roles=[])
+
+
+@app.route('/logout')
+@login_required
+def logout():
+    logout_user()
+    flash("You are now logged out.")
+    return redirect(url_for('home'))
 
 
 @app.route('/error', methods=['GET', 'POST'])
@@ -137,7 +188,7 @@ def data(mod, id, sheet_id):
 
 
 @app.route('/login/<string:mod>')
-def login(mod):
+def fb_login(mod):
     """ Initiate the creation of a new Influencer or Brand, as indicated by 'mod' """
     app.logger.info(f'====================== NEW {mod} Account =========================')
     authorization_url = onboard_login(mod)

@@ -40,7 +40,7 @@
 - [s] Stretch Goal. Not for current feature plan.
 
 Current Status:
-2019-12-18 16:43:40
+2019-12-19 21:47:30
 <!-- Ctrl-Shift-I to generate timestamp -->
 
 ### DB Design: Track different businesses and how influencers affect them
@@ -207,6 +207,7 @@ Current Status:
   - [x] Can remove to campaign and remove for consideration (marked processed)
   - [x] Will be left with current settings if unchanged when other posts modified
 - [ ] Campaign Results View
+  - [ ] ?Decide if it should show less graphs, or go straight to sheet export.
   - [x] Overview of the campaign metrics
 - [x] Functionality to Fetch more posts (API call to FB)
   - [x] Can request more posts for a given user
@@ -218,6 +219,7 @@ Current Status:
   - [x] Calling for more Audience data should also call for update on ig_data metrics.
 - [ ] Fetch more Insights (of the account, not of media)
   - [x] Can get a history the the user (or brand) account insights
+  - [x] Metrics for 'online_followers' automatically updates with Insight updates.
   - [ ] Will limit request to only get new insights since last request
   - [x] In case we do get duplicates, it will NOT create duplicates in DB
     - [x] Will update if our DB info is out-of-date
@@ -234,9 +236,12 @@ Current Status:
   - [x] Function to update a worksheet
   - [x] Can read and format desired DB data into worksheet.
   - [x] Includes a report for the brand insight metrics on the campaign report
-  - [ ] Fix computation of A1 formatting when columns go into the double letter range (AA to ZZ)
-  - [ ] Test & Fix A1 format computation if exceding the double letter range (after ZZ)
-  - [ ] From User detail view, can export influencer/brand account metrics to google sheet.
+  - [x] Fix computation of A1 formatting when columns go into the double letter range (AA to ZZ)
+  - [x] Test & Fix A1 format computation if exceeding the double letter range (after ZZ)
+  - [ ] Check if Google Sheets has a max of 26 columns and 4011 rows.
+  - [x] From User detail view, can export influencer/brand account metrics to google sheet.
+    - [x] This report also includes all posts we have recorded.
+  - [ ] Export Sheet functions should use multiple worksheets/tabs in the same file.
 - [x] create a route & view for the sheets data view
 - [x] For a given worksheet, ability to edit existing permissions
 - [ ] For a given worksheet, ability to delete existing permissions
@@ -271,8 +276,8 @@ Current Status:
 - [ ] Page styling of admin sections to assist in clear reports and navigation
 - [ ] Attractive page styling for Influencer sign up portal & documents (ToS, privacy, etc)
 - [ ] Content for Influencer sign-up portal (home view) to give them confidence in the process.
-- [ ] Content for Privacy page
-- [ ] Content for Tos page
+- [x] Content included and structured for Privacy page
+- [x] Content included and structured for Tos page
 - [ ] Attractive and clear styling for profile and data views seen by Influencers.
 
 ### Code Structure, Testing, Clean up
@@ -286,18 +291,18 @@ Current Status:
 - [x] Modularize the codebase more: move routes elsewhere?
 - [x] ? allow logging in related files (remove all print statements) == from flask import current_app as app
 - [ ] Update forms and API digesting with input validation to replace following functionality:
-  - [ ] Currently fix_date used for both create model, and when create_or_update many
-  - [ ] Currently create_or_update_many also has to modify inputs from Audience API calls
-  - [ ] Should campaign management view extend base instead of view?
+  - [x] Currently fix_date used for both create model, and when create_or_update many
+  - [x] Currently create_or_update_many also has to modify inputs from Audience API calls
+  - [x] Should campaign management view extend base instead of view?
   - [ ] Is current onboard process slow? Delay some data collection?
   - [ ] Other feedback for expected sign up flow?
-  - [ ] Review data options to confirm our desired data collection.
+  - [x] Review data options to confirm our desired data collection.
 - [ ] Create Test Users (need a FB page and Instagram business account).
 - [ ] Test influencer flow after completion (Have Noelle go through process again)
 - [ ] Regex for A1 notation starting cell.
 - [x] Code Refactor: move routes to their own files
 - [x] Code Refactor: more modular code structure
-- [ ] Revisit Code Refactor: even more modular code structure?
+- [x] Revisit Code Refactor: even more modular code structure?
 - [ ] Form Validate: Add method to validate form. Safe against form injection?
 - [ ] Error handling on adding user with duplicate email address.
 - [ ] Error handling on adding user with duplicate name.

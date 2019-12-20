@@ -1,0 +1,89 @@
+{% extends "base.html" %}
+{% block head %}
+{% if signup_roles %}
+<title>New User Sign Up</title>
+{% else %}
+<title>User Login</title>
+{% endif %}
+{% endblock head %}
+
+{% block header %}
+{{ super() }}
+{% if signup_roles %}
+<h1>New User Sign Up</h1>
+{% else %}
+<h1>User Login</h1>
+{% endif %}
+{% endblock header %}
+
+{% block content %}
+
+<h3>
+  <a href="{{ url_for('fb_login', mod='influencer') }}">
+  {% if signup_roles %}
+  Join as an Influencer
+  {% else %}
+  Influencer Login
+  {% endif %}
+  </a>
+</h3>
+<h3>
+  <a href="{{ url_for('fb_login', mod='brand') }}">
+  {% if signup_roles %}
+   Join as a Brand partner
+  {% else %}
+  Brand Login
+  {% endif %}
+  </a>
+</h3>
+
+<h2>
+  Manual User
+  {% if signup_roles %}
+  Sign Up
+  {% else %}
+  Login
+  {% endif %}
+</h2>
+<form method="POST" enctype="multipart/form-data">
+  {% if signup_roles %}
+  <div class="form-group">
+    <label for="name">Name</label>
+    <input type="text" name="name" id="name" placeholder="username" class="form-control"/>
+  </div>
+  {% endif %}
+  <div class="form-group">
+    <label for="email">Email</label>
+    <input type="email" name="email" id="email" placeholder="email" class="form-control"/>
+  </div>
+  <div class="form-group">
+    <label for="password">Password</label>
+    <input type="password" name="password" id="password" placeholder="password" class="form-control"/>
+  </div>
+  <div class="form-group">
+  {% if signup_roles %}
+    <label for="role-select">User type</label>
+    <select name="role" id="role-select">
+      {% for role in signup_roles %}
+      <option value="{{role}}">{{role|capitalize}}</option>
+      {% endfor %}
+    </select>
+  {% else %}
+    <label for="remember">
+      <input type="checkbox" name="remember" id="remember" />
+      Remember me
+    </label>
+  {% endif %}
+  </div>
+  <div class="form-group">
+
+  </div>
+  <div class="form-group">
+    <label for="notes">Notes</label>
+    <input type="text" name="notes" id="notes" placeholder="Notes" class="form-control"/>
+  </div>
+
+  <button type="submit" class="btn btn-success">Save</button>
+</form>
+
+{% endblock %}
