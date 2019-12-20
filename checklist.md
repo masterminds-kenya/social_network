@@ -262,6 +262,8 @@ Current Status:
 - [x] Move hosting and FaceBook settings to Bacchus
 - [x] refactor sheets data view to export to a google worksheet
 - [ ] Login: any additional User and Admin authentication needed?
+  - [ ] Allow admin to create a user w/o a password, then they create a password on first login.
+  - [ ] Any new 'manager' or 'admin' user created must be approved by admin for permissions.
   - [ ] ?Confirm Google login for Worksheet access?
   - [ ] ?Add our own App Auth: User management, adding/updating, auth, password, etc.
   - [ ] Admin: only allow admin to see list and (potential) admin views

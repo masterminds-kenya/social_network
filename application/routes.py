@@ -9,15 +9,16 @@ from .manage import update_campaign, process_form, post_display
 from .api import onboard_login, onboarding, get_insight, get_audience, get_posts, get_online_followers
 from .sheets import create_sheet, update_sheet, read_sheet, perm_add, perm_list
 import json
+from pprint import pprint
 
 
 def mod_lookup(mod):
     """ Associate to the appropriate Model, or raise error if 'mod' is not an expected value """
     if not isinstance(mod, str):
         raise TypeError('Expected a string input')
-    lookup = {'brand': User, 'influencer': User, 'onlinefollowers': OnlineFollowers,
-              'insight': Insight, 'audience': Audience, 'post': Post, 'campaign': Campaign
-              }
+    lookup = {'insight': Insight, 'audience': Audience, 'post': Post, 'campaign': Campaign}
+    # 'onlinefollowers': OnlineFollowers,
+    lookup.update({role: User for role in User.roles})
     Model = lookup.get(mod, None)
     if not Model:
         raise ValueError('That is not a valid route.')
@@ -35,14 +36,25 @@ def home():
 def signup():
     """ Using Flask-Login to create a new user (manager or admin) account """
     app.logger.info(f'--------- Sign Up User ------------')
-    ignore = ['']
+    ignore = ['influencer', 'brand']
     signup_roles = [role for role in User.roles if role not in ignore]
 
     if request.method == 'POST':
-        mod = request.form.role
+        print('------- Post on Sign Up ---------')
+        pprint(request.form)
+        mod = request.form.get('role')
         if mod not in signup_roles:
             raise ValueError("That is not a valid role selection")
         data = process_form(mod, request)
+        password = data.get('password', None)
+        # TODO: allow system for an admin to create a user w/o a password,
+        # but require that user to create a password on first login
+        admin_create = False
+        if not password and not admin_create:
+            flash("A password is required.")
+            return redirect(url_for('signup'))
+        else:
+            data['password'] = generate_password_hash(password)
         user = User.query.filter_by(name=data['name']).first()
         if user:
             flash("That name is already in use.")
@@ -62,13 +74,20 @@ def signup():
 def login():
     """ This the the manual login process. """
     if request.method == 'POST':
+        print('------- Post on Login ---------')
+        pprint(request.form)
         data = process_form('login', request)
+        password = data.get('password', None)
+        if not password:
+            flash("A password is required.")
+            return redirect(url_for('login'))
+
         user = User.query.filter_by(email=data['email']).first()
         if not user or not check_password_hash(user.password, data['password']):
             flash("Those login details did not work.")
             return redirect(url_for('login'))
         login_user(user, remember=data['remember'])
-        return redirect(url_for('view', mod=user['role'], id=user['id']))
+        return redirect(url_for('view', mod=user.role, id=user.id))
     return render_template('signup.html', signup_roles=[])
 
 

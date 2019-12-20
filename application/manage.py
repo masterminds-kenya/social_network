@@ -1,4 +1,6 @@
+from flask import flash
 from .model_db import db, from_sql, User, Post, Audience
+from werkzeug.security import generate_password_hash, check_password_hash
 
 
 def update_campaign(ver, request):
@@ -57,6 +59,7 @@ def process_form(mod, request):
                 save[rel] = models
     data = request.form.to_dict(flat=True)
     if mod in ['login', *User.roles]:
+        # checking, or creating, password hash is handled outside of this function.
         # assign User.role
         data['role'] = data.get('role', mod)
         # handle IG media_count & followers_count here since it would break on User update.
