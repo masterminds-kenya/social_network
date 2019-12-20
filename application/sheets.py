@@ -123,10 +123,8 @@ def create_sheet(model, service=None):
     spreadsheet = {'properties': {'title': title}}
     spreadsheet = service.spreadsheets().create(body=spreadsheet, fields='spreadsheetId').execute()
     app.logger.info(f"spreadsheet id: {spreadsheet.get('spreadsheetId')}")
-    # create flash message
-    message = f"Before you can view the sheet you must provide an email that has google drive access. "
-    message += f"This usually means a gmail account, or another account that uses GSuite. "
-    message += f"Follow the link below to View and Manage Access to the Worksheet. "
+    message = f"Before you can view the Google Sheet, you must give yourself access "
+    message += f"with the View and Manage Access link."
     flash(message)
     return update_sheet(model, id=spreadsheet.get('spreadsheetId'), service=service)
 
@@ -177,12 +175,12 @@ def get_vals(model):
     model_name = model.__class__.__name__
     app.logger.info(f"-------- Get vals for a {model_name} Model instance --------")
     if model_name == 'User':
-        flash(f"Sheet has {model.role} {model_name} data for {model.name}. ")
+        # flash(f"Sheet has {model.role} {model_name} data for {model.name}. ")
         insights = model.insight_report()
         results = [['label row', 'each', 'column', 'has', 'a', 'label'], ['each row is a post'], []]
         sheet_rows = [*insights, [''], *results, ['']]
     elif model_name == 'Campaign':
-        flash(f"Sheet has {model_name} data for {model.name}. ")
+        # flash(f"Sheet has {model_name} data for {model.name}. ")
         brands = ['Brand', ', '.join([ea.name for ea in model.brands])]
         users = ['Influencer', ', '.join([ea.name for ea in model.users])]
         brand_data = [model.brands[0].insight_summary(label_only=True)]
