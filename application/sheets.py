@@ -3,7 +3,7 @@ from os import path
 from googleapiclient.discovery import build
 from google.oauth2 import service_account
 from datetime import datetime as dt
-# from pprint import pprint
+from pprint import pprint
 
 SHARED_SHEET_ID = '1LyUFeo5in3F-IbR1eMnkp-XeQXD_zvfYraxCJBUkZPs'
 service_config = {
@@ -91,10 +91,12 @@ def perm_add(sheet_id, add_users, service=None):
 
 def all_files(*args, service=None):
     """ List, and possibly manage, all files owned by the app """
+    app.logger.info(f"======== List all Google Sheet Files ========")
     if not service:
         creds = get_creds(service_config['sheets'])
         service = build('drive', 'v3', credentials=creds, cache_discovery=False)
     files_list = service.files().list().execute().get('items', [])
+    pprint(files_list)
     return files_list
 
 
