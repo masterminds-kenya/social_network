@@ -2,9 +2,8 @@ from flask import current_app as app
 from os import path
 from googleapiclient.discovery import build
 from google.oauth2 import service_account
-# import google.auth
 from datetime import datetime as dt
-from pprint import pprint
+# from pprint import pprint
 
 SHARED_SHEET_ID = '1LyUFeo5in3F-IbR1eMnkp-XeQXD_zvfYraxCJBUkZPs'
 service_config = {
@@ -105,9 +104,9 @@ def perm_list(sheet_id, service=None):
         creds = get_creds(service_config['sheets'])
         service = build('drive', 'v3', credentials=creds, cache_discovery=False)
     data = service.files().get(fileId=sheet_id, fields='name, id, permissions').execute()
-    pprint(data)
     data['id'] = data.get('id', data.get('fileId', sheet_id))
     data['link'] = data.get('link', f"https://docs.google.com/spreadsheets/d/{sheet_id}/edit#gid=0")
+    # pprint(data)
     return data
 
 
@@ -138,7 +137,7 @@ def read_sheet_full(id=SHARED_SHEET_ID, service=None):
     request = service.spreadsheets().get(spreadsheetId=id, ranges=ranges, includeGridData=include_grid_data)
     spreadsheet = request.execute()
     id = spreadsheet.get('spreadsheetId')
-    pprint(spreadsheet)
+    # pprint(spreadsheet)
     link = f"https://docs.google.com/spreadsheets/d/{id}/edit#gid=0"
     return (spreadsheet, id, link)
 
@@ -188,9 +187,20 @@ def compute_A1(arr2d, start='A1', sheet='Sheet1'):
     col_count = len(max(arr2d, key=len))
     # TODO: write regex that separates the letter and digit sections. 'A1' would have following result:
     col, row = 'A', 1
-    final_col = chr(ord(col) + col_count)
+    col_offset = ord('A') - 1  # 64
+    max_col = ord('Z') - col_offset  # 26
+    final_col = ''
+    num = ord(col) - col_offset + col_count
+    while num:
+        num, mod = divmod(num, max_col)
+        if mod == 0:
+            num, mod = num - 1, max_col
+        final_col = chr(mod + col_offset) + final_col
+    # final_col is the correct string, even if in the AA to ZZ range or beyond
     final_row = row_count + row
-    return f"{sheet}!{start}:{final_col}{final_row}"
+    result = f"{sheet}!{start}:{final_col}{final_row}"
+    app.logger.info(f"A1 format is {result} for {row_count} rows & {col_count} columns")
+    return result
 
 
 def update_sheet(campaign, id=SHARED_SHEET_ID, service=None):
@@ -221,4 +231,4 @@ def update_sheet(campaign, id=SHARED_SHEET_ID, service=None):
     except Exception as e:
         spreadsheet = {}
         app.logger.error(f"Could not update sheet: {e}")
-    return read_sheet(id=spreadsheet.get('spreadsheetId'), range_=range_, service=service)
+    return read_sheet(id=spreadsheet.get('spreadsheetId', id), range_=range_, service=service)

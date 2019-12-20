@@ -1,6 +1,5 @@
 from flask import Flask, flash, current_app
 from flask_sqlalchemy import SQLAlchemy
-# from flask_sqlalchemy import BaseQuery, SQLAlchemy  # if we create custom query
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.dialects.mysql import BIGINT
 from sqlalchemy import or_
@@ -10,7 +9,6 @@ import re
 from statistics import mean, median, stdev
 import json
 from pprint import pprint  # only for debugging
-# TODO: see "Setting up Constraints when using the Declarative ORM Extension" at https://docs.sqlalchemy.org/en/13/core/constraints.html#unique-constraint
 
 db = SQLAlchemy()
 
@@ -63,16 +61,6 @@ def fix_date(Model, data):
         datestring = data.pop('timestamp', None)
     data['recorded'] = parser.isoparse(datestring).replace(tzinfo=None) if datestring else data.get('recorded')
     return data
-
-
-# class GetActive(BaseQuery):
-#     """ Some models, such as Post, may want to only fetch records not yet processed """
-#     def get_active(self, not_field=None):
-#         # if not not_field:
-#         #     lookup_not_field = {'Post': 'processed', 'Campaign': 'completed'}
-#         #     curr_class = self.__class__.__name__
-#         #     not_field = lookup_not_field(curr_class) or None
-#         return self.query.filter_by(processed=False)
 
 
 class User(db.Model):
@@ -149,7 +137,11 @@ class User(db.Model):
         small_stat = [('Total', sum), ('Average', mean)]
         small_metric_labels = [f"{metric} {ea[0]}" for metric in small_metrics for ea in small_stat]
         insight_labels.extend(small_metric_labels)
-        # TODO: Incorporate the OnlineFollowers for this (usually brand) user.
+        #  Include OnlineFollowers for this (usually brand) user.
+        of_metrics = list(OnlineFollowers.metrics)
+        of_stat = [('Median', median)]
+        of_metric_lables = [f"{metric} {ea[0]}" for metric in of_metrics for ea in of_stat]
+        insight_labels.extend(of_metric_lables)
         if label_only:
             return ['Brand Name', 'Notes', *insight_labels, 'instagram_id', 'modified', 'created']
         if self.instagram_id is None or not self.insights:
@@ -160,6 +152,10 @@ class User(db.Model):
             temp = {key: [] for key in met_stat}
             for insight in self.insights:
                 temp[insight.name].append(int(insight.value))
+            #  Include OnlineFollowers for this (usually brand) user.
+            for metric in of_metrics:  # probably just one element in this list.
+                met_stat[metric] = of_stat
+                temp[metric] = [int(ea.value) for ea in self.aud_count]
             insight_data = [stat[1](temp[metric]) for metric, stats in met_stat.items() for stat in stats]
         report = [self.name, self.notes, *insight_data, getattr(self, 'instagram_id', ''), clean(self.modified), clean(self.created)]
         return report
@@ -382,10 +378,10 @@ class Campaign(db.Model):
             metrics = related[group]['metrics']
             for metric, data in metrics.items():
                 curr = {}
-                curr['total'] = sum(data) if len(data) > 0 else 0
-                curr['mid'] = median(data) if len(data) > 0 else 0
-                curr['avg'] = mean(data) if len(data) > 0 else 0
-                curr['spread'] = stdev(data) if len(data) > 1 else 0
+                curr['Total'] = sum(data) if len(data) > 0 else 0
+                curr['Median'] = median(data) if len(data) > 0 else 0
+                curr['Mean'] = mean(data) if len(data) > 0 else 0
+                curr['StDev'] = stdev(data) if len(data) > 1 else 0
                 related[group]['results'][metric] = curr
         return related
         # end get_results
@@ -521,7 +517,7 @@ def db_create_or_update_many(dataset, user_id=None, Model=Post):
             all_results.append(model)
     else:
         # The following should work with multiple single column unique fields, but no composite unique requirements
-        # print('----------------- Unique Columns -----------------------')  # TODO: remove
+        # print('----------------- Unique Columns -----------------------')
         columns = Model.__table__.columns
         unique = {c.name: [] for c in columns if c.unique}
         [unique[key].append(val) for ea in dataset for (key, val) in ea.items() if key in unique]

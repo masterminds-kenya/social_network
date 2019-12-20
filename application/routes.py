@@ -7,7 +7,6 @@ from .manage import update_campaign, process_form, post_display
 from .api import onboard_login, onboarding, get_insight, get_audience, get_posts, get_online_followers
 from .sheets import create_sheet, update_sheet, read_sheet, perm_add, perm_list
 import json
-# from pprint import pprint
 
 
 def mod_lookup(mod):
@@ -119,7 +118,6 @@ def callback(mod):
     """ Handle the callback for Facebook authorization. Create new influencer or brand user as indicated by 'mod'. """
     app.logger.info(f'================= Authorization Callback {mod}===================')
     view, data, account_id = onboarding(mod, request)
-    # TODO: The following should be cleaned up with better error handling
     if view == 'decide':
         return render_template('decide_ig.html', mod=mod, id=account_id, ig_list=data)
     elif view == 'complete':
@@ -143,8 +141,6 @@ def results(id):
         return render_template('data.html', sheet=sheet, campaign_id=id)
     app.logger.info(f'=========== Campaign {view} ===========')
     related = campaign.get_results()
-    # print('--------related below------------')
-    # pprint(related)
     return render_template(template, mod=mod, view=view, data=campaign, related=related)
 
 
@@ -209,8 +205,6 @@ def insights(mod, id):
     dataset, i = {}, 0
     max_val, min_val = 4, float('inf')
     for metrics in (Insight.influence_metrics, Insight.profile_metrics, OnlineFollowers.metrics):
-        # update the following to associate with the model regardless of where the metrics came from.
-        # TODO: ??
         for metric in metrics:
             if metrics == OnlineFollowers.metrics:
                 query = OnlineFollowers.query.filter_by(user_id=id).order_by('recorded', 'hour').all()

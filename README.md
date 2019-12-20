@@ -47,10 +47,10 @@ When running locally, we can proxy the database. This requires a cloud_sql_proxy
 ./cloud_sql_proxy -instances="DB_CONNECTION_NAME"=tcp:3306
 ```
 
-We can login to the SQL terminal, knowing the correct user and password, with the Google Cloud CLI (replace <username> as appropriate).
+We can login to the SQL terminal, knowing the correct user and password, with the Google Cloud CLI (replace [username] as appropriate).
 
 ```bash
-gcloud sql connect socialnetwork --user=<username>
+gcloud sql connect socialnetwork --user=[username]
 ```
 
 We can create the database tables by running:
