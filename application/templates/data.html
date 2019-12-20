@@ -1,17 +1,21 @@
 {% extends "base.html" %}
 {% block head %}
-<title>Data Report</title>
+<title>{{mod|capitalize}} Data Report</title>
 {% endblock head %}
 
+{% block header %}
+{{ super() }}
+<h1>{{mod|capitalize}} Data Report</h1>
+{% endblock header %}
+
 {% block content %}
-<h1>Data Report</h1>
 <ul>
+  <li><a href="{{ url_for('data_permissions', mod=mod, id=id, sheet_id=sheet['id']) }}">View and Manage Access to the Worksheet</a></li>
   <li><a href="{{ sheet['link'] }}">View Google Worksheet</a> </li>
-  {% if campaign_id %}
-  <li><a href="{{ url_for('update_data', campaign_id=campaign_id, sheet_id=sheet['id']) }}">Update Data in Report</a></li>
-  <li><a href="{{ url_for('data_permissions', campaign_id=campaign_id, sheet_id=sheet['id']) }}">View and Manage Access to the Worksheet</a></li>
-  <li><a href="{{ url_for('campaign', id=campaign_id) }}">Return to Campaign Manage Page</a></li>
-  <li><a href="{{ url_for('detail_campaign', id=campaign_id) }}">View Collected Posts for this Campaign</a></li>
+  <li><a href="{{ url_for('update_data', mod=mod, id=id, sheet_id=sheet['id']) }}">Update Data in Report</a></li>
+  {% if mod == 'campaign' %}
+  <li><a href="{{ url_for('campaign', id=id) }}">Return to Campaign Manage Page</a></li>
+  <li><a href="{{ url_for('detail_campaign', id=id) }}">View Collected Posts for this Campaign</a></li>
   {% endif %}
 </ul>
 {% if sheet.get('range') %}
@@ -43,9 +47,11 @@
 {% endif %}
 {% if campaign_id %}
 <ul>
-  <li><a href="{{ url_for('data_permissions', campaign_id=campaign_id, sheet_id=sheet['id']) }}">View and Manage Access to the Worksheet</a></li>
-  <li><a href="{{ url_for('campaign', id=campaign_id) }}">Return to Campaign Manage Page</a></li>
-  <li><a href="{{ url_for('detail_campaign', id=campaign_id) }}">View Collected Posts for this Campaign</a></li>
+  <li><a href="{{ url_for('data_permissions', mod=mod, id=id, sheet_id=sheet['id']) }}">View and Manage Access to the Worksheet</a></li>
+  {% if mod == 'campaign' %}
+  <li><a href="{{ url_for('campaign', id=id) }}">Return to Campaign Manage Page</a></li>
+  <li><a href="{{ url_for('detail_campaign', id=id) }}">View Collected Posts for this Campaign</a></li>
+  {% endif %}
 </ul>
 {% endif %}
 

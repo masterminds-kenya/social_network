@@ -1,11 +1,10 @@
 {% extends "base.html" %}
 {% block head %}
-<title>{{ action }} Access Permission Form</title>
+<title>{{mod|capitalize}} Sheet Access Permission {{ action }} Form</title>
 {% endblock %}
 
-
 {% block content %}
-<h2>{{ action }} Access Permissions for {{ sheet.get('name', 'Worksheet') }}</h2>
+<h2>{{mod|capitalize}} Sheet Access {{ action }} Permissions for {{ sheet.get('name', 'Worksheet') }}</h2>
 
 <form method="POST" enctype="multipart/form-data">
   {% if data.get('id') %}
@@ -47,10 +46,12 @@
 <h3>Other Actions</h3>
 <ul>
   <li><a href="{{ sheet['link'] }}">View Google Worksheet</a> </li>
-  <li><a href="{{ url_for('update_data', campaign_id=campaign_id, sheet_id=sheet['id']) }}">Update Data in Report</a></li>
-  <li><a href="{{ url_for('data_permissions', campaign_id=campaign_id, sheet_id=sheet['id']) }}">View and Manage Access to the Worksheet</a></li>
-  <li><a href="{{ url_for('campaign', id=campaign_id) }}">Return to Campaign Manage Page</a></li>
-  <li><a href="{{ url_for('detail_campaign', id=campaign_id) }}">View Collected Posts for this Campaign</a></li>
+  <li><a href="{{ url_for('update_data', mod=mod, id=id, sheet_id=sheet['id']) }}">Update Data in Report</a></li>
+  <li><a href="{{ url_for('data_permissions', mod=mod, id=id, sheet_id=sheet['id']) }}">View and Manage Access to the Worksheet</a></li>
+  {% if mod == 'campaign' %}
+  <li><a href="{{ url_for('campaign', id=id) }}">Return to Campaign Manage Page</a></li>
+  <li><a href="{{ url_for('detail_campaign', id=id) }}">View Collected Posts for this Campaign</a></li>
+  {% endif %}
 </ul>
 
 {% endblock %}

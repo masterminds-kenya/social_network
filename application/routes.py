@@ -59,35 +59,63 @@ def backup_save(mod, id):
     return redirect(url_for('view', mod='influencer', id=id))
 
 
-@app.route('/data/update/<int:campaign_id>/<string:sheet_id>')
-def update_data(campaign_id, sheet_id):
-    """ Update the given worksheet (sheet_id) data from the given campaign (campaign_id) """
-    campaign = Campaign.query.get(campaign_id)
-    sheet = update_sheet(campaign, id=sheet_id)
-    # TODO: ?refactor to use redirect(url_for('data', campaign_id=campaign_id, sheet_id=sheet['id']))
-    return render_template('data.html', sheet=sheet, campaign_id=campaign_id)
+# ########## The following are for worksheets ############
 
 
-@app.route('/data/permissions/<int:campaign_id>/<string:sheet_id>', methods=['GET', 'POST'])
-def data_permissions(campaign_id, sheet_id, perm_id=None):
+@app.route('/<string:mod>/<int:id>/export', methods=['GET', 'POST'])
+def export(mod, id):
+    """ Export data to google sheet, generally for influencer or brand Users.
+        Was view results on GET and generate Sheet on POST .
+    """
+    app.logger.info(f"==== {mod} Create Sheet ====")
+    Model = mod_lookup(mod)
+    model = Model.query.get(id)  # db_read(id, Model=Model)
+    sheet = create_sheet(model)
+    # TODO: ?refactor to use redirect(url_for('data', mod=mod, id=id, sheet_id=sheet['id']))
+    return render_template('data.html', mod=mod, id=id, sheet=sheet)
+
+    # mod, view = 'campaign', 'results'
+    # template, related = f"{view}_{mod}.html", {}
+    # if request.method == 'POST':
+    #     sheet = create_sheet(model)
+    #     app.logger.info(f"==== {mod} Create Sheet ====")
+    #     # TODO: ?refactor to use redirect(url_for('data', mod=mod, id=id, sheet_id=sheet['id']))
+    #     return render_template('data.html', mod=mod, id=id, sheet=sheet)
+    # app.logger.info(f'=========== {mod} Sheet Export ===========')
+    # related = model.get_results()
+    # return render_template(template, mod=mod, view=view, data=model, related=related)
+
+
+@app.route('/data/update/<string:mod>/<int:id>/<string:sheet_id>')
+def update_data(mod, id, sheet_id):
+    """ Update the given worksheet (sheet_id) data from the given Model indicated by mod and id. """
+    Model = mod_lookup(mod)
+    model = Model.query.get(id)
+    sheet = update_sheet(model, id=sheet_id)
+    # TODO: ?refactor to use redirect(url_for('data', mod=mod, id=id, sheet_id=sheet['id']))
+    return render_template('data.html', mod=mod, id=id, sheet=sheet)
+
+
+@app.route('/data/permissions/<string:mod>/<int:id>/<string:sheet_id>', methods=['GET', 'POST'])
+def data_permissions(mod, id, sheet_id, perm_id=None):
     """ Used for managing permissions to view worksheets """
-    app.logger.info(f'===== data permissions route with sheet {sheet_id} ====')
+    app.logger.info(f'===== {mod} data permissions for sheet {sheet_id} ====')
     template = 'form_permission.html'
     sheet = perm_list(sheet_id)
     data = next((x for x in sheet.get('permissions', []) if x.id == perm_id), {}) if perm_id else {}
     action = 'Edit' if perm_id else 'Add'
+    app.logger.info(f'-------- {mod} Sheet {action} Permissions --------')
     if request.method == 'POST':
-        app.logger.info(f'--------- {action} Permissions ------------')
-        data = request.form.to_dict(flat=True)  # TODO: add form validate method for security.
+        data = request.form.to_dict(flat=True)
         if action == 'Edit':
             # TODO: Manage updating the sheet permissions
             # model = db_update(data, id, Model=Model)
             pass
         else:  # action == 'Add'
             sheet = perm_add(sheet_id, data)
-        # TODO: ?refactor to use redirect(url_for('data', campaign_id=campaign_id, sheet_id=sheet['id']))
-        return render_template('data.html', sheet=sheet, campaign_id=campaign_id)
-    return render_template(template, action=action, data=data, sheet=sheet, campaign_id=campaign_id)
+        # TODO: ?refactor to use redirect(url_for('data', mod=mod, id=id, sheet_id=sheet['id']))
+        return render_template('data.html', mod=mod, id=id, sheet=sheet)
+    return render_template(template, mod=mod, id=id, action=action, data=data, sheet=sheet)
 
 
 @app.route('/data')
@@ -96,13 +124,16 @@ def data_default():
     return data(None)
 
 
-@app.route('/data/view/<string:id>')
-def data(id):
+@app.route('/data/view/<string:mod>/<int:id>/<string:sheet_id>')
+def data(mod, id, sheet_id):
     """ Show the data with Google Sheets """
     # TODO: Do we need this route? Currently only called by unused routes
-    # TODO: ?refactor so url_for('data', campaign_id=campaign_id, sheet_id=sheet['id'])
-    sheet = read_sheet(id=id)
-    return render_template('data.html', sheet=sheet, campaign_id=id)
+    # TODO: ?refactor to use redirect(url_for('data', mod=mod, id=id, sheet_id=sheet['id']))
+    sheet = read_sheet(id=sheet_id)
+    return render_template('data.html', mod=mod, id=id, sheet=sheet)
+
+
+# ############# End Worksheets #############
 
 
 @app.route('/login/<string:mod>')
@@ -137,8 +168,8 @@ def results(id):
     if request.method == 'POST':
         sheet = create_sheet(campaign)
         app.logger.info(f"==== Campaign {view} Create Sheet ====")
-        # TODO: ?refactor to use redirect(url_for('data', campaign_id=campaign_id, sheet_id=sheet['id']))
-        return render_template('data.html', sheet=sheet, campaign_id=id)
+        # TODO: ?refactor to use redirect(url_for('data', mod=mod, id=id, sheet_id=sheet['id']))
+        return render_template('data.html', mod=mod, id=id, sheet=sheet)
     app.logger.info(f'=========== Campaign {view} ===========')
     related = campaign.get_results()
     return render_template(template, mod=mod, view=view, data=campaign, related=related)
@@ -276,8 +307,8 @@ def add_edit(mod, id=None):
     """ Adding or Editing a DB record is a similar process handled here. """
     action = 'Edit' if id else 'Add'
     Model = mod_lookup(mod)
+    app.logger.info(f'--------- {action} {mod}------------')
     if request.method == 'POST':
-        app.logger.info(f'--------- {action} {mod}------------')
         data = process_form(mod, request)
         # TODO: ?Check for failing unique column fields, or failing composite unique requirements?
         if action == 'Edit':

@@ -12,6 +12,7 @@
   {% endblock head %}
 </head>
 <body>
+
 <header>
 {% block header %}
   <nav>
@@ -23,6 +24,8 @@
       <li><a href="{{ url_for('dev_admin') }}">Developer Admin</a></li>
     </ul>
   </nav>
+  {% endblock header %}
+
   {% with messages = get_flashed_messages() %}
   {% if messages %}
     {% for message in messages %}
@@ -30,8 +33,8 @@
     {% endfor %}
   {% endif %}
   {% endwith %}
-{% endblock header %}
 </header>
+
 {% block content %}
 <main>
   <h1>Main Content</h1>

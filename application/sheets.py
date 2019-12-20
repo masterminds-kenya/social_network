@@ -1,9 +1,9 @@
-from flask import current_app as app
+from flask import flash, current_app as app
 from os import path
 from googleapiclient.discovery import build
 from google.oauth2 import service_account
 from datetime import datetime as dt
-# from pprint import pprint
+from pprint import pprint
 
 SHARED_SHEET_ID = '1LyUFeo5in3F-IbR1eMnkp-XeQXD_zvfYraxCJBUkZPs'
 service_config = {
@@ -91,10 +91,12 @@ def perm_add(sheet_id, add_users, service=None):
 
 def all_files(*args, service=None):
     """ List, and possibly manage, all files owned by the app """
+    app.logger.info(f"======== List all Google Sheet Files ========")
     if not service:
         creds = get_creds(service_config['sheets'])
         service = build('drive', 'v3', credentials=creds, cache_discovery=False)
     files_list = service.files().list().execute().get('items', [])
+    pprint(files_list)
     return files_list
 
 
@@ -106,23 +108,25 @@ def perm_list(sheet_id, service=None):
     data = service.files().get(fileId=sheet_id, fields='name, id, permissions').execute()
     data['id'] = data.get('id', data.get('fileId', sheet_id))
     data['link'] = data.get('link', f"https://docs.google.com/spreadsheets/d/{sheet_id}/edit#gid=0")
-    # pprint(data)
     return data
 
 
-def create_sheet(campaign, service=None):
-    """ Takes in an instance from the Campaign model and create a worksheet. """
-    app.logger.info('================== create sheet =======================')
+def create_sheet(model, service=None):
+    """ Takes in a Model instance, usually from Campaign or User (but must have a name property) and create a worksheet. """
+    app.logger.info(f'======== create {model.name} sheet ========')
     if not service:
         creds = get_creds(service_config['sheets'])
         service = build('sheets', 'v4', credentials=creds, cache_discovery=False)
     timestamp = int(dt.timestamp(dt.now()))
-    name = str(campaign.name).replace(' ', '_')
+    name = str(model.name).replace(' ', '_')
     title = f"{name}_{timestamp}"
     spreadsheet = {'properties': {'title': title}}
     spreadsheet = service.spreadsheets().create(body=spreadsheet, fields='spreadsheetId').execute()
     app.logger.info(f"spreadsheet id: {spreadsheet.get('spreadsheetId')}")
-    return update_sheet(campaign, id=spreadsheet.get('spreadsheetId'), service=service)
+    message = f"Before you can view the Google Sheet, you must give yourself access "
+    message += f"with the View and Manage Access link."
+    flash(message)
+    return update_sheet(model, id=spreadsheet.get('spreadsheetId'), service=service)
 
 
 # TODO: ? Is this going to be used, or it should be deleted?
@@ -166,23 +170,43 @@ def read_sheet(id=SHARED_SHEET_ID, range_=None, service=None):
     return spreadsheet
 
 
-def get_vals(campaign):
+def get_vals(model):
     """ Get the values we want to put into our worksheet report """
-    brands = ['Brand', ', '.join([ea.name for ea in campaign.brands])]
-    users = ['Influencer', ', '.join([ea.name for ea in campaign.users])]
-    brand_data = [campaign.brands[0].insight_summary(label_only=True)]
-    for brand in campaign.brands:
-        brand_data.append(brand.insight_summary())
-    results = campaign.report_posts()
-    sheet_rows = [brands, users, [''], *brand_data, [''], *results, ['']]
-    for brand in campaign.brands:
-        sheet_rows.extend(brand.insight_report())
-    app.logger.info(f"-------- get_vals Total rows: {len(sheet_rows)}, with {len(results) - 1} rows of posts --------")
+    model_name = model.__class__.__name__
+    app.logger.info(f"-------- Get vals for a {model_name} Model instance --------")
+    if model_name == 'User':
+        # flash(f"Sheet has {model.role} {model_name} data for {model.name}. ")
+        insights = model.insight_report()
+        # media_posts = [['label row', 'each', 'column', 'has', 'a', 'label'], ['each row is a post'], []]
+        media_posts = model.export_posts()
+        sheet_rows = [*insights, [''], *media_posts, ['']]
+    elif model_name == 'Campaign':
+        # flash(f"Sheet has {model_name} data for {model.name}. ")
+        brands = ['Brand', ', '.join([ea.name for ea in model.brands])]
+        users = ['Influencer', ', '.join([ea.name for ea in model.users])]
+        brand_data = [model.brands[0].insight_summary(label_only=True)]
+        for brand in model.brands:
+            brand_data.append(brand.insight_summary())
+        media_posts = model.export_posts()
+        sheet_rows = [brands, users, [''], *brand_data, [''], *media_posts, ['']]
+        for brand in model.brands:
+            sheet_rows.extend(brand.insight_report())
+    else:
+        logstring = f'Unexpected {model_name} model at this time'
+        flash(logstring)
+        app.logger.info(f'-------- {logstring} --------')
+        data = [logstring]
+        media_posts = [['media_posts label row']]
+        sheet_rows = [data, [''], *media_posts, ['']]
+    app.logger.info(f"-------- Total rows: {len(sheet_rows)}, with {len(media_posts) - 1} rows of posts --------")
     return sheet_rows
 
 
 def compute_A1(arr2d, start='A1', sheet='Sheet1'):
-    """ Determine A1 format for 2D-array input, on given sheet, starting at given cell """
+    """ Determine A1 format for 2D-array input, on given sheet, starting at given cell.
+        This algorithm assumes that exceeding 26 columns moves into the AA range and beyond.
+        It is possible that Google Sheets only allows a max of 26 columns and 4011 rows.
+     """
     row_count = len(arr2d)
     col_count = len(max(arr2d, key=len))
     # TODO: write regex that separates the letter and digit sections. 'A1' would have following result:
@@ -197,14 +221,15 @@ def compute_A1(arr2d, start='A1', sheet='Sheet1'):
             num, mod = num - 1, max_col
         final_col = chr(mod + col_offset) + final_col
     # final_col is the correct string, even if in the AA to ZZ range or beyond
+    # TODO: Find out if the max rows is 4011 and max cols is 26. Manage if we exceed the max.
     final_row = row_count + row
     result = f"{sheet}!{start}:{final_col}{final_row}"
     app.logger.info(f"A1 format is {result} for {row_count} rows & {col_count} columns")
     return result
 
 
-def update_sheet(campaign, id=SHARED_SHEET_ID, service=None):
-    """ Get the data we want, then append it to the worksheet """
+def update_sheet(model, id=SHARED_SHEET_ID, service=None):
+    """ Get the data we want from the model instance, then append it to the worksheet """
     app.logger.info(f'================== update sheet {id} =======================')
     if not service:
         creds = get_creds(service_config['sheets'])
@@ -212,7 +237,7 @@ def update_sheet(campaign, id=SHARED_SHEET_ID, service=None):
     value_input_option = 'USER_ENTERED'  # 'RAW' | 'USER_ENTERED' | 'INPUT_VALUE_OPTION_UNSPECIFIED'
     insert_data_option = 'OVERWRITE'  # 'OVERWITE' | 'INSERT_ROWS'
     major_dimension = 'ROWS'  # 'ROWS' | 'COLUMNS'
-    vals = get_vals(campaign)
+    vals = get_vals(model)
     range_ = compute_A1(vals) or 'Sheet1!A1:B2'
     value_range_body = {
         "majorDimension": major_dimension,
