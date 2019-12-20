@@ -381,6 +381,9 @@ def add_edit(mod, id=None):
     """ Adding or Editing a DB record is a similar process handled here. """
     action = 'Edit' if id else 'Add'
     Model = mod_lookup(mod)
+    if action == 'Add' and Model == User:
+        flash("Using Signup")
+        return redirect(url_for('signup'))
     app.logger.info(f'--------- {action} {mod}------------')
     if request.method == 'POST':
         data = process_form(mod, request)

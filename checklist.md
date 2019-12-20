@@ -223,6 +223,20 @@ Current Status:
   - [ ] Will limit request to only get new insights since last request
   - [x] In case we do get duplicates, it will NOT create duplicates in DB
     - [x] Will update if our DB info is out-of-date
+- [ ] Flash messages for any processes that do not have an obvious update.
+  - [ ] Get new posts
+  - [ ] get new insights
+  - [ ] get new audiences
+- [x] Remove link to get Online Followers Report since it is also called by get insights.
+- [ ] Ability to update IG account followers_count and media_count stored in Audience
+- [ ] Get new Audience data should also call to get the IG account info (followers_count & media_count).
+- [x] Move/Relabel/remove 'Admin - Log' link on user detail view.
+- [s] Add migration functionality?
+- [x] Move hosting and FaceBook settings to Bacchus
+- [ ] Research Google Cloud settings to remove delay for website to spin up after idle.
+
+#### Google Drive & Sheets Functionality
+
 - [x] Add Google Sheet API to GCloud app.
 - [x] Add Google Drive API to GCloud app.
 - [x] Add functionality to export Marketing data to a Google worksheet.
@@ -246,28 +260,24 @@ Current Status:
 - [x] For a given worksheet, ability to edit existing permissions
 - [ ] For a given worksheet, ability to delete existing permissions
 - [ ] For a given worksheet, ability to delete the file
-- [ ] Flash messages for any processes that do not have an obvious update.
-  - [ ] Get new posts
-  - [ ] get new insights
-  - [ ] get new audiences
-- [ ] Remove link to get Online Followers Report since it is also called by get insights.
-- [ ] Ability to update IG account followers_count and media_count stored in Audience
-- [ ] Get new Audience data should also call to get the IG account info (followers_count & media_count).
-- [ ] Move/Relabel/remove 'Admin - Log' link on user detail view.
 - [ ] More Drive files management
   - [ ] List all files
   - [ ] Manage those files
 - [s] Attach worksheets to the Campaign model so we not always creating new.
-- [s] Add migration functionality?
-- [x] Move hosting and FaceBook settings to Bacchus
 - [x] refactor sheets data view to export to a google worksheet
-- [ ] Login: any additional User and Admin authentication needed?
-  - [ ] Allow admin to create a user w/o a password, then they create a password on first login.
-  - [ ] Any new 'manager' or 'admin' user created must be approved by admin for permissions.
-  - [ ] ?Confirm Google login for Worksheet access?
-  - [ ] ?Add our own App Auth: User management, adding/updating, auth, password, etc.
-  - [ ] Admin: only allow admin to see list and (potential) admin views
-  - [ ] Research Google Cloud settings to remove delay for website to spin up after idle.
+
+#### Login & Authentication
+
+- [ ] Sign Up page requires Influencers and Brands to use FB link
+- [ ] Login page encourages Influencers and Brands to use FB link
+- [ ]
+- [ ] Login page : any additional User and Admin authentication needed?
+- [ ] Allow admin to create a user w/o a password, then they create a password on first login.
+- [ ] Any new 'manager' or 'admin' user created must be approved by admin for permissions.
+- [ ] ?Confirm Google login for Worksheet access?
+- [ ] ?Add our own App Auth: User management, adding/updating, auth, password, etc.
+- [ ] Admin: only allow admin to see list and (potential) admin views
+- [ ]
 
 ### Site Content & Style
 

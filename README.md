@@ -64,8 +64,7 @@ python application/model_db.py
 
 We are keeping a checklist for features and tasks that are both completed and are upcoming. This is intended as brief overview and to capture ongoing thoughts on how we are proceeding in developing this application. As a living document, it loosely indicates what we plan on working soon, with various degrees of specificity in planning. The current status of this file can be found in the following link:
 
-[Features & Tasks Ver 0.3](./checklist03.md)
-[Features & Tasks Ver 0.2](./checklist.md)
+[Features & Tasks](./checklist.md)
 
 ## User Stories
 
