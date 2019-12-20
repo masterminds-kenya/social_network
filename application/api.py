@@ -1,12 +1,12 @@
 from flask import current_app as app
 from .model_db import db_create, db_read, db_create_or_update_many
-from .model_db import metric_clean, User, Insight, Audience, Post, OnlineFollowers  # , Campaign
+from .model_db import metric_clean, Insight, Audience, Post, OnlineFollowers  # , User, Campaign
 import requests
 import requests_oauthlib
 from requests_oauthlib.compliance_fixes import facebook_compliance_fix
 from datetime import datetime as dt
 from datetime import timedelta
-from pprint import pprint
+# from pprint import pprint
 
 URL = app.config.get('URL')
 FB_CLIENT_ID = app.config.get('FB_CLIENT_ID')
@@ -40,15 +40,14 @@ def get_insight(user_id, first=1, influence_last=30*12, profile_last=30*3, ig_id
             if not insights:
                 app.logger.error('Error: ', response.get('error'))
                 return None
-            # pprint(insights)
             for ea in insights:
                 for val in ea.get('values'):
                     val['name'], val['user_id'] = ea.get('name'), user_id
                     results.append(val)
     models = db_create_or_update_many(results, user_id=user_id, Model=Insight)
     follow_report = get_online_followers(user_id, ig_id=ig_id, facebook=facebook)
-    logstring = f"We have Online Followers data!" if follow_report else "No follow report"
-    app.logger.info(logstring)
+    # logstring = f"We have Online Followers data!" if follow_report else "No follow report"
+    # app.logger.info(logstring)
     return (models, follow_report)
 
 
@@ -131,8 +130,8 @@ def get_posts(user_id, ig_id=None, facebook=None):
         media_type = 'STORY' if res['media_id'] in story_ids else res.get('media_type')
         res['media_type'] = media_type
         metrics = post_metrics.get(media_type, post_metrics['insight'])
-        if metrics == post_metrics['insight']:  # TODO: remove after tested
-            app.logger.error(f" Match not found for {media_type} media_type parameter ")  # TODO: remove after tested
+        if metrics == post_metrics['insight']:
+            app.logger.error(f" Match not found for {media_type} media_type parameter ")
         url = f"https://graph.facebook.com/{media_id}/insights?metric={metrics}"
         res_insight = facebook.get(url).json() if facebook else requests.get(f"{url}&access_token={token}").json()
         insights = res_insight.get('data')
@@ -143,8 +142,6 @@ def get_posts(user_id, ig_id=None, facebook=None):
             res.update(temp)
         else:
             app.logger.info(f"media {media_id} had NO INSIGHTS for type {media_type} --- {res_insight}")
-        # pprint(res)
-        # print('---------------------------------------')
         results.append(res)
     return db_create_or_update_many(results, Post)
 
@@ -156,7 +153,6 @@ def get_ig_info(ig_id, token=None, facebook=None):
     # profile_picture_url, username*, website*
     fields = ['username', *Audience.ig_data]
     fields = ','.join(fields)
-    # TODO: Save the followers_count, and media_count to DB somewhere.
     # print('============ Get IG Info ===================')
     if not token and not facebook:
         logstring = "You must pass a 'token' or 'facebook' reference. "
@@ -167,7 +163,6 @@ def get_ig_info(ig_id, token=None, facebook=None):
     end_time = dt.utcnow().isoformat(timespec='seconds') + '+0000'
     for name in Audience.ig_data:
         res[name] = {'end_time': end_time, 'value': res.get(name)}
-    pprint(res)
     return res
 
 

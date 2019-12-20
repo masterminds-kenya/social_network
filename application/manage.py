@@ -3,7 +3,7 @@ from .model_db import db, from_sql, User, Post, Audience
 
 def update_campaign(ver, request):
     """ Handle adding or removing posts assigned to a campaign, as well removing posts from the processing cue. """
-    form_dict = request.form.to_dict(flat=True)  # TODO: add form validate method for security.
+    form_dict = request.form.to_dict(flat=True)
     # Radio Button | Management | Results | Manage Outcome  | Result Outcome
     # accept       |  data.id   |    0    | camp_id = val   | leave alone
     # reject       |    -1      |   -1    | processed       | camp_id = None
@@ -45,7 +45,7 @@ def process_form(mod, request):
     # I believe this is only needed for campaigns.
     save = {}
     if mod == 'campaign':
-        data = request.form.to_dict(flat=False)  # TODO: add better form validate method for security.
+        data = request.form.to_dict(flat=False)
         # capture the relationship collections
         # TODO: I might be missing how SQLAlchemy intends for use to handle related models
         # the following may not be needed, or need to be managed differently
@@ -55,7 +55,7 @@ def process_form(mod, request):
                 model_ids = [int(ea) for ea in data[rel]]
                 models = Model.query.filter(Model.id.in_(model_ids)).all()
                 save[rel] = models
-    data = request.form.to_dict(flat=True)  # TODO: add form validate method for security.
+    data = request.form.to_dict(flat=True)
     if mod in User.roles:
         # assign User.role
         data['role'] = data.get('role', mod)

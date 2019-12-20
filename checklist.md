@@ -234,11 +234,21 @@ Current Status:
   - [x] Function to update a worksheet
   - [x] Can read and format desired DB data into worksheet.
   - [x] Includes a report for the brand insight metrics on the campaign report
+  - [ ] Fix computation of A1 formatting when columns go into the double letter range (AA to ZZ)
+  - [ ] Test & Fix A1 format computation if exceding the double letter range (after ZZ)
   - [ ] From User detail view, can export influencer/brand account metrics to google sheet.
 - [x] create a route & view for the sheets data view
 - [x] For a given worksheet, ability to edit existing permissions
 - [ ] For a given worksheet, ability to delete existing permissions
 - [ ] For a given worksheet, ability to delete the file
+- [ ] Flash messages for any processes that do not have an obvious update.
+  - [ ] Get new posts
+  - [ ] get new insights
+  - [ ] get new audiences
+- [ ] Remove link to get Online Followers Report since it is also called by get insights.
+- [ ] Ability to update IG account followers_count and media_count stored in Audience
+- [ ] Get new Audience data should also call to get the IG account info (followers_count & media_count).
+- [ ] Move/Relabel/remove 'Admin - Log' link on user detail view.
 - [ ] More Drive files management
   - [ ] List all files
   - [ ] Manage those files
@@ -250,6 +260,7 @@ Current Status:
   - [ ] ?Confirm Google login for Worksheet access?
   - [ ] ?Add our own App Auth: User management, adding/updating, auth, password, etc.
   - [ ] Admin: only allow admin to see list and (potential) admin views
+  - [ ] Research Google Cloud settings to remove delay for website to spin up after idle.
 
 ### Site Content & Style
 
