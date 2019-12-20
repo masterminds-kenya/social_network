@@ -1,7 +1,11 @@
 {% extends "base.html" %}
 
-{% block content %}
+{% block header %}
+{{ super() }}
 <h1>Bacchus Influencer Platform</h1>
+{% endblock header %}
+
+{% block content %}
 <p>
    This application is currently in the development stages. To sign up as a test user,
    the developers must add your Facebook username. Then you confirm through
@@ -11,7 +15,7 @@
 
 <h2>Join the Platform!</h2>
 <p>To take advantage of the platform, you will be asked to confirm that we have your
-   permission to view your InstaGram insights. 
+   permission to view your InstaGram insights.
 </p>
 <h3>
   <a href="{{ url_for('fb_login', mod='influencer') }}">

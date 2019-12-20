@@ -427,7 +427,7 @@ def delete(mod, id):
 def all(mod):
     """ List view for all data of Model indicated by mod. """
     Model = mod_lookup(mod)
-    models = db_all(Model=Model, role=mod) if mod == 'brand' else db_all(Model=Model)
+    models = db_all(Model=Model, role=mod) if Model == User else db_all(Model=Model)
     return render_template('list.html', mod=mod, data=models)
 
 

@@ -22,6 +22,7 @@
       <li><a href="{{ url_for('all', mod='brand') }}">Brands</a></li>
       {% if current_user.is_authenticated %}
       <li><a href="{{ url_for('all', mod='campaign') }}">Campaigns</a></li>
+      <li><a href="{{ url_for('logout') }}">Logout</a></li>
       <li><a href="{{ url_for('dev_admin') }}">Developer Admin</a></li>
       {% else %}
       <li><a href="{{ url_for('login') }}">Login</a></li>

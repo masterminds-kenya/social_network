@@ -90,7 +90,7 @@ class User(UserMixin, db.Model):
     posts = db.relationship('Post',                backref='user', lazy=True, passive_deletes=True)  # ? query_class=GetActive,
     # # campaigns = backref from Campaign.users with lazy='dynamic'
     # # brand_campaigns = backref from Campaign.brands with lazy='dynamic'
-    UNSAFE = {'token', 'token_expires', 'modified', 'created'}
+    UNSAFE = {'password', 'token', 'token_expires', 'modified', 'created'}
 
     def __init__(self, *args, **kwargs):
         kwargs['facebook_id'] = kwargs.pop('id') if 'facebook_id' not in kwargs and 'id' in kwargs else None
