@@ -412,7 +412,7 @@ def db_create(data, Model=User):
         pprint(unique)
         model = Model.query.filter(*[getattr(Model, key) == val for key, val in unique.items()]).one_or_none()
         if model:
-            message = f"A {model.__class__.__name__}, with already exists (id: {model.id}). Using existing."
+            message = f"A {model.__class__.__name__} already exists with id: {model.id} . Using existing."
         else:
             message = f'Cannot create due to collision on unique fields. Cannot retrieve existing record'
         current_app.logger.info(message)

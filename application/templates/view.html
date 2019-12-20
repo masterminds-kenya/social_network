@@ -28,15 +28,14 @@
 {% endblock data_view %}
 
 {% block modify %}
-{% if mod in ['influencer', 'brand', 'campaign', 'insight', 'audience'] %}
-<h3>Modify Record</h3>
+{% if mod in ['influencer', 'brand', 'admin', 'manager', 'campaign', 'insight', 'audience'] %}
+<h3>Change Data Actions</h3>
 <ul>
-  {% if mod == 'influencer' or mod == 'brand' %}
+  {% if mod in ['influencer', 'brand', 'admin', 'manager'] %}
   <li><a href="{{ url_for('new_post', mod=mod, id=data.id) }}">Get New Media / Posts</a> </li>
   <li><a href="{{ url_for('new_insight', mod=mod, id=data.id) }}">Get New {{mod|title}} Insights</a> </li>
   <li><a href="{{ url_for('new_audience', mod=mod, id=data.id) }}">Get New Audience Data</a> </li>
-  <li><a href="{{ url_for('followers', mod=mod, id=data.id) }}">Get Online Followers Report</a></li>
-  <li><a href="{{ url_for('backup_save', mod=mod, id=data.id )}}">Admin - Log {{mod|title}} Data</a> </li>
+  <li><a href="{{ url_for('export', mod=mod, id=data.id)}}">Export Data to a Google Sheet</a></li>
   {% endif %}
   <li>CAREFUL BELOW!</li>
   <li><a href="{{ url_for('edit', mod=mod, id=data.id) }}">Update {{ mod|title }}</a></li>
@@ -46,3 +45,8 @@
 {% endblock modify %}
 
 {% endblock content %}
+
+{% if mod in ['influencer', 'brand', 'admin', 'manager'] %}
+<li><a href="{{ url_for('backup_save', mod=mod, id=data.id )}}">Admin - Log {{mod|title}} Data</a> </li>
+{% endif %}
+<li><a href="{{ url_for('followers', mod=mod, id=data.id) }}">Get Online Followers Report</a></li>

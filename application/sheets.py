@@ -1,4 +1,4 @@
-from flask import current_app as app
+from flask import flash, current_app as app
 from os import path
 from googleapiclient.discovery import build
 from google.oauth2 import service_account
@@ -108,23 +108,27 @@ def perm_list(sheet_id, service=None):
     data = service.files().get(fileId=sheet_id, fields='name, id, permissions').execute()
     data['id'] = data.get('id', data.get('fileId', sheet_id))
     data['link'] = data.get('link', f"https://docs.google.com/spreadsheets/d/{sheet_id}/edit#gid=0")
-    # pprint(data)
     return data
 
 
-def create_sheet(campaign, service=None):
-    """ Takes in an instance from the Campaign model and create a worksheet. """
-    app.logger.info('================== create sheet =======================')
+def create_sheet(model, service=None):
+    """ Takes in a Model instance, usually from Campaign or User (but must have a name property) and create a worksheet. """
+    app.logger.info(f'======== create {model.name} sheet ========')
     if not service:
         creds = get_creds(service_config['sheets'])
         service = build('sheets', 'v4', credentials=creds, cache_discovery=False)
     timestamp = int(dt.timestamp(dt.now()))
-    name = str(campaign.name).replace(' ', '_')
+    name = str(model.name).replace(' ', '_')
     title = f"{name}_{timestamp}"
     spreadsheet = {'properties': {'title': title}}
     spreadsheet = service.spreadsheets().create(body=spreadsheet, fields='spreadsheetId').execute()
     app.logger.info(f"spreadsheet id: {spreadsheet.get('spreadsheetId')}")
-    return update_sheet(campaign, id=spreadsheet.get('spreadsheetId'), service=service)
+    # create flash message
+    message = f"Before you can view the sheet you must provide an email that has google drive access. "
+    message += f"This usually means a gmail account, or another account that uses GSuite. "
+    message += f"Follow the link below to View and Manage Access to the Worksheet. "
+    flash(message)
+    return update_sheet(model, id=spreadsheet.get('spreadsheetId'), service=service)
 
 
 # TODO: ? Is this going to be used, or it should be deleted?
@@ -168,18 +172,34 @@ def read_sheet(id=SHARED_SHEET_ID, range_=None, service=None):
     return spreadsheet
 
 
-def get_vals(campaign):
+def get_vals(model):
     """ Get the values we want to put into our worksheet report """
-    brands = ['Brand', ', '.join([ea.name for ea in campaign.brands])]
-    users = ['Influencer', ', '.join([ea.name for ea in campaign.users])]
-    brand_data = [campaign.brands[0].insight_summary(label_only=True)]
-    for brand in campaign.brands:
-        brand_data.append(brand.insight_summary())
-    results = campaign.report_posts()
-    sheet_rows = [brands, users, [''], *brand_data, [''], *results, ['']]
-    for brand in campaign.brands:
-        sheet_rows.extend(brand.insight_report())
-    app.logger.info(f"-------- get_vals Total rows: {len(sheet_rows)}, with {len(results) - 1} rows of posts --------")
+    model_name = model.__class__.__name__
+    app.logger.info(f"-------- Get vals for a {model_name} Model instance --------")
+    if model_name == 'User':
+        flash(f"Sheet has {model.role} {model_name} data for {model.name}. ")
+        insights = model.insight_report()
+        results = [['label row', 'each', 'column', 'has', 'a', 'label'], ['each row is a post'], []]
+        sheet_rows = [*insights, [''], *results, ['']]
+    elif model_name == 'Campaign':
+        flash(f"Sheet has {model_name} data for {model.name}. ")
+        brands = ['Brand', ', '.join([ea.name for ea in model.brands])]
+        users = ['Influencer', ', '.join([ea.name for ea in model.users])]
+        brand_data = [model.brands[0].insight_summary(label_only=True)]
+        for brand in model.brands:
+            brand_data.append(brand.insight_summary())
+        results = model.report_posts()
+        sheet_rows = [brands, users, [''], *brand_data, [''], *results, ['']]
+        for brand in model.brands:
+            sheet_rows.extend(brand.insight_report())
+    else:
+        logstring = f'Unexpected {model_name} model at this time'
+        flash(logstring)
+        app.logger.info(f'-------- {logstring} --------')
+        data = [logstring]
+        results = [['results label row']]
+        sheet_rows = [data, [''], *results, ['']]
+    app.logger.info(f"-------- Total rows: {len(sheet_rows)}, with {len(results) - 1} rows of posts --------")
     return sheet_rows
 
 
@@ -205,8 +225,8 @@ def compute_A1(arr2d, start='A1', sheet='Sheet1'):
     return result
 
 
-def update_sheet(campaign, id=SHARED_SHEET_ID, service=None):
-    """ Get the data we want, then append it to the worksheet """
+def update_sheet(model, id=SHARED_SHEET_ID, service=None):
+    """ Get the data we want from the model instance, then append it to the worksheet """
     app.logger.info(f'================== update sheet {id} =======================')
     if not service:
         creds = get_creds(service_config['sheets'])
@@ -214,7 +234,7 @@ def update_sheet(campaign, id=SHARED_SHEET_ID, service=None):
     value_input_option = 'USER_ENTERED'  # 'RAW' | 'USER_ENTERED' | 'INPUT_VALUE_OPTION_UNSPECIFIED'
     insert_data_option = 'OVERWRITE'  # 'OVERWITE' | 'INSERT_ROWS'
     major_dimension = 'ROWS'  # 'ROWS' | 'COLUMNS'
-    vals = get_vals(campaign)
+    vals = get_vals(model)
     range_ = compute_A1(vals) or 'Sheet1!A1:B2'
     value_range_body = {
         "majorDimension": major_dimension,

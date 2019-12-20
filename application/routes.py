@@ -67,8 +67,12 @@ def export(mod, id):
     """ Export data to google sheet, generally for influencer or brand Users.
         Was view results on GET and generate Sheet on POST .
     """
-    # Model = mod_lookup(mod)
-    # model = Model.query.get(id)  # db_read(id, Model=Model)
+    app.logger.info(f"==== {mod} Create Sheet ====")
+    Model = mod_lookup(mod)
+    model = Model.query.get(id)  # db_read(id, Model=Model)
+    sheet = create_sheet(model)
+    # TODO: ?refactor to use redirect(url_for('data', mod=mod, id=id, sheet_id=sheet['id']))
+    return render_template('data.html', mod=mod, id=id, sheet=sheet)
 
     # mod, view = 'campaign', 'results'
     # template, related = f"{view}_{mod}.html", {}
@@ -80,7 +84,6 @@ def export(mod, id):
     # app.logger.info(f'=========== {mod} Sheet Export ===========')
     # related = model.get_results()
     # return render_template(template, mod=mod, view=view, data=model, related=related)
-    pass
 
 
 @app.route('/data/update/<string:mod>/<int:id>/<string:sheet_id>')
