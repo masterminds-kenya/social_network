@@ -87,12 +87,14 @@ def error():
 
 
 @app.route('/dev_admin')
+@login_required
 def dev_admin():
     """ Developer Admin view to help while developing the Application """
     return render_template('admin.html', data=None)
 
 
 @app.route('/data/load/')
+@login_required
 def load_user():
     """ This is a temporary development function. Will be removed for production. """
     developer_admin.load()
@@ -100,6 +102,7 @@ def load_user():
 
 
 @app.route('/data/<string:mod>/<int:id>')
+@login_required
 def backup_save(mod, id):
     """ This is a temporary development function. Will be removed for production. """
     Model = mod_lookup(mod)
@@ -255,6 +258,7 @@ def campaign(id, view='management'):
 
 
 @app.route('/<string:mod>/<int:id>')
+@login_required
 def view(mod, id):
     """ Used primarily for specific User or Brand views, but also any data model view except Campaign. """
     # if mod == 'campaign':
@@ -400,6 +404,7 @@ def delete(mod, id):
 
 
 @app.route('/<string:mod>/list')
+@login_required
 def all(mod):
     """ List view for all data of Model indicated by mod. """
     Model = mod_lookup(mod)
