@@ -177,8 +177,9 @@ def get_vals(model):
     if model_name == 'User':
         # flash(f"Sheet has {model.role} {model_name} data for {model.name}. ")
         insights = model.insight_report()
-        results = [['label row', 'each', 'column', 'has', 'a', 'label'], ['each row is a post'], []]
-        sheet_rows = [*insights, [''], *results, ['']]
+        # media_posts = [['label row', 'each', 'column', 'has', 'a', 'label'], ['each row is a post'], []]
+        media_posts = model.export_posts()
+        sheet_rows = [*insights, [''], *media_posts, ['']]
     elif model_name == 'Campaign':
         # flash(f"Sheet has {model_name} data for {model.name}. ")
         brands = ['Brand', ', '.join([ea.name for ea in model.brands])]
@@ -186,8 +187,8 @@ def get_vals(model):
         brand_data = [model.brands[0].insight_summary(label_only=True)]
         for brand in model.brands:
             brand_data.append(brand.insight_summary())
-        results = model.report_posts()
-        sheet_rows = [brands, users, [''], *brand_data, [''], *results, ['']]
+        media_posts = model.export_posts()
+        sheet_rows = [brands, users, [''], *brand_data, [''], *media_posts, ['']]
         for brand in model.brands:
             sheet_rows.extend(brand.insight_report())
     else:
@@ -195,14 +196,17 @@ def get_vals(model):
         flash(logstring)
         app.logger.info(f'-------- {logstring} --------')
         data = [logstring]
-        results = [['results label row']]
-        sheet_rows = [data, [''], *results, ['']]
-    app.logger.info(f"-------- Total rows: {len(sheet_rows)}, with {len(results) - 1} rows of posts --------")
+        media_posts = [['media_posts label row']]
+        sheet_rows = [data, [''], *media_posts, ['']]
+    app.logger.info(f"-------- Total rows: {len(sheet_rows)}, with {len(media_posts) - 1} rows of posts --------")
     return sheet_rows
 
 
 def compute_A1(arr2d, start='A1', sheet='Sheet1'):
-    """ Determine A1 format for 2D-array input, on given sheet, starting at given cell """
+    """ Determine A1 format for 2D-array input, on given sheet, starting at given cell.
+        This algorithm assumes that exceeding 26 columns moves into the AA range and beyond.
+        It is possible that Google Sheets only allows a max of 26 columns and 4011 rows.
+     """
     row_count = len(arr2d)
     col_count = len(max(arr2d, key=len))
     # TODO: write regex that separates the letter and digit sections. 'A1' would have following result:
@@ -217,6 +221,7 @@ def compute_A1(arr2d, start='A1', sheet='Sheet1'):
             num, mod = num - 1, max_col
         final_col = chr(mod + col_offset) + final_col
     # final_col is the correct string, even if in the AA to ZZ range or beyond
+    # TODO: Find out if the max rows is 4011 and max cols is 26. Manage if we exceed the max.
     final_row = row_count + row
     result = f"{sheet}!{start}:{final_col}{final_row}"
     app.logger.info(f"A1 format is {result} for {row_count} rows & {col_count} columns")

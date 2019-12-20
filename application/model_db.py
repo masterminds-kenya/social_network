@@ -99,6 +99,13 @@ class User(db.Model):
             kwargs['token'] = kwargs['token'].get('access_token', None)
         super().__init__(*args, **kwargs)
 
+    def export_posts(self):
+        """ Collect all posts for this user in a list of lists for populating a worksheet. """
+        ignore = ['id', 'user_id']  # ? 'media_id'
+        columns = [ea.name for ea in Post.__table__.columns if ea.name not in ignore]
+        data = [[clean(getattr(post, ea, '')) for ea in columns] for post in self.posts]
+        return [columns, *data]
+
     def insight_report(self):
         """ Collect all of the Insights (including OnlineFollowers) and prepare for data dump on a sheet """
         report = [
@@ -340,7 +347,7 @@ class Campaign(db.Model):
         kwargs['completed'] = True if kwargs.get('completed') in {'on', True} else False
         super().__init__(*args, **kwargs)
 
-    def report_posts(self):
+    def export_posts(self):
         """ These are the columns used for showing the data for Posts assigned to a given Campaign """
         ignore = ['id', 'user_id', 'campaign_id', 'processed']  # ? 'media_id'
         columns = [ea.name for ea in Post.__table__.columns if ea.name not in ignore]
