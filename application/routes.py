@@ -46,12 +46,10 @@ def home():
 
 
 @app.route('/signup', methods=['GET', 'POST'])
-def signup(add=None):
+def signup():
     """ Using Flask-Login to create a new user (manager or admin) account """
     app.logger.info(f'--------- Sign Up User ------------')
     ignore = ['influencer', 'brand']
-    if current_user.is_authenticated and current_user.role not in ['admin', 'manager']:
-        ignore.append('brand')
     signup_roles = [role for role in User.roles if role not in ignore]
 
     if request.method == 'POST':
@@ -435,6 +433,8 @@ def add_edit(mod, id=None):
     app.logger.info(f'--------- {action} {mod}------------')
     if request.method == 'POST':
         data = process_form(mod, request)
+        if mod == 'brand' and data.get('instagram_id', '') in ('None', ''):
+            data['instagram_id'] = None
         # TODO: ?Check for failing unique column fields, or failing composite unique requirements?
         if action == 'Edit':
             if Model == User and data.get('password'):
