@@ -1,5 +1,6 @@
 import logging
 from flask import Flask
+from flask_login import LoginManager
 from . import model_db
 
 
@@ -13,6 +14,15 @@ def create_app(config, debug=False, testing=False, config_overrides=None):
     # Configure logging
     if not app.testing:
         logging.basicConfig(level=logging.INFO)
+    # Configure flask_login
+    login_manager = LoginManager()
+    login_manager.login_view = 'login'  # where to find the login route
+    login_manager.init_app(app)
+
+    @login_manager.user_loader
+    def load_user(user_id):
+        return model_db.User.query.get(int(user_id))
+
     # Setup the data model.
     with app.app_context():
         from . import routes  # noqa: F401

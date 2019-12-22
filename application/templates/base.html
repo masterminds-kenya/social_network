@@ -8,7 +8,7 @@
   <link rel="stylesheet" href="/static/normalize.css">
   <link rel="stylesheet" href="/static/main.css">
   {% block head %}
-  <title>Influencer Performance Platform</title>
+  <title>Bacchus Influencer Platform</title>
   {% endblock head %}
 </head>
 <body>
@@ -20,9 +20,24 @@
       <li><a href="{{ url_for('home') }}">Home</a></li>
       <li><a href="{{ url_for('all', mod='influencer') }}">Influencers</a></li>
       <li><a href="{{ url_for('all', mod='brand') }}">Brands</a></li>
+      {% if current_user.role in ['admin', 'manager'] %}
       <li><a href="{{ url_for('all', mod='campaign') }}">Campaigns</a></li>
-      <li><a href="{{ url_for('dev_admin') }}">Developer Admin</a></li>
+      {% endif %}
+      {% if current_user.role == 'admin' %}
+      <li><a href="{{ url_for('admin') }}">Admin Page</a></li>
+      {% endif %}
+      {% if current_user.is_authenticated %}
+      <li><a href="{{ url_for('logout') }}">Logout</a></li>
+      {% else %}
+      <li><a href="{{ url_for('login') }}">Login</a></li>
+      <li><a href="{{ url_for('signup') }}">Sign Up</a></li>
+      {% endif %}
     </ul>
+    {% if current_user.is_authenticated %}
+    <p>
+      Using the Platform as - {{ current_user.name }}
+    </p>
+    {% endif %}
   </nav>
   {% endblock header %}
 

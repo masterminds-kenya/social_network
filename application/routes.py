@@ -1,21 +1,24 @@
 from flask import current_app as app
 from flask import render_template, redirect, url_for, request, abort, flash
+from flask_login import current_user, login_user, logout_user, login_required
+from werkzeug.security import generate_password_hash, check_password_hash
 from .model_db import db_create, db_read, db_update, db_delete, db_all
 from .model_db import User, OnlineFollowers, Insight, Audience, Post, Campaign  # , metric_clean
 from . import developer_admin
 from .manage import update_campaign, process_form, post_display
 from .api import onboard_login, onboarding, get_insight, get_audience, get_posts, get_online_followers
-from .sheets import create_sheet, update_sheet, read_sheet, perm_add, perm_list
+from .sheets import create_sheet, update_sheet, read_sheet, perm_add, perm_list, all_files
 import json
+from pprint import pprint
 
 
 def mod_lookup(mod):
     """ Associate to the appropriate Model, or raise error if 'mod' is not an expected value """
     if not isinstance(mod, str):
         raise TypeError('Expected a string input')
-    lookup = {'brand': User, 'influencer': User, 'onlinefollowers': OnlineFollowers,
-              'insight': Insight, 'audience': Audience, 'post': Post, 'campaign': Campaign
-              }
+    lookup = {'insight': Insight, 'audience': Audience, 'post': Post, 'campaign': Campaign}
+    # 'onlinefollowers': OnlineFollowers,
+    lookup.update({role: User for role in User.roles})
     Model = lookup.get(mod, None)
     if not Model:
         raise ValueError('That is not a valid route.')
@@ -29,6 +32,73 @@ def home():
     return render_template('index.html', data=data)
 
 
+@app.route('/signup', methods=['GET', 'POST'])
+def signup():
+    """ Using Flask-Login to create a new user (manager or admin) account """
+    app.logger.info(f'--------- Sign Up User ------------')
+    ignore = ['influencer']
+    signup_roles = [role for role in User.roles if role not in ignore]
+
+    if request.method == 'POST':
+        print('------- Post on Sign Up ---------')
+        pprint(request.form)
+        mod = request.form.get('role')
+        if mod not in signup_roles:
+            raise ValueError("That is not a valid role selection")
+        data = process_form(mod, request)
+        password = data.get('password', None)
+        # TODO: allow system for an admin to create a user w/o a password,
+        # but require that user to create a password on first login
+        admin_create = False
+        if not password and not admin_create:
+            flash("A password is required.")
+            return redirect(url_for('signup'))
+        else:
+            data['password'] = generate_password_hash(password)
+        user = User.query.filter_by(name=data['name']).first()
+        if user:
+            flash("That name is already in use.")
+            return redirect(url_for('signup'))
+        user = User.query.filter_by(email=data['email']).first()
+        if user:
+            flash("That email is already in use.")
+            return redirect(url_for('signup'))
+        user = db_create(data)
+        flash("You have created a new user account!")
+        return redirect(url_for('view', mod=mod, id=user['id']))
+
+    return render_template('signup.html', signup_roles=signup_roles)
+
+
+@app.route('/login', methods=['GET', 'POST'])
+def login():
+    """ This the the manual login process. """
+    if request.method == 'POST':
+        print('------- Post on Login ---------')
+        pprint(request.form)
+        data = process_form('login', request)
+        password = data.get('password', None)
+        if not password:
+            flash("A password is required.")
+            return redirect(url_for('login'))
+
+        user = User.query.filter_by(email=data['email']).first()
+        if not user or not check_password_hash(user.password, data['password']):
+            flash("Those login details did not work.")
+            return redirect(url_for('login'))
+        login_user(user, remember=data['remember'])
+        return redirect(url_for('view', mod=user.role, id=user.id))
+    return render_template('signup.html', signup_roles=[])
+
+
+@app.route('/logout')
+@login_required
+def logout():
+    logout_user()
+    flash("You are now logged out.")
+    return redirect(url_for('home'))
+
+
 @app.route('/error', methods=['GET', 'POST'])
 def error():
     err = request.form.get('data')
@@ -36,12 +106,24 @@ def error():
 
 
 @app.route('/dev_admin')
+@login_required
 def dev_admin():
     """ Developer Admin view to help while developing the Application """
-    return render_template('admin.html', data=None)
+    return render_template('admin.html', dev=True, data=None)
+
+
+@app.route('/admin')
+@login_required
+def admin():
+    """ Platform Admin view to view links and actions unique to admin """
+    dev_email = ['hepcatchris@gmail.com', 'christopherlchapman42@gmail.com']
+    dev = current_user.email in dev_email
+    data = None if app.config.get('LOCAL_ENV') else all_files()
+    return render_template('admin.html', dev=dev, data=data)
 
 
 @app.route('/data/load/')
+@login_required
 def load_user():
     """ This is a temporary development function. Will be removed for production. """
     developer_admin.load()
@@ -49,6 +131,7 @@ def load_user():
 
 
 @app.route('/data/<string:mod>/<int:id>')
+@login_required
 def backup_save(mod, id):
     """ This is a temporary development function. Will be removed for production. """
     Model = mod_lookup(mod)
@@ -131,15 +214,21 @@ def data(mod, id, sheet_id):
     # TODO: ?refactor to use redirect(url_for('data', mod=mod, id=id, sheet_id=sheet['id']))
     sheet = read_sheet(id=sheet_id)
     return render_template('data.html', mod=mod, id=id, sheet=sheet)
+    # Influencer user should be redirected to their detail view page
+    # Brand user should do what?
+    # Otherwise Admin|Manager see a list.
 
 
 # ############# End Worksheets #############
 
 
 @app.route('/login/<string:mod>')
-def login(mod):
+def fb_login(mod):
     """ Initiate the creation of a new Influencer or Brand, as indicated by 'mod' """
     app.logger.info(f'====================== NEW {mod} Account =========================')
+    if app.config.get('LOCAL_ENV') is True:
+        flash('This does not work when running locally. Redirecting to the home page.')
+        return redirect(url_for('home'))
     authorization_url = onboard_login(mod)
     return redirect(authorization_url)
 
@@ -204,12 +293,32 @@ def campaign(id, view='management'):
 
 
 @app.route('/<string:mod>/<int:id>')
+@login_required
 def view(mod, id):
     """ Used primarily for specific User or Brand views, but also any data model view except Campaign. """
+    Model, model = None, None
+    if current_user.role not in ['manager', 'admin']:
+        if mod in User.roles:
+            if current_user.id != id or current_user.role != mod:
+                flash('Incorrect location. You are being redirected to your own profile page')
+                return redirect(url_for('view', mod=current_user.role, id=current_user.id))
+            # otherwise they get to see their own profile page!
+        elif mod in ['post', 'audience']:
+            # The user can only view this detail view if they are associated to the data
+            Model = mod_lookup(mod)
+            model = db_read(id, Model=Model)
+            if model.user != current_user:
+                # ? Add the ability for brand user to see posts associated through a campaign?
+                flash('Incorrect location. You are being redirected to the home page.')
+                return redirect(url_for('home'))
+        else:
+            flash('This was not a correct location. You are redirected to the home page.')
+            return redirect(url_for('home'))
+    # Otherwise user is admin, manager, or a user looking at their own data.
     # if mod == 'campaign':
     #     return campaign(id)
-    Model = mod_lookup(mod)
-    model = db_read(id, Model=Model)
+    Model = Model or mod_lookup(mod)
+    model = model or db_read(id, Model=Model)
     # model = Model.query.get(id)
     template = 'view.html'
     if mod == 'post':
@@ -307,14 +416,30 @@ def add_edit(mod, id=None):
     """ Adding or Editing a DB record is a similar process handled here. """
     action = 'Edit' if id else 'Add'
     Model = mod_lookup(mod)
+    if action == 'Add' and Model == User:
+        flash("Using Signup")
+        return redirect(url_for('signup'))
     app.logger.info(f'--------- {action} {mod}------------')
     if request.method == 'POST':
         data = process_form(mod, request)
         # TODO: ?Check for failing unique column fields, or failing composite unique requirements?
         if action == 'Edit':
-            model = db_update(data, id, Model=Model)
+            if Model == User and data.get('password'):
+                # if form password field was blank, process_form removed the key from data
+                data['password'] = generate_password_hash(data.get('password'))
+            try:
+                model = db_update(data, id, Model=Model)
+            except ValueError as e:
+                app.logger.error(e)
+                flash('Please try again or contact an Admin')
+                return redirect(url_for('edit', mod=mod, id=id))
         else:  # action == 'Add'
-            model = db_create(data, Model=Model)
+            try:
+                model = db_create(data, Model=Model)
+            except ValueError as e:
+                app.logger.error(e)
+                flash('Error. Please try again or contact an Admin')
+                return redirect(url_for('add', mod=mod, id=id))
         return redirect(url_for('view', mod=mod, id=model['id']))
     template, related = 'form.html', {}
     model = db_read(id, Model=Model) if action == 'Edit' else {}
@@ -331,12 +456,22 @@ def add_edit(mod, id=None):
 @app.route('/<string:mod>/add', methods=['GET', 'POST'])
 def add(mod):
     """ For a given data Model, as indicated by mod, add new data to DB. """
+    valid_mod = {'campaign'}
+    if mod not in valid_mod:
+        app.logger.error(f"Unable to add {mod}")
+        flash(f"Adding a {mod} is not working right now. Contact an Admin")
+        return redirect(request.referrer)
     return add_edit(mod, id=None)
 
 
 @app.route('/<string:mod>/<int:id>/edit', methods=['GET', 'POST'])
 def edit(mod, id):
     """ Modify the existing DB entry. Model indicated by mod, and provided record id. """
+    valid_mod = {'campaign'}.union(set(User.roles))
+    if mod not in valid_mod:
+        app.logger.error(f"Unable to edit {mod}")
+        flash(f"Editing a {mod} is not working right now. Contact an Admin")
+        return redirect(request.referrer)
     return add_edit(mod, id=id)
 
 
@@ -349,10 +484,22 @@ def delete(mod, id):
 
 
 @app.route('/<string:mod>/list')
+@login_required
 def all(mod):
-    """ List view for all data of Model indicated by mod. """
+    """ List view for all data of Model indicated by mod """
+    if current_user.role not in ['admin', 'manager'] and mod in User.roles:
+        if current_user.role == mod:
+            return redirect(url_for('view', mod=mod, id=current_user.id))
+        elif mod in ['influencer', 'brand']:
+            flash(f"Did you click the wrong link? You are not a {mod} user.")
+            flash(f"Or did you want to join the platform as a {mod}, using a different Instagram account?")
+            return redirect(url_for('signup'))
+        else:
+            flash('It seems that is not a correct route. You are redirected to the home page.')
+            return redirect(url_for('home'))
+    # The following only runs if the user is an 'admin' or a 'manager' role.
     Model = mod_lookup(mod)
-    models = db_all(Model=Model, role=mod) if mod == 'brand' else db_all(Model=Model)
+    models = db_all(Model=Model, role=mod) if Model == User else db_all(Model=Model)
     return render_template('list.html', mod=mod, data=models)
 
 

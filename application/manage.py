@@ -1,4 +1,6 @@
+from flask import flash
 from .model_db import db, from_sql, User, Post, Audience
+from werkzeug.security import generate_password_hash, check_password_hash
 
 
 def update_campaign(ver, request):
@@ -56,9 +58,12 @@ def process_form(mod, request):
                 models = Model.query.filter(Model.id.in_(model_ids)).all()
                 save[rel] = models
     data = request.form.to_dict(flat=True)
-    if mod in User.roles:
-        # assign User.role
+    if mod in ['login', *User.roles]:
         data['role'] = data.get('role', mod)
+        # checking, or creating, password hash is handled outside of this function.
+        # On User edit, keep the current password if they left the input box blank.
+        if not data.get('password'):
+            data.pop('password', None)
         # handle IG media_count & followers_count here since it would break on User update.
         # The following only occurs on the first time the IG account is connected to this User.
         # So we can assume we are making new Audience records for this IG data.
@@ -70,9 +75,10 @@ def process_form(mod, request):
                 models.append(Audience(name=name, values=[value]))
         save['audiences'] = models
     data.update(save)  # adds to the data dict if we did save some relationship collections
+
     # If the form has a checkbox for a Boolean in the form, we may need to reformat.
     # currently I think only Campaign and Post have checkboxes
-    bool_fields = {'campaign': 'completed', 'post': 'processed'}
+    bool_fields = {'campaign': 'completed', 'post': 'processed', 'login': 'remember'}
     # TODO: Add logic to find all Boolean fields in models and handle appropriately.
     if mod in bool_fields:
         data[bool_fields[mod]] = True if data.get(bool_fields[mod]) in {'on', True} else False

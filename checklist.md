@@ -40,7 +40,7 @@
 - [s] Stretch Goal. Not for current feature plan.
 
 Current Status:
-2019-12-18 16:43:40
+2019-12-19 21:47:30
 <!-- Ctrl-Shift-I to generate timestamp -->
 
 ### DB Design: Track different businesses and how influencers affect them
@@ -207,6 +207,7 @@ Current Status:
   - [x] Can remove to campaign and remove for consideration (marked processed)
   - [x] Will be left with current settings if unchanged when other posts modified
 - [ ] Campaign Results View
+  - [ ] ?Decide if it should show less graphs, or go straight to sheet export.
   - [x] Overview of the campaign metrics
 - [x] Functionality to Fetch more posts (API call to FB)
   - [x] Can request more posts for a given user
@@ -218,9 +219,24 @@ Current Status:
   - [x] Calling for more Audience data should also call for update on ig_data metrics.
 - [ ] Fetch more Insights (of the account, not of media)
   - [x] Can get a history the the user (or brand) account insights
+  - [x] Metrics for 'online_followers' automatically updates with Insight updates.
   - [ ] Will limit request to only get new insights since last request
   - [x] In case we do get duplicates, it will NOT create duplicates in DB
     - [x] Will update if our DB info is out-of-date
+- [ ] Flash messages for any processes that do not have an obvious update.
+  - [ ] Get new posts
+  - [ ] get new insights
+  - [ ] get new audiences
+- [x] Remove link to get Online Followers Report since it is also called by get insights.
+- [ ] Ability to update IG account followers_count and media_count stored in Audience
+- [ ] Get new Audience data should also call to get the IG account info (followers_count & media_count).
+- [x] Move/Relabel/remove 'Admin - Log' link on user detail view.
+- [s] Add migration functionality?
+- [x] Move hosting and FaceBook settings to Bacchus
+- [ ] Research Google Cloud settings to remove delay for website to spin up after idle.
+
+#### Google Drive & Sheets Functionality
+
 - [x] Add Google Sheet API to GCloud app.
 - [x] Add Google Drive API to GCloud app.
 - [x] Add functionality to export Marketing data to a Google worksheet.
@@ -234,33 +250,145 @@ Current Status:
   - [x] Function to update a worksheet
   - [x] Can read and format desired DB data into worksheet.
   - [x] Includes a report for the brand insight metrics on the campaign report
-  - [ ] Fix computation of A1 formatting when columns go into the double letter range (AA to ZZ)
-  - [ ] Test & Fix A1 format computation if exceding the double letter range (after ZZ)
-  - [ ] From User detail view, can export influencer/brand account metrics to google sheet.
+  - [x] Fix computation of A1 formatting when columns go into the double letter range (AA to ZZ)
+  - [x] Test & Fix A1 format computation if exceeding the double letter range (after ZZ)
+  - [ ] Check if Google Sheets has a max of 26 columns and 4011 rows.
+  - [x] From User detail view, can export influencer/brand account metrics to google sheet.
+    - [x] This report also includes all posts we have recorded.
+  - [ ] Export Sheet functions should use multiple worksheets/tabs in the same file.
 - [x] create a route & view for the sheets data view
 - [x] For a given worksheet, ability to edit existing permissions
 - [ ] For a given worksheet, ability to delete existing permissions
 - [ ] For a given worksheet, ability to delete the file
-- [ ] Flash messages for any processes that do not have an obvious update.
-  - [ ] Get new posts
-  - [ ] get new insights
-  - [ ] get new audiences
-- [ ] Remove link to get Online Followers Report since it is also called by get insights.
-- [ ] Ability to update IG account followers_count and media_count stored in Audience
-- [ ] Get new Audience data should also call to get the IG account info (followers_count & media_count).
-- [ ] Move/Relabel/remove 'Admin - Log' link on user detail view.
 - [ ] More Drive files management
   - [ ] List all files
   - [ ] Manage those files
 - [s] Attach worksheets to the Campaign model so we not always creating new.
-- [s] Add migration functionality?
-- [x] Move hosting and FaceBook settings to Bacchus
 - [x] refactor sheets data view to export to a google worksheet
-- [ ] Login: any additional User and Admin authentication needed?
-  - [ ] ?Confirm Google login for Worksheet access?
-  - [ ] ?Add our own App Auth: User management, adding/updating, auth, password, etc.
-  - [ ] Admin: only allow admin to see list and (potential) admin views
-  - [ ] Research Google Cloud settings to remove delay for website to spin up after idle.
+
+#### Login & Authentication Features
+
+- [x] User model has email and password fields, but are not required for Influencers & Brands
+- [x] Show Logged in User's name on the page (on base template)
+- [x] Can manually create a new User (requires email and password)
+- [x] Can track who the 'current_user' is as they navigate around
+- [x] On edit User, password is unchanged if the password field is left blank.
+- [x] On edit User, input on password field changes the password
+- [ ] On edit User, changing the email to one already in use does not break
+- [ ] ?User created with Facebook login/permissions is integrated with other User methods
+- [ ] Login page: During Testing & Approval, show Test Login Details.
+- [n] Allow anonymous user to start the creation of a manager or admin account
+  - [n] New manually created 'manager' or 'admin' users requires Admin approval
+- [ ] Allow admin to create a user w/o a password,
+  - [ ] Require the user to set password on first login.
+- [ ] When Export Sheet is created (for Campaign or User), current_user gets sheet permissions
+- [s] When Export Sheet is created, access is granted to some universal Admin
+- [ ] ?Confirm Google login for Worksheet access?
+- [ ] Auth management features:
+  - [ ] Change password
+  - [ ] Recover account (via email)
+- [ ] Any missed Routes or Template links that should be modified?
+- [ ] Other Security checks?
+
+Permissions to Routes and Showing/Hiding links in Templates:
+
+- [x] Sign Up page requires Influencers and Brands to use FB link
+- [x] Login page encourages Influencers and Brands to use FB link
+- [x] Login page allows admin and managers to verify their access to the platform.
+- [ ] ? Confirm same link, or Update link, for FB signup vs Login (if needed by Influencer|Brand)
+- [x]  The 'Influencers' link (and associated route) on the base template.
+  - [x]  Requires authenticated user, otherwise redirects to signup (or login).
+    - [ ] ? Should this signup just be a link to 'join as an Influencer'?
+  - [x]  For authenticated Admin|Manager - List All Influencers
+  - [x]  For authenticated Influencer, redirects to their account detail view
+  - [x]  For Brand user, ... Unclear - Allow create Influencer w/ diff IG acct
+- [x] ] List All Brands
+  - [x] Everyone can see the link, but route requires login.
+  - [x] Admin|Manager users see the list of all brands, can also add a Brand.
+  - [x] Brand user is redirected to their account detail view.
+  - [x] Influencer user ... Unclear - allow create Brand with different Instagram
+- [n] View Influencer details: Can Brands see Influencers? Can other Influencers?
+- [n] View Brand details: Can Influencers see BrandsCan other Brands?
+- [x] View Influencer detail: only for Admin, Manager, and
+  - [x] current_user's own profile?
+- [x] View Brand details: only for Admin, Manager, and
+  - [x] current_user's own profile?
+- [ ] List All Campaigns
+  - [ ] route requires authenticated (logged in) Admin|Manager
+  - [n] ? Only show link if authenticated, or have consistent UI with User list links?
+  - [n] ? For Influencers: Is list filtered to only ones they are in, or see full list?
+  - [n] ? For Brands: Is list filtered to only ones they are in, or see full list?
+  - [x] Influencer and Brand users never see this link and never have access to this route/view
+- [x] Signup, Login, Logout
+  - [x] Links to Login if not authenticated, Logout link if authenticated
+  - [x] Allow special "Signup other User" for manager|admin to create manager|admin|brand user
+- [x] View your own profile: Could have a profile link, but maybe handled already.
+- [x] List All Managers Route
+- [n] Base has link to List all Managers for Admin|Manager? Or just Admin? Or never?
+  - [n] Manager and Admin may want to see this to contact or know managers?
+  - [x] Admin may need this for interface to remove managers.
+- [n] Base has link to List all Admins for Admin|Manager? Or just Admin? Or never?
+  - [n] Manager and Admin may want to see and contact|know admin?
+  - [x] Admin may need this for interface to remove admin?
+- [ ] Add, Edit, Delete, & View any Model detail route requires authenticated user.
+- [ ] Edit and Delete User routes require matching current_user or Admin|Manager
+- [ ] User detail view: show Edit & Delete links only if current_user or Admin|Manager
+- [ ] Collect (from API call) new Insights | Audiences | Posts for a User
+  - [ ] Allow Manager|Admin to do all
+  - [ ] Allow Users to only do their own
+  - [ ] Only show links if current_user (if allowed) or Manager|Admin
+- [ ] Routes/views to see User Insights Summary
+  - [ ] Routes only if current_user or Admin|Manager
+  - [n] ? Allow Routes for Brands to see Influencers ?
+  - [n] ? Allow Routes for Influencers to see Brands ?
+  - [ ] Links from User detail view to Insight Summary matching permissions to view them.
+- [ ] Route to see detail view for Insight only for Admin
+  - [ ] The only place for this link would be a special Admin only page.
+- [ ] Route to see detail view for Audience only for current_user|Admin|Manager
+  - [ ] Link from User detail view to Audience detail view matches permissions to route.
+- [x] Route to see detail view for Post - allowed for all (they are public by IG)
+  - [x] Link to view Post detail view is unmodified wherever shown (public IG post)
+- [ ] Route to see anything to do with Google Sheets only for Admin|Manager
+  - [n] Or allow User (influencer or brand) to export their own data?
+  - [n] Or allow Influencer to export Campaigns they are associated with?
+  - [n] Or allow Brand to export Campaigns they are associated with?
+- [ ] Add or Edit Campaign routes require Admin|Manager
+- [ ] Campaign List view shows link to Add Campaign only if Admin|Manager
+- [ ] Campaign List view shows link to Campaign matching who has permissions to route
+- [ ] View Campaign Detail (Manage) route require Admin|Manager
+  - [n] ?Allow Campaign Detail route if Influencer is associated to it?
+  - [n] ?Allow Campaign Detail route if Brand is associated to it?
+- [ ] Campaign Collected route require Admin|Manager
+  - [n] ?Allow Campaign Collected route if Influencer is associated to it?
+  - [n] ?Allow Campaign Collected route if Brand is associated to it?
+- [x] Campaign Manage|Collected links in Campaign header are unchanged (all here can see link)
+- [x] ?Campaign Results links in Campaign header unchanged (all here can see the link)?
+- [n] ?Campaign Results link in Campaign header matches who has permissions to route?
+- [ ] Campaign Results route require Admin|Manager
+  - [n] ?Allow Campaign Results route if Influencer is associated to it?
+  - [n] ?Allow Campaign Results route if Brand is associated to it?
+- [n] Campaign Manage|Collected|Result view shows link to Edit Campaign only if Admin|Manager.
+  - [ ] Only if Admin?
+- [x] Campaign Manage|Collected|Result view shows link to Edit Campaign unchanged
+- [ ] Ability to POST to Campaign Manage|Collected (media assignment) only Admin|Manager
+- [x] Show Form element or Button on Campaign Manage|Collected views only Admin|Manager
+- [x] Link to collect more media/posts on any Campaign view unmodified (all here are allowed)
+- [ ] Delete route only for Admin
+- [x] Delete Campaign link limited to just Admin
+  - [ ] What if a manager accidentally created one?
+- [ ] Link to Delete Campaign from Campaign settings matches permissions to route.
+- [n] On Campaign Results: Link/Form to Export Sheet only shown to Admin|Manage
+  - [n] ? Allow associated Brand to Export Sheet ?
+  - [n] ? Allow associated User to Export Sheet ?
+- [n] ?If Influencer or Brand can see Campaign Results, they do not see Export Sheet option?
+- [x] Admin has an extra view with links that only an Admin needs and is allowed to use.
+  - [x] Create a Manager|Admin account and send invite
+  - [x] List all Insights | Audiences | Posts | Managers | Admin
+  - [x] List all Sheets owned by the platform
+  - [ ] Manage settings to any specific sheet
+    - [ ] Change access
+    - [ ] Delete Sheet
+  - [s] Global revoke permissions to all Sheet/file in Drive for a given user
 
 ### Site Content & Style
 
@@ -271,8 +399,8 @@ Current Status:
 - [ ] Page styling of admin sections to assist in clear reports and navigation
 - [ ] Attractive page styling for Influencer sign up portal & documents (ToS, privacy, etc)
 - [ ] Content for Influencer sign-up portal (home view) to give them confidence in the process.
-- [ ] Content for Privacy page
-- [ ] Content for Tos page
+- [x] Content included and structured for Privacy page
+- [x] Content included and structured for Tos page
 - [ ] Attractive and clear styling for profile and data views seen by Influencers.
 
 ### Code Structure, Testing, Clean up
@@ -286,18 +414,18 @@ Current Status:
 - [x] Modularize the codebase more: move routes elsewhere?
 - [x] ? allow logging in related files (remove all print statements) == from flask import current_app as app
 - [ ] Update forms and API digesting with input validation to replace following functionality:
-  - [ ] Currently fix_date used for both create model, and when create_or_update many
-  - [ ] Currently create_or_update_many also has to modify inputs from Audience API calls
-  - [ ] Should campaign management view extend base instead of view?
+  - [x] Currently fix_date used for both create model, and when create_or_update many
+  - [x] Currently create_or_update_many also has to modify inputs from Audience API calls
+  - [x] Should campaign management view extend base instead of view?
   - [ ] Is current onboard process slow? Delay some data collection?
   - [ ] Other feedback for expected sign up flow?
-  - [ ] Review data options to confirm our desired data collection.
+  - [x] Review data options to confirm our desired data collection.
 - [ ] Create Test Users (need a FB page and Instagram business account).
 - [ ] Test influencer flow after completion (Have Noelle go through process again)
 - [ ] Regex for A1 notation starting cell.
 - [x] Code Refactor: move routes to their own files
 - [x] Code Refactor: more modular code structure
-- [ ] Revisit Code Refactor: even more modular code structure?
+- [x] Revisit Code Refactor: even more modular code structure?
 - [ ] Form Validate: Add method to validate form. Safe against form injection?
 - [ ] Error handling on adding user with duplicate email address.
 - [ ] Error handling on adding user with duplicate name.

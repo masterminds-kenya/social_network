@@ -22,6 +22,7 @@ Core packages required for this application:
 - flask
 - gunicorn
 - flask-sqlalchemy
+- flask-login
 - pymysql
 - google-api-python-client
 - google-auth-httplib2
@@ -47,10 +48,10 @@ When running locally, we can proxy the database. This requires a cloud_sql_proxy
 ./cloud_sql_proxy -instances="DB_CONNECTION_NAME"=tcp:3306
 ```
 
-We can login to the SQL terminal, knowing the correct user and password, with the Google Cloud CLI (replace [username] as appropriate).
+We can login to the SQL terminal, knowing the correct user and password, with the Google Cloud CLI (replace [DB_INSTANCE] and [username] as appropriate).
 
 ```bash
-gcloud sql connect socialnetwork --user=[username]
+gcloud sql connect [DB_INSTANCE] --user=[username]
 ```
 
 We can create the database tables by running:
@@ -59,12 +60,33 @@ We can create the database tables by running:
 python application/model_db.py
 ```
 
-
 ### Current Feature Development
 
 We are keeping a checklist for features and tasks that are both completed and are upcoming. This is intended as brief overview and to capture ongoing thoughts on how we are proceeding in developing this application. As a living document, it loosely indicates what we plan on working soon, with various degrees of specificity in planning. The current status of this file can be found in the following link:
 
 [Features & Tasks](./checklist.md)
+
+## Core Features
+
+### Influencer and Brand user Onboarding
+
+From the home page, an influencer or brand partner can join the platform by following the link/button from the home page. This will lead them to verify with Facebook that they grant permission to the platform to look into the metrics and activity on their business Instagram account. This is required for influencers, but there is an option for brand partners to join without their own instagram account (but limiting some of the platform features they gain from that connection). The granting of these permissions requires that the influencer (or brand using this process) has a business Instagram account that is connected to a Facebook page, as is the typical expectation for these professional accounts.
+
+Joining the platform does not grant access to other non-partnered influencers or brands. Joining the platform does grant other influencers or brands to their own account information outside of the platform admin & managers and the partnerships that influencer and brand partners enter in together.
+
+### Manager and Admin Onboarding
+
+The typical process of adding a new manager or admin requires approval, and is initiated, by someone with an existing admin account. The initial admin accounts are setup at the launch of the platform. Later admin or manager accounts are first created by an existing admin who then sends an invite to the new manager or admin. When these new users login for the first time they will need to provide a password and confirm or update their email address that they will use for verifying their access. If this email address is one that is connected to google drive or GSuite features (typically a gmail account, or other email managed through google), it will make it easier when they are later accessing any generated google sheets (or they can grant themselves access later if their login email does not match). The access to the platform can be revoked by the platform admins.
+
+### Access to Influencer, Brand, or Campaign Data and Metrics
+
+Campaigns, which are mutually agreed on relationships between influencers and brand partners, are created and processed by admin and managers. Only Bacchus staff and approved consultants have access to manage and generate reports for a campaign. These reports are delivered to influencers and brands for campaigns they are involved with, to better understand how the campaign performs.
+
+Influencers and brand partners have access to the data collected on their account. They are not given open access to the all the data on other influencers or on other brands, even if they have a partnership through a campaign. Brands (and influencers) are given a report of how a campaign performs. This report includes details about the influencers (and brand partners) in this campaign, but it is not granting unlimited access permission to look into the influencers (or brand partner) data in a way that is out of scope for their partnership.
+
+### Delivering Data and Metrics
+
+Initially, influencers, and brand partners, grant permissions for the platform to view their instagram accounts. Once they have agreed on a campaign partnership, the collecting and managing of the performance data is done through automated and managed processes by platform admin and managers. Influencers do not need to worry about capturing screenshots or sending email reports, as the needed information is available to the platform staff. The platform admin and managers, through the tools of the platform, are responsible for managing and generating the reports to be delivered to the brand partners and influencers.
 
 ## User Stories
 

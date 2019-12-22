@@ -1,4 +1,5 @@
 from flask import Flask, flash, current_app
+from flask_login import UserMixin
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.dialects.mysql import BIGINT
@@ -63,7 +64,7 @@ def fix_date(Model, data):
     return data
 
 
-class User(db.Model):
+class User(UserMixin, db.Model):
     """ Data model for user (influencer or brand) accounts.
         Assumes only 1 Instagram per user, and it must be a business account.
         They must have a Facebook Page connected to their business Instagram account.
@@ -74,6 +75,8 @@ class User(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     role = db.Column(db.Enum(*roles, name='user_roles'), default='influencer', nullable=False)
     name = db.Column(db.String(47),                 index=False, unique=False, nullable=True)
+    email = db.Column(db.String(191),               index=False, unique=True,  nullable=True)
+    password = db.Column(db.String(191),            index=False, unique=False, nullable=True)
     instagram_id = db.Column(BIGINT(unsigned=True), index=True,  unique=True,  nullable=True)
     facebook_id = db.Column(BIGINT(unsigned=True),  index=False, unique=False, nullable=True)
     token = db.Column(db.String(255),               index=False, unique=False, nullable=True)
@@ -87,7 +90,7 @@ class User(db.Model):
     posts = db.relationship('Post',                backref='user', lazy=True, passive_deletes=True)  # ? query_class=GetActive,
     # # campaigns = backref from Campaign.users with lazy='dynamic'
     # # brand_campaigns = backref from Campaign.brands with lazy='dynamic'
-    UNSAFE = {'token', 'token_expires', 'modified', 'created'}
+    UNSAFE = {'password', 'token', 'token_expires', 'modified', 'created'}
 
     def __init__(self, *args, **kwargs):
         kwargs['facebook_id'] = kwargs.pop('id') if 'facebook_id' not in kwargs and 'id' in kwargs else None
@@ -448,11 +451,17 @@ def db_update(data, id, Model=User):
     # Any checkbox field should have been prepared by process_form()
     # TODO: Look into using the method Model.update
     model = Model.query.get(id)
-    for k, v in data.items():
-        setattr(model, k, v)
-    db.session.commit()
+    try:
+        for k, v in data.items():
+            setattr(model, k, v)
+        db.session.commit()
+    except IntegrityError as e:
+        current_app.logger.error(e)
+        db.session.rollback()
+        message = "Input Error. Make sure values are unique where required, and confirm all inputs are valid."
+        flash(message)
+        raise ValueError(message)
     results = from_sql(model, safe=True)
-    # safe_results = {k: results[k] for k in results.keys() - Model.UNSAFE}
     return results
 
 

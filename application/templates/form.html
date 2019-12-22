@@ -12,6 +12,16 @@
     <label for="name">Name</label>
     <input type="text" name="name" id="name" value="{{data.name}}" class="form-control"/>
   </div>
+  {% if mod in ['admin', 'manager'] %}
+  <div class="form-group">
+    <label for="email">Email Address</label>
+    <input type="email" name="email" id="email" value="{{data.email}}" class="form-control"/>
+  </div>
+  <div class="form-group">
+    <label for="password">Update Password</label>
+    <input type="password" name="password" id="password" class="form-control"/>
+  </div>
+  {% endif %}
   {% if data.facebook_id %}
   <p>Facebook ID is known</p>
   {% endif %}

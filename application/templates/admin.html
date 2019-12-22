@@ -8,13 +8,27 @@
 <p>
   {{ data }}
 </p>
+<h2>Admin Functions</h2>
+<p>
+  The following are functions that can only be performed by a platform admin
+</p>
+<ul>
+  <li><a href="{{ url_for('signup') }}">Create Manager or Admin User</a> </li>
+  <li><a href="{{ url_for('all', mod='manager') }}">List Managers</a></li>
+  <li><a href="{{ url_for('all', mod='admin')}}">List Admins</a></li>
+  <li>Sheets owned by Platform</li>
+</ul>
+
+<h3>Edge Case Options</h3>
 <ul>
   <li><a href="{{ url_for('render_static', page_name='test') }}">Test Styles Page</a></li>
-  <li><a href="{{ url_for('load_user') }}">Load User from file</a> </li>
-  <li><a href="{{ url_for('add', mod='influencer') }}">Add Fake Influencer</a></li>
   <li><a href="{{ url_for('all', mod='post') }}">List all Posts</a></li>
   <li><a href="{{ url_for('all', mod='insight') }}">List all Insights</a></li>
   <li><a href="{{ url_for('all', mod='audience') }}">List all Audience Data</a></li>
+  {% if data == 'dev' %}
+  <li><a href="{{ url_for('load_user') }}">Load File contents into Database</a> </li>
+  <li><a href="{{ url_for('add', mod='influencer') }}">Add Fake Influencer</a></li>
+  {% endif %}
 </ul>
 
 {% endblock %}
