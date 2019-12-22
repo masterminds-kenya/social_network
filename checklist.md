@@ -269,6 +269,7 @@ Current Status:
 #### Login & Authentication Features
 
 - [x] User model has email and password fields, but are not required for Influencers & Brands
+- [x] Login requires email, but the input is case-insensitive
 - [x] Show Logged in User's name on the page (on base template)
 - [x] Can manually create a new User (requires email and password)
 - [x] Can track who the 'current_user' is as they navigate around

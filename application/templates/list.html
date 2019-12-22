@@ -8,14 +8,23 @@
 <ul>
 {% if data|length > 0 %}
   {% for datum in data %}
-  <li><a href="{{ url_for('view', mod=mod, id=datum.id) }}">
-    {{ datum }}
-  </a> </li>
+  {% if mod == 'files' %}
+  <li>
+    {{ datum['name'] }} |
+    <a href="{{ url_for('data_permissions', mod='admin', id=datum['admin_id'], sheet_id=datum['id']) }}">
+      Edit Permissions
+    </a> |
+    <a href="{{ datum['link'] }}">View {{ datum['type'] }}</a>
+  </li>
+  {% else %}
+  <li><a href="{{ url_for('view', mod=mod, id=datum.id) }}">{{ datum }}</a></li>
+  {% endif %}
   {% endfor %}
 {% else %}
   <li>Currently None</li>
 {% endif %}
 </ul>
+{% if mod != 'files' %}
 <h3>Other Options</h3>
 <ul>
   <li><a href="{{url_for('add', mod=mod)}}">Add {% if mod == 'influencer' %}Fake {%endif%}{{mod.capitalize()}}</a></li>
@@ -23,4 +32,5 @@
   <li><a href="{{ url_for('add', mod='brand')}}">Add Brand</a></li>
   {% endif %}
 </ul>
+{% endif %}
 {% endblock %}

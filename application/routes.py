@@ -21,7 +21,7 @@ def mod_lookup(mod):
     lookup.update({role: User for role in User.roles})
     Model = lookup.get(mod, None)
     if not Model:
-        raise ValueError('That is not a valid route.')
+        raise ValueError('That is not a valid url path.')
     return Model
 
 
@@ -118,8 +118,10 @@ def admin():
     """ Platform Admin view to view links and actions unique to admin """
     dev_email = ['hepcatchris@gmail.com', 'christopherlchapman42@gmail.com']
     dev = current_user.email in dev_email
-    data = None if app.config.get('LOCAL_ENV') else all_files()
-    return render_template('admin.html', dev=dev, data=data)
+    # files = None if app.config.get('LOCAL_ENV') else all_files()
+    files = None
+    data = None
+    return render_template('admin.html', dev=dev, data=data, files=files)
 
 
 @app.route('/data/load/')
@@ -181,7 +183,7 @@ def update_data(mod, id, sheet_id):
 
 @app.route('/data/permissions/<string:mod>/<int:id>/<string:sheet_id>', methods=['GET', 'POST'])
 def data_permissions(mod, id, sheet_id, perm_id=None):
-    """ Used for managing permissions to view worksheets """
+    """ Used for managing permissions for who has access to a worksheet """
     app.logger.info(f'===== {mod} data permissions for sheet {sheet_id} ====')
     template = 'form_permission.html'
     sheet = perm_list(sheet_id)
@@ -486,20 +488,31 @@ def delete(mod, id):
 @app.route('/<string:mod>/list')
 @login_required
 def all(mod):
-    """ List view for all data of Model indicated by mod """
-    if current_user.role not in ['admin', 'manager'] and mod in User.roles:
-        if current_user.role == mod:
-            return redirect(url_for('view', mod=mod, id=current_user.id))
-        elif mod in ['influencer', 'brand']:
-            flash(f"Did you click the wrong link? You are not a {mod} user.")
-            flash(f"Or did you want to join the platform as a {mod}, using a different Instagram account?")
-            return redirect(url_for('signup'))
-        else:
-            flash('It seems that is not a correct route. You are redirected to the home page.')
-            return redirect(url_for('home'))
+    """ List view for all data of Model, or Google Drive Files, as indicated by mod.
+        Only admin & manager users are allowed to see the campaign list view.
+        The list view for influencer and brand will redirect those user types to their profile.
+        Otherwise, only admin & manager users can see these list views for brands or influencers.
+        All other list views can only be seen by admin users.
+    """
+    if current_user.role not in ['admin', 'manager']:
+        if mod in User.roles:
+            if current_user.role == mod:
+                return redirect(url_for('view', mod=mod, id=current_user.id))
+            elif mod in ['influencer', 'brand']:
+                flash(f"Did you click the wrong link? You are not a {mod} user.")
+                flash(f"Or did you want to join the platform as a {mod}, using a different Instagram account?")
+                return redirect(url_for('signup'))
+        flash('It seems that is not a correct route. You are redirected to the home page.')
+        return redirect(url_for('home'))
     # The following only runs if the user is an 'admin' or a 'manager' role.
-    Model = mod_lookup(mod)
-    models = db_all(Model=Model, role=mod) if Model == User else db_all(Model=Model)
+    if mod not in ['campaign', *User.roles] and current_user.role != 'admin':
+        flash('It seems that is not a correct route. You are redirected to the home page.')
+        return redirect(url_for('home'))
+    if mod == 'file':
+        models = all_files()
+    else:
+        Model = mod_lookup(mod)
+        models = db_all(Model=Model, role=mod) if Model == User else db_all(Model=Model)
     return render_template('list.html', mod=mod, data=models)
 
 
