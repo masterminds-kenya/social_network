@@ -5,6 +5,7 @@ from werkzeug.security import generate_password_hash, check_password_hash
 from .model_db import db_create, db_read, db_update, db_delete, db_all
 from .model_db import User, OnlineFollowers, Insight, Audience, Post, Campaign  # , metric_clean
 from . import developer_admin
+from functools import wraps
 from .manage import update_campaign, process_form, post_display
 from .api import onboard_login, onboarding, get_insight, get_audience, get_posts, get_online_followers
 from .sheets import create_sheet, update_sheet, read_sheet, perm_add, perm_list, all_files
@@ -25,6 +26,18 @@ def mod_lookup(mod):
     return Model
 
 
+def staff_required(role=['admin', 'manager']):
+    """ This decorator will allow use to limit access to routes based on user role. """
+    def wrapper(fn):
+        @wraps(fn)
+        def decorated_view(*args, **kwargs):
+            if not current_user.is_authenticated or current_user.role not in role:
+                return app.login_manager.unauthorized()
+            return fn(*args, **kwargs)
+        return decorated_view
+    return wrapper
+
+
 @app.route('/')
 def home():
     """ Default root route """
@@ -33,10 +46,12 @@ def home():
 
 
 @app.route('/signup', methods=['GET', 'POST'])
-def signup():
+def signup(add=None):
     """ Using Flask-Login to create a new user (manager or admin) account """
     app.logger.info(f'--------- Sign Up User ------------')
-    ignore = ['influencer']
+    ignore = ['influencer', 'brand']
+    if current_user.is_authenticated and current_user.role not in ['admin', 'manager']:
+        ignore.append('brand')
     signup_roles = [role for role in User.roles if role not in ignore]
 
     if request.method == 'POST':
@@ -105,16 +120,9 @@ def error():
     return render_template('error.html', err=err)
 
 
-@app.route('/dev_admin')
-@login_required
-def dev_admin():
-    """ Developer Admin view to help while developing the Application """
-    return render_template('admin.html', dev=True, data=None)
-
-
 @app.route('/admin')
-@login_required
-def admin():
+@staff_required()
+def admin(data=None):
     """ Platform Admin view to view links and actions unique to admin """
     dev_email = ['hepcatchris@gmail.com', 'christopherlchapman42@gmail.com']
     dev = current_user.email in dev_email
@@ -419,8 +427,11 @@ def add_edit(mod, id=None):
     action = 'Edit' if id else 'Add'
     Model = mod_lookup(mod)
     if action == 'Add' and Model == User:
-        flash("Using Signup")
-        return redirect(url_for('signup'))
+        if not current_user.is_authenticated \
+           or current_user.role not in ['admin', 'manager'] \
+           or mod != 'brand':
+            flash("Using Signup")
+            return redirect(url_for('signup'))
     app.logger.info(f'--------- {action} {mod}------------')
     if request.method == 'POST':
         data = process_form(mod, request)
@@ -458,7 +469,7 @@ def add_edit(mod, id=None):
 @app.route('/<string:mod>/add', methods=['GET', 'POST'])
 def add(mod):
     """ For a given data Model, as indicated by mod, add new data to DB. """
-    valid_mod = {'campaign'}
+    valid_mod = {'campaign', 'brand'}
     if mod not in valid_mod:
         app.logger.error(f"Unable to add {mod}")
         flash(f"Adding a {mod} is not working right now. Contact an Admin")

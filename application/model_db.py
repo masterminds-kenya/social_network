@@ -95,6 +95,8 @@ class User(UserMixin, db.Model):
     def __init__(self, *args, **kwargs):
         kwargs['facebook_id'] = kwargs.pop('id') if 'facebook_id' not in kwargs and 'id' in kwargs else None
         kwargs['name'] = kwargs.pop('username', kwargs.get('name'))
+        ig_id = kwargs.pop('instagram_id', None)
+        kwargs['instagram_id'] = ig_id if ig_id else None
         if 'token_expires' not in kwargs and 'token' in kwargs:
             # modifications for parsing data from api call
             token_expires = kwargs['token'].get('token_expires', None)
