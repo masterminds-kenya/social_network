@@ -17,7 +17,6 @@
 {% endblock header %}
 
 {% block content %}
-
 <h3>
   <a href="{{ url_for('fb_login', mod='influencer') }}">
   {% if signup_roles %}
@@ -36,11 +35,16 @@
   {% endif %}
   </a>
 </h3>
+{% if not signup_roles %}
+<p>Or did you want to <a href="{{ url_for('signup') }}">join the platform</a> for the first time?</p>
+<p><a href="{{ url_for('signup') }}">Create Account</a></p>
+{% endif %}
 
+{% if not signup_roles or current_user.role == 'admin' %}
 <h2>
   Manual User
   {% if signup_roles %}
-  Sign Up
+  Creation
   {% else %}
   Login
   {% endif %}
@@ -93,5 +97,6 @@
     {% endif %}
   </button>
 </form>
+{% endif %}
 
 {% endblock %}

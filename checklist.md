@@ -269,8 +269,12 @@ Current Status:
 #### Login & Authentication Features
 
 - [x] User model has email and password fields, but are not required for Influencers & Brands
+- [x] Show Logged in User's name on the page (on base template)
 - [x] Can manually create a new User (requires email and password)
-- [ ] Can track who the 'current_user' is as they navigate around
+- [x] Can track who the 'current_user' is as they navigate around
+- [x] On edit User, password is unchanged if the password field is left blank.
+- [x] On edit User, input on password field changes the password
+- [ ] On edit User, changing the email to one already in use does not break
 - [ ] ?User created with Facebook login/permissions is integrated with other User methods
 - [ ] Login page: During Testing & Approval, show Test Login Details.
 - [n] Allow anonymous user to start the creation of a manager or admin account
@@ -288,27 +292,27 @@ Current Status:
 
 Permissions to Routes and Showing/Hiding links in Templates:
 
-- [ ] Sign Up page requires Influencers and Brands to use FB link
-- [ ] Login page encourages Influencers and Brands to use FB link
-- [ ] Login page allows admin and managers to verify their access to the platform.
+- [x] Sign Up page requires Influencers and Brands to use FB link
+- [x] Login page encourages Influencers and Brands to use FB link
+- [x] Login page allows admin and managers to verify their access to the platform.
 - [ ] ? Confirm same link, or Update link, for FB signup vs Login (if needed by Influencer|Brand)
-- [ ]  The 'Influencers' link (and associated route) on the base template.
-  - [ ]  Requires authenticated user, otherwise redirects to signup (or login) page.
-    - [ ]  Should this signup just be a link to 'join as an Influencer'?
-  - [ ]  For authenticated Admin|Manager - List All Influencers
-  - [ ]  For authenticated Influencer, redirects to their account detail view
-  - [ ]  For authenticated Brand user, ... Unclear
-- [ ] ] List All Brands
-  - [ ] Everyone can see the link, but route requires login.
-  - [ ] Admin|Manager users see the list of all brands, can also add a Brand.
-  - [ ] Brand user is redirected to their account detail view.
-  - [ ] Influencer user ... Unclear
+- [x]  The 'Influencers' link (and associated route) on the base template.
+  - [x]  Requires authenticated user, otherwise redirects to signup (or login).
+    - [ ] ? Should this signup just be a link to 'join as an Influencer'?
+  - [x]  For authenticated Admin|Manager - List All Influencers
+  - [x]  For authenticated Influencer, redirects to their account detail view
+  - [x]  For Brand user, ... Unclear - Allow create Influencer w/ diff IG acct
+- [x] ] List All Brands
+  - [x] Everyone can see the link, but route requires login.
+  - [x] Admin|Manager users see the list of all brands, can also add a Brand.
+  - [x] Brand user is redirected to their account detail view.
+  - [x] Influencer user ... Unclear - allow create Brand with different Instagram
 - [n] View Influencer details: Can Brands see Influencers? Can other Influencers?
 - [n] View Brand details: Can Influencers see BrandsCan other Brands?
-- [ ] View Influencer detail: only for Admin, Manager,
-  - [ ] and current_user's own profile?
-- [ ] View Brand details: only for Admin, Manager,
-  - [ ] and current_user's own profile?
+- [x] View Influencer detail: only for Admin, Manager, and
+  - [x] current_user's own profile?
+- [x] View Brand details: only for Admin, Manager, and
+  - [x] current_user's own profile?
 - [ ] List All Campaigns
   - [ ] route requires authenticated (logged in) Admin|Manager
   - [n] ? Only show link if authenticated, or have consistent UI with User list links?
@@ -316,9 +320,9 @@ Permissions to Routes and Showing/Hiding links in Templates:
   - [n] ? For Brands: Is list filtered to only ones they are in, or see full list?
   - [ ] Influencer and Brand users never see this link and never have access to this route/view
 - [ ] Signup, Login, Logout
-  - [ ] Links to Signup and Login if not authenticated, Logout link if authenticated
+  - [x] Links to Signup and Login if not authenticated, Logout link if authenticated
   - [ ] Allow special "Signup other User" for manager|admin to create manager|admin|brand user
-- [ ] View your own profile: Could have a profile link, but maybe handled already.
+- [x] View your own profile: Could have a profile link, but maybe handled already.
 - [ ] List All Managers Route
 - [ ] Base has link to List all Managers for Admin|Manager? Or just Admin? Or never?
   - [ ] Manager and Admin may want to see this to contact or know managers?

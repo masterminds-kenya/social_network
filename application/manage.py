@@ -59,9 +59,11 @@ def process_form(mod, request):
                 save[rel] = models
     data = request.form.to_dict(flat=True)
     if mod in ['login', *User.roles]:
-        # checking, or creating, password hash is handled outside of this function.
-        # assign User.role
         data['role'] = data.get('role', mod)
+        # checking, or creating, password hash is handled outside of this function.
+        # On User edit, keep the current password if they left the input box blank.
+        if not data.get('password'):
+            data.pop('password', None)
         # handle IG media_count & followers_count here since it would break on User update.
         # The following only occurs on the first time the IG account is connected to this User.
         # So we can assume we are making new Audience records for this IG data.
@@ -73,6 +75,7 @@ def process_form(mod, request):
                 models.append(Audience(name=name, values=[value]))
         save['audiences'] = models
     data.update(save)  # adds to the data dict if we did save some relationship collections
+
     # If the form has a checkbox for a Boolean in the form, we may need to reformat.
     # currently I think only Campaign and Post have checkboxes
     bool_fields = {'campaign': 'completed', 'post': 'processed', 'login': 'remember'}

@@ -451,11 +451,17 @@ def db_update(data, id, Model=User):
     # Any checkbox field should have been prepared by process_form()
     # TODO: Look into using the method Model.update
     model = Model.query.get(id)
-    for k, v in data.items():
-        setattr(model, k, v)
-    db.session.commit()
+    try:
+        for k, v in data.items():
+            setattr(model, k, v)
+        db.session.commit()
+    except IntegrityError as e:
+        current_app.logger.error(e)
+        db.session.rollback()
+        message = "Input Error. Make sure values are unique where required, and confirm all inputs are valid."
+        flash(message)
+        raise ValueError(message)
     results = from_sql(model, safe=True)
-    # safe_results = {k: results[k] for k in results.keys() - Model.UNSAFE}
     return results
 
 

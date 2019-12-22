@@ -1,4 +1,5 @@
 from flask import current_app as app
+from flask_login import login_user
 from .model_db import db_create, db_read, db_create_or_update_many
 from .model_db import metric_clean, Insight, Audience, Post, OnlineFollowers  # , User, Campaign
 import requests
@@ -234,6 +235,7 @@ def onboarding(mod, request):
     # pprint(data)
     account = db_create(data)
     account_id = account.get('id')
+    login_user(account, remember=True)
     app.logger.info(f"New {mod} User: {account_id}")
     if ig_id:
         # Relate Data
