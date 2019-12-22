@@ -24,8 +24,7 @@
       <li><a href="{{ url_for('all', mod='campaign') }}">Campaigns</a></li>
       {% endif %}
       {% if current_user.role == 'admin' %}
-      <li><a href="{{ url_for('signup')}}">Create Manager or Admin User</a> </li>
-      <li><a href="{{ url_for('dev_admin') }}">Developer Admin</a></li>
+      <li><a href="{{ url_for('admin') }}">Admin Page</a></li>
       {% endif %}
       {% if current_user.is_authenticated %}
       <li><a href="{{ url_for('logout') }}">Logout</a></li>

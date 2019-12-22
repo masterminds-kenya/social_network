@@ -7,7 +7,7 @@ from .model_db import User, OnlineFollowers, Insight, Audience, Post, Campaign  
 from . import developer_admin
 from .manage import update_campaign, process_form, post_display
 from .api import onboard_login, onboarding, get_insight, get_audience, get_posts, get_online_followers
-from .sheets import create_sheet, update_sheet, read_sheet, perm_add, perm_list
+from .sheets import create_sheet, update_sheet, read_sheet, perm_add, perm_list, all_files
 import json
 from pprint import pprint
 
@@ -109,7 +109,17 @@ def error():
 @login_required
 def dev_admin():
     """ Developer Admin view to help while developing the Application """
-    return render_template('admin.html', data=None)
+    return render_template('admin.html', dev=True, data=None)
+
+
+@app.route('/admin')
+@login_required
+def admin():
+    """ Platform Admin view to view links and actions unique to admin """
+    dev_email = ['hepcatchris@gmail.com', 'christopherlchapman42@gmail.com']
+    dev = current_user.email in dev_email
+    data = None if app.config.get('LOCAL_ENV') else all_files()
+    return render_template('admin.html', dev=dev, data=data)
 
 
 @app.route('/data/load/')
@@ -304,7 +314,7 @@ def view(mod, id):
         else:
             flash('This was not a correct location. You are redirected to the home page.')
             return redirect(url_for('home'))
-    # Otherwise user is admin, manager, or a user looking at their own profile page.
+    # Otherwise user is admin, manager, or a user looking at their own data.
     # if mod == 'campaign':
     #     return campaign(id)
     Model = Model or mod_lookup(mod)

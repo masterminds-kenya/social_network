@@ -49,6 +49,13 @@
   <button type="submit" class="btn btn-success">Save</button>
 </form>
 
+{% if current_user.role == 'admin' %}
+<ul>
+  <li>CAREFUL BELOW</li>
+  <li><a href="{{ url_for('delete', mod=mod, id=data.id) }}">Delete {{ mod|title }}</a></li>
+</ul>
+{% endif %}
+
 <script>
     $(document).ready(function() {
       $('.js-example-basic-multiple').select2();

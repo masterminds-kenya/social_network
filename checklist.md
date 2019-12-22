@@ -318,18 +318,18 @@ Permissions to Routes and Showing/Hiding links in Templates:
   - [n] ? Only show link if authenticated, or have consistent UI with User list links?
   - [n] ? For Influencers: Is list filtered to only ones they are in, or see full list?
   - [n] ? For Brands: Is list filtered to only ones they are in, or see full list?
-  - [ ] Influencer and Brand users never see this link and never have access to this route/view
-- [ ] Signup, Login, Logout
-  - [x] Links to Signup and Login if not authenticated, Logout link if authenticated
-  - [ ] Allow special "Signup other User" for manager|admin to create manager|admin|brand user
+  - [x] Influencer and Brand users never see this link and never have access to this route/view
+- [x] Signup, Login, Logout
+  - [x] Links to Login if not authenticated, Logout link if authenticated
+  - [x] Allow special "Signup other User" for manager|admin to create manager|admin|brand user
 - [x] View your own profile: Could have a profile link, but maybe handled already.
-- [ ] List All Managers Route
-- [ ] Base has link to List all Managers for Admin|Manager? Or just Admin? Or never?
-  - [ ] Manager and Admin may want to see this to contact or know managers?
-  - [ ] Admin may need this for interface to remove managers.
-- [ ] Base has link to List all Admins for Admin|Manager? Or just Admin? Or never?
-  - [ ] Manager and Admin may want to see and contact|know admin?
-  - [ ] Admin may need this for interface to remove admin?
+- [x] List All Managers Route
+- [n] Base has link to List all Managers for Admin|Manager? Or just Admin? Or never?
+  - [n] Manager and Admin may want to see this to contact or know managers?
+  - [x] Admin may need this for interface to remove managers.
+- [n] Base has link to List all Admins for Admin|Manager? Or just Admin? Or never?
+  - [n] Manager and Admin may want to see and contact|know admin?
+  - [x] Admin may need this for interface to remove admin?
 - [ ] Add, Edit, Delete, & View any Model detail route requires authenticated user.
 - [ ] Edit and Delete User routes require matching current_user or Admin|Manager
 - [ ] User detail view: show Edit & Delete links only if current_user or Admin|Manager
@@ -346,8 +346,8 @@ Permissions to Routes and Showing/Hiding links in Templates:
   - [ ] The only place for this link would be a special Admin only page.
 - [ ] Route to see detail view for Audience only for current_user|Admin|Manager
   - [ ] Link from User detail view to Audience detail view matches permissions to route.
-- [ ] Route to see detail view for Post - allowed for all (they are public by IG)
-  - [ ] Link to view Post detail view is unmodified wherever shown (public IG post)
+- [x] Route to see detail view for Post - allowed for all (they are public by IG)
+  - [x] Link to view Post detail view is unmodified wherever shown (public IG post)
 - [ ] Route to see anything to do with Google Sheets only for Admin|Manager
   - [n] Or allow User (influencer or brand) to export their own data?
   - [n] Or allow Influencer to export Campaigns they are associated with?
@@ -369,21 +369,22 @@ Permissions to Routes and Showing/Hiding links in Templates:
   - [n] ?Allow Campaign Results route if Brand is associated to it?
 - [n] Campaign Manage|Collected|Result view shows link to Edit Campaign only if Admin|Manager.
   - [ ] Only if Admin?
-- [x] Campaign Manage|Collected|Result view shows liink to Edit Campaign unchanged
+- [x] Campaign Manage|Collected|Result view shows link to Edit Campaign unchanged
 - [ ] Ability to POST to Campaign Manage|Collected (media assignment) only Admin|Manager
 - [x] Show Form element or Button on Campaign Manage|Collected views only Admin|Manager
 - [x] Link to collect more media/posts on any Campaign view unmodified (all here are allowed)
-- [ ] Delete Campaign route limited to just Admin or for Admin|Manager?
+- [ ] Delete route only for Admin
+- [x] Delete Campaign link limited to just Admin
   - [ ] What if a manager accidentally created one?
 - [ ] Link to Delete Campaign from Campaign settings matches permissions to route.
 - [n] On Campaign Results: Link/Form to Export Sheet only shown to Admin|Manage
   - [n] ? Allow associated Brand to Export Sheet ?
   - [n] ? Allow associated User to Export Sheet ?
 - [n] ?If Influencer or Brand can see Campaign Results, they do not see Export Sheet option?
-- [ ] Admin has an extra view with links that only an Admin needs and is allowed to use.
-  - [ ] Create a Manager|Admin account and send invite
-  - [ ] List all Insights | Audiences | Posts | Managers | Admin
-  - [ ] List all Sheets owned by the platform
+- [x] Admin has an extra view with links that only an Admin needs and is allowed to use.
+  - [x] Create a Manager|Admin account and send invite
+  - [x] List all Insights | Audiences | Posts | Managers | Admin
+  - [x] List all Sheets owned by the platform
   - [ ] Manage settings to any specific sheet
     - [ ] Change access
     - [ ] Delete Sheet
