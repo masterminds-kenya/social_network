@@ -275,7 +275,7 @@ Current Status:
 - [x] Can track who the 'current_user' is as they navigate around
 - [x] On edit User, password is unchanged if the password field is left blank.
 - [x] On edit User, input on password field changes the password
-- [ ] On edit User, changing the email to one already in use does not break
+- [x] On edit User, changing the email to one already in use does not break
 - [ ] ?User created with Facebook login/permissions is integrated with other User methods
 - [ ] Login page: During Testing & Approval, show Test Login Details.
 - [n] Allow anonymous user to start the creation of a manager or admin account
@@ -299,7 +299,7 @@ Permissions to Routes and Showing/Hiding links in Templates:
 - [ ] ? Confirm same link, or Update link, for FB signup vs Login (if needed by Influencer|Brand)
 - [x]  The 'Influencers' link (and associated route) on the base template.
   - [x]  Requires authenticated user, otherwise redirects to signup (or login).
-    - [ ] ? Should this signup just be a link to 'join as an Influencer'?
+    - [s] ? Should this signup just be a link to 'join as an Influencer'?
   - [x]  For authenticated Admin|Manager - List All Influencers
   - [x]  For authenticated Influencer, redirects to their account detail view
   - [x]  For Brand user, ... Unclear - Allow create Influencer w/ diff IG acct
@@ -314,8 +314,8 @@ Permissions to Routes and Showing/Hiding links in Templates:
   - [x] current_user's own profile?
 - [x] View Brand details: only for Admin, Manager, and
   - [x] current_user's own profile?
-- [ ] List All Campaigns
-  - [ ] route requires authenticated (logged in) Admin|Manager
+- [x] List All Campaigns
+  - [x] route requires authenticated (logged in) Admin|Manager
   - [n] ? Only show link if authenticated, or have consistent UI with User list links?
   - [n] ? For Influencers: Is list filtered to only ones they are in, or see full list?
   - [n] ? For Brands: Is list filtered to only ones they are in, or see full list?
@@ -331,8 +331,12 @@ Permissions to Routes and Showing/Hiding links in Templates:
 - [n] Base has link to List all Admins for Admin|Manager? Or just Admin? Or never?
   - [n] Manager and Admin may want to see and contact|know admin?
   - [x] Admin may need this for interface to remove admin?
-- [ ] Add, Edit, Delete, & View any Model detail route requires authenticated user.
-- [ ] Edit and Delete User routes require matching current_user or Admin|Manager
+- [x] View any Model detail route requires authenticated user.
+- [x] Add any Model detail route requires Manager or Admin
+- [x] Edit any Model detail route requires Admin|Manager
+  - [ ] Also allow current_user to modify profile
+- [x] Delete User routes require Admin
+  - [ ] or can also be matching current_user if deleting user account.
 - [ ] User detail view: show Edit & Delete links only if current_user or Admin|Manager
 - [ ] Collect (from API call) new Insights | Audiences | Posts for a User
   - [ ] Allow Manager|Admin to do all
@@ -353,31 +357,31 @@ Permissions to Routes and Showing/Hiding links in Templates:
   - [n] Or allow User (influencer or brand) to export their own data?
   - [n] Or allow Influencer to export Campaigns they are associated with?
   - [n] Or allow Brand to export Campaigns they are associated with?
-- [ ] Add or Edit Campaign routes require Admin|Manager
-- [ ] Campaign List view shows link to Add Campaign only if Admin|Manager
-- [ ] Campaign List view shows link to Campaign matching who has permissions to route
-- [ ] View Campaign Detail (Manage) route require Admin|Manager
+- [x] Add or Edit Campaign routes require Admin|Manager
+- [x] Campaign List view shows link to Add Campaign only if Admin|Manager
+- [x] Campaign List view shows link to Campaign matching who has permissions to route
+- [x] View Campaign Detail (Manage) route require Admin|Manager
   - [n] ?Allow Campaign Detail route if Influencer is associated to it?
   - [n] ?Allow Campaign Detail route if Brand is associated to it?
-- [ ] Campaign Collected route require Admin|Manager
+- [x] Campaign Collected route require Admin|Manager
   - [n] ?Allow Campaign Collected route if Influencer is associated to it?
   - [n] ?Allow Campaign Collected route if Brand is associated to it?
 - [x] Campaign Manage|Collected links in Campaign header are unchanged (all here can see link)
 - [x] ?Campaign Results links in Campaign header unchanged (all here can see the link)?
 - [n] ?Campaign Results link in Campaign header matches who has permissions to route?
-- [ ] Campaign Results route require Admin|Manager
+- [x] Campaign Results route require Admin|Manager
   - [n] ?Allow Campaign Results route if Influencer is associated to it?
   - [n] ?Allow Campaign Results route if Brand is associated to it?
 - [n] Campaign Manage|Collected|Result view shows link to Edit Campaign only if Admin|Manager.
   - [ ] Only if Admin?
 - [x] Campaign Manage|Collected|Result view shows link to Edit Campaign unchanged
-- [ ] Ability to POST to Campaign Manage|Collected (media assignment) only Admin|Manager
+- [x] Ability to POST to Campaign Manage|Collected (media assignment) only Admin|Manager
 - [x] Show Form element or Button on Campaign Manage|Collected views only Admin|Manager
 - [x] Link to collect more media/posts on any Campaign view unmodified (all here are allowed)
-- [ ] Delete route only for Admin
+- [x] Delete route only for Admin
 - [x] Delete Campaign link limited to just Admin
-  - [ ] What if a manager accidentally created one?
-- [ ] Link to Delete Campaign from Campaign settings matches permissions to route.
+  - [s] What if a manager accidentally created one?
+- [x] Link to Delete Campaign from Campaign settings matches permissions to route.
 - [n] On Campaign Results: Link/Form to Export Sheet only shown to Admin|Manage
   - [n] ? Allow associated Brand to Export Sheet ?
   - [n] ? Allow associated User to Export Sheet ?
@@ -386,9 +390,9 @@ Permissions to Routes and Showing/Hiding links in Templates:
   - [x] Create a Manager|Admin account and send invite
   - [x] List all Insights | Audiences | Posts | Managers | Admin
   - [x] List all Sheets owned by the platform
-  - [ ] Manage settings to any specific sheet
-    - [ ] Change access
-    - [ ] Delete Sheet
+  - [x] Manage settings to any specific sheet
+    - [x] Change access
+    - [s] Delete Sheet
   - [s] Global revoke permissions to all Sheet/file in Drive for a given user
 
 ### Site Content & Style

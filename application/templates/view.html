@@ -39,7 +39,9 @@
   {% endif %}
   <li>CAREFUL BELOW!</li>
   <li><a href="{{ url_for('edit', mod=mod, id=data.id) }}">Update {{ mod|title }}</a></li>
+  {% if current_user.mode == 'admin' %}
   <li><a href="{{ url_for('delete', mod=mod, id=data.id) }}">Delete {{ mod|title }}</a></li>
+  {% endif %}
 </ul>
 {% endif %}
 {% endblock modify %}

@@ -38,6 +38,19 @@ def staff_required(role=['admin', 'manager']):
     return wrapper
 
 
+def admin_required(role=['admin']):
+    """ This decorator will limit access to admin only """
+    # staff_required(role=role)
+    def wrapper(fn):
+        @wraps(fn)
+        def decorated_view(*args, **kwargs):
+            if not current_user.is_authenticated or current_user.role not in role:
+                return app.login_manager.unauthorized()
+            return fn(*args, **kwargs)
+        return decorated_view
+    return wrapper
+
+
 @app.route('/')
 def home():
     """ Default root route """
@@ -119,8 +132,8 @@ def error():
 
 
 @app.route('/admin')
-@staff_required()
-def admin(data=None):
+@admin_required()
+def admin():
     """ Platform Admin view to view links and actions unique to admin """
     dev_email = ['hepcatchris@gmail.com', 'christopherlchapman42@gmail.com']
     dev = current_user.email in dev_email
@@ -154,6 +167,7 @@ def backup_save(mod, id):
 
 
 @app.route('/<string:mod>/<int:id>/export', methods=['GET', 'POST'])
+@staff_required()
 def export(mod, id):
     """ Export data to google sheet, generally for influencer or brand Users.
         Was view results on GET and generate Sheet on POST .
@@ -178,6 +192,7 @@ def export(mod, id):
 
 
 @app.route('/data/update/<string:mod>/<int:id>/<string:sheet_id>')
+@staff_required()
 def update_data(mod, id, sheet_id):
     """ Update the given worksheet (sheet_id) data from the given Model indicated by mod and id. """
     Model = mod_lookup(mod)
@@ -188,6 +203,7 @@ def update_data(mod, id, sheet_id):
 
 
 @app.route('/data/permissions/<string:mod>/<int:id>/<string:sheet_id>', methods=['GET', 'POST'])
+@staff_required()
 def data_permissions(mod, id, sheet_id, perm_id=None):
     """ Used for managing permissions for who has access to a worksheet """
     app.logger.info(f'===== {mod} data permissions for sheet {sheet_id} ====')
@@ -207,24 +223,6 @@ def data_permissions(mod, id, sheet_id, perm_id=None):
         # TODO: ?refactor to use redirect(url_for('data', mod=mod, id=id, sheet_id=sheet['id']))
         return render_template('data.html', mod=mod, id=id, sheet=sheet)
     return render_template(template, mod=mod, id=id, action=action, data=data, sheet=sheet)
-
-
-@app.route('/data')
-def data_default():
-    # TODO: Do we need this route? Currently not called?
-    return data(None)
-
-
-@app.route('/data/view/<string:mod>/<int:id>/<string:sheet_id>')
-def data(mod, id, sheet_id):
-    """ Show the data with Google Sheets """
-    # TODO: Do we need this route? Currently only called by unused routes
-    # TODO: ?refactor to use redirect(url_for('data', mod=mod, id=id, sheet_id=sheet['id']))
-    sheet = read_sheet(id=sheet_id)
-    return render_template('data.html', mod=mod, id=id, sheet=sheet)
-    # Influencer user should be redirected to their detail view page
-    # Brand user should do what?
-    # Otherwise Admin|Manager see a list.
 
 
 # ############# End Worksheets #############
@@ -257,6 +255,7 @@ def callback(mod):
 
 
 @app.route('/campaign/<int:id>/results', methods=['GET', 'POST'])
+@staff_required()
 def results(id):
     """ Campaign Results View (on GET) or generate Worksheet report (on POST) """
     mod, view = 'campaign', 'results'
@@ -273,12 +272,14 @@ def results(id):
 
 
 @app.route('/campaign/<int:id>/detail', methods=['GET', 'POST'])
+@staff_required()
 def detail_campaign(id):
     """ Used because campaign function over-rides route for detail view """
     return campaign(id, view='collected')
 
 
 @app.route('/campaign/<int:id>', methods=['GET', 'POST'])
+@staff_required()
 def campaign(id, view='management'):
     """ Defaults to management of assigning posts to a campaign.
         When view is 'collected', user can review and re-assess posts already assigned to the campaign.
@@ -467,6 +468,7 @@ def add_edit(mod, id=None):
 
 
 @app.route('/<string:mod>/add', methods=['GET', 'POST'])
+@staff_required()
 def add(mod):
     """ For a given data Model, as indicated by mod, add new data to DB. """
     valid_mod = {'campaign', 'brand'}
@@ -478,6 +480,7 @@ def add(mod):
 
 
 @app.route('/<string:mod>/<int:id>/edit', methods=['GET', 'POST'])
+@staff_required()
 def edit(mod, id):
     """ Modify the existing DB entry. Model indicated by mod, and provided record id. """
     valid_mod = {'campaign'}.union(set(User.roles))
@@ -489,6 +492,7 @@ def edit(mod, id):
 
 
 @app.route('/<string:mod>/<int:id>/delete')
+@admin_required()
 def delete(mod, id):
     """ Permanently remove from DB the record for Model indicated by mod and id. """
     Model = mod_lookup(mod)
