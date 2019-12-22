@@ -269,12 +269,12 @@ Current Status:
 #### Login & Authentication Features
 
 - [x] User model has email and password fields, but are not required for Influencers & Brands
-- [ ] Can manually create a new User (requires email and password)
+- [x] Can manually create a new User (requires email and password)
 - [ ] Can track who the 'current_user' is as they navigate around
-- [ ] User created with Facebook login/permissions is integrated with other User methods
+- [ ] ?User created with Facebook login/permissions is integrated with other User methods
 - [ ] Login page: During Testing & Approval, show Test Login Details.
-- [ ] Allow anonymous user to start the creation of a manager or admin account
-  - [ ] New manually created 'manager' or 'admin' users requre Admin approval
+- [n] Allow anonymous user to start the creation of a manager or admin account
+  - [n] New manually created 'manager' or 'admin' users requires Admin approval
 - [ ] Allow admin to create a user w/o a password,
   - [ ] Require the user to set password on first login.
 - [ ] When Export Sheet is created (for Campaign or User), current_user gets sheet permissions
