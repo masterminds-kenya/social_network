@@ -5,9 +5,10 @@ from werkzeug.security import generate_password_hash, check_password_hash
 from .model_db import db_create, db_read, db_update, db_delete, db_all
 from .model_db import User, OnlineFollowers, Insight, Audience, Post, Campaign  # , metric_clean
 from . import developer_admin
+from functools import wraps
 from .manage import update_campaign, process_form, post_display
 from .api import onboard_login, onboarding, get_insight, get_audience, get_posts, get_online_followers
-from .sheets import create_sheet, update_sheet, read_sheet, perm_add, perm_list, all_files
+from .sheets import create_sheet, update_sheet, perm_add, perm_list, all_files
 import json
 from pprint import pprint
 
@@ -21,8 +22,45 @@ def mod_lookup(mod):
     lookup.update({role: User for role in User.roles})
     Model = lookup.get(mod, None)
     if not Model:
-        raise ValueError('That is not a valid route.')
+        raise ValueError('That is not a valid url path.')
     return Model
+
+
+def staff_required(role=['admin', 'manager']):
+    """ This decorator will allow use to limit access to routes based on user role. """
+    def wrapper(fn):
+        @wraps(fn)
+        def decorated_view(*args, **kwargs):
+            if not current_user.is_authenticated or current_user.role not in role:
+                return app.login_manager.unauthorized()
+            return fn(*args, **kwargs)
+        return decorated_view
+    return wrapper
+
+
+def admin_required(role=['admin']):
+    """ This decorator will limit access to admin only """
+    # staff_required(role=role)
+    def wrapper(fn):
+        @wraps(fn)
+        def decorated_view(*args, **kwargs):
+            if not current_user.is_authenticated or current_user.role not in role:
+                return app.login_manager.unauthorized()
+            return fn(*args, **kwargs)
+        return decorated_view
+    return wrapper
+
+
+# def self_or_staff_required(role=['admin', 'manager']):
+#     """ This decorator limits access to staff or if the resource belongs to the current_user. """
+#     def wrapper(fn):
+#         @wraps(fn)
+#         def decorated_view(*args, **kwargs):
+#             if not current_user.is_authenticated or current_user.role not in role:
+#                 return app.login_manager.unauthorized()
+#             return fn(*args, **kwargs)
+#         return decorated_view
+#     return wrapper
 
 
 @app.route('/')
@@ -36,7 +74,7 @@ def home():
 def signup():
     """ Using Flask-Login to create a new user (manager or admin) account """
     app.logger.info(f'--------- Sign Up User ------------')
-    ignore = ['influencer']
+    ignore = ['influencer', 'brand']
     signup_roles = [role for role in User.roles if role not in ignore]
 
     if request.method == 'POST':
@@ -105,25 +143,20 @@ def error():
     return render_template('error.html', err=err)
 
 
-@app.route('/dev_admin')
-@login_required
-def dev_admin():
-    """ Developer Admin view to help while developing the Application """
-    return render_template('admin.html', dev=True, data=None)
-
-
 @app.route('/admin')
-@login_required
+@admin_required()
 def admin():
     """ Platform Admin view to view links and actions unique to admin """
     dev_email = ['hepcatchris@gmail.com', 'christopherlchapman42@gmail.com']
     dev = current_user.email in dev_email
-    data = None if app.config.get('LOCAL_ENV') else all_files()
-    return render_template('admin.html', dev=dev, data=data)
+    # files = None if app.config.get('LOCAL_ENV') else all_files()
+    files = None
+    data = None
+    return render_template('admin.html', dev=dev, data=data, files=files)
 
 
 @app.route('/data/load/')
-@login_required
+@admin_required()
 def load_user():
     """ This is a temporary development function. Will be removed for production. """
     developer_admin.load()
@@ -131,7 +164,7 @@ def load_user():
 
 
 @app.route('/data/<string:mod>/<int:id>')
-@login_required
+@admin_required()
 def backup_save(mod, id):
     """ This is a temporary development function. Will be removed for production. """
     Model = mod_lookup(mod)
@@ -146,6 +179,7 @@ def backup_save(mod, id):
 
 
 @app.route('/<string:mod>/<int:id>/export', methods=['GET', 'POST'])
+@staff_required()
 def export(mod, id):
     """ Export data to google sheet, generally for influencer or brand Users.
         Was view results on GET and generate Sheet on POST .
@@ -170,6 +204,7 @@ def export(mod, id):
 
 
 @app.route('/data/update/<string:mod>/<int:id>/<string:sheet_id>')
+@staff_required()
 def update_data(mod, id, sheet_id):
     """ Update the given worksheet (sheet_id) data from the given Model indicated by mod and id. """
     Model = mod_lookup(mod)
@@ -180,8 +215,9 @@ def update_data(mod, id, sheet_id):
 
 
 @app.route('/data/permissions/<string:mod>/<int:id>/<string:sheet_id>', methods=['GET', 'POST'])
+@staff_required()
 def data_permissions(mod, id, sheet_id, perm_id=None):
-    """ Used for managing permissions to view worksheets """
+    """ Used for managing permissions for who has access to a worksheet """
     app.logger.info(f'===== {mod} data permissions for sheet {sheet_id} ====')
     template = 'form_permission.html'
     sheet = perm_list(sheet_id)
@@ -199,24 +235,6 @@ def data_permissions(mod, id, sheet_id, perm_id=None):
         # TODO: ?refactor to use redirect(url_for('data', mod=mod, id=id, sheet_id=sheet['id']))
         return render_template('data.html', mod=mod, id=id, sheet=sheet)
     return render_template(template, mod=mod, id=id, action=action, data=data, sheet=sheet)
-
-
-@app.route('/data')
-def data_default():
-    # TODO: Do we need this route? Currently not called?
-    return data(None)
-
-
-@app.route('/data/view/<string:mod>/<int:id>/<string:sheet_id>')
-def data(mod, id, sheet_id):
-    """ Show the data with Google Sheets """
-    # TODO: Do we need this route? Currently only called by unused routes
-    # TODO: ?refactor to use redirect(url_for('data', mod=mod, id=id, sheet_id=sheet['id']))
-    sheet = read_sheet(id=sheet_id)
-    return render_template('data.html', mod=mod, id=id, sheet=sheet)
-    # Influencer user should be redirected to their detail view page
-    # Brand user should do what?
-    # Otherwise Admin|Manager see a list.
 
 
 # ############# End Worksheets #############
@@ -249,6 +267,7 @@ def callback(mod):
 
 
 @app.route('/campaign/<int:id>/results', methods=['GET', 'POST'])
+@staff_required()
 def results(id):
     """ Campaign Results View (on GET) or generate Worksheet report (on POST) """
     mod, view = 'campaign', 'results'
@@ -265,12 +284,14 @@ def results(id):
 
 
 @app.route('/campaign/<int:id>/detail', methods=['GET', 'POST'])
+@staff_required()
 def detail_campaign(id):
     """ Used because campaign function over-rides route for detail view """
     return campaign(id, view='collected')
 
 
 @app.route('/campaign/<int:id>', methods=['GET', 'POST'])
+@staff_required()
 def campaign(id, view='management'):
     """ Defaults to management of assigning posts to a campaign.
         When view is 'collected', user can review and re-assess posts already assigned to the campaign.
@@ -299,7 +320,7 @@ def view(mod, id):
     Model, model = None, None
     if current_user.role not in ['manager', 'admin']:
         if mod in User.roles:
-            if current_user.id != id or current_user.role != mod:
+            if current_user.role == mod and current_user.id != id:
                 flash('Incorrect location. You are being redirected to your own profile page')
                 return redirect(url_for('view', mod=current_user.role, id=current_user.id))
             # otherwise they get to see their own profile page!
@@ -338,8 +359,13 @@ def view(mod, id):
 
 
 @app.route('/<string:mod>/<int:id>/insights')
+@login_required
 def insights(mod, id):
     """ For a given User (influencer or brand), show the account Insight data. """
+    if current_user.role not in ['admin', 'manager'] and current_user.id != id:
+        # kick them out
+        flash('This was not a correct location. You are redirected to the home page.')
+        return redirect(url_for('home'))
     user = db_read(id)
     scheme_color = ['gold', 'purple', 'green', 'blue']
     dataset, i = {}, 0
@@ -378,6 +404,10 @@ def insights(mod, id):
 @app.route('/<string:mod>/<int:id>/audience')
 def new_audience(mod, id):
     """ Get new audience data from API for either. Input mod for either User or Brand, with given id. """
+    if current_user.role not in ['admin', 'manager'] and current_user.id != id:
+        # kick them out
+        flash('This was not a correct location. You are redirected to the home page.')
+        return redirect(url_for('home'))
     audience = get_audience(id)
     logstring = f'Audience data for {mod} - {id}' if audience else f'No insight data, {mod}'
     app.logger.info(logstring)
@@ -387,6 +417,10 @@ def new_audience(mod, id):
 @app.route('/<string:mod>/<int:id>/followers')
 def followers(mod, id):
     """ Get 'online_followers' report """
+    if current_user.role not in ['admin', 'manager'] and current_user.id != id:
+        # kick them out
+        flash('This was not a correct location. You are redirected to the home page.')
+        return redirect(url_for('home'))
     follow_report = get_online_followers(id)
     logstring = f"Online Followers for {mod} - {id}" if follow_report else f"No data for {mod} - {id}"
     app.logger.info(logstring)
@@ -396,6 +430,10 @@ def followers(mod, id):
 @app.route('/<string:mod>/<int:id>/fetch')
 def new_insight(mod, id):
     """ Get new account insight data from API. Input mod for either User or Brand, with given id. """
+    if current_user.role not in ['admin', 'manager'] and current_user.id != id:
+        # kick them out
+        flash('This was not a correct location. You are redirected to the home page.')
+        return redirect(url_for('home'))
     insights = get_insight(id)
     logstring = f'Insight data for {mod} - {id} ' if insights else f'No insight data, {mod}'
     app.logger.info(logstring)
@@ -405,6 +443,10 @@ def new_insight(mod, id):
 @app.route('/<string:mod>/<int:id>/posts')
 def new_post(mod, id):
     """ Get new posts data from API. Input mod for either User or Brand, with a given id"""
+    if current_user.role not in ['admin', 'manager'] and current_user.id != id:
+        # kick them out
+        flash('This was not a correct location. You are redirected to the home page.')
+        return redirect(url_for('home'))
     posts = get_posts(id)
     logstring = 'we got some posts back' if len(posts) else 'No posts retrieved'
     app.logger.info(logstring)
@@ -417,11 +459,16 @@ def add_edit(mod, id=None):
     action = 'Edit' if id else 'Add'
     Model = mod_lookup(mod)
     if action == 'Add' and Model == User:
-        flash("Using Signup")
-        return redirect(url_for('signup'))
+        if not current_user.is_authenticated \
+           or current_user.role not in ['admin', 'manager'] \
+           or mod != 'brand':
+            flash("Using Signup")
+            return redirect(url_for('signup'))
     app.logger.info(f'--------- {action} {mod}------------')
     if request.method == 'POST':
         data = process_form(mod, request)
+        if mod == 'brand' and data.get('instagram_id', '') in ('None', ''):
+            data['instagram_id'] = None
         # TODO: ?Check for failing unique column fields, or failing composite unique requirements?
         if action == 'Edit':
             if Model == User and data.get('password'):
@@ -454,9 +501,10 @@ def add_edit(mod, id=None):
 
 
 @app.route('/<string:mod>/add', methods=['GET', 'POST'])
+@staff_required()
 def add(mod):
     """ For a given data Model, as indicated by mod, add new data to DB. """
-    valid_mod = {'campaign'}
+    valid_mod = {'campaign', 'brand'}
     if mod not in valid_mod:
         app.logger.error(f"Unable to add {mod}")
         flash(f"Adding a {mod} is not working right now. Contact an Admin")
@@ -465,6 +513,7 @@ def add(mod):
 
 
 @app.route('/<string:mod>/<int:id>/edit', methods=['GET', 'POST'])
+@staff_required()
 def edit(mod, id):
     """ Modify the existing DB entry. Model indicated by mod, and provided record id. """
     valid_mod = {'campaign'}.union(set(User.roles))
@@ -476,6 +525,7 @@ def edit(mod, id):
 
 
 @app.route('/<string:mod>/<int:id>/delete')
+@admin_required()
 def delete(mod, id):
     """ Permanently remove from DB the record for Model indicated by mod and id. """
     Model = mod_lookup(mod)
@@ -486,20 +536,31 @@ def delete(mod, id):
 @app.route('/<string:mod>/list')
 @login_required
 def all(mod):
-    """ List view for all data of Model indicated by mod """
-    if current_user.role not in ['admin', 'manager'] and mod in User.roles:
-        if current_user.role == mod:
-            return redirect(url_for('view', mod=mod, id=current_user.id))
-        elif mod in ['influencer', 'brand']:
-            flash(f"Did you click the wrong link? You are not a {mod} user.")
-            flash(f"Or did you want to join the platform as a {mod}, using a different Instagram account?")
-            return redirect(url_for('signup'))
-        else:
-            flash('It seems that is not a correct route. You are redirected to the home page.')
-            return redirect(url_for('home'))
+    """ List view for all data of Model, or Google Drive Files, as indicated by mod.
+        Only admin & manager users are allowed to see the campaign list view.
+        The list view for influencer and brand will redirect those user types to their profile.
+        Otherwise, only admin & manager users can see these list views for brands or influencers.
+        All other list views can only be seen by admin users.
+    """
+    if current_user.role not in ['admin', 'manager']:
+        if mod in User.roles:
+            if current_user.role == mod:
+                return redirect(url_for('view', mod=mod, id=current_user.id))
+            elif mod in ['influencer', 'brand']:
+                flash(f"Did you click the wrong link? You are not a {mod} user.")
+                flash(f"Or did you want to join the platform as a {mod}, using a different Instagram account?")
+                return redirect(url_for('signup'))
+        flash('It seems that is not a correct route. You are redirected to the home page.')
+        return redirect(url_for('home'))
     # The following only runs if the user is an 'admin' or a 'manager' role.
-    Model = mod_lookup(mod)
-    models = db_all(Model=Model, role=mod) if Model == User else db_all(Model=Model)
+    if mod not in ['campaign', *User.roles] and current_user.role != 'admin':
+        flash('It seems that is not a correct route. You are redirected to the home page.')
+        return redirect(url_for('home'))
+    if mod == 'file':
+        models = all_files()
+    else:
+        Model = mod_lookup(mod)
+        models = db_all(Model=Model, role=mod) if Model == User else db_all(Model=Model)
     return render_template('list.html', mod=mod, data=models)
 
 

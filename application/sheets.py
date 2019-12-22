@@ -1,8 +1,10 @@
 from flask import flash, current_app as app
+from flask_login import current_user
 from os import path
 from googleapiclient.discovery import build
 from google.oauth2 import service_account
 from datetime import datetime as dt
+import re
 from pprint import pprint
 
 SHARED_SHEET_ID = '1LyUFeo5in3F-IbR1eMnkp-XeQXD_zvfYraxCJBUkZPs'
@@ -95,9 +97,15 @@ def all_files(*args, service=None):
     if not service:
         creds = get_creds(service_config['sheets'])
         service = build('drive', 'v3', credentials=creds, cache_discovery=False)
-    files_list = service.files().list().execute().get('items', [])
-    pprint(files_list)
-    return files_list
+    files_list = service.files().list().execute().get('files', [])
+    data = []
+    for file in files_list:
+        id = file.get('id')
+        admin_id = current_user.id
+        link = f"https://docs.google.com/spreadsheets/d/{id}/edit#gid=0"
+        file_type = re.sub('^application/vnd.google-apps.', '', file.get('mimeType'))
+        data.append({'id': id, 'admin_id': admin_id, 'name': file.get('name'), 'link': link, 'type': file_type})
+    return data
 
 
 def perm_list(sheet_id, service=None):
