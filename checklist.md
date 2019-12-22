@@ -290,28 +290,35 @@ Permissions to Routes and Showing/Hiding links in Templates:
 
 - [ ] Sign Up page requires Influencers and Brands to use FB link
 - [ ] Login page encourages Influencers and Brands to use FB link
-- [ ] ? Confirm same link, or Update link, for FB signup vs Login.
-- [ ] ] List All Influencers
-  - [ ] Everyone can see the link, but route requires login.
-  - [ ] Can Influencers see list of all Influencers?
-  - [ ] Can Brands see list of all Influencers?
+- [ ] Login page allows admin and managers to verify their access to the platform.
+- [ ] ? Confirm same link, or Update link, for FB signup vs Login (if needed by Influencer|Brand)
+- [ ]  The 'Influencers' link (and associated route) on the base template.
+  - [ ]  Requires authenticated user, otherwise redirects to signup (or login) page.
+    - [ ]  Should this signup just be a link to 'join as an Influencer'?
+  - [ ]  For authenticated Admin|Manager - List All Influencers
+  - [ ]  For authenticated Influencer, redirects to their account detail view
+  - [ ]  For authenticated Brand user, ... Unclear
 - [ ] ] List All Brands
   - [ ] Everyone can see the link, but route requires login.
-  - [ ] Can Influencers see list of all Brands?
-  - [ ] Can Brands see list of all Brands?
-- [ ] View Influencer detail view only for Admin, Manager, and current_user's own profile?
-- [ ] View Brand details: Can Influencers see Brands? Can Brands see other Brands?
-- [ ] View Influencer details: Can Brands see Influencers? Can other Influencers?
-- [ ] On Brand|User lists: Template links to detail views matches permissions to routes.
+  - [ ] Admin|Manager users see the list of all brands, can also add a Brand.
+  - [ ] Brand user is redirected to their account detail view.
+  - [ ] Influencer user ... Unclear
+- [n] View Influencer details: Can Brands see Influencers? Can other Influencers?
+- [n] View Brand details: Can Influencers see BrandsCan other Brands?
+- [ ] View Influencer detail: only for Admin, Manager,
+  - [ ] and current_user's own profile?
+- [ ] View Brand details: only for Admin, Manager,
+  - [ ] and current_user's own profile?
 - [ ] List All Campaigns
-  - [ ] route requires authenticated (logged in)
-  - [ ] ? Only show link if authenticated, or have consistent UI with User list links?
-  - [ ] ? For Influencers: Is list filtered to only ones they are in, or see full list?
-  - [ ] ? For Brands: Is list filtered to only ones they are in, or see full list?
+  - [ ] route requires authenticated (logged in) Admin|Manager
+  - [n] ? Only show link if authenticated, or have consistent UI with User list links?
+  - [n] ? For Influencers: Is list filtered to only ones they are in, or see full list?
+  - [n] ? For Brands: Is list filtered to only ones they are in, or see full list?
+  - [ ] Influencer and Brand users never see this link and never have access to this route/view
 - [ ] Signup, Login, Logout
   - [ ] Links to Signup and Login if not authenticated, Logout link if authenticated
-  - [ ] Allow special "Signup other User" for manager|admin to create manager|admin|brand user?
-- [ ] View your own profile: For authenticated, base shows link to their own detail view.
+  - [ ] Allow special "Signup other User" for manager|admin to create manager|admin|brand user
+- [ ] View your own profile: Could have a profile link, but maybe handled already.
 - [ ] List All Managers Route
 - [ ] Base has link to List all Managers for Admin|Manager? Or just Admin? Or never?
   - [ ] Manager and Admin may want to see this to contact or know managers?
@@ -328,8 +335,8 @@ Permissions to Routes and Showing/Hiding links in Templates:
   - [ ] Only show links if current_user (if allowed) or Manager|Admin
 - [ ] Routes/views to see User Insights Summary
   - [ ] Routes only if current_user or Admin|Manager
-  - [ ] ? Allow Routes for Brands to see Influencers ?
-  - [ ] ? Allow Routes for Influencers to see Brands ?
+  - [n] ? Allow Routes for Brands to see Influencers ?
+  - [n] ? Allow Routes for Influencers to see Brands ?
   - [ ] Links from User detail view to Insight Summary matching permissions to view them.
 - [ ] Route to see detail view for Insight only for Admin
   - [ ] The only place for this link would be a special Admin only page.
@@ -338,36 +345,39 @@ Permissions to Routes and Showing/Hiding links in Templates:
 - [ ] Route to see detail view for Post - allowed for all (they are public by IG)
   - [ ] Link to view Post detail view is unmodified wherever shown (public IG post)
 - [ ] Route to see anything to do with Google Sheets only for Admin|Manager
-  - [ ] Or allow User (influencer or brand) to export their own data?
-  - [ ] Or allow Influencer to export Campaigns they are associated with?
-  - [ ] Or allow Brand to export Campaigns they are associated with?
+  - [n] Or allow User (influencer or brand) to export their own data?
+  - [n] Or allow Influencer to export Campaigns they are associated with?
+  - [n] Or allow Brand to export Campaigns they are associated with?
 - [ ] Add or Edit Campaign routes require Admin|Manager
 - [ ] Campaign List view shows link to Add Campaign only if Admin|Manager
 - [ ] Campaign List view shows link to Campaign matching who has permissions to route
 - [ ] View Campaign Detail (Manage) route require Admin|Manager
-  - [ ] ?Allow Campaign Detail route if Influencer is associated to it?
-  - [ ] ?Allow Campaign Detail route if Brand is associated to it?
+  - [n] ?Allow Campaign Detail route if Influencer is associated to it?
+  - [n] ?Allow Campaign Detail route if Brand is associated to it?
 - [ ] Campaign Collected route require Admin|Manager
-  - [ ] ?Allow Campaign Collected route if Influencer is associated to it?
-  - [ ] ?Allow Campaign Collected route if Brand is associated to it?
-- [ ] Campaign Manage|Collected links in Campaign header are unchanged (all here can see link)
-- [ ] ?Campaign Results links in Campaign header unchanged (all here can see the link)?
-- [ ] ?Campaign Results link in Campaign header matches who has permissions to route?
+  - [n] ?Allow Campaign Collected route if Influencer is associated to it?
+  - [n] ?Allow Campaign Collected route if Brand is associated to it?
+- [x] Campaign Manage|Collected links in Campaign header are unchanged (all here can see link)
+- [x] ?Campaign Results links in Campaign header unchanged (all here can see the link)?
+- [n] ?Campaign Results link in Campaign header matches who has permissions to route?
 - [ ] Campaign Results route require Admin|Manager
-  - [ ] ?Allow Campaign Results route if Influencer is associated to it?
-  - [ ] ?Allow Campaign Results route if Brand is associated to it?
-- [ ] Campaign Manage|Collected|Result view shows link to Edit Campaign only if Admin|Manager.
+  - [n] ?Allow Campaign Results route if Influencer is associated to it?
+  - [n] ?Allow Campaign Results route if Brand is associated to it?
+- [n] Campaign Manage|Collected|Result view shows link to Edit Campaign only if Admin|Manager.
+  - [ ] Only if Admin?
+- [x] Campaign Manage|Collected|Result view shows liink to Edit Campaign unchanged
 - [ ] Ability to POST to Campaign Manage|Collected (media assignment) only Admin|Manager
-- [ ] Show Form element or Button on Campaign Manage|Collected views only Admin|Manager
-- [ ] Link to collect more media/posts on any Campaign view unmodified (all here are allowed)
+- [x] Show Form element or Button on Campaign Manage|Collected views only Admin|Manager
+- [x] Link to collect more media/posts on any Campaign view unmodified (all here are allowed)
 - [ ] Delete Campaign route limited to just Admin or for Admin|Manager?
   - [ ] What if a manager accidentally created one?
 - [ ] Link to Delete Campaign from Campaign settings matches permissions to route.
-- [ ] On Campaign Results: Link/Form to Export Sheet only shown to Admin|Manage
-  - [ ] ? Allow associated Brand to Export Sheet ?
-  - [ ] ? Allow associated User to Export Sheet ?
-- [ ] ?If Influencer or Brand can see Campaign Results, they do not see Export Sheet option?
+- [n] On Campaign Results: Link/Form to Export Sheet only shown to Admin|Manage
+  - [n] ? Allow associated Brand to Export Sheet ?
+  - [n] ? Allow associated User to Export Sheet ?
+- [n] ?If Influencer or Brand can see Campaign Results, they do not see Export Sheet option?
 - [ ] Admin has an extra view with links that only an Admin needs and is allowed to use.
+  - [ ] Create a Manager|Admin account and send invite
   - [ ] List all Insights | Audiences | Posts | Managers | Admin
   - [ ] List all Sheets owned by the platform
   - [ ] Manage settings to any specific sheet
