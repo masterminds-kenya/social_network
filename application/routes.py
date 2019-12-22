@@ -1,4 +1,4 @@
-from flask import current_app as app
+loginfrom flask import current_app as app
 from flask import render_template, redirect, url_for, request, abort, flash
 from flask_login import current_user, login_user, logout_user, login_required
 from werkzeug.security import generate_password_hash, check_password_hash
@@ -8,7 +8,7 @@ from . import developer_admin
 from functools import wraps
 from .manage import update_campaign, process_form, post_display
 from .api import onboard_login, onboarding, get_insight, get_audience, get_posts, get_online_followers
-from .sheets import create_sheet, update_sheet, read_sheet, perm_add, perm_list, all_files
+from .sheets import create_sheet, update_sheet, perm_add, perm_list, all_files
 import json
 from pprint import pprint
 
@@ -49,6 +49,18 @@ def admin_required(role=['admin']):
             return fn(*args, **kwargs)
         return decorated_view
     return wrapper
+
+
+# def self_or_staff_required(role=['admin', 'manager']):
+#     """ This decorator limits access to staff or if the resource belongs to the current_user. """
+#     def wrapper(fn):
+#         @wraps(fn)
+#         def decorated_view(*args, **kwargs):
+#             if not current_user.is_authenticated or current_user.role not in role:
+#                 return app.login_manager.unauthorized()
+#             return fn(*args, **kwargs)
+#         return decorated_view
+#     return wrapper
 
 
 @app.route('/')
@@ -144,7 +156,7 @@ def admin():
 
 
 @app.route('/data/load/')
-@login_required
+@admin_required()
 def load_user():
     """ This is a temporary development function. Will be removed for production. """
     developer_admin.load()
@@ -152,7 +164,7 @@ def load_user():
 
 
 @app.route('/data/<string:mod>/<int:id>')
-@login_required
+@admin_required()
 def backup_save(mod, id):
     """ This is a temporary development function. Will be removed for production. """
     Model = mod_lookup(mod)
@@ -308,7 +320,7 @@ def view(mod, id):
     Model, model = None, None
     if current_user.role not in ['manager', 'admin']:
         if mod in User.roles:
-            if current_user.id != id or current_user.role != mod:
+            if current_user.role == mod and current_user.id != id:
                 flash('Incorrect location. You are being redirected to your own profile page')
                 return redirect(url_for('view', mod=current_user.role, id=current_user.id))
             # otherwise they get to see their own profile page!
@@ -347,8 +359,13 @@ def view(mod, id):
 
 
 @app.route('/<string:mod>/<int:id>/insights')
+@login_required
 def insights(mod, id):
     """ For a given User (influencer or brand), show the account Insight data. """
+    if current_user.role not in ['admin', 'manager'] and current_user.id != id:
+        # kick them out
+        flash('This was not a correct location. You are redirected to the home page.')
+        return redirect(url_for('home'))
     user = db_read(id)
     scheme_color = ['gold', 'purple', 'green', 'blue']
     dataset, i = {}, 0
@@ -387,6 +404,10 @@ def insights(mod, id):
 @app.route('/<string:mod>/<int:id>/audience')
 def new_audience(mod, id):
     """ Get new audience data from API for either. Input mod for either User or Brand, with given id. """
+    if current_user.role not in ['admin', 'manager'] and current_user.id != id:
+        # kick them out
+        flash('This was not a correct location. You are redirected to the home page.')
+        return redirect(url_for('home'))
     audience = get_audience(id)
     logstring = f'Audience data for {mod} - {id}' if audience else f'No insight data, {mod}'
     app.logger.info(logstring)
@@ -396,6 +417,10 @@ def new_audience(mod, id):
 @app.route('/<string:mod>/<int:id>/followers')
 def followers(mod, id):
     """ Get 'online_followers' report """
+    if current_user.role not in ['admin', 'manager'] and current_user.id != id:
+        # kick them out
+        flash('This was not a correct location. You are redirected to the home page.')
+        return redirect(url_for('home'))
     follow_report = get_online_followers(id)
     logstring = f"Online Followers for {mod} - {id}" if follow_report else f"No data for {mod} - {id}"
     app.logger.info(logstring)
@@ -405,6 +430,10 @@ def followers(mod, id):
 @app.route('/<string:mod>/<int:id>/fetch')
 def new_insight(mod, id):
     """ Get new account insight data from API. Input mod for either User or Brand, with given id. """
+    if current_user.role not in ['admin', 'manager'] and current_user.id != id:
+        # kick them out
+        flash('This was not a correct location. You are redirected to the home page.')
+        return redirect(url_for('home'))
     insights = get_insight(id)
     logstring = f'Insight data for {mod} - {id} ' if insights else f'No insight data, {mod}'
     app.logger.info(logstring)
@@ -414,6 +443,10 @@ def new_insight(mod, id):
 @app.route('/<string:mod>/<int:id>/posts')
 def new_post(mod, id):
     """ Get new posts data from API. Input mod for either User or Brand, with a given id"""
+    if current_user.role not in ['admin', 'manager'] and current_user.id != id:
+        # kick them out
+        flash('This was not a correct location. You are redirected to the home page.')
+        return redirect(url_for('home'))
     posts = get_posts(id)
     logstring = 'we got some posts back' if len(posts) else 'No posts retrieved'
     app.logger.info(logstring)

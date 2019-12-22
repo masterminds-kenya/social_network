@@ -260,9 +260,9 @@ Current Status:
 - [x] For a given worksheet, ability to edit existing permissions
 - [ ] For a given worksheet, ability to delete existing permissions
 - [ ] For a given worksheet, ability to delete the file
-- [ ] More Drive files management
-  - [ ] List all files
-  - [ ] Manage those files
+- [x] More Drive files management
+  - [x] List all files
+  - [x] Manage those files
 - [s] Attach worksheets to the Campaign model so we not always creating new.
 - [x] refactor sheets data view to export to a google worksheet
 
