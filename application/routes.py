@@ -1,4 +1,4 @@
-loginfrom flask import current_app as app
+from flask import current_app as app
 from flask import render_template, redirect, url_for, request, abort, flash
 from flask_login import current_user, login_user, logout_user, login_required
 from werkzeug.security import generate_password_hash, check_password_hash
