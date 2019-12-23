@@ -67,6 +67,11 @@ def admin_required(role=['admin']):
 def home():
     """ Default root route """
     data = ''
+#     data = 'You went to the test page!'
+#     print('Local: ', app.config.get('LOCAL_ENV'))
+#     print('stuff: ', app.config.get('FB_CLIENT_ID'))
+#     print('project: ', app.config.get('PROJECT_ID'))
+#     print('location: ', app.config.get('PROJECT_REGION'))
     return render_template('index.html', data=data)
 
 
@@ -245,6 +250,7 @@ def fb_login(mod):
     """ Initiate the creation of a new Influencer or Brand, as indicated by 'mod' """
     app.logger.info(f'====================== NEW {mod} Account =========================')
     if app.config.get('LOCAL_ENV') is True:
+        app.logger.info('Can not call the Facebook auth function when running locally')
         flash('This does not work when running locally. Redirecting to the home page.')
         return redirect(url_for('home'))
     authorization_url = onboard_login(mod)
@@ -402,6 +408,7 @@ def insights(mod, id):
 
 
 @app.route('/<string:mod>/<int:id>/audience')
+@login_required
 def new_audience(mod, id):
     """ Get new audience data from API for either. Input mod for either User or Brand, with given id. """
     if current_user.role not in ['admin', 'manager'] and current_user.id != id:
@@ -415,6 +422,7 @@ def new_audience(mod, id):
 
 
 @app.route('/<string:mod>/<int:id>/followers')
+@login_required
 def followers(mod, id):
     """ Get 'online_followers' report """
     if current_user.role not in ['admin', 'manager'] and current_user.id != id:
@@ -428,6 +436,7 @@ def followers(mod, id):
 
 
 @app.route('/<string:mod>/<int:id>/fetch')
+@login_required
 def new_insight(mod, id):
     """ Get new account insight data from API. Input mod for either User or Brand, with given id. """
     if current_user.role not in ['admin', 'manager'] and current_user.id != id:
@@ -441,6 +450,7 @@ def new_insight(mod, id):
 
 
 @app.route('/<string:mod>/<int:id>/posts')
+@login_required
 def new_post(mod, id):
     """ Get new posts data from API. Input mod for either User or Brand, with a given id"""
     if current_user.role not in ['admin', 'manager'] and current_user.id != id:

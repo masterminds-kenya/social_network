@@ -40,7 +40,7 @@
 - [s] Stretch Goal. Not for current feature plan.
 
 Current Status:
-2019-12-19 21:47:30
+2019-12-23 11:33:48
 <!-- Ctrl-Shift-I to generate timestamp -->
 
 ### DB Design: Track different businesses and how influencers affect them
@@ -277,7 +277,7 @@ Current Status:
 - [x] On edit User, input on password field changes the password
 - [x] On edit User, changing the email to one already in use does not break
 - [ ] ?User created with Facebook login/permissions is integrated with other User methods
-- [ ] Login page: During Testing & Approval, show Test Login Details.
+- [x] Login page: During Testing & Approval, show Test Login Details.
 - [n] Allow anonymous user to start the creation of a manager or admin account
   - [n] New manually created 'manager' or 'admin' users requires Admin approval
 - [ ] Allow admin to create a user w/o a password,
