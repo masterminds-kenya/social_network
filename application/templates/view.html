@@ -20,6 +20,8 @@
       </li>
       {% endfor %}
     </ul>
+  {% elif key in ['facebook_id', 'instagram_id'] %}
+  <li>{{key}}: {%if data[key] is none %} Not {% endif %} Known</li>
   {% else %}
   <li>{{key}}: {{data[key]}} </li>
   {% endif %}
@@ -31,7 +33,7 @@
 {% if mod in ['influencer', 'brand', 'admin', 'manager', 'campaign', 'insight', 'audience'] %}
 <h3>Change Data Actions</h3>
 <ul>
-  {% if mod in ['influencer', 'brand'] %}
+  {% if mod in ['influencer', 'brand'] and data['instagram_id'] %}
   <li><a href="{{ url_for('new_post', mod=mod, id=data.id) }}">Get New Media / Posts</a> </li>
   <li><a href="{{ url_for('new_insight', mod=mod, id=data.id) }}">Get New {{mod|title}} Insights</a> </li>
   <li><a href="{{ url_for('new_audience', mod=mod, id=data.id) }}">Get New Audience Data</a> </li>
