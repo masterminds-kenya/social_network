@@ -15,7 +15,6 @@ Designed to be deployed on Google Cloud App Engine, using:
   - pages_show_list
   - instagram_basic
   - instagram_manage_insights
-- Facebook allows access to Instagram Insights, Media, & account information.
 
 Core packages required for this application:
 
@@ -29,6 +28,53 @@ Core packages required for this application:
 - google-auth
 - requests-oauthlib
 - python-dateutil
+
+### Data Collected
+
+The Instagram (Facebook) Graph API provides information on Instagram Professional accounts and Media (including Stories) posted from those accounts. We collect the following for Influencers and Brand partners who have reviewed and chosen to grant the requested permissions when joining the platform:
+
+- IG User
+  - instagram_id
+  - username
+  - media_count
+  - followers_count
+- IG User Insights (metrics on the account)
+  - impressions (360 days)
+  - reach (360 days)
+  - online_followers (30 days max, at time of request)
+  - Various related to Instagram Profile (90 days)
+    - phone_call_clicks
+    - text_message_clicks
+    - email_contacts
+    - get_directions_clicks
+    - website_clicks
+    - profile_views
+    - follower_count
+  - audience_city (lifetime metric at time of request)
+  - audience_country (lifetime metric at time of request)
+  - audience_gender_age (lifetime metric at time of request)
+- IG User Stories (list of 'stories' posted in last 24 hours)
+- IG User Media (list of what they have posted)
+- IG Media (data on each Media or Stories post)
+  - media_type (if not a Stories post)
+  - caption
+  - comments_count
+  - like_count
+  - permalink (only valid short term for Stories post)
+  - timestamp
+  - impressions
+  - reach
+  - engagement (for IMAGE and VIDEO media types)
+  - saved (for IMAGE and VIDEO media types)
+  - video_views (for VIDEO media types)
+  - carousel_album_engagement (for CAROUSEL_ALBUM media types)
+  - carousel_album_saved (for CAROUSEL_ALBUM media types)
+  - exits (for Stories)
+  - replies (for Stories)
+  - taps_forward (for Stories)
+  - taps_back (for Stories)
+
+Through the Facebook Login, we also collect their 'facebook_id', which allows us to locate their Instagram Professional Account(s). If the Influencer or Brand partner has multiple of these accounts, they are given an option of which they want to use for the platform.
 
 ## Deployment
 
