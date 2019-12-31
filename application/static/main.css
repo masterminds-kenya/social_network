@@ -179,3 +179,32 @@ button:active {
 button {
   margin: 1rem 1rem 2rem 1rem;
 }
+
+.test-button {
+  display: inline-block;
+  vertical-align: middle;
+  background-color: #1877f2;
+  /* background-color: #98F7f2; */
+  border-radius: 0.25rem;
+  padding: 0.25rem 0.75rem;
+  margin: 0.2rem 0;
+  white-space: nowrap;
+  font-family: Helvetica, Arial, sans-serif;
+  font-weight: 600;
+  font-size: 0.99rem;
+  /* font-size: 11px; */
+  /* line-height: 1.28; */
+  text-align: center;
+  color: #fff;
+  text-decoration: none;
+  cursor: pointer;
+  /* position: relative;
+  top: 44px;
+  opacity: 1;
+  z-index: 2; */
+  }
+  .test-button img {
+    width: 1.55rem;
+    margin: 0.25rem 0.2rem 0.25rem 0;
+    vertical-align: middle;
+  }

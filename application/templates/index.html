@@ -6,26 +6,72 @@
 {% endblock header %}
 
 {% block content %}
-<p>
-   This application is currently in the development stages. To sign up as a test user,
-   the developers must add your Facebook username. Then you confirm through
-   <a href="https://developers.facebook.com/requests/">Facebook developer requests site</a>.
-</p>
-<p>After that, you can use the link below to create a new Influencer account.</p>
+<div id="fb-root"></div>
+<script async defer crossorigin="anonymous" src="https://connect.facebook.net/en_US/sdk.js#xfbml=1&version=v5.0&appId=786999158389277&autoLogAppEvents=1"></script>
 
-<h2>Join the Platform!</h2>
-<p>To take advantage of the platform, you will be asked to confirm that we have your
-   permission to view your InstaGram insights.
-</p>
-<h3>
-  <a href="{{ url_for('fb_login', mod='influencer') }}">
-    Join as an Influencer
-  </a>
-</h3>
-<h3>
-  <a href="{{ url_for('fb_login', mod='brand') }}">
-    Join as a Brand partner
-  </a>
-</h3>
+<main>
+  <p>
+    This platform is for tracking and analyzing media campaigns, using the data collected through Facebook/Instagram API on Instagram Professional Accounts.
+    Campaigns, which are mutually agreed on relationships between influencers, agencies and brand partners, are created and processed by admin and managers on the Bacchus Influencer Platform.
+  </p>
 
+  <!-- <h4>During Development and Testing</h4>
+  <p>
+    This application is currently in the development stages. To sign up as a test user,
+    the developers must add your Facebook username. Then you confirm through
+    <a href="https://developers.facebook.com/requests/">Facebook developer requests site</a>.
+    After that, you can use the link below to create a new Influencer or Brand account.
+  </p> -->
+
+  <h2>Join the Platform as an Influencer!</h2>
+  <p>
+    To take advantage of the platform, you will be asked to confirm that we have your permission to view your Instagram professional account, insights, and media.
+    Instagram professional accounts should be connected to a Facebook user, so we are using Facebook Login to confirm your account and permissions.
+  </p>
+  <br />
+  <a class="test-button" href="{{ url_for('fb_login', mod='influencer') }}">
+    <img src="/static/f_logo_RGB-White_58.png" />
+    Continue with Facebook
+  </a>
+    as an Influencer
+  <br />
+  <div class="fb-login-button" data-width="" data-size="large" data-button-type="continue_with" data-auto-logout-link="false" data-use-continue-as="false"></div>
+  <p>
+    As an influencer on Instagram, you bring value to brands with you social media presence and engagement.
+    Leverage the Bacchus Influencer Platform for tracking and reporting that value to your campaign brand partners.
+  </p>
+
+  <h2>Join the Platform as a Brand!</h2>
+  <p>
+    To take full advantage of the platform, you will be asked to confirm that we have your permission to view your Instagram professional account, insights, and media.
+    Make sure you login as the Facebook user that is connected to your brand's Instagram professional account to verify your account and permissions.
+    An account without a connected Instagram account can be created by a platform admin or manager.
+  </p>
+  <br />
+  <a class="test-button" href="{{ url_for('fb_login', mod='brand') }}">Continue with Facebook</a> as a Brand
+  <p>
+    As a Brand partner, you can leverage the Bacchus Influencer Platform to gain insightful metrics for your campaigns with social media influencers.
+    You gain additional features and metrics by also connecting your brand's Instagram professional account.
+  </p>
+
+<h2>Campaigns</h2>
+  <p>
+    Only Bacchus staff and approved consultants have access to the account data on this platform to manage and generate reports.
+    These reports are delivered to influencers and brands for campaigns they are involved with, to better understand campaign performance.
+    View the <a href="{{ url_for('render_static', page_name='privacy') }}">Privacy Policy</a> and <a href="{{ url_for('render_static', page_name='tos') }}">Terms of Service</a> for more details.
+    In general, data that is collected for campaigns include:
+  </p>
+  <ul>
+    <li>
+      Media posts and associated metrics such as impressions, likes, and reach
+    </li>
+    <li>
+      Account Insights such as follower city and active follower count
+    </li>
+    <li>
+      Collecting this data and storing in campaigns (collection of multiple posts) alleviates the manual sending of each media posts metrics, and automates reporting for large campaigns with hundreds of posts across dozens of accounts.   Joining the platform does not grant access to other non-partnered influencers or brands. A brand or influencer will only be able to view metrics and insights on their own account.
+    </li>
+  </ul>
+
+</main>
 {% endblock %}
