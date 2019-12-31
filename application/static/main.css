@@ -202,12 +202,13 @@ button {
     margin: 0.23rem 0.2rem 0.23rem 0;
     vertical-align: middle;
   }
-  .fb-button {
+  .fb-login {
     display: inline-block;
     vertical-align: middle;
     background-color: #1877f2;
-    /* background-image: url("/static/f_logo_RGB-White_58.png");
-    background-position: 0.23rem 0.2rem; */
+    background-image: url("/static/f_logo_RGB-White_58.png");
+    background-size: contain;
+    background-position: 0.23rem 0.2rem;
     border-radius: 0.25rem;
     padding: 0.25rem 0.72rem;
     margin: 0.2rem 0;
@@ -221,3 +222,4 @@ button {
     text-decoration: none;
     cursor: pointer;
     }
+/* Why does .fb-button selector break? It does not seem any other style rules target it.  */
