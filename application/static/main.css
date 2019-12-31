@@ -186,12 +186,12 @@ button {
   background-color: #1877f2;
   /* background-color: #98F7f2; */
   border-radius: 0.25rem;
-  padding: 0.25rem 0.75rem;
+  padding: 0.25rem 0.72rem;
   margin: 0.2rem 0;
   white-space: nowrap;
   font-family: Helvetica, Arial, sans-serif;
-  font-weight: 600;
-  font-size: 0.99rem;
+  font-weight: 700;
+  font-size: 0.977rem;
   /* font-size: 11px; */
   /* line-height: 1.28; */
   text-align: center;
@@ -204,7 +204,7 @@ button {
   z-index: 2; */
   }
   .test-button img {
-    width: 1.55rem;
-    margin: 0.25rem 0.2rem 0.25rem 0;
+    width: 1.56rem;
+    margin: 0.23rem 0.2rem 0.23rem 0;
     vertical-align: middle;
   }
