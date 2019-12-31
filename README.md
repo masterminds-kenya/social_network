@@ -31,14 +31,14 @@ Core packages required for this application:
 
 ### Data Collected
 
-The Instagram (Facebook) Graph API provides information on Instagram Professional accounts and Media (including Stories) posted from those accounts. We collect the following for Influencers and Brand partners who have reviewed and chosen to grant the requested permissions when joining the platform:
+The [Instagram (Facebook) Graph API](https://developers.facebook.com/docs/instagram-api) provides information on Instagram Professional accounts and Media (including Stories) posted from those accounts. We collect the following for Influencers and Brand partners who have reviewed and chosen to grant the requested permissions when joining the platform:
 
-- IG User
+- [IG User](https://developers.facebook.com/docs/instagram-api/reference/user)
   - instagram_id
   - username
   - media_count
   - followers_count
-- IG User Insights (metrics on the account)
+- [IG User Insights](https://developers.facebook.com/docs/instagram-api/reference/user/insights) (metrics on the account)
   - impressions (360 days)
   - reach (360 days)
   - online_followers (30 days max, at time of request)
@@ -53,9 +53,9 @@ The Instagram (Facebook) Graph API provides information on Instagram Professiona
   - audience_city (lifetime metric at time of request)
   - audience_country (lifetime metric at time of request)
   - audience_gender_age (lifetime metric at time of request)
-- IG User Stories (list of 'stories' posted in last 24 hours)
-- IG User Media (list of what they have posted)
-- IG Media (data on each Media or Stories post)
+- [IG User Stories](https://developers.facebook.com/docs/instagram-api/reference/user/stories) (list of 'stories' posted in last 24 hours)
+- [IG User Media](https://developers.facebook.com/docs/instagram-api/reference/user/media) (list of what they have posted)
+- [IG Media](https://developers.facebook.com/docs/instagram-api/reference/media) (data on each Media or Stories post)
   - media_type (if not a Stories post)
   - caption
   - comments_count
@@ -74,7 +74,7 @@ The Instagram (Facebook) Graph API provides information on Instagram Professiona
   - taps_forward (for Stories)
   - taps_back (for Stories)
 
-Through the Facebook Login, we also collect their 'facebook_id', which allows us to locate their Instagram Professional Account(s). If the Influencer or Brand partner has multiple of these accounts, they are given an option of which they want to use for the platform.
+Through our [manually built Facebook Login flow](https://developers.facebook.com/docs/facebook-login/manually-build-a-login-flow), we collect the 'facebook_id', which allows us to locate their [Instagram Professional Account(s)](https://help.instagram.com/502981923235522?fbclid=IwAR1pmzAotXJ4X_-XFKNP4Ft2A9F4BuAyMbuFtCZ7ayb3FtLoM7kO6nWQFV4) via [Graph API Page](https://developers.facebook.com/docs/instagram-api/reference/page) route (their Instagram account must be connected to a Facebook Page). If the Influencer or Brand partner has multiple of Instagram Professional accounts, they are given an option of which they want to use for the platform.
 
 ## Deployment
 
