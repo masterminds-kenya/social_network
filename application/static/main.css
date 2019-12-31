@@ -184,7 +184,6 @@ button {
   display: inline-block;
   vertical-align: middle;
   background-color: #1877f2;
-  /* background-color: #98F7f2; */
   border-radius: 0.25rem;
   padding: 0.25rem 0.72rem;
   margin: 0.2rem 0;
@@ -192,19 +191,33 @@ button {
   font-family: Helvetica, Arial, sans-serif;
   font-weight: 700;
   font-size: 0.977rem;
-  /* font-size: 11px; */
   /* line-height: 1.28; */
   text-align: center;
   color: #fff;
   text-decoration: none;
   cursor: pointer;
-  /* position: relative;
-  top: 44px;
-  opacity: 1;
-  z-index: 2; */
   }
   .test-button img {
     width: 1.56rem;
     margin: 0.23rem 0.2rem 0.23rem 0;
     vertical-align: middle;
   }
+  .fb-button {
+    display: inline-block;
+    vertical-align: middle;
+    background-color: #1877f2;
+    /* background-image: url("/static/f_logo_RGB-White_58.png");
+    background-position: 0.23rem 0.2rem; */
+    border-radius: 0.25rem;
+    padding: 0.25rem 0.72rem;
+    margin: 0.2rem 0;
+    white-space: nowrap;
+    font-family: Helvetica, Arial, sans-serif;
+    font-weight: 700;
+    font-size: 0.977rem;
+    line-height: 1.28;
+    text-align: center;
+    color: #fff;
+    text-decoration: none;
+    cursor: pointer;
+    }
