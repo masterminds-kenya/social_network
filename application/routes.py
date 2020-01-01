@@ -493,22 +493,41 @@ def add_edit(mod, id=None):
             try:
                 model = db_update(data, id, Model=Model)
             except ValueError as e:
+                app.logger.error('------- Came back as ValueError from Integrity Error -----')
                 app.logger.error(e)
-                flash('Please try again or contact an Admin')
-                return redirect(url_for('edit', mod=mod, id=id))
+                # Possibly that User account exists for the 'instagram_id'
+                # If true, then switch to updating the existing user account
+                #     and delete this newly created User account that was trying to be a duplicate.
+                ig_id = data.get('instagram_id', None)
+                found_user = User.query.filter_by(instagram_id=ig_id).first() if ig_id and Model == User else None
+                if found_user:
+                    found_user_id = getattr(found_user, id, None)
+                    # TODO: Is the following check sufficient to block the security hole if Updating the 'instagram_id' field on a form
+                    if current_user.facebook_id == found_user.facebook_id:
+                        try:
+                            model = db_update(data, found_user_id, Model=Model)
+                        except ValueError as e:
+                            message = 'Found existing User, but unable to update it'
+                            app.logger.error(f'----- {message} ----')
+                            app.logger.error(e)
+                            flash(message)
+                            return redirect(url_for('home'))
+                        login_user(found_user, force=True, remember=True)
+                        flash('Found, and using, existing user account')
+                        db_delete(id, Model=User)
+                else:
+                    flash('Please try again or contact an Admin')
+                # return redirect(url_for('edit', mod=mod, id=id))
         else:  # action == 'Add'
             try:
                 model = db_create(data, Model=Model)
             except ValueError as e:
                 app.logger.error('------- Came back as ValueError from Integrity Error -----')
                 app.logger.error(e)
-                # Possibly that User account exists for the 'instagram_id'
-                # If true, then switch to updating the existing user account
-                    # and delete this newly created User account that was trying to be a duplicate.
-                
                 flash('Error. Please try again or contact an Admin')
                 return redirect(url_for('add', mod=mod, id=id))
         return redirect(url_for('view', mod=mod, id=model['id']))
+    # If not a form POST, then give the user the form to submit.
     template, related = 'form.html', {}
     model = db_read(id, Model=Model) if action == 'Edit' else {}
     if mod == 'campaign':
@@ -551,9 +570,13 @@ def edit(mod, id):
 
 
 @app.route('/<string:mod>/<int:id>/delete')
-@admin_required()
+@login_required
 def delete(mod, id):
     """ Permanently remove from DB the record for Model indicated by mod and id. """
+    if current_user.role not in ['admin', 'manager'] and (current_user.id != id or current_user.role != mod):
+        # kick them out.
+        flash('Something went wrong. Can not delete. Contact an admin or manager. Redirecting to the home page.')
+        return redirect(url_for('home'))
     Model = mod_lookup(mod)
     db_delete(id, Model=Model)
     return redirect(url_for('home'))
