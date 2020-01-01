@@ -1,6 +1,7 @@
 from flask import flash
 from .model_db import db, from_sql, User, Post, Audience
 from werkzeug.security import generate_password_hash, check_password_hash
+import json
 
 
 def update_campaign(ver, request):
@@ -72,6 +73,7 @@ def process_form(mod, request):
             value = data.pop(name, None)
             if value:
                 # temp = {'name': name, 'values': [value]}
+                value = json.loads(value)
                 models.append(Audience(name=name, values=[value]))
         save['audiences'] = models
     data.update(save)  # adds to the data dict if we did save some relationship collections

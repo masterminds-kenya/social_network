@@ -263,7 +263,13 @@ def callback(mod):
     app.logger.info(f'================= Authorization Callback {mod}===================')
     view, data, account_id = onboarding(mod, request)
     if view == 'decide':
-        return render_template('decide_ig.html', mod=mod, id=account_id, ig_list=data)
+        ig_list = []
+        for ig_info in data:
+            cleaned = {}
+            for key, value in ig_info.items():
+                cleaned[key] = json.dumps(value) if key in Audience.ig_data else value
+            ig_list.append(cleaned)
+        return render_template('decide_ig.html', mod=mod, id=account_id, ig_list=ig_list)
     elif view == 'complete':
         return redirect(url_for('view', mod=mod, id=account_id))
     elif view == 'error':
@@ -494,7 +500,12 @@ def add_edit(mod, id=None):
             try:
                 model = db_create(data, Model=Model)
             except ValueError as e:
+                app.logger.error('------- Came back as ValueError from Integrity Error -----')
                 app.logger.error(e)
+                # Possibly that User account exists for the 'instagram_id'
+                # If true, then switch to updating the existing user account
+                    # and delete this newly created User account that was trying to be a duplicate.
+                
                 flash('Error. Please try again or contact an Admin')
                 return redirect(url_for('add', mod=mod, id=id))
         return redirect(url_for('view', mod=mod, id=model['id']))
@@ -523,7 +534,7 @@ def add(mod):
 
 
 @app.route('/<string:mod>/<int:id>/edit', methods=['GET', 'POST'])
-@staff_required()
+@login_required
 def edit(mod, id):
     """ Modify the existing DB entry. Model indicated by mod, and provided record id. """
     valid_mod = {'campaign'}.union(set(User.roles))
@@ -531,6 +542,11 @@ def edit(mod, id):
         app.logger.error(f"Unable to edit {mod}")
         flash(f"Editing a {mod} is not working right now. Contact an Admin")
         return redirect(request.referrer)
+    # check if current user is a manager, admin, or editing their own user account.
+    if current_user.role not in ['admin', 'manager'] and (current_user.id != id or current_user.role != mod):
+        # kick them out. Even if an Influencer or Brand clicked to login, but clicked the wrong role login.
+        flash('Something went wrong. Contact an admin or manager. Redirecting to the home page.')
+        return redirect(url_for('home'))
     return add_edit(mod, id=id)
 
 

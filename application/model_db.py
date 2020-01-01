@@ -33,7 +33,9 @@ def clean(obj):
 
 
 def from_sql(row, related=False, safe=False):
-    """ Translates a SQLAlchemy model instance into a dictionary """
+    """ Translates a SQLAlchemy model instance into a dictionary.
+        Will return only viewable fields when 'safe' is True.
+    """
     data = row.__dict__.copy()
     data['id'] = row.id
     # current_app.logger.info('============= from_sql ===================')
@@ -458,9 +460,13 @@ def db_update(data, id, Model=User):
     except IntegrityError as e:
         current_app.logger.error(e)
         db.session.rollback()
-        message = "Input Error. Make sure values are unique where required, and confirm all inputs are valid."
+        if Model == User:
+            message = "It seems there is already a user account with those unique values and "
+            message += "we can not create a new account. You can try to Login instead. "
+        else:
+            message = "Input Error. Make sure values are unique where required, and confirm all inputs are valid."
         flash(message)
-        raise ValueError(message)
+        raise ValueError(e)
     results = from_sql(model, safe=True)
     return results
 

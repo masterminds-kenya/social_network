@@ -117,6 +117,7 @@ Current Status:
 - [n] Keep a DB table of worksheet ids?
   - [s] Will we have multiple report views?
 - [s] DB Migration: Integrate flask-migrate?
+- [ ] Delete User information in response to a Facebook callback to delete.
 - [ ] Revisit method of reporting Campaign Results.
 - [ ] Revisit structure for ON DELETE, ON UPDATE,
 - [ ] Revisit structure for how related tables are loaded (lazy=?)
@@ -165,6 +166,10 @@ Current Status:
   - [x] If incoming form (or API user/brand) already exists, use existing instead of create new:
     - [x] Catch and handle attempt to create a duplicate existing User account
     - [ ] Catch and handle if a User account is trying to add an IG account already used by (another) User account
+    - [x] If an Influencer or Brand already exists during Onboarding function, use existing.
+      - [ ] Currently a bit cludgy solution for them to login to existing account.
+    - [ ] Separate Login method for an Influencer or Brand user to login with an existing account.
+    - [ ] Create a route and handle a Facebook callback to delete some user data.
     - [ ] Catch and handle if trying to create an already existing Campaign name
     - [x] Catch and handle attempt to create a duplicate existing Brand account
 - [x] Allow a Brand to give permissions for FB and IG.

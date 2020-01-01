@@ -1,7 +1,7 @@
 from flask import current_app as app
 from flask_login import login_user
 from .model_db import db_create, db_read, db_create_or_update_many
-from .model_db import metric_clean, Insight, Audience, Post, OnlineFollowers  # , User, Campaign
+from .model_db import metric_clean, Insight, Audience, Post, OnlineFollowers, User  # , Campaign
 import requests
 import requests_oauthlib
 from requests_oauthlib.compliance_fixes import facebook_compliance_fix
@@ -216,7 +216,7 @@ def onboarding(mod, request):
     ig_list = find_instagram_id(accounts, facebook=facebook)
     # If they only have 1 ig account, assign the appropriate instagram_id
     ig_id = None
-    if len(ig_list) == 1:
+    if len(ig_list) == 100:
         ig_info = ig_list.pop()
         data['name'] = ig_info.get('username', None)
         ig_id = int(ig_info.get('id'))
@@ -233,9 +233,11 @@ def onboarding(mod, request):
         app.logger.info(f'------ Found {len(ig_list)} potential IG accounts ------')
     # app.logger.info('=========== Data sent to Create User account ===============')
     # pprint(data)
+    # TODO: Create and use a User method that will create or use existing User, and returns a User object.
+    # Refactor next three lines to utilize this method so we are just dealing with the User object.
     account = db_create(data)
     account_id = account.get('id')
-    login_user(account, remember=True)
+    login_user(User.query.get(account_id), force=True, remember=True)
     app.logger.info(f"New {mod} User: {account_id}")
     if ig_id:
         # Relate Data
