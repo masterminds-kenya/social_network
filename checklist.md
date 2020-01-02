@@ -170,7 +170,10 @@ Current Status:
     - [x] Catch and handle attempt to create a duplicate existing User account
     - [x] Catch and handle if a new User is adding an IG account for an existing User account
     - [x] If an Influencer or Brand already exists during Onboarding function, use existing.
-    - [ ] Catch and handle if trying to create an already existing Campaign name
+    - [x] Catch and handle if trying to create an already existing Campaign name
+      - [x] Note: Does not update with new inputs I believe.
+      - [s] Stop and redirect to create new campaign.
+        - [s] With link to existing campaign of inputed name.
     - [x] Catch and handle attempt to create a duplicate existing Brand account
   - [x] Main nav links for 'Influencers' and 'Brands' show corresponding signup if user not logged in.
   - [x] Re-Login method for existing account for an Influencer or Brand user.
@@ -290,7 +293,9 @@ Current Status:
 - [x] Login page: During Testing & Approval, show Test Login Details.
 - [n] Allow anonymous user to start the creation of a manager or admin account
   - [n] New manually created 'manager' or 'admin' users requires Admin approval
-- [ ] Allow admin to create a user w/o a password,
+- [x] Allow admin to create a 'manager' or 'admin' user with a temporary password.
+  - [ ] Hide the Influencer and Brand signup sections.
+- [ ] Allow admin to create a user w/o a password.
   - [ ] Require the user to set password on first login.
 - [ ] When Export Sheet is created (for Campaign or User), current_user gets sheet permissions
 - [s] When Export Sheet is created, access is granted to some universal Admin
@@ -345,7 +350,7 @@ Permissions to Routes and Showing/Hiding links in Templates:
 - [x] Add any Model detail route requires Manager or Admin
 - [x] Edit any Model detail route requires Admin|Manager
 - [x] Manager, and Admin, have a link to their own profile view
-  - [ ] Also allow current_user to modify profile
+  - [x] Also allow current_user to modify profile
 - [x] Delete User routes require Admin
   - [ ] or can also be matching current_user if deleting user account.
 - [ ] User detail view: show Edit & Delete links only if current_user or Admin|Manager

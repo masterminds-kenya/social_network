@@ -2,7 +2,7 @@ from flask import current_app as app
 from flask import render_template, redirect, url_for, request, abort, flash
 from flask_login import current_user, login_user, logout_user, login_required
 from werkzeug.security import generate_password_hash, check_password_hash
-from .model_db import db_create, db_read, db_update, db_delete, db_all
+from .model_db import db_create, db_read, db_update, db_delete, db_all, from_sql
 from .model_db import User, OnlineFollowers, Insight, Audience, Post, Campaign  # , metric_clean
 from . import developer_admin
 from functools import wraps
@@ -17,7 +17,7 @@ def mod_lookup(mod):
     """ Associate to the appropriate Model, or raise error if 'mod' is not an expected value """
     if not isinstance(mod, str):
         raise TypeError('Expected a string input')
-    lookup = {'insight': Insight, 'audience': Audience, 'post': Post, 'campaign': Campaign}
+    lookup = {'insight': Insight, 'audiences': Audience, 'audience': Audience, 'post': Post, 'campaign': Campaign}
     # 'onlinefollowers': OnlineFollowers,
     lookup.update({role: User for role in User.roles})
     Model = lookup.get(mod, None)
@@ -346,7 +346,8 @@ def view(mod, id):
         elif mod in ['post', 'audience']:
             # The user can only view this detail view if they are associated to the data
             Model = mod_lookup(mod)
-            model = db_read(id, Model=Model)
+            # model = db_read(id, Model=Model)
+            model = Model.query.get(id)
             if model.user != current_user:
                 # ? Add the ability for brand user to see posts associated through a campaign?
                 flash('Incorrect location. You are being redirected to the home page.')
@@ -358,22 +359,28 @@ def view(mod, id):
     # if mod == 'campaign':
     #     return campaign(id)
     Model = Model or mod_lookup(mod)
-    model = model or db_read(id, Model=Model)
-    # model = Model.query.get(id)
+    model = model or Model.query.get(id)
+    related_user = from_sql(model.user, safe=True) if getattr(model, 'user', None) else None
+    model = from_sql(model, safe=True)
+    # model = db_readm(id, Model=Model)
     template = 'view.html'
     if mod == 'post':
         template = f"{mod}_{template}"
         model = post_display(model)
     elif mod == 'audience':
         template = f"{mod}_{template}"
-        model['user'] = db_read(model.get('user_id')).get('name')
+        # model['user'] = db_read(model.get('user_id')).get('name')
+        model['user'] = related_user
         value = json.loads(model['value'])
         if not isinstance(value, dict):  # For the id_data Audience records
             value = {'value': value}
         model['value'] = value
     elif mod == 'insight':
         template = f"{mod}_{template}"
-        model['user'] = db_read(model.get('user_id')).get('name')
+        # model['user'] = db_read(model.get('user_id')).get('name')
+        model['user'] = related_user
+    print('======= Data Info ===============')
+    print(model['id'])
     return render_template(template, mod=mod, data=model)
 
 
