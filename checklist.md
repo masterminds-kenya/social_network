@@ -23,7 +23,7 @@
 | :heavy_check_mark: | Give permissions to view google sheets      |
 | :heavy_check_mark: | Hosting and Facebook settings on Bacchus accounts |
 |                    | **Milestone 4 Completion**           |
-|                    | Admin & Manager Pages require login |
+| :heavy_check_mark: | Admin & Manager Pages require login |
 |                    | Site content and style, basic UI and graphs |
 |                    | Testing, on-boarding, error handling |
 |                    | Facebook App approved and go live    |
@@ -180,7 +180,7 @@ Current Status:
     - [x] Note: Currently a bit of a kludge solution for them to login to existing account.
     - [s] TODO: Actual login process does not create and then delete a new account for existing user login
   - [x] Create a route and handle a Facebook callback to delete some user data.
-  - [ ] Properly implement Facebook callback to delete some user data.
+  - [ ] ?Properly implement Facebook callback to delete some user data.?
 - [x] Allow a Brand to give permissions for FB and IG.
   - [x] If Brand name already in system, associate with that existing record
   - [x] exactly how this works depends on approach A or B for how to handle validation w/ existing records
@@ -356,9 +356,9 @@ Permissions to Routes and Showing/Hiding links in Templates:
 - [x] Manager, and Admin, have a link to their own profile view
   - [x] Also allow current_user to modify profile
 - [x] Delete User routes require Admin
-  - [ ] or can also be matching current_user if deleting user account.
-- [ ] User detail view: show Edit & Delete links only if current_user or Admin|Manager
-- [ ] Collect (from API call) new Insights | Audiences | Posts for a User
+  - [x] or can also be matching current_user if deleting user account.
+- [x] User detail view: show Edit & Delete links only if current_user or Admin|Manager
+- [x] Collect (from API call) new Insights | Audiences | Posts for a User
   - [x] Allow Manager|Admin to do all
   - [x] Allow Users to only do their own
   - [x] Only show links if current_user (if allowed) or Manager|Admin
@@ -432,10 +432,10 @@ Permissions to Routes and Showing/Hiding links in Templates:
 
 - [x] Setup a real influencer (Noelle Reno) as a confirmed tester.
 - [ ] ! Google sheet/drive: Use bacchus service_agent instead of development site service_agent!
-- [ ] Test that decide_ig.html form works with the dict as a set value.
+- [x] Test that decide_ig.html form works with the dict as a set value.
 - [x] Have real influencer (Noelle Reno) sign up for testing.
 - [x] Modularize the codebase: sheets, facebook api, developer_admin, manage
-- [ ] Update template to use for-else: in jinja, the else only runs if no iteration
+- [x] Update template to use for-else: in jinja, the else only runs if no iteration
 - [x] Modularize the codebase more: move routes elsewhere?
 - [x] ? allow logging in related files (remove all print statements) == from flask import current_app as app
 - [ ] Update forms and API digesting with input validation to replace following functionality:

@@ -39,6 +39,8 @@
     {{ea.get('type')}} - {{ea.get('role')}}:
     <a href="mailto:{{ea.get('emailAddress')}}">{{ea.get('displayName', ea.get('emailAddress'))}}</a>
   </li>
+  {% else %}
+  <li>No permissions were found. </li>
   {% endfor %}
 </ul>
 {% endif %}

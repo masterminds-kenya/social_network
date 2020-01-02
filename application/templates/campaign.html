@@ -45,6 +45,8 @@
     <a href="{{ url_for('new_post', mod='influencer', id=user.id) }}">retrieve new {{user.name}} posts</a>
     <br />
   </li>
+  {% else %}
+  <li>No associated Influencers found</li>
   {% endfor %}
 </ul>
 {% endif %}
@@ -96,6 +98,10 @@
           </label>
         </div>
         <hr />
+      </section>
+      {% else %}
+      <section class="posts">
+        <p>No Posts Found. You may need to retrieve new posts. </p>
       </section>
       {% endfor %}
       {% if related[user]|length < 1 %}

@@ -5,6 +5,8 @@
 <ul>
   {% for ea in data.value.keys() %}
   <li>{{ea}}: {{data.value[ea]}} </li>
+  {% else %}
+  <li>No Data</li>
   {% endfor %}
 </ul>
 

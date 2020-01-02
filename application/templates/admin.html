@@ -1,37 +1,53 @@
 {% extends "base.html" %}
+
 {% block head %}
-<title>Developer Admin Page</title>
+<title>Admin Page</title>
 {% endblock %}
 
+{% block header %}
+{{ super() }}
+<h1>Admin Page</h1>
+{% endblock header %}
+
+
 {% block content %}
-<h1>Dev Admin Page</h1>
+
+{% if data %}
+<h3>Data For Admin Review</h3>
 <p>
   {{ data }}
 </p>
-<p>
-  The following are functions that can only be performed by a platform admin
-</p>
+<hr />
+{% endif %}
+{% if files is not none %}
+<h3>Files for Admin Review</h3>
+<ul>
+  {% for file in files %}
+  <li><a href="{{ file['link'] }}">{{ file['name'] }}</a> {{ file['type'] }}</li>
+  {% else %}
+  <li>Files list is empty</li>
+  {%endfor %}
+</ul>
+<hr />
+{% endif %}
+
+<p>The following are functions are for platform admins</p>
 <ul>
   <li><a href="{{ url_for('signup') }}">Create Manager or Admin User</a> </li>
+  <li><a href="{{ url_for('add', mod='brand') }}">Create Brand User</a> (Instagram account optional)</li>
   <li><a href="{{ url_for('all', mod='manager') }}">List Managers</a></li>
   <li><a href="{{ url_for('all', mod='admin')}}">List Admins</a></li>
   <li><a href="{{ url_for('all', mod='file') }}">Google Drive Files</a></li>
 </ul>
-{% if files %}
-<h2>Google Drive Files owned by the Platform</h2>
-<ul>
-  {% for file in files %}
-  <li><a href="{{ file['link'] }}">{{ file['name'] }}</a> {{ file['type'] }}</li>
-  {%endfor %}
-</ul>
-{% endif %}
-<h3>Uncommon Admin Options</h3>
+
+<h4>Less Common Admin Functions</h4>
 <ul>
   <li><a href="{{ url_for('render_static', page_name='test') }}">Test Styles Page</a></li>
   <li><a href="{{ url_for('all', mod='post') }}">List all Posts</a></li>
   <li><a href="{{ url_for('all', mod='insight') }}">List all Insights</a></li>
   <li><a href="{{ url_for('all', mod='audience') }}">List all Audience Data</a></li>
   {% if dev %}
+  <li>Developer Only Functions Below</li>
   <li><a href="{{ url_for('load_user') }}">Load File contents into Database</a> </li>
   <li><a href="{{ url_for('add', mod='influencer') }}">Add Fake Influencer</a></li>
   {% endif %}

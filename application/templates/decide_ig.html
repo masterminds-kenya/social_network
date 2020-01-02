@@ -26,6 +26,14 @@
     </ul>
     <button type="submit" class="btn btn-success">{{account.username}}</button>
   </form>
+  {% else %}
+  <hr />
+  <p>
+    We did not find an Instagram professional account connected to your Facebook identity.
+    Make sure your Instagram account has been turned into a professional account,
+    and that it is connected to a Facebook page as expected.
+    For clarification or assistance, you can contact a Platform admin or manager.
+  </p>
   {% endfor %}
 </main>
 {% endblock content %}

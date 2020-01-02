@@ -8,7 +8,8 @@
   {% else %}
   <li>{{key}}: {{data[key]}} </li>
   {% endif %}
-
+{% else %}
+<li>No Data</li>
 {% endfor %}
 </ul>
 {% endblock %}
