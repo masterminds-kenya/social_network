@@ -82,8 +82,11 @@ def fb_delete():
     """
     response = {}
     response['user_id'] = 'test user_id'
+    response['url'] = 'see status of deletion'
+    response['confirmation_code'] = 'some unique code'
     # do stuff
     return json.dumps(response)
+
 
 @app.route('/signup', methods=['GET', 'POST'])
 def signup():
@@ -600,17 +603,37 @@ def edit(mod, id):
     return add_edit(mod, id=id)
 
 
-@app.route('/<string:mod>/<int:id>/delete')
+@app.route('/<string:mod>/<int:id>/delete', methods=['GET', 'POST'])
 @login_required
 def delete(mod, id):
     """ Permanently remove from DB the record for Model indicated by mod and id. """
     if current_user.role not in ['admin', 'manager'] and (current_user.id != id or current_user.role != mod):
         # kick them out.
-        flash('Something went wrong. Can not delete. Contact an admin or manager. Redirecting to the home page.')
-        return redirect(url_for('home'))
+        message = 'Something went wrong. Can not delete. Contact an admin or manager. '
+        # message += 'Redirecting to the home page.'
+        flash(message)
+        return redirect(request.referrer)
+        # return redirect(url_for('home'))
     Model = mod_lookup(mod)
-    db_delete(id, Model=Model)
-    return redirect(url_for('home'))
+
+    if request.method == 'POST':
+        confirm = True if request.form.get('confirm') == 'yes' else False
+        if not confirm:
+            flash(f"{mod.capitalize()} was not deleted. ")
+            return redirect(request.form.get('next') or request.referrer)
+        try:
+            db_delete(id, Model=Model)
+            flash('The deletion is complete')
+        except Exception as e:
+            message = f"We were unable to delete {mod} - {Model} - {id}. "
+            app.logger.error(message)
+            app.logger.error(e)
+            flash(message)
+            return redirect(request.form.get('next') or request.referrer)
+        return redirect(url_for('home'))
+
+    model = db_read(id, related=False, Model=Model)
+    return render_template('delete_confirm.html', data=model, next=request.referrer)
 
 
 @app.route('/<string:mod>/list')

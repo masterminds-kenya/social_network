@@ -117,7 +117,7 @@ Current Status:
 - [n] Keep a DB table of worksheet ids?
   - [s] Will we have multiple report views?
 - [s] DB Migration: Integrate flask-migrate?
-- [ ] Delete User information in response to a Facebook callback to delete.
+- [ ] ?Delete User information in response to a Facebook callback to delete.?
 - [ ] Allow a user to delete their account on the platform
   - [ ] Confirmation page before delete?
   - [ ] What about posts assigned to a campaign?

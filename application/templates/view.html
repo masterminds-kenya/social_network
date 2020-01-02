@@ -3,8 +3,14 @@
 <title>{{ mod.capitalize() }} View Page</title>
 {% endblock %}
 
+{% block header %}
+{{ super() }}
+<h1>
+  {{ mod.capitalize() }} Details
+  {% if data.name %}for {{ data.name }}{% endif %}
+</h1>
+{% endblock header %}
 {% block content %}
-<h2>{{ mod.capitalize() }} Details</h2>
 
 {% block data_view %}
 <ul>
@@ -41,7 +47,7 @@
   {% endif %}
   <li>CAREFUL BELOW!</li>
   <li><a href="{{ url_for('edit', mod=mod, id=data.id) }}">Update {{ mod|title }}</a></li>
-  {% if current_user.mode == 'admin' %}
+  {% if current_user.role == 'admin' or (current_user.id == data.id and current_user.role == mod) %}
   <li><a href="{{ url_for('delete', mod=mod, id=data.id) }}">Delete {{ mod|title }}</a></li>
   {% endif %}
 </ul>
