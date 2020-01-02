@@ -355,21 +355,21 @@ Permissions to Routes and Showing/Hiding links in Templates:
   - [ ] or can also be matching current_user if deleting user account.
 - [ ] User detail view: show Edit & Delete links only if current_user or Admin|Manager
 - [ ] Collect (from API call) new Insights | Audiences | Posts for a User
-  - [ ] Allow Manager|Admin to do all
-  - [ ] Allow Users to only do their own
-  - [ ] Only show links if current_user (if allowed) or Manager|Admin
-- [ ] Routes/views to see User Insights Summary
-  - [ ] Routes only if current_user or Admin|Manager
+  - [x] Allow Manager|Admin to do all
+  - [x] Allow Users to only do their own
+  - [x] Only show links if current_user (if allowed) or Manager|Admin
+- [x] Routes/views to see User Insights Summary
+  - [x] Routes only if current_user or Admin|Manager
   - [n] ? Allow Routes for Brands to see Influencers ?
   - [n] ? Allow Routes for Influencers to see Brands ?
-  - [ ] Links from User detail view to Insight Summary matching permissions to view them.
-- [ ] Route to see detail view for Insight only for Admin
-  - [ ] The only place for this link would be a special Admin only page.
-- [ ] Route to see detail view for Audience only for current_user|Admin|Manager
-  - [ ] Link from User detail view to Audience detail view matches permissions to route.
+  - [x] Links from User detail view to Insight Summary matching permissions to view them.
+- [x] Route to see detail view for Insight only for Admin
+  - [x] The only place for this link would be a special Admin only page.
+- [x] Route to see detail view for Audience only for current_user|Admin|Manager
+  - [x] Link from User detail view to Audience detail view matches permissions to route.
 - [x] Route to see detail view for Post - allowed for all (they are public by IG)
   - [x] Link to view Post detail view is unmodified wherever shown (public IG post)
-- [ ] Route to see anything to do with Google Sheets only for Admin|Manager
+- [x] Route to see anything to do with Google Sheets only for Admin|Manager
   - [n] Or allow User (influencer or brand) to export their own data?
   - [n] Or allow Influencer to export Campaigns they are associated with?
   - [n] Or allow Brand to export Campaigns they are associated with?
@@ -389,7 +389,7 @@ Permissions to Routes and Showing/Hiding links in Templates:
   - [n] ?Allow Campaign Results route if Influencer is associated to it?
   - [n] ?Allow Campaign Results route if Brand is associated to it?
 - [n] Campaign Manage|Collected|Result view shows link to Edit Campaign only if Admin|Manager.
-  - [ ] Only if Admin?
+  - [n] Only if Admin?
 - [x] Campaign Manage|Collected|Result view shows link to Edit Campaign unchanged
 - [x] Ability to POST to Campaign Manage|Collected (media assignment) only Admin|Manager
 - [x] Show Form element or Button on Campaign Manage|Collected views only Admin|Manager

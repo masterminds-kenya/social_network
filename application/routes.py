@@ -75,6 +75,16 @@ def home():
     return render_template('index.html', data=data)
 
 
+@app.route('/deletion')
+def fb_delete():
+    """ Handle a Facebook Data Deletion Request
+        Required for App approval: https://developers.facebook.com/docs/apps/delete-data
+    """
+    response = {}
+    response['user_id'] = 'test user_id'
+    # do stuff
+    return json.dumps(response)
+
 @app.route('/signup', methods=['GET', 'POST'])
 def signup():
     """ Using Flask-Login to create a new user (manager or admin) account """
