@@ -179,3 +179,51 @@ button:active {
 button {
   margin: 1rem 1rem 2rem 1rem;
 }
+
+/* .test-button {
+  display: inline-block;
+  vertical-align: middle;
+  background-color: #1877f2;
+  border-radius: 0.25rem;
+  padding: 0.25rem 0.72rem;
+  margin: 0.2rem 0;
+  white-space: nowrap;
+  font-family: Helvetica, Arial, sans-serif;
+  font-weight: 700;
+  font-size: 0.977rem;
+  text-align: center;
+  color: #fff;
+  text-decoration: none;
+  cursor: pointer;
+  }
+  .test-button img {
+    width: 1.56rem;
+    margin: 0.23rem 0.2rem 0.23rem 0;
+    vertical-align: middle;
+  } */
+  .fb-login {
+    display: inline-block;
+    vertical-align: middle;
+    background-color: #1877f2;
+    background-image: url("/static/f_logo_RGB-White_58.png");
+    background-size: 1.56rem;
+    background-repeat: no-repeat;
+    background-position: 0.74rem 0.43rem;
+    border-radius: 0.25rem;
+    padding: 0.65rem 0.75rem 0.65rem 2.77rem;
+    margin: 0.2rem 0;
+    white-space: nowrap;
+    font-family: Helvetica, Arial, sans-serif;
+    font-weight: 700;
+    font-size: 0.977rem;
+    line-height: 1.28;
+    text-align: center;
+    color: #fff;
+    text-decoration: none;
+    cursor: pointer;
+    }
+  .join label {
+    font-size: 120%;
+    font-weight: bold;
+  }
+/* Why does .fb-button selector break? It does not seem any other style rules target it.  */

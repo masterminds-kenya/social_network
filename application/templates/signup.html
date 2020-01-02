@@ -17,24 +17,36 @@
 {% endblock header %}
 
 {% block content %}
-<h3>
-  <a href="{{ url_for('fb_login', mod='influencer') }}">
-  {% if signup_roles %}
-  Join as an Influencer
-  {% else %}
-  Influencer Login
-  {% endif %}
+
+{% if signup_roles %}
+<h2>Join the Platform as an Influencer!</h2>
+<p>
+  To take advantage of the platform, you will be asked to confirm that we have your permission to view your Instagram professional account, insights, and media.
+  Instagram professional accounts should be connected to a Facebook user, so we are using Facebook Login to confirm your account and permissions.
+</p>
+{% endif %}
+<p class="join">
+  <a class="fb-login" id="influencer-join" href="{{ url_for('fb_login', mod='influencer') }}">
+    {% if signup_roles %}Continue with Facebook{% else %}Login with Facebook{% endif %}
   </a>
-</h3>
-<h3>
-  <a href="{{ url_for('fb_login', mod='brand') }}">
-  {% if signup_roles %}
-   Join as a Brand partner
-  {% else %}
-  Brand Login
-  {% endif %}
+  <label for="influencer-join">as an Influencer</label>
+</p>
+
+{% if signup_roles %}
+<h2>Join the Platform as a Brand!</h2>
+<p>
+  To take full advantage of the platform, you will be asked to confirm that we have your permission to view your Instagram professional account, insights, and media.
+  Make sure you login as the Facebook user that is connected to your brand's Instagram professional account to verify your account and permissions.
+  An account without a connected Instagram account can be created by a platform admin or manager.
+</p>
+{% endif %}
+<p class="join">
+  <a class="fb-login" id="brand-join" href="{{ url_for('fb_login', mod='brand') }}">
+    {% if signup_roles %}Continue with Facebook{% else %}Login with Facebook{% endif %}
   </a>
-</h3>
+  <label for="brand-join">as a Brand</label>
+</p>
+
 {% if not signup_roles %}
 <p>Or did you want to <a href="{{ url_for('signup') }}">join the platform</a> for the first time?</p>
 <p><a href="{{ url_for('signup') }}">Create Account</a></p>
