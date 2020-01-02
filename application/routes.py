@@ -2,7 +2,7 @@ from flask import current_app as app
 from flask import render_template, redirect, url_for, request, abort, flash
 from flask_login import current_user, login_user, logout_user, login_required
 from werkzeug.security import generate_password_hash, check_password_hash
-from .model_db import db_create, db_read, db_update, db_delete, db_all
+from .model_db import db_create, db_read, db_update, db_delete, db_all, from_sql
 from .model_db import User, OnlineFollowers, Insight, Audience, Post, Campaign  # , metric_clean
 from . import developer_admin
 from functools import wraps
@@ -17,7 +17,7 @@ def mod_lookup(mod):
     """ Associate to the appropriate Model, or raise error if 'mod' is not an expected value """
     if not isinstance(mod, str):
         raise TypeError('Expected a string input')
-    lookup = {'insight': Insight, 'audience': Audience, 'post': Post, 'campaign': Campaign}
+    lookup = {'insight': Insight, 'audiences': Audience, 'audience': Audience, 'post': Post, 'campaign': Campaign}
     # 'onlinefollowers': OnlineFollowers,
     lookup.update({role: User for role in User.roles})
     Model = lookup.get(mod, None)
@@ -75,6 +75,16 @@ def home():
     return render_template('index.html', data=data)
 
 
+@app.route('/deletion')
+def fb_delete():
+    """ Handle a Facebook Data Deletion Request
+        Required for App approval: https://developers.facebook.com/docs/apps/delete-data
+    """
+    response = {}
+    response['user_id'] = 'test user_id'
+    # do stuff
+    return json.dumps(response)
+
 @app.route('/signup', methods=['GET', 'POST'])
 def signup():
     """ Using Flask-Login to create a new user (manager or admin) account """
@@ -104,13 +114,20 @@ def signup():
             return redirect(url_for('signup'))
         user = User.query.filter_by(email=data['email']).first()
         if user:
-            flash("That email is already in use.")
+            flash("That email address is already in use.")
             return redirect(url_for('signup'))
         user = db_create(data)
         flash("You have created a new user account!")
         return redirect(url_for('view', mod=mod, id=user['id']))
 
-    return render_template('signup.html', signup_roles=signup_roles)
+    next_page = request.args.get('next')
+    if next_page == url_for('all', mod='influencer'):
+        mods = ['influencer']
+    elif next_page == url_for('all', mod='brand'):
+        mods = ['brand']
+    else:
+        mods = ['influencer', 'brand']
+    return render_template('signup.html', signup_roles=signup_roles, mods=mods)
 
 
 @app.route('/login', methods=['GET', 'POST'])
@@ -131,7 +148,7 @@ def login():
             return redirect(url_for('login'))
         login_user(user, remember=data['remember'])
         return redirect(url_for('view', mod=user.role, id=user.id))
-    return render_template('signup.html', signup_roles=[])
+    return render_template('signup.html', signup_roles=[], mods=['influencer', 'brand'])
 
 
 @app.route('/logout')
@@ -336,10 +353,11 @@ def view(mod, id):
                 flash('Incorrect location. You are being redirected to your own profile page')
                 return redirect(url_for('view', mod=current_user.role, id=current_user.id))
             # otherwise they get to see their own profile page!
-        elif mod in ['post', 'audience']:
+        elif mod in ['post', 'audience', 'audiences']:
             # The user can only view this detail view if they are associated to the data
             Model = mod_lookup(mod)
-            model = db_read(id, Model=Model)
+            # model = db_read(id, Model=Model)
+            model = Model.query.get(id)
             if model.user != current_user:
                 # ? Add the ability for brand user to see posts associated through a campaign?
                 flash('Incorrect location. You are being redirected to the home page.')
@@ -351,22 +369,26 @@ def view(mod, id):
     # if mod == 'campaign':
     #     return campaign(id)
     Model = Model or mod_lookup(mod)
-    model = model or db_read(id, Model=Model)
-    # model = Model.query.get(id)
+    model = model or Model.query.get(id)
+    related_user = from_sql(model.user, safe=True) if getattr(model, 'user', None) else None
+    model = from_sql(model, safe=True)
+    # model = db_read(id, Model=Model)
     template = 'view.html'
     if mod == 'post':
         template = f"{mod}_{template}"
         model = post_display(model)
     elif mod == 'audience':
         template = f"{mod}_{template}"
-        model['user'] = db_read(model.get('user_id')).get('name')
+        # model['user'] = db_read(model.get('user_id')).get('name')
+        model['user'] = related_user
         value = json.loads(model['value'])
         if not isinstance(value, dict):  # For the id_data Audience records
             value = {'value': value}
         model['value'] = value
     elif mod == 'insight':
         template = f"{mod}_{template}"
-        model['user'] = db_read(model.get('user_id')).get('name')
+        # model['user'] = db_read(model.get('user_id')).get('name')
+        model['user'] = related_user
     return render_template(template, mod=mod, data=model)
 
 
@@ -480,35 +502,63 @@ def add_edit(mod, id=None):
            or mod != 'brand':
             flash("Using Signup")
             return redirect(url_for('signup'))
-    app.logger.info(f'--------- {action} {mod}------------')
+    app.logger.info(f'------- {action} {mod} ----------')
     if request.method == 'POST':
         data = process_form(mod, request)
         if mod == 'brand' and data.get('instagram_id', '') in ('None', ''):
-            data['instagram_id'] = None
+            data['instagram_id'] = None  # Do not overwrite 'instagram_id' if it was left blank.
         # TODO: ?Check for failing unique column fields, or failing composite unique requirements?
         if action == 'Edit':
+            password_mismatch = data.get('password', '') != data.get('password-confirm', '')
+            if password_mismatch:
+                message = "New password and its confirmation did not match. Please try again. "
+                flash(message)
+                return redirect(request.referrer)
             if Model == User and data.get('password'):
-                # if form password field was blank, process_form removed the key from data
+                # if form password field was blank, process_form has already removed the key by now.
                 data['password'] = generate_password_hash(data.get('password'))
             try:
                 model = db_update(data, id, Model=Model)
             except ValueError as e:
+                app.logger.error('------- Came back as ValueError from Integrity Error -----')
                 app.logger.error(e)
-                flash('Please try again or contact an Admin')
-                return redirect(url_for('edit', mod=mod, id=id))
+                # Possibly that User account exists for the 'instagram_id'
+                # If true, then switch to updating the existing user account
+                #     and delete this newly created User account that was trying to be a duplicate.
+                ig_id = data.get('instagram_id', None)
+                found_user = User.query.filter_by(instagram_id=ig_id).first() if ig_id and Model == User else None
+                if found_user:
+                    found_user_id = getattr(found_user, 'id', None)
+                    # TODO: Is the following check sufficient to block the security hole if Updating the 'instagram_id' field on a form
+                    if current_user.facebook_id == found_user.facebook_id:
+                        try:
+                            model = db_update(data, found_user_id, Model=Model)
+                        except ValueError as e:
+                            message = 'Unable to update existing user'
+                            app.logger.error(f'----- {message} ----')
+                            app.logger.error(e)
+                            flash(message)
+                            return redirect(url_for('home'))
+                        login_user(found_user, force=True, remember=True)
+                        flash('You are logged in.')
+                        db_delete(id, Model=User)
+                    else:
+                        message = "You do not seem to match the existing account. "
+                        message += "A new account can not be created with those unique values. "
+                        message += "If you own the existing account you can try to Login instead. "
+                else:
+                    flash('Please try again or contact an Admin')
+                # return redirect(url_for('edit', mod=mod, id=id))
         else:  # action == 'Add'
             try:
                 model = db_create(data, Model=Model)
             except ValueError as e:
                 app.logger.error('------- Came back as ValueError from Integrity Error -----')
                 app.logger.error(e)
-                # Possibly that User account exists for the 'instagram_id'
-                # If true, then switch to updating the existing user account
-                    # and delete this newly created User account that was trying to be a duplicate.
-                
                 flash('Error. Please try again or contact an Admin')
                 return redirect(url_for('add', mod=mod, id=id))
         return redirect(url_for('view', mod=mod, id=model['id']))
+    # If not a form POST, then give the user the form to submit.
     template, related = 'form.html', {}
     model = db_read(id, Model=Model) if action == 'Edit' else {}
     if mod == 'campaign':
@@ -551,9 +601,13 @@ def edit(mod, id):
 
 
 @app.route('/<string:mod>/<int:id>/delete')
-@admin_required()
+@login_required
 def delete(mod, id):
     """ Permanently remove from DB the record for Model indicated by mod and id. """
+    if current_user.role not in ['admin', 'manager'] and (current_user.id != id or current_user.role != mod):
+        # kick them out.
+        flash('Something went wrong. Can not delete. Contact an admin or manager. Redirecting to the home page.')
+        return redirect(url_for('home'))
     Model = mod_lookup(mod)
     db_delete(id, Model=Model)
     return redirect(url_for('home'))
@@ -582,6 +636,7 @@ def all(mod):
     if mod not in ['campaign', *User.roles] and current_user.role != 'admin':
         flash('It seems that is not a correct route. You are redirected to the home page.')
         return redirect(url_for('home'))
+    # current_user.role can only be 'admin' at this point.
     if mod == 'file':
         models = all_files()
     else:

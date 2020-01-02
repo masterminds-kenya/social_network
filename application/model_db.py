@@ -32,7 +32,7 @@ def clean(obj):
     return obj
 
 
-def from_sql(row, related=False, safe=False):
+def from_sql(row, related=True, safe=False):
     """ Translates a SQLAlchemy model instance into a dictionary.
         Will return only viewable fields when 'safe' is True.
     """
@@ -41,10 +41,11 @@ def from_sql(row, related=False, safe=False):
     # current_app.logger.info('============= from_sql ===================')
     # current_app.logger.info(row.__class__)
     if related:
-        rel = row.__mapper__.relationships
-        # TODO: Attach rel to data
-        current_app.logger.info('--------- Related ------------')
-        pprint(rel)
+        related_fields = []
+        for name, rel in row.__mapper__.relationships.items():
+            data[name] = getattr(row, name, [])
+            related_fields.append(name)
+        data['related'] = related_fields
     temp = data.pop('_sa_instance_state', None)
     if not temp:
         current_app.logger.info('Not a model instance!')
@@ -461,8 +462,7 @@ def db_update(data, id, Model=User):
         current_app.logger.error(e)
         db.session.rollback()
         if Model == User:
-            message = "It seems there is already a user account with those unique values and "
-            message += "we can not create a new account. You can try to Login instead. "
+            message = 'Found existing user. '
         else:
             message = "Input Error. Make sure values are unique where required, and confirm all inputs are valid."
         flash(message)

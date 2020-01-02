@@ -9,9 +9,9 @@
 {% block data_view %}
 <ul>
 {% for key in data.keys() %}
-  {% if key == 'insight' %}
+  {% if key == 'insights' and data[key]|length %}
   <li><a href="{{ url_for('insights', mod=mod, id=data.id) }}">See Insights</a> </li>
-  {% elif key == 'audience' %}
+  {% elif key == 'audiences' and data[key]|length %}
   <li> {{ key }} </li>
     <ul>
       {% for ea in data[key] %}
@@ -22,7 +22,7 @@
     </ul>
   {% elif key in ['facebook_id', 'instagram_id'] %}
   <li>{{key}}: {%if data[key] is none %} Not {% endif %} Known</li>
-  {% else %}
+  {% elif key not in data['related'] and key != 'related' %}
   <li>{{key}}: {{data[key]}} </li>
   {% endif %}
 {% endfor %}

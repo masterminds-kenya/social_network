@@ -22,6 +22,7 @@
       <li><a href="{{ url_for('all', mod='brand') }}">Brands</a></li>
       {% if current_user.role in ['admin', 'manager'] %}
       <li><a href="{{ url_for('all', mod='campaign') }}">Campaigns</a></li>
+      <li><a href="{{ url_for('view', mod=current_user.role, id=current_user.id) }}">Profile</a></li>
       {% endif %}
       {% if current_user.role == 'admin' %}
       <li><a href="{{ url_for('admin') }}">Admin Page</a></li>
