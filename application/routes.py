@@ -343,7 +343,7 @@ def view(mod, id):
                 flash('Incorrect location. You are being redirected to your own profile page')
                 return redirect(url_for('view', mod=current_user.role, id=current_user.id))
             # otherwise they get to see their own profile page!
-        elif mod in ['post', 'audience']:
+        elif mod in ['post', 'audience', 'audiences']:
             # The user can only view this detail view if they are associated to the data
             Model = mod_lookup(mod)
             # model = db_read(id, Model=Model)
@@ -362,7 +362,7 @@ def view(mod, id):
     model = model or Model.query.get(id)
     related_user = from_sql(model.user, safe=True) if getattr(model, 'user', None) else None
     model = from_sql(model, safe=True)
-    # model = db_readm(id, Model=Model)
+    # model = db_read(id, Model=Model)
     template = 'view.html'
     if mod == 'post':
         template = f"{mod}_{template}"
@@ -379,8 +379,6 @@ def view(mod, id):
         template = f"{mod}_{template}"
         # model['user'] = db_read(model.get('user_id')).get('name')
         model['user'] = related_user
-    print('======= Data Info ===============')
-    print(model['id'])
     return render_template(template, mod=mod, data=model)
 
 

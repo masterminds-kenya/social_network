@@ -41,14 +41,9 @@ def from_sql(row, related=True, safe=False):
     # current_app.logger.info('============= from_sql ===================')
     # current_app.logger.info(row.__class__)
     if related:
-        # TODO: Attach rel to data
-        current_app.logger.info('--------- Related ------------')
         related_fields = []
         for name, rel in row.__mapper__.relationships.items():
             data[name] = getattr(row, name, [])
-            pprint(name)
-            pprint(data[name])
-            print('----------------')
             related_fields.append(name)
         data['related'] = related_fields
     temp = data.pop('_sa_instance_state', None)
@@ -57,7 +52,6 @@ def from_sql(row, related=True, safe=False):
     if safe:
         Model = row.__class__
         data = {k: data[k] for k in data.keys() - Model.UNSAFE}
-    # pprint(data)
     return data
 
 
