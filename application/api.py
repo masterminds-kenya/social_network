@@ -216,7 +216,7 @@ def onboarding(mod, request):
     ig_list = find_instagram_id(accounts, facebook=facebook)
     # If they only have 1 ig account, assign the appropriate instagram_id
     ig_id = None
-    if len(ig_list) == 100:
+    if len(ig_list) == 1:
         ig_info = ig_list.pop()
         data['name'] = ig_info.get('username', None)
         ig_id = int(ig_info.get('id'))

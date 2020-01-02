@@ -118,6 +118,9 @@ Current Status:
   - [s] Will we have multiple report views?
 - [s] DB Migration: Integrate flask-migrate?
 - [ ] Delete User information in response to a Facebook callback to delete.
+- [ ] Allow a user to delete their account on the platform
+  - [ ] Confirmation page before delete?
+  - [ ] What about posts assigned to a campaign?
 - [ ] Revisit method of reporting Campaign Results.
 - [ ] Revisit structure for ON DELETE, ON UPDATE,
 - [ ] Revisit structure for how related tables are loaded (lazy=?)
