@@ -16,7 +16,7 @@ def create_app(config, debug=False, testing=False, config_overrides=None):
         logging.basicConfig(level=logging.INFO)
     # Configure flask_login
     login_manager = LoginManager()
-    login_manager.login_view = 'login'  # where to find the login route
+    login_manager.login_view = 'signup'  # where to find the login route
     login_manager.init_app(app)
 
     @login_manager.user_loader

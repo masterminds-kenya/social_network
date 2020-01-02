@@ -110,7 +110,15 @@ def signup():
         flash("You have created a new user account!")
         return redirect(url_for('view', mod=mod, id=user['id']))
 
-    return render_template('signup.html', signup_roles=signup_roles)
+    next_page = request.args.get('next')
+    app.logger.info(next_page)
+    if next_page == url_for('all', mod='influencer'):
+        mods = ['influencer']
+    elif next_page == url_for('all', mod='brand'):
+        mods = ['brand']
+    else:
+        mods = ['influencer', 'brand']
+    return render_template('signup.html', signup_roles=signup_roles, mods=mods)
 
 
 @app.route('/login', methods=['GET', 'POST'])
@@ -131,7 +139,7 @@ def login():
             return redirect(url_for('login'))
         login_user(user, remember=data['remember'])
         return redirect(url_for('view', mod=user.role, id=user.id))
-    return render_template('signup.html', signup_roles=[])
+    return render_template('signup.html', signup_roles=[], mods=['influencer', 'brand'])
 
 
 @app.route('/logout')
