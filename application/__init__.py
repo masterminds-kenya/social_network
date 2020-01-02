@@ -17,6 +17,7 @@ def create_app(config, debug=False, testing=False, config_overrides=None):
     # Configure flask_login
     login_manager = LoginManager()
     login_manager.login_view = 'signup'  # where to find the login route
+    login_manager.login_message = "Join the platform, or click login to use your existing account. "
     login_manager.init_app(app)
 
     @login_manager.user_loader

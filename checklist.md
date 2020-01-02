@@ -161,17 +161,19 @@ Current Status:
 - [x] API call and store post insight metrics for Albums
 - [x] API call and store post insight metrics for Stories
 - [s] WebHook to get Stories data at completion.
-- [?] Decide approach: A) typical form validation & stop submission of existing or B) use existing record.
+- [?] Decide if remake user: A) typical form validation & stop submission or B) use existing record.
   - [n] If form validate approach, setup user experience that they can select existing record
   - [x] If incoming form (or API user/brand) already exists, use existing instead of create new:
     - [x] Catch and handle attempt to create a duplicate existing User account
-    - [ ] Catch and handle if a User account is trying to add an IG account already used by (another) User account
+    - [x] Catch and handle if a new User is adding an IG account for an existing User account
     - [x] If an Influencer or Brand already exists during Onboarding function, use existing.
-      - [ ] Currently a bit cludgy solution for them to login to existing account.
-    - [ ] Separate Login method for an Influencer or Brand user to login with an existing account.
-    - [ ] Create a route and handle a Facebook callback to delete some user data.
     - [ ] Catch and handle if trying to create an already existing Campaign name
     - [x] Catch and handle attempt to create a duplicate existing Brand account
+  - [x] Main nav links for 'Influencers' and 'Brands' show corresponding signup if user not logged in.
+  - [x] Re-Login method for existing account for an Influencer or Brand user.
+    - [x] Note: Currently a bit of a kludge solution for them to login to existing account.
+    - [s] TODO: Actual login process does not create and then delete a new account for existing user login
+  - [ ] Create a route and handle a Facebook callback to delete some user data.
 - [x] Allow a Brand to give permissions for FB and IG.
   - [x] If Brand name already in system, associate with that existing record
   - [x] exactly how this works depends on approach A or B for how to handle validation w/ existing records
@@ -281,7 +283,7 @@ Current Status:
 - [x] On edit User, password is unchanged if the password field is left blank.
 - [x] On edit User, input on password field changes the password
 - [x] On edit User, changing the email to one already in use does not break
-- [ ] ?User created with Facebook login/permissions is integrated with other User methods
+- [s] ?User created with Facebook login/permissions is integrated with other User methods
 - [x] Login page: During Testing & Approval, show Test Login Details.
 - [n] Allow anonymous user to start the creation of a manager or admin account
   - [n] New manually created 'manager' or 'admin' users requires Admin approval
@@ -301,7 +303,7 @@ Permissions to Routes and Showing/Hiding links in Templates:
 - [x] Sign Up page requires Influencers and Brands to use FB link
 - [x] Login page encourages Influencers and Brands to use FB link
 - [x] Login page allows admin and managers to verify their access to the platform.
-- [ ] ? Confirm same link, or Update link, for FB signup vs Login (if needed by Influencer|Brand)
+- [x] ? Confirm same link, or Update link, for FB signup vs Login (if needed by Influencer|Brand)
 - [x]  The 'Influencers' link (and associated route) on the base template.
   - [x]  Requires authenticated user, otherwise redirects to signup (or login).
     - [s] ? Should this signup just be a link to 'join as an Influencer'?
@@ -339,6 +341,7 @@ Permissions to Routes and Showing/Hiding links in Templates:
 - [x] View any Model detail route requires authenticated user.
 - [x] Add any Model detail route requires Manager or Admin
 - [x] Edit any Model detail route requires Admin|Manager
+- [x] Manager, and Admin, have a link to their own profile view
   - [ ] Also allow current_user to modify profile
 - [x] Delete User routes require Admin
   - [ ] or can also be matching current_user if deleting user account.

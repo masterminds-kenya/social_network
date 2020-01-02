@@ -104,14 +104,13 @@ def signup():
             return redirect(url_for('signup'))
         user = User.query.filter_by(email=data['email']).first()
         if user:
-            flash("That email is already in use.")
+            flash("That email address is already in use.")
             return redirect(url_for('signup'))
         user = db_create(data)
         flash("You have created a new user account!")
         return redirect(url_for('view', mod=mod, id=user['id']))
 
     next_page = request.args.get('next')
-    app.logger.info(next_page)
     if next_page == url_for('all', mod='influencer'):
         mods = ['influencer']
     elif next_page == url_for('all', mod='brand'):
@@ -488,15 +487,20 @@ def add_edit(mod, id=None):
            or mod != 'brand':
             flash("Using Signup")
             return redirect(url_for('signup'))
-    app.logger.info(f'--------- {action} {mod}------------')
+    app.logger.info(f'------- {action} {mod} ----------')
     if request.method == 'POST':
         data = process_form(mod, request)
         if mod == 'brand' and data.get('instagram_id', '') in ('None', ''):
-            data['instagram_id'] = None
+            data['instagram_id'] = None  # Do not overwrite 'instagram_id' if it was left blank.
         # TODO: ?Check for failing unique column fields, or failing composite unique requirements?
         if action == 'Edit':
+            password_mismatch = data.get('password', '') != data.get('password-confirm', '')
+            if password_mismatch:
+                message = "New password and its confirmation did not match. Please try again. "
+                flash(message)
+                return redirect(request.referrer)
             if Model == User and data.get('password'):
-                # if form password field was blank, process_form removed the key from data
+                # if form password field was blank, process_form has already removed the key by now.
                 data['password'] = generate_password_hash(data.get('password'))
             try:
                 model = db_update(data, id, Model=Model)
@@ -509,20 +513,24 @@ def add_edit(mod, id=None):
                 ig_id = data.get('instagram_id', None)
                 found_user = User.query.filter_by(instagram_id=ig_id).first() if ig_id and Model == User else None
                 if found_user:
-                    found_user_id = getattr(found_user, id, None)
+                    found_user_id = getattr(found_user, 'id', None)
                     # TODO: Is the following check sufficient to block the security hole if Updating the 'instagram_id' field on a form
                     if current_user.facebook_id == found_user.facebook_id:
                         try:
                             model = db_update(data, found_user_id, Model=Model)
                         except ValueError as e:
-                            message = 'Found existing User, but unable to update it'
+                            message = 'Unable to update existing user'
                             app.logger.error(f'----- {message} ----')
                             app.logger.error(e)
                             flash(message)
                             return redirect(url_for('home'))
                         login_user(found_user, force=True, remember=True)
-                        flash('Found, and using, existing user account')
+                        flash('You are logged in.')
                         db_delete(id, Model=User)
+                    else:
+                        message = "You do not seem to match the existing account. "
+                        message += "A new account can not be created with those unique values. "
+                        message += "If you own the existing account you can try to Login instead. "
                 else:
                     flash('Please try again or contact an Admin')
                 # return redirect(url_for('edit', mod=mod, id=id))
@@ -613,6 +621,7 @@ def all(mod):
     if mod not in ['campaign', *User.roles] and current_user.role != 'admin':
         flash('It seems that is not a correct route. You are redirected to the home page.')
         return redirect(url_for('home'))
+    # current_user.role can only be 'admin' at this point.
     if mod == 'file':
         models = all_files()
     else:

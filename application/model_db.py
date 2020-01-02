@@ -461,8 +461,7 @@ def db_update(data, id, Model=User):
         current_app.logger.error(e)
         db.session.rollback()
         if Model == User:
-            message = "It seems there is already a user account with those unique values and "
-            message += "we can not create a new account. You can try to Login instead. "
+            message = 'Found existing user. '
         else:
             message = "Input Error. Make sure values are unique where required, and confirm all inputs are valid."
         flash(message)
