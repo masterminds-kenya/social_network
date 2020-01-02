@@ -32,6 +32,8 @@
     {{ea.get('type')}} - {{ea.get('role')}}:
     <a href="mailto:{{ea.get('emailAddress')}}">{{ea.get('displayName')}}</a>
   </li>
+  {% else %}
+  <li>No permissions found</li>
   {% endfor %}
 </ul>
 {% elif sheet.get('values') %}
@@ -40,8 +42,12 @@
   <tr>
     {% for col in row %}
     <td>{{col}}</td>
+    {% else %}
+    <td>Blank</td>
     {% endfor %}
   </tr>
+  {% else %}
+  <tr><td>No rows</td></tr>
   {% endfor %}
 </table>
 {% endif %}

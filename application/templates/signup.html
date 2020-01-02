@@ -18,6 +18,7 @@
 
 {% block content %}
 
+{% if not current_user.is_authenticated %}
 {% if 'influencer' in mods %}
 <h2>Join the Platform as an Influencer!</h2>
 <p>
@@ -45,6 +46,7 @@
   </a>
   <label for="brand-join">as a Brand</label>
 </p>
+{% endif %}
 {% endif %}
 
 {% if not signup_roles %}
