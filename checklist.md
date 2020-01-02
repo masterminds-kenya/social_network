@@ -118,8 +118,8 @@ Current Status:
   - [s] Will we have multiple report views?
 - [s] DB Migration: Integrate flask-migrate?
 - [ ] ?Delete User information in response to a Facebook callback to delete.?
-- [ ] Allow a user to delete their account on the platform
-  - [ ] Confirmation page before delete?
+- [x] Allow a user to delete their account on the platform
+  - [x] Confirmation page before delete?
   - [ ] What about posts assigned to a campaign?
 - [ ] Revisit method of reporting Campaign Results.
 - [ ] Revisit structure for ON DELETE, ON UPDATE,
@@ -179,7 +179,8 @@ Current Status:
   - [x] Re-Login method for existing account for an Influencer or Brand user.
     - [x] Note: Currently a bit of a kludge solution for them to login to existing account.
     - [s] TODO: Actual login process does not create and then delete a new account for existing user login
-  - [ ] Create a route and handle a Facebook callback to delete some user data.
+  - [x] Create a route and handle a Facebook callback to delete some user data.
+  - [ ] Properly implement Facebook callback to delete some user data.
 - [x] Allow a Brand to give permissions for FB and IG.
   - [x] If Brand name already in system, associate with that existing record
   - [x] exactly how this works depends on approach A or B for how to handle validation w/ existing records
@@ -236,13 +237,15 @@ Current Status:
   - [ ] Will limit request to only get new insights since last request
   - [x] In case we do get duplicates, it will NOT create duplicates in DB
     - [x] Will update if our DB info is out-of-date
-- [ ] Flash messages for any processes that do not have an obvious update.
-  - [ ] Get new posts
-  - [ ] get new insights
-  - [ ] get new audiences
+- [x] Flash messages for any processes that do not have an obvious update.
+  - [x] Get new posts
+  - [x] get new insights
+  - [x] get new audiences
+  - [x] get new online_followers
+  - [x] delete function completed
 - [x] Remove link to get Online Followers Report since it is also called by get insights.
-- [ ] Ability to update IG account followers_count and media_count stored in Audience
-- [ ] Get new Audience data should also call to get the IG account info (followers_count & media_count).
+- [x] Ability to update IG account followers_count and media_count stored in Audience
+- [x] Get new Audience data should also call to get the IG account info (followers_count & media_count).
 - [x] Move/Relabel/remove 'Admin - Log' link on user detail view.
 - [s] Add migration functionality?
 - [x] Move hosting and FaceBook settings to Bacchus

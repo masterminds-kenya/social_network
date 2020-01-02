@@ -447,8 +447,9 @@ def new_audience(mod, id):
         flash('This was not a correct location. You are redirected to the home page.')
         return redirect(url_for('home'))
     audience = get_audience(id)
-    logstring = f'Audience data for {mod} - {id}' if audience else f'No insight data, {mod}'
+    logstring = f'New Audience data for {mod} - {id}' if audience else f'No audience insight data, {mod}'
     app.logger.info(logstring)
+    flash(logstring)
     return redirect(url_for('view', mod=mod, id=id))
 
 
@@ -461,8 +462,9 @@ def followers(mod, id):
         flash('This was not a correct location. You are redirected to the home page.')
         return redirect(url_for('home'))
     follow_report = get_online_followers(id)
-    logstring = f"Online Followers for {mod} - {id}" if follow_report else f"No data for {mod} - {id}"
+    logstring = f"New Online Followers for {mod} - {id}" if follow_report else f"No new Online Followers data"
     app.logger.info(logstring)
+    flash(logstring)
     return redirect(url_for('view', mod=mod, id=id))
 
 
@@ -475,8 +477,9 @@ def new_insight(mod, id):
         flash('This was not a correct location. You are redirected to the home page.')
         return redirect(url_for('home'))
     insights = get_insight(id)
-    logstring = f'Insight data for {mod} - {id} ' if insights else f'No insight data, {mod}'
+    logstring = f'New Insight data for {mod} - {id} ' if insights else f'No new insight data found for {mod}'
     app.logger.info(logstring)
+    flash(logstring)
     return redirect(url_for('insights', mod=mod, id=id))
 
 
@@ -489,8 +492,9 @@ def new_post(mod, id):
         flash('This was not a correct location. You are redirected to the home page.')
         return redirect(url_for('home'))
     posts = get_posts(id)
-    logstring = 'we got some posts back' if len(posts) else 'No posts retrieved'
+    logstring = 'New Posts were retrieved. ' if len(posts) else 'No new posts were found. '
     app.logger.info(logstring)
+    flash(logstring)
     return_path = request.referrer
     return redirect(return_path)
 
