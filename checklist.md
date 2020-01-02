@@ -293,11 +293,12 @@ Current Status:
 - [x] On edit User, input on password field changes the password
 - [x] On edit User, changing the email to one already in use does not break
 - [s] ?User created with Facebook login/permissions is integrated with other User methods
+- [x] If a user is logged in, the home page does not show all the Join sections.
 - [x] Login page: During Testing & Approval, show Test Login Details.
 - [n] Allow anonymous user to start the creation of a manager or admin account
   - [n] New manually created 'manager' or 'admin' users requires Admin approval
 - [x] Allow admin to create a 'manager' or 'admin' user with a temporary password.
-  - [ ] Hide the Influencer and Brand signup sections.
+  - [x] Hide the Influencer and Brand signup sections.
 - [ ] Allow admin to create a user w/o a password.
   - [ ] Require the user to set password on first login.
 - [ ] When Export Sheet is created (for Campaign or User), current_user gets sheet permissions
