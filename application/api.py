@@ -92,10 +92,19 @@ def get_audience(user_id, ig_id=None, facebook=None):
     if not audience.get('data'):
         app.logger.error(f"Error: {audience.get('error')}")
         return None
-    # pprint(audience.get('data'))
     for ea in audience.get('data'):
         ea['user_id'] = user_id
         results.append(ea)
+
+    ig_info = get_ig_info(ig_id, token=token, facebook=facebook)
+    for name in Audience.ig_data:  # {'media_count', 'followers_count'}
+        temp = {}
+        value = ig_info.get(name, None)
+        if value:
+            temp['name'] = name
+            temp['values'] = [value]
+            results.append(temp)
+
     return db_create_or_update_many(results, user_id=user_id, Model=Audience)
 
 
@@ -158,6 +167,7 @@ def get_ig_info(ig_id, token=None, facebook=None):
     if not token and not facebook:
         logstring = "You must pass a 'token' or 'facebook' reference. "
         app.logger.error(logstring)
+        # TODO: Raise error and handle raised error where this function is called.
         return logstring
     url = f"https://graph.facebook.com/v4.0/{ig_id}?fields={fields}"
     res = facebook.get(url).json() if facebook else requests.get(f"{url}&access_token={token}").json()

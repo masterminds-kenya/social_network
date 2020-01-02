@@ -437,16 +437,16 @@ def db_create(data, Model=User):
     return results
 
 
-def db_read(id, Model=User, safe=True):
+def db_read(id, Model=User, related=False, safe=True):
     model = Model.query.get(id)
     if not model:
         return None
-    output = from_sql(model, safe=safe)
-    if Model == User:
-        if len(model.insights) or len(model.aud_count):
-            output['insight'] = True
-        if len(model.audiences) > 0:
-            output['audience'] = [from_sql(ea) for ea in model.audiences]
+    output = from_sql(model, related=related, safe=safe)
+    # if Model == User:
+    #     if len(model.insights) or len(model.aud_count):
+    #         output['insight'] = True
+    #     if len(model.audiences) > 0:
+    #         output['audience'] = [from_sql(ea) for ea in model.audiences]
     return output
 
 
