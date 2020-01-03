@@ -268,6 +268,7 @@ Current Status:
   - [x] Includes a report for the brand insight metrics on the campaign report
   - [x] Fix computation of A1 formatting when columns go into the double letter range (AA to ZZ)
   - [x] Test & Fix A1 format computation if exceeding the double letter range (after ZZ)
+  - [x] Use Bacchus Service Account for sheets and drive.
   - [ ] Check if Google Sheets has a max of 26 columns and 4011 rows.
   - [x] From User detail view, can export influencer/brand account metrics to google sheet.
     - [x] This report also includes all posts we have recorded.
@@ -431,7 +432,7 @@ Permissions to Routes and Showing/Hiding links in Templates:
 ### Code Structure, Testing, Clean up
 
 - [x] Setup a real influencer (Noelle Reno) as a confirmed tester.
-- [ ] ! Google sheet/drive: Use bacchus service_agent instead of development site service_agent!
+- [x] ! Google sheet/drive: Use bacchus service_agent instead of development site service_agent!
 - [x] Test that decide_ig.html form works with the dict as a set value.
 - [x] Have real influencer (Noelle Reno) sign up for testing.
 - [x] Modularize the codebase: sheets, facebook api, developer_admin, manage
