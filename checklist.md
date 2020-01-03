@@ -40,7 +40,7 @@
 - [s] Stretch Goal. Not for current feature plan.
 
 Current Status:
-2019-12-23 11:33:48
+2020-01-03 01:12:50
 <!-- Ctrl-Shift-I to generate timestamp -->
 
 ### DB Design: Track different businesses and how influencers affect them
@@ -154,6 +154,8 @@ Current Status:
   - [x] Useful network data
 - [x] Can add new Influencer Users (first must be added as Test Users)
 - [x] Graph showing all Insight data for a given user.
+  - [x] Decide to limit some of the data or put on multiple appropriate charts
+    - [x] Temporary limit to just impressions, reach, profile_views
 - [x] Data sent to graph template setup to allow a variety of different view options.
 - [x] Insight Graph with javascript buttons to toggle which data shows.
 - [x] User creation: Manage if influencer has many IG accounts.
@@ -213,15 +215,16 @@ Current Status:
     - [x] Can view already assigned posts and reprocess them - see Campaign Detail
 - [s] ?Influencer can create a Campaign to connect to Brand?
 - [x] Campaign Collection - Detail View w/ assigned posts
-  - [ ] ?Decide if it should show more or fewer metrics or results?
+  - [x] ?Decide if it should show more or fewer metrics or results?
   - [x] ?Update link text from Management page, currently says "Campaign Results"?
   - [x] can view all posts currently assigned to this campaign
   - [x] can navigate to Campaign Manage view to add posts to campaign
   - [x] Can remove from campaign & back in cue to decide later (marked unprocessed)
   - [x] Can remove to campaign and remove for consideration (marked processed)
   - [x] Will be left with current settings if unchanged when other posts modified
-- [ ] Campaign Results View
-  - [ ] ?Decide if it should show less graphs, or go straight to sheet export.
+- [x] Campaign Results View
+  - [x] ?Decide if it should show less graphs, or go straight to sheet export.
+    - [x] Temporary hide all but common metrics.
   - [x] Overview of the campaign metrics
 - [x] Functionality to Fetch more posts (API call to FB)
   - [x] Can request more posts for a given user

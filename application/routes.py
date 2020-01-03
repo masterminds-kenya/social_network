@@ -405,30 +405,33 @@ def insights(mod, id):
     scheme_color = ['gold', 'purple', 'green', 'blue']
     dataset, i = {}, 0
     max_val, min_val = 4, float('inf')
+
     for metrics in (Insight.influence_metrics, Insight.profile_metrics, OnlineFollowers.metrics):
         for metric in metrics:
-            if metrics == OnlineFollowers.metrics:
-                query = OnlineFollowers.query.filter_by(user_id=id).order_by('recorded', 'hour').all()
-                if len(query):
-                    temp_data = {(ea.recorded.strftime("%d %b, %Y"), int(ea.hour)): int(ea.value) for ea in query}
+            # TODO: Undo the following temporary ignore a lot of the metrics
+            if metric in ('impressions', 'reach', 'profile_views'):
+                if metrics == OnlineFollowers.metrics:
+                    query = OnlineFollowers.query.filter_by(user_id=id).order_by('recorded', 'hour').all()
+                    if len(query):
+                        temp_data = {(ea.recorded.strftime("%d %b, %Y"), int(ea.hour)): int(ea.value) for ea in query}
+                    else:
+                        temp_data = {'key1': 1, 'key2': 0}
                 else:
-                    temp_data = {'key1': 1, 'key2': 0}
-            else:
-                query = Insight.query.filter_by(user_id=id, name=metric).order_by('recorded').all()
-                temp_data = {ea.recorded.strftime("%d %b, %Y"): int(ea.value) for ea in query}
-            max_curr = max(*temp_data.values())
-            min_curr = min(*temp_data.values())
-            max_val = max(max_val, max_curr)
-            min_val = min(min_val, min_curr)
-            chart = {
-                'label': metric,
-                'backgroundColor': scheme_color[i % len(scheme_color)],
-                'borderColor': '#214',
-                'data': list(temp_data.values())
-            }
-            temp = {'chart': chart, 'data_dict': temp_data, 'max': max_curr, 'min': min_curr}
-            dataset[metric] = temp
-            i += 1
+                    query = Insight.query.filter_by(user_id=id, name=metric).order_by('recorded').all()
+                    temp_data = {ea.recorded.strftime("%d %b, %Y"): int(ea.value) for ea in query}
+                max_curr = max(*temp_data.values())
+                min_curr = min(*temp_data.values())
+                max_val = max(max_val, max_curr)
+                min_val = min(min_val, min_curr)
+                chart = {
+                    'label': metric,
+                    'backgroundColor': scheme_color[i % len(scheme_color)],
+                    'borderColor': '#214',
+                    'data': list(temp_data.values())
+                }
+                temp = {'chart': chart, 'data_dict': temp_data, 'max': max_curr, 'min': min_curr}
+                dataset[metric] = temp
+                i += 1
     labels = [ea for ea in dataset['reach']['data_dict'].keys()]
     max_val = int(1.2 * max_val)
     min_val = int(0.8 * min_val)
