@@ -14,11 +14,9 @@
 <main>
   {% set dataset = namespace(count=0, datatype=[], vals=[], labels=[]) %}
   {% for media_type, obj in related.items() %}
-
   <section id="{{media_type}}" class="media_results">
-    {% if media_type == 'common' %}
-
     <h2>{{ media_type|title }} Posts</h2>
+    {% if media_type == 'common' or obj['posts']|length %}
     {% for metric, stats in obj['results'].items() %}
     <article class="{{metric}}">
       <h3>{{ metric|title }}</h3>
@@ -35,19 +33,16 @@
         {{ dataset.labels.append(obj['labels'][metric]) }}
       </canvas>
     </article>
+    {% endfor %}
     {% else %}
     <p>There are no posts of this kind assigned to this campaign.</p>
-    {% endfor %}
-    <hr />
-
     {% endif %}
+    <hr />
   </section>
-
   {% else %}
   <section class="media_results">
-    <p>No related posts for this Campaign. </p>
+    <p>No related posts. </p>
   </section>
-
   {% endfor %}
   <h2>End of Data</h2>
   <script>
