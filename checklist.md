@@ -113,7 +113,7 @@ Current Status:
 - [x] Business Discovery data: followers_count, media_count. Others are more account info.
 - [x] Default account insights history, 360 days.
 - [x] Campaign worksheet exports summary of Brand account metrics (if IG account was associated)
-- [ ] Pickle tokens
+- [s] Encrypt tokens
 - [n] Keep a DB table of worksheet ids?
   - [s] Will we have multiple report views?
 - [s] DB Migration: Integrate flask-migrate?

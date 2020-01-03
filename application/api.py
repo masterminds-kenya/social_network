@@ -29,7 +29,9 @@ def get_insight(user_id, first=1, influence_last=30*12, profile_last=30*3, ig_id
         user = db_read(user_id, safe=False)
         ig_id, token = user.get('instagram_id'), user.get('token')
     # TODO: Query for this user's most recent influence_metric and most recent profile_metric
+    # Insight.query.filter_by()
     # adjust each version of last to not overlap from previous request. Use mod to make it a multiple of 30.
+
     for insight_metrics, last in [(Insight.influence_metrics, influence_last), (Insight.profile_metrics, profile_last)]:
         metric = ','.join(insight_metrics)
         for i in range(first, last + 2 - 30, 30):

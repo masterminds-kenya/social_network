@@ -1,6 +1,4 @@
-from flask import flash
 from .model_db import db, from_sql, User, Post, Audience
-from werkzeug.security import generate_password_hash, check_password_hash
 import json
 
 
@@ -32,14 +30,12 @@ def post_display(post):
     """ Since different media post types have different metrics, we only want to show the appropriate fields. """
     Model = Post
     if isinstance(post, Model):
-        post = from_sql(post)
+        post = from_sql(post, related=False, safe=True)
     fields = {'id', 'user_id', 'campaign_id', 'processed', 'recorded'}
     fields.update(Model.metrics['basic'])
     fields.discard('timestamp')
     fields.update(Model.metrics[post['media_type']])
-    model = {key: val for (key, val) in post.items() if key in fields}
-    # model = {key: model[key] for key in fields}
-    return model
+    return {key: val for (key, val) in post.items() if key in fields}
 
 
 def process_form(mod, request):
@@ -65,19 +61,14 @@ def process_form(mod, request):
         # On User edit, keep the current password if they left the input box blank.
         if not data.get('password'):
             data.pop('password', None)
-        # handle IG media_count & followers_count here since it would break on User update.
-        # The following only occurs on the first time the IG account is connected to this User.
-        # So we can assume we are making new Audience records for this IG data.
+        # Create IG media_count & followers_count here, then they are associated on User create or update.
         models = []
         for name in Audience.ig_data:  # {'media_count', 'followers_count'}
             value = data.pop(name, None)
             if value:
-                # temp = {'name': name, 'values': [value]}
-                value = json.loads(value)
-                models.append(Audience(name=name, values=[value]))
+                models.append(Audience(name=name, values=[json.loads(value)]))
         save['audiences'] = models
     data.update(save)  # adds to the data dict if we did save some relationship collections
-
     # If the form has a checkbox for a Boolean in the form, we may need to reformat.
     # currently I think only Campaign and Post have checkboxes
     bool_fields = {'campaign': 'completed', 'post': 'processed', 'login': 'remember'}
