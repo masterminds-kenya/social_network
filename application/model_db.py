@@ -3,7 +3,7 @@ from flask_login import UserMixin
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.dialects.mysql import BIGINT
-from sqlalchemy import or_
+from sqlalchemy import or_, desc
 from datetime import datetime as dt
 from dateutil import parser
 import re
@@ -32,7 +32,7 @@ def clean(obj):
     return obj
 
 
-def from_sql(row, related=True, safe=False):
+def from_sql(row, related=False, safe=True):
     """ Translates a SQLAlchemy model instance into a dictionary.
         Will return only viewable fields when 'safe' is True.
     """
@@ -104,6 +104,26 @@ class User(UserMixin, db.Model):
             kwargs['token_expires'] = dt.fromtimestamp(token_expires) if token_expires else None
             kwargs['token'] = kwargs['token'].get('access_token', None)
         super().__init__(*args, **kwargs)
+
+    def recent_insight(self, metrics):
+        """ What is the most recent date that we collected the given insight metrics """
+        if metrics == 'influence' or metrics == Insight.influence_metrics:
+            metrics = list(Insight.influence_metrics)
+        elif metrics == 'profile' or metrics == Insight.profile_metrics:
+            metrics = list(Insight.profile_metrics)
+        elif isinstance(metrics, (list, tuple)):
+            for ea in metrics:
+                if ea not in Insight.metrics:
+                    raise ValueError(f"{ea} is not a valid Insight metric")
+        elif metrics in Insight.metrics:
+            metrics = [metrics]
+        else:
+            raise ValueError(f"{metrics} is not a valid Insight metric")
+
+        # TODO: ?Would it be more efficient to use self.insights?
+        q = Insight.query.filter(Insight.user_id == self.id, Insight.name.in_(metrics))
+        recent = q.order_by(desc('recorded')).first()
+        return getattr(recent, 'recorded', None)
 
     def export_posts(self):
         """ Collect all posts for this user in a list of lists for populating a worksheet. """
@@ -193,6 +213,7 @@ class OnlineFollowers(db.Model):
     value = db.Column(db.Integer,     index=False, unique=False, nullable=True)
     # # user = backref from User.aud_count with lazy='select' (synonym for True)
     metrics = ['online_followers']
+    UNSAFE = {''}
 
     def __init__(self, *args, **kwargs):
         kwargs = fix_date(OnlineFollowers, kwargs)
@@ -433,30 +454,24 @@ def db_create(data, Model=User):
     # except Exception as e:
     #     print('**************** DB CREATE Error *******************')
     #     print(e)
-    results = from_sql(model, safe=True)
-    return results
+    return from_sql(model, related=False, safe=True)
 
 
 def db_read(id, Model=User, related=False, safe=True):
     model = Model.query.get(id)
-    if not model:
-        return None
-    output = from_sql(model, related=related, safe=safe)
-    # if Model == User:
-    #     if len(model.insights) or len(model.aud_count):
-    #         output['insight'] = True
-    #     if len(model.audiences) > 0:
-    #         output['audience'] = [from_sql(ea) for ea in model.audiences]
-    return output
+    return from_sql(model, related=related, safe=safe) if model else None
 
 
-def db_update(data, id, Model=User):
+def db_update(data, id, related=False, Model=User):
     # Any checkbox field should have been prepared by process_form()
     # TODO: Look into using the method Model.update
     model = Model.query.get(id)
+    associated = {name: data.pop(name) for name in model.__mapper__.relationships.keys() if data.get(name, None)}
     try:
         for k, v in data.items():
             setattr(model, k, v)
+        for k, v in associated.items():
+            getattr(model, k).append(v)
         db.session.commit()
     except IntegrityError as e:
         current_app.logger.error(e)
@@ -467,8 +482,7 @@ def db_update(data, id, Model=User):
             message = "Input Error. Make sure values are unique where required, and confirm all inputs are valid."
         flash(message)
         raise ValueError(e)
-    results = from_sql(model, safe=True)
-    return results
+    return from_sql(model, related=related, safe=True)
 
 
 def db_delete(id, Model=User):
@@ -495,7 +509,7 @@ def create_many(dataset, Model=User):
         db.session.add(model)
         all_results.append(model)
     db.session.commit()
-    return [from_sql(ea, safe=False) for ea in all_results]
+    return [from_sql(ea, related=False, safe=False) for ea in all_results]
 
 
 def db_create_or_update_many(dataset, user_id=None, Model=Post):
@@ -529,7 +543,11 @@ def db_create_or_update_many(dataset, user_id=None, Model=Post):
             if model:
                 # pprint(model)
                 # TODO: Look into Model.update method
-                [setattr(model, k, v) for k, v in data.items()]
+                associated = {name: data.pop(name) for name in model.__mapper__.relationships.keys() if data.get(name)}
+                for k, v in data.items():
+                    setattr(model, k, v)
+                for k, v in associated.items():
+                    getattr(model, k).append(v)
                 update_count += 1
             else:
                 # print('No match in existing data')
@@ -559,8 +577,11 @@ def db_create_or_update_many(dataset, user_id=None, Model=Post):
             if len(updates):
                 if len(updates) == 1:
                     model = updates[0]
+                    associated = {name: data.pop(name) for name in model.__mapper__.relationships.keys() if data.get(name)}
                     for k, v in data.items():
                         setattr(model, k, v)
+                    for k, v in associated.items():
+                        getattr(model, k).append(v)
                     update_count += 1
                     all_results.append(model)
                 else:
@@ -580,7 +601,7 @@ def db_create_or_update_many(dataset, user_id=None, Model=Post):
     print('------------------------------------------------------------------------------')
     db.session.commit()
     current_app.logger.info('All records saved')
-    return [from_sql(ea) for ea in all_results]
+    return [from_sql(ea, related=False, safe=True) for ea in all_results]
 
 
 def _create_database():

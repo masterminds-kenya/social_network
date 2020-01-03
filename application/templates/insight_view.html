@@ -1,8 +1,14 @@
 {% extends "view.html" %}
 
 {% block data_view %}
+
 <h3>Insight View</h3>
-<p>
-  {{ data }}
-</p>
+<ul>
+  {% for ea in data.value.keys() %}
+  <li>{{ea}}: {{data.value[ea]}} </li>
+  {% else %}
+  <li>No Data</li>
+  {% endfor %}
+</ul>
+
 {% endblock data_view %}

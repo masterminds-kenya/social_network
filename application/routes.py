@@ -17,7 +17,7 @@ def mod_lookup(mod):
     """ Associate to the appropriate Model, or raise error if 'mod' is not an expected value """
     if not isinstance(mod, str):
         raise TypeError('Expected a string input')
-    lookup = {'insight': Insight, 'audiences': Audience, 'audience': Audience, 'post': Post, 'campaign': Campaign}
+    lookup = {'insight': Insight, 'audience': Audience, 'post': Post, 'campaign': Campaign}
     # 'onlinefollowers': OnlineFollowers,
     lookup.update({role: User for role in User.roles})
     Model = lookup.get(mod, None)
@@ -349,6 +349,8 @@ def campaign(id, view='management'):
 @login_required
 def view(mod, id):
     """ Used primarily for specific User or Brand views, but also any data model view except Campaign. """
+    # if mod == 'campaign':
+    #     return campaign(id)
     Model, model = None, None
     if current_user.role not in ['manager', 'admin']:
         if mod in User.roles:
@@ -356,10 +358,9 @@ def view(mod, id):
                 flash('Incorrect location. You are being redirected to your own profile page')
                 return redirect(url_for('view', mod=current_user.role, id=current_user.id))
             # otherwise they get to see their own profile page!
-        elif mod in ['post', 'audience', 'audiences']:
+        elif mod in ['post', 'audience']:
             # The user can only view this detail view if they are associated to the data
             Model = mod_lookup(mod)
-            # model = db_read(id, Model=Model)
             model = Model.query.get(id)
             if model.user != current_user:
                 # ? Add the ability for brand user to see posts associated through a campaign?
@@ -369,13 +370,10 @@ def view(mod, id):
             flash('This was not a correct location. You are redirected to the home page.')
             return redirect(url_for('home'))
     # Otherwise user is admin, manager, or a user looking at their own data.
-    # if mod == 'campaign':
-    #     return campaign(id)
     Model = Model or mod_lookup(mod)
     model = model or Model.query.get(id)
-    related_user = from_sql(model.user, safe=True) if getattr(model, 'user', None) else None
-    model = from_sql(model, safe=True)
-    # model = db_read(id, Model=Model)
+    related_user = from_sql(model.user, related=False, safe=True) if getattr(model, 'user', None) else None
+    model = from_sql(model, related=True, safe=True)
     template = 'view.html'
     if mod == 'post':
         template = f"{mod}_{template}"
@@ -513,6 +511,7 @@ def add_edit(mod, id=None):
     if request.method == 'POST':
         data = process_form(mod, request)
         if mod == 'brand' and data.get('instagram_id', '') in ('None', ''):
+            # TODO: Decide - Should it work for all User.roles, or only 'brand'?
             data['instagram_id'] = None  # Do not overwrite 'instagram_id' if it was left blank.
         # TODO: ?Check for failing unique column fields, or failing composite unique requirements?
         if action == 'Edit':

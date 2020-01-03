@@ -22,14 +22,21 @@ FB_SCOPE = [
 
 
 def get_insight(user_id, first=1, influence_last=30*12, profile_last=30*3, ig_id=None, facebook=None):
-    """ Get the insight metrics for the User. """
+    """ Get the insight metrics for the User. Has default values, but can be called with custom durations.
+        It will check existing data to see how recently we have insight metrics for this user.
+        It will request results for the full duration, or since recent data, or a minimum of 30 days.
+    """
     ig_period = 'day'
     results, token = [], ''
+    user = User.query.get(user_id)
     if not facebook or not ig_id:
-        user = db_read(user_id, safe=False)
-        ig_id, token = user.get('instagram_id'), user.get('token')
-    # TODO: Query for this user's most recent influence_metric and most recent profile_metric
-    # adjust each version of last to not overlap from previous request. Use mod to make it a multiple of 30.
+        ig_id, token = getattr(user, 'instagram_id', None), getattr(user, 'token', None)
+    now = dt.utcnow()
+    influence_date = user.recent_insight('influence')
+    profile_date = user.recent_insight('profile')
+    influence_last = max(30, int(min(influence_last, (now - influence_date).days)))
+    profile_last = max(30, int(min(profile_last, (now - profile_date).days)))
+
     for insight_metrics, last in [(Insight.influence_metrics, influence_last), (Insight.profile_metrics, profile_last)]:
         metric = ','.join(insight_metrics)
         for i in range(first, last + 2 - 30, 30):
@@ -47,7 +54,7 @@ def get_insight(user_id, first=1, influence_last=30*12, profile_last=30*3, ig_id
                     results.append(val)
     models = db_create_or_update_many(results, user_id=user_id, Model=Insight)
     follow_report = get_online_followers(user_id, ig_id=ig_id, facebook=facebook)
-    # logstring = f"We have Online Followers data!" if follow_report else "No follow report"
+    # logstring = f"Added Online Followers data" if follow_report else "No follow report"
     # app.logger.info(logstring)
     return (models, follow_report)
 
