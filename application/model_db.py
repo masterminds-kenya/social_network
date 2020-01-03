@@ -3,7 +3,7 @@ from flask_login import UserMixin
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.dialects.mysql import BIGINT
-from sqlalchemy import or_
+from sqlalchemy import or_, desc
 from datetime import datetime as dt
 from dateutil import parser
 import re
@@ -105,6 +105,26 @@ class User(UserMixin, db.Model):
             kwargs['token'] = kwargs['token'].get('access_token', None)
         super().__init__(*args, **kwargs)
 
+    def recent_insight(self, metrics):
+        """ What is the most recent date that we collected the given insight metrics """
+        if metrics == 'influence' or metrics == Insight.influence_metrics:
+            metrics = list(Insight.influence_metrics)
+        elif metrics == 'profile' or metrics == Insight.profile_metrics:
+            metrics = list(Insight.profile_metrics)
+        elif isinstance(metrics, (list, tuple)):
+            for ea in metrics:
+                if ea not in Insight.metrics:
+                    raise ValueError(f"{ea} is not a valid Insight metric")
+        elif metrics in Insight.metrics:
+            metrics = [metrics]
+        else:
+            raise ValueError(f"{metrics} is not a valid Insight metric")
+
+        # TODO: ?Would it be more efficient to use self.insights?
+        q = Insight.query.filter(Insight.user_id == self.id, Insight.name.in_(metrics))
+        recent = q.order_by(desc('recorded')).first()
+        return getattr(recent, 'recorded', None)
+
     def export_posts(self):
         """ Collect all posts for this user in a list of lists for populating a worksheet. """
         ignore = ['id', 'user_id']  # ? 'media_id'
@@ -193,6 +213,7 @@ class OnlineFollowers(db.Model):
     value = db.Column(db.Integer,     index=False, unique=False, nullable=True)
     # # user = backref from User.aud_count with lazy='select' (synonym for True)
     metrics = ['online_followers']
+    UNSAFE = {''}
 
     def __init__(self, *args, **kwargs):
         kwargs = fix_date(OnlineFollowers, kwargs)

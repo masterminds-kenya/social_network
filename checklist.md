@@ -231,10 +231,10 @@ Current Status:
     - [x] Will update if our DB info is out-of-date
   - [ ] Visual feedback that it is processing but not ready to render new view
   - [x] Calling for more Audience data should also call for update on ig_data metrics.
-- [ ] Fetch more Insights (of the account, not of media)
+- [x] Fetch more Insights (of the account, not of media)
   - [x] Can get a history the the user (or brand) account insights
   - [x] Metrics for 'online_followers' automatically updates with Insight updates.
-  - [ ] Will limit request to only get new insights since last request
+  - [x] Will limit request to only get new insights since last request
   - [x] In case we do get duplicates, it will NOT create duplicates in DB
     - [x] Will update if our DB info is out-of-date
 - [x] Flash messages for any processes that do not have an obvious update.
