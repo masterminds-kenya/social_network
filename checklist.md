@@ -303,7 +303,8 @@ Current Status:
   - [n] New manually created 'manager' or 'admin' users requires Admin approval
 - [x] Allow admin to create a 'manager' or 'admin' user with a temporary password.
   - [x] Hide the Influencer and Brand signup sections.
-- [ ] Fix: A created influencer account, but not attached an IG account, broke influencer list
+- [ ] Confirm Fix: A created influencer account, but not attached an IG account, broke influencer list
+  - [x] Make a temporary name if we do not have one while we are waiting for their IG account selection
 - [ ] Fix: The 'add admin' from admin list does not work because it should redirect.
 - [ ] Allow admin to create a user w/o a password.
   - [ ] Require the user to set password on first login.

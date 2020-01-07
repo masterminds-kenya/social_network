@@ -252,7 +252,7 @@ def onboarding(mod, request):
         data['audiences'] = models
         app.logger.info('------ Only 1 InstaGram business account ------')
     else:
-        data['name'] = data.get('username', None) if 'name' not in data else data['name']
+        data['name'] = data.get('id', None) if 'name' not in data else data['name']
         app.logger.info(f'------ Found {len(ig_list)} potential IG accounts ------')
     app.logger.info('=========== Data sent to Create User account ===============')
     pprint(data)
