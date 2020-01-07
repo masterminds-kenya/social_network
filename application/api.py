@@ -7,7 +7,7 @@ import requests_oauthlib
 from requests_oauthlib.compliance_fixes import facebook_compliance_fix
 from datetime import datetime as dt
 from datetime import timedelta
-# from pprint import pprint
+from pprint import pprint
 
 URL = app.config.get('URL')
 FB_CLIENT_ID = app.config.get('FB_CLIENT_ID')
@@ -34,9 +34,15 @@ def get_insight(user_id, first=1, influence_last=30*12, profile_last=30*3, ig_id
     now = dt.utcnow()
     influence_date = user.recent_insight('influence')
     profile_date = user.recent_insight('profile')
-    influence_last = max(30, int(min(influence_last, (now - influence_date).days)))
-    profile_last = max(30, int(min(profile_last, (now - profile_date).days)))
-
+    if influence_date:
+        influence_last = max(30, int(min(influence_last, (now - influence_date).days)))
+        app.logger.info('Updated Influence Last')
+    if profile_date:
+        profile_last = max(30, int(min(profile_last, (now - profile_date).days)))
+        app.logger.info('Updated Profile Last')
+    app.logger.info("------------ Get Insight: Influence, Profile ---------------")
+    app.logger.info(influence_last)
+    app.logger.info(profile_last)
     for insight_metrics, last in [(Insight.influence_metrics, influence_last), (Insight.profile_metrics, profile_last)]:
         metric = ','.join(insight_metrics)
         for i in range(first, last + 2 - 30, 30):
@@ -248,14 +254,15 @@ def onboarding(mod, request):
     else:
         data['name'] = data.get('username', None) if 'name' not in data else data['name']
         app.logger.info(f'------ Found {len(ig_list)} potential IG accounts ------')
-    # app.logger.info('=========== Data sent to Create User account ===============')
-    # pprint(data)
+    app.logger.info('=========== Data sent to Create User account ===============')
+    pprint(data)
     # TODO: Create and use a User method that will create or use existing User, and returns a User object.
     # Refactor next three lines to utilize this method so we are just dealing with the User object.
     account = db_create(data)
     account_id = account.get('id')
-    login_user(User.query.get(account_id), force=True, remember=True)
-    app.logger.info(f"New {mod} User: {account_id}")
+    user = User.query.get(account_id)
+    login_user(user, force=True, remember=True)
+    app.logger.info(f"New {mod} User: {account_id} should match {user.id}")
     if ig_id:
         # Relate Data
         insights = get_insight(account_id, ig_id=ig_id, facebook=facebook)
