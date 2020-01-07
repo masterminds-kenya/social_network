@@ -475,7 +475,10 @@ def db_update(data, id, related=False, Model=User):
         for k, v in data.items():
             setattr(model, k, v)
         for k, v in associated.items():
-            getattr(model, k).append(v)
+            if getattr(model, k, None):
+                getattr(model, k).append(v)
+            else:
+                setattr(model, k, v)
         db.session.commit()
     except IntegrityError as e:
         current_app.logger.error(e)
