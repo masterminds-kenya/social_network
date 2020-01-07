@@ -283,14 +283,17 @@ def callback(mod):
     app.logger.info(f'================= Authorization Callback {mod}===================')
     view, data, account_id = onboarding(mod, request)
     if view == 'decide':
+        app.logger.info(f"Decide which IG account | Data: {data} | ID: {account_id} ")
         ig_list = []
         for ig_info in data:
             cleaned = {}
             for key, value in ig_info.items():
                 cleaned[key] = json.dumps(value) if key in Audience.ig_data else value
             ig_list.append(cleaned)
+        app.logger.info(f"Amongst these IG options: {ig_list}")
         return render_template('decide_ig.html', mod=mod, id=account_id, ig_list=ig_list)
     elif view == 'complete':
+        app.logger.info(f"Completed User")
         return redirect(url_for('view', mod=mod, id=account_id))
     elif view == 'error':
         return redirect(url_for('error', data=data), code=307)

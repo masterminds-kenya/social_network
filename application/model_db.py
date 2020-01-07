@@ -123,7 +123,11 @@ class User(UserMixin, db.Model):
         # TODO: ?Would it be more efficient to use self.insights?
         q = Insight.query.filter(Insight.user_id == self.id, Insight.name.in_(metrics))
         recent = q.order_by(desc('recorded')).first()
-        return getattr(recent, 'recorded', None)
+        date = getattr(recent, 'recorded', 0) if recent else 0
+        current_app.logger.info(f"Recent Insight: {metrics} | {recent} ")
+        current_app.logger.info('-------------------------------------')
+        current_app.logger.info(date)
+        return date
 
     def export_posts(self):
         """ Collect all posts for this user in a list of lists for populating a worksheet. """
@@ -471,7 +475,10 @@ def db_update(data, id, related=False, Model=User):
         for k, v in data.items():
             setattr(model, k, v)
         for k, v in associated.items():
-            getattr(model, k).append(v)
+            if getattr(model, k, None):
+                getattr(model, k).append(v)
+            else:
+                setattr(model, k, v)
         db.session.commit()
     except IntegrityError as e:
         current_app.logger.error(e)
