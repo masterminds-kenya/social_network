@@ -684,4 +684,6 @@ def render_static(page_name):
     if page_name == 'favicon.ico':
         # TODO: Create favicon.ico for site
         return abort(404)
-    return render_template('%s.html' % page_name)
+    if page_name != 'robots.txt':
+        page_name += '.html'
+    return render_template(page_name)
