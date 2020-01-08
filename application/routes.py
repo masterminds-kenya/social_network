@@ -270,7 +270,7 @@ def fb_login(mod):
     """ Initiate the creation of a new Influencer or Brand, as indicated by 'mod' """
     app.logger.info(f'====================== NEW {mod} Account =========================')
     if app.config.get('LOCAL_ENV') is True:
-        app.logger.info('Can not call the Facebook auth function when running locally')
+        app.logger.error('Can not call the Facebook auth function when running locally')
         flash('This does not work when running locally. Redirecting to the home page.')
         return redirect(url_for('home'))
     authorization_url = onboard_login(mod)
@@ -684,4 +684,6 @@ def render_static(page_name):
     if page_name == 'favicon.ico':
         # TODO: Create favicon.ico for site
         return abort(404)
-    return render_template('%s.html' % page_name)
+    if page_name != 'robots.txt':
+        page_name += '.html'
+    return render_template(page_name)

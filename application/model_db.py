@@ -48,7 +48,7 @@ def from_sql(row, related=False, safe=True):
         data['related'] = related_fields
     temp = data.pop('_sa_instance_state', None)
     if not temp:
-        current_app.logger.info('Not a model instance!')
+        current_app.logger.error('Not a model instance!')
     if safe:
         Model = row.__class__
         data = {k: data[k] for k in data.keys() - Model.UNSAFE}
@@ -442,8 +442,8 @@ def db_create(data, Model=User):
         db.session.commit()
     except IntegrityError as error:
         # most likely only happening on Brand, User, or Campaign
-        current_app.logger.info('----------- IntegrityError Condition -------------------')
-        pprint(error)
+        current_app.logger.error('----------- IntegrityError Condition -------------------')
+        current_app.logger.error(error)
         db.session.rollback()
         columns = Model.__table__.columns
         unique = {c.name: data.get(c.name) for c in columns if c.unique}
@@ -453,7 +453,7 @@ def db_create(data, Model=User):
             message = f"A {model.__class__.__name__} already exists with id: {model.id} . Using existing."
         else:
             message = f'Cannot create due to collision on unique fields. Cannot retrieve existing record'
-        current_app.logger.info(message)
+        current_app.logger.error(message)
         flash(message)
     # except Exception as e:
     #     print('**************** DB CREATE Error *******************')

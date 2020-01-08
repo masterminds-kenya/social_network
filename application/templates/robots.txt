@@ -1,0 +1,7 @@
+User-agent: *
+Disallow: /influencer/
+Disallow: /brand/
+Disallow: /manager/
+Disallow: /admin/
+Disallow: /campaign/
+Disallow: /data/

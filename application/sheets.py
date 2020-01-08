@@ -18,7 +18,7 @@ service_config = {
 
 def get_creds(config):
     """ Using google.oauth2.service_account to get credentials for the service account """
-    app.logger.info('---------- Get Creds ----------')
+    # app.logger.info('---------- Get Creds ----------')
     creds = None
     if not path.exists(config.get('file')):
         message = 'Wrong Path to Secret File'
@@ -31,13 +31,13 @@ def get_creds(config):
         raise EnvironmentError(message)
     try:
         credentials = service_account.Credentials.from_service_account_file(config['file'])
-        app.logger.info("Created the service account credentials")
+        # app.logger.info("Created the service account credentials")
     except Exception as e:
         app.logger.error("Could not get credentials")
         app.logger.error(e)
     try:
         creds = credentials.with_scopes(config.get('scopes'))
-        app.logger.info("Credentials with scopes!")
+        # app.logger.info("Credentials with scopes!")
     except Exception as e:
         app.logger.error("Could not get Scopes for credentials")
         app.logger.error(e)
@@ -54,9 +54,10 @@ def perm_add(sheet_id, add_users, service=None):
     def callback(request_id, response, exception):
         if exception:
             # TODO: Handle error
-            app.logger.info(exception)
+            app.logger.error(exception)
         else:
-            app.logger.info(f"Permission Id: {response.get('id')} Request Id: {request_id}")
+            # app.logger.info(f"Permission Id: {response.get('id')} Request Id: {request_id}")
+            pass
 
     if not service:
         creds = get_creds(service_config['sheets'])
@@ -130,7 +131,7 @@ def create_sheet(model, service=None):
     title = f"{name}_{timestamp}"
     spreadsheet = {'properties': {'title': title}}
     spreadsheet = service.spreadsheets().create(body=spreadsheet, fields='spreadsheetId').execute()
-    app.logger.info(f"spreadsheet id: {spreadsheet.get('spreadsheetId')}")
+    # app.logger.info(f"spreadsheet id: {spreadsheet.get('spreadsheetId')}")
     message = f"Before you can view the Google Sheet, you must give yourself access "
     message += f"with the View and Manage Access link."
     flash(message)
@@ -181,7 +182,7 @@ def read_sheet(id=SHARED_SHEET_ID, range_=None, service=None):
 def get_vals(model):
     """ Get the values we want to put into our worksheet report """
     model_name = model.__class__.__name__
-    app.logger.info(f"-------- Get vals for a {model_name} Model instance --------")
+    # app.logger.info(f"-------- Get vals for a {model_name} Model instance --------")
     if model_name == 'User':
         # flash(f"Sheet has {model.role} {model_name} data for {model.name}. ")
         insights = model.insight_report()
@@ -202,11 +203,11 @@ def get_vals(model):
     else:
         logstring = f'Unexpected {model_name} model at this time'
         flash(logstring)
-        app.logger.info(f'-------- {logstring} --------')
+        app.logger.error(f'-------- {logstring} --------')
         data = [logstring]
         media_posts = [['media_posts label row']]
         sheet_rows = [data, [''], *media_posts, ['']]
-    app.logger.info(f"-------- Total rows: {len(sheet_rows)}, with {len(media_posts) - 1} rows of posts --------")
+    # app.logger.info(f"-------- Total rows: {len(sheet_rows)}, with {len(media_posts) - 1} rows of posts --------")
     return sheet_rows
 
 
@@ -232,7 +233,7 @@ def compute_A1(arr2d, start='A1', sheet='Sheet1'):
     # TODO: Find out if the max rows is 4011 and max cols is 26. Manage if we exceed the max.
     final_row = row_count + row
     result = f"{sheet}!{start}:{final_col}{final_row}"
-    app.logger.info(f"A1 format is {result} for {row_count} rows & {col_count} columns")
+    # app.logger.info(f"A1 format is {result} for {row_count} rows & {col_count} columns")
     return result
 
 

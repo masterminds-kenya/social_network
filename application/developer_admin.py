@@ -1,3 +1,4 @@
+from flask import current_app as app
 import json
 from .model_db import create_many, db_read
 from .api import get_ig_info
@@ -7,15 +8,16 @@ USER_FILE = 'env/user_save.txt'
 
 def load():
     new_users = []
+    app.logger.info('------- Load users from File ------------')
     with open(USER_FILE, 'r') as file:
         for line in file.readlines():
             user = json.loads(line)
-            if 'email' in user:
-                del user['email']
+            # if 'email' in user:
+            #     del user['email']
             ig_id, token = user.get('instagram_id'), user.get('token')
             ig_info = get_ig_info(ig_id, token=token)
             user['username'] = ig_info.get('username')
-            print(user['username'])
+            app.logger.info(user['username'])
             new_users.append(user)
     created_users = create_many(new_users)
     print(f'------------- Create from File: {len(created_users)} users -------------')
@@ -23,6 +25,7 @@ def load():
 
 
 def save(mod, id, Model):
+    app.logger.info('------- Save User to File -------')
     if mod in {'brand', 'influencer', 'user'}:
         filename = USER_FILE
     model = db_read(id, Model=Model, safe=False)
