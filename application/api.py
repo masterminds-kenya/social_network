@@ -18,6 +18,7 @@ FB_SCOPE = [
     'pages_show_list',
     'instagram_basic',
     'instagram_manage_insights',
+    'manage_pages'
         ]
 
 
@@ -176,7 +177,7 @@ def get_ig_info(ig_id, token=None, facebook=None):
     # profile_picture_url, username*, website*
     fields = ['username', *Audience.ig_data]
     fields = ','.join(fields)
-    # print('============ Get IG Info ===================')
+    app.logger.info('============ Get IG Info ===================')
     if not token and not facebook:
         logstring = "You must pass a 'token' or 'facebook' reference. "
         app.logger.error(logstring)
@@ -184,9 +185,12 @@ def get_ig_info(ig_id, token=None, facebook=None):
         return logstring
     url = f"https://graph.facebook.com/v4.0/{ig_id}?fields={fields}"
     res = facebook.get(url).json() if facebook else requests.get(f"{url}&access_token={token}").json()
+    pprint(res)
     end_time = dt.utcnow().isoformat(timespec='seconds') + '+0000'
     for name in Audience.ig_data:
         res[name] = {'end_time': end_time, 'value': res.get(name)}
+    print('-----------------')
+    pprint(res)
     return res
 
 
@@ -196,14 +200,21 @@ def find_instagram_id(accounts, facebook=None):
     """
     ig_list = []
     pages = [page.get('id') for page in accounts.get('data')] if accounts and 'data' in accounts else None
+    if not facebook:
+        app.logger.error('The parameter for facebook can not be None. ')
     if pages:
         app.logger.info(f'============ Pages count: {len(pages)} ============')
         for page in pages:
             instagram_data = facebook.get(f"https://graph.facebook.com/v4.0/{page}?fields=instagram_business_account").json()
+            if 'error' in instagram_data:
+                app.logger.error(f'Error on getting info from {page} Page')
+                pprint(instagram_data)
             ig_business = instagram_data.get('instagram_business_account', None)
             if ig_business:
                 ig_info = get_ig_info(ig_business.get('id', None), facebook=facebook)
                 ig_list.append(ig_info)
+    else:
+        app.logger.error(f"No pages found from accounts data: {accounts}")
     return ig_list
 
 
@@ -234,7 +245,7 @@ def onboarding(mod, request):
     data = facebook_user_data.copy()  # .to_dict(flat=True)
     data['role'] = mod
     data['token'] = token
-    accounts = data.pop('accounts')
+    accounts = data.pop('accounts', None)
     # Collect IG usernames for all options
     ig_list = find_instagram_id(accounts, facebook=facebook)
     # If they only have 1 ig account, assign the appropriate instagram_id

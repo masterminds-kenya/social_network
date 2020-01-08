@@ -443,7 +443,7 @@ def db_create(data, Model=User):
     except IntegrityError as error:
         # most likely only happening on Brand, User, or Campaign
         current_app.logger.error('----------- IntegrityError Condition -------------------')
-        pprint(error)
+        current_app.logger.error(error)
         db.session.rollback()
         columns = Model.__table__.columns
         unique = {c.name: data.get(c.name) for c in columns if c.unique}
