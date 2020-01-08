@@ -36,13 +36,13 @@ def get_insight(user_id, first=1, influence_last=30*12, profile_last=30*3, ig_id
     profile_date = user.recent_insight('profile')
     if influence_date:
         influence_last = max(30, int(min(influence_last, (now - influence_date).days)))
-        app.logger.info('Updated Influence Last')
+        # app.logger.info('Updated Influence Last')
     if profile_date:
         profile_last = max(30, int(min(profile_last, (now - profile_date).days)))
-        app.logger.info('Updated Profile Last')
-    app.logger.info("------------ Get Insight: Influence, Profile ---------------")
-    app.logger.info(influence_last)
-    app.logger.info(profile_last)
+        # app.logger.info('Updated Profile Last')
+    # app.logger.info("------------ Get Insight: Influence, Profile ---------------")
+    # app.logger.info(influence_last)
+    # app.logger.info(profile_last)
     for insight_metrics, last in [(Insight.influence_metrics, influence_last), (Insight.profile_metrics, profile_last)]:
         metric = ','.join(insight_metrics)
         for i in range(first, last + 2 - 30, 30):
@@ -79,7 +79,7 @@ def get_online_followers(user_id, ig_id=None, facebook=None):
     response = facebook.get(url).json() if facebook else requests.get(f"{url}&access_token={token}").json()
     data = response.get('data')
     if not data:
-        app.logger.info(f"Online Followers Error: {response.get('error')}")
+        app.logger.error(f"Online Followers Error: {response.get('error')}")
         return None
     results = []
     for day in data[0].get('values', []):  # We expect only 1 element in the 'data' list
@@ -94,7 +94,7 @@ def get_audience(user_id, ig_id=None, facebook=None):
     """ Get the audience data for the (influencer or brand) user with given user_id """
     app.logger.info('=========================== Get Audience Data ======================')
     audience_metric = ','.join(Audience.metrics)
-    app.logger.info(audience_metric)
+    # app.logger.info(audience_metric)
     ig_period = 'lifetime'
     results, token = [], ''
     if not facebook or not ig_id:

@@ -303,7 +303,9 @@ Current Status:
   - [n] New manually created 'manager' or 'admin' users requires Admin approval
 - [x] Allow admin to create a 'manager' or 'admin' user with a temporary password.
   - [x] Hide the Influencer and Brand signup sections.
-- [ ] Confirm Fix: A created influencer account, but not attached an IG account, broke influencer list
+- [x] Confirm Fix: A created influencer account, but not attached an IG account, broke influencer list
+- [ ] Fix brand select an IG account
+- [ ] Check on DB restrictions for duplicate names | FB id.
   - [x] Make a temporary name if we do not have one while we are waiting for their IG account selection
 - [ ] Fix: The 'add admin' from admin list does not work because it should redirect.
 - [ ] Allow admin to create a user w/o a password.
@@ -438,6 +440,9 @@ Permissions to Routes and Showing/Hiding links in Templates:
 ### Code Structure, Testing, Clean up
 
 - [x] Setup a real influencer (Noelle Reno) as a confirmed tester.
+- [ ] Remove very excessive logs. Keeping high log level until onboarding is verified.
+- [ ] Remove excessive logs after we confirm numerous onboarding.
+- [x] Add robots.txt file so search engines are not getting errors.
 - [x] ! Google sheet/drive: Use bacchus service_agent instead of development site service_agent!
 - [x] Test that decide_ig.html form works with the dict as a set value.
 - [x] Have real influencer (Noelle Reno) sign up for testing.
