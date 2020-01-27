@@ -348,6 +348,23 @@ def campaign(id, view='management'):
     return render_template(template, mod=mod, view=view, data=campaign, related=related)
 
 
+@app.route('/all_posts')
+def all_posts():
+    app.logger.info("===================== All Posts Process Run =====================")
+    all_ig = User.query.filter(User.instagram_id.isnot(None)).all()
+    pprint(all_ig)
+    for ea in all_ig:
+        # print('------------------')
+        # pprint(ea)
+        get_posts(ea.id)
+    # return_path = request.referrer
+    message = f"Got all posts for {len(all_ig)} accounts."
+    # flash(message)
+    app.logger.info(message)
+    return_path = url_for('home')
+    return redirect(return_path)
+
+
 @app.route('/<string:mod>/<int:id>')
 @login_required
 def view(mod, id):
