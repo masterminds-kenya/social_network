@@ -133,15 +133,15 @@ def get_posts(user_id, ig_id=None, facebook=None):
     url = f"https://graph.facebook.com/{ig_id}/stories"
     story_res = facebook.get(url).json() if facebook else requests.get(f"{url}?access_token={token}").json()
     stories = story_res.get('data')
-    if not isinstance(stories, list):
-        app.logger.error('Error: ', story_res.get('error'))
+    if not isinstance(stories, list) and 'error' in story_res:
+        app.logger.error('Error: ', story_res.get('error', 'NA'))
         return []
-    story_ids = {ea.get('id') for ea in stories}
+    story_ids = [ea.get('id') for ea in stories]
     url = f"https://graph.facebook.com/{ig_id}/media"
     response = facebook.get(url).json() if facebook else requests.get(f"{url}?access_token={token}").json()
     media = response.get('data')
     if not isinstance(media, list):
-        app.logger.error('Error: ', response.get('error'))
+        app.logger.error('Error: ', response.get('error', 'NA'))
         return []
     media.extend(stories)
     # print(f"----------- Looking up a total of {len(media)} Media Posts, including {len(stories)} Stories ----------- ")

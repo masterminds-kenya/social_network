@@ -1,0 +1,5 @@
+cron:
+- description: "daily retrieve posts"
+  url: /all_posts
+  schedule: every 24 hours
+  # schedule: every 10 minutes
