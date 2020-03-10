@@ -351,17 +351,23 @@ def campaign(id, view='management'):
 @app.route('/all_posts')
 def all_posts():
     app.logger.info("===================== All Posts Process Run =====================")
+    cron_run = request.headers.get('X-Appengine-Cron', None)
+    admin_run = request.referrer == url_for('admin')
+    if not cron_run and not admin_run:
+        app.logger.error('All posts was run by something other than cron job or admin link')
+        return redirect(url_for('error'))
     all_ig = User.query.filter(User.instagram_id.isnot(None)).all()
-    pprint(all_ig)
     for ea in all_ig:
-        # print('------------------')
-        # pprint(ea)
         get_posts(ea.id)
-    # return_path = request.referrer
-    message = f"Got all posts for {len(all_ig)} accounts."
-    # flash(message)
+    message = f"Got all posts for {len(all_ig)} accounts. "
+    if admin_run:
+        message += "Admin requested getting posts for all users. "
+        flash(message)
+        return_path = url_for('admin')
+    elif cron_run:
+        message += "Cron job completed"
+        return_path = url_for('home')
     app.logger.info(message)
-    return_path = url_for('home')
     return redirect(return_path)
 
 
