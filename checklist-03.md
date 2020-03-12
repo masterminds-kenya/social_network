@@ -2,21 +2,21 @@
 
 ## Milestones
 
-| Complete           | Task                                        |
+| Complete           | Task                                         |
 | ------------------ |:--------------------------------------------:|
-| :heavy_check_mark: | Initial Features from [checklist](./checklist.md)  |
+| :heavy_check_mark: | Initial Features from [checklist](./checklist.md) |
 |                    | **Initial Features Completed**               |
 | :heavy_check_mark: | Initial Investigation of media files complexity |
 |                    | Update Feature Goals & Documentation         |
 |                    | Separate Dev site owned by Bacchus           |
 |                    | Sort Posts by published date                 |
 |                    | Favicon and robots.txt files                 |
-|                    | Various code clean-up                        |
-|                    | Integrate Flask-Migrate to modify DB setup   |
+|                    | Integrate Flask-Migrate to assist ongoing DB changes |
 |                    | **Milestone 1 Completion**                   |
-|                    | Update Posts model (db structure) to Many-to-Many w/ campaigns  |
+|                    | Update Posts model (db structure) to Many-to-Many w/ campaigns |
 |                    | Posts can be assigned to multiple campaigns  |
 |                    | Remove dev only logging                      |
+|                    | Various code clean-ups & security updates    |
 |                    | Migrate & Deploy above updates to live site  |
 |                    | **Milestone 2 Completion**                   |
 |                    | Saving Story Post media files                |
@@ -71,12 +71,17 @@ Current Status:
 
 ### DB Design & Setup
 
+- [ ] Integrate flask-migrate
+  - [ ] Install package, update requirement files
+  - [ ] Initial migration creation
+  - [ ] test changes and migration management
 - [ ] Post model to Campaign is Many-to-Many relationship
+  - [ ] Additional fields or methods tracking what queues it is removed from
 - [s] Update ON DELETE for a User's posts.
 - [s] How do we want to organize audience data?
 - [s] Refactor Audience Model to parse out the gender and age group fields
   - [s] After refactor, make sure audience data does not overwrite previous data
-- [s] Encrypt tokens
+- [ ] Encrypt tokens
 - [n] Keep a DB table of worksheet ids?
   - [s] Will we have multiple report views?
 - [s] DB Migration: Integrate flask-migrate?
