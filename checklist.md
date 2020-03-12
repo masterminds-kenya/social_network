@@ -24,9 +24,9 @@
 | :heavy_check_mark: | Hosting and Facebook settings on Bacchus accounts |
 |                    | **Milestone 4 Completion**           |
 | :heavy_check_mark: | Admin & Manager Pages require login |
-|                    | Site content and style, basic UI and graphs |
-|                    | Testing, on-boarding, error handling |
-|                    | Facebook App approved and go live    |
+| :heavy_check_mark: | Site content and style, basic UI and graphs |
+| :heavy_check_mark: | Testing, on-boarding, error handling |
+| :heavy_check_mark: | Facebook App approved and go live    |
 |                    | **Initial Contract Completion**      |
 
 ## Checklist

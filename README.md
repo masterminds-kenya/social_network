@@ -1,7 +1,7 @@
 # social_network
 
 **Author**: Chris L Chapman
-**Version**: 0.2.0
+**Version**: 0.3.0
 
 ## Architecture
 
@@ -84,7 +84,7 @@ We are currently deploying on google cloud (gcloud), with the Google App Engine 
 
 ## Development notes
 
-[Development Site](https://social-network-255302.appspot.com/)
+[Development Site]
 
 For local development, we are using pipenv to help us track dependencies and packages only needed in the development environment. The local development files, `Pipfile` and `Pipfile.lock`, need to be in the `.gcloudignore` file, but still tracked in the Git repository. We are expecting an un-tracked `.env` file at the root of the project so the `config.py` works correctly, locally while these same settings should be duplicated in the `app.yaml` for the deployed site to work.
 
@@ -110,7 +110,8 @@ python application/model_db.py
 
 We are keeping a checklist for features and tasks that are both completed and are upcoming. This is intended as brief overview and to capture ongoing thoughts on how we are proceeding in developing this application. As a living document, it loosely indicates what we plan on working soon, with various degrees of specificity in planning. The current status of this file can be found in the following link:
 
-[Features & Tasks](./checklist.md)
+[Features & Tasks ver 0.3.0](./checklist-03.md)
+[Original Features & Tasks](./checklist.md)
 
 ## Core Features
 
