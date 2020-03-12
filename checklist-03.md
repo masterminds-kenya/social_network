@@ -6,6 +6,7 @@
 | ------------------ |:--------------------------------------------:|
 | :heavy_check_mark: | Initial Features from [checklist](./checklist.md)  |
 |                    | **Initial Features Completed**               |
+| :heavy_check_mark: | Initial Investigation of media files complexity |
 |                    | Update Feature Goals & Documentation         |
 |                    | Separate Dev site owned by Bacchus           |
 |                    | Sort Posts by published date                 |
