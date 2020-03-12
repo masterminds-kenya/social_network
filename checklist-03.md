@@ -41,7 +41,7 @@
 - [s] Stretch Goal. Not for current feature plan.
 
 Current Status:
-2020-03-12 11:12:23
+2020-03-12 16:43:03
 <!-- Ctrl-Shift-I to generate timestamp -->
 
 ### Story & Media Files Features
@@ -52,8 +52,8 @@ Current Status:
   - [x] Do not require extra work from Influencers
   - [ ] Capture before story is assigned to campaign, before it expires
   - [ ] Ver A: Investigate if any possible API technique
-  - [ ] Ver B: Web Scrapper and screen capture
-  - [ ] Ver C: Web Scrapper the obscured media files
+  - [ ] Ver B: Web Scrapper the obscured media files
+  - [ ] Ver C: Web Scrapper and screen capture
 - [ ] Associate captured Story media content if it is later assigned to a campaign
 - [ ] Non-Story Post media files
   - [x] Current: permalink given. Require manager to screen capture and crop
