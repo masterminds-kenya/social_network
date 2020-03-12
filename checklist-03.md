@@ -9,7 +9,7 @@
 | :heavy_check_mark: | Initial Investigation of media files complexity |
 |                    | Update Feature Goals & Documentation         |
 |                    | Separate Dev site owned by Bacchus           |
-|                    | Sort Posts by published date                 |
+|                    | Campaign - Sort Posts by published date      |
 |                    | Favicon and robots.txt files                 |
 |                    | Integrate Flask-Migrate to assist ongoing DB changes |
 |                    | **Milestone 1 Completion**                   |
@@ -27,6 +27,7 @@
 |                    | Sheet Report layout update, multi-worksheets |
 |                    | Attaching media files to data report         |
 |                    | Update documentation to capture all updates  |
+|                    | **Milestone 4 Completion**                   |
 |                    | **March 2020 Features Completed**            |
 
 ## Checklist
