@@ -1,7 +1,7 @@
 # social_network
 
 **Author**: Chris L Chapman
-**Version**: 0.2.0
+**Version**: 0.3.0
 
 ## Architecture
 
@@ -21,6 +21,7 @@ Core packages required for this application:
 - flask
 - gunicorn
 - flask-sqlalchemy
+- flask-migrate
 - flask-login
 - pymysql
 - google-api-python-client
@@ -84,7 +85,7 @@ We are currently deploying on google cloud (gcloud), with the Google App Engine 
 
 ## Development notes
 
-[Development Site](https://social-network-255302.appspot.com/)
+[Development Site]
 
 For local development, we are using pipenv to help us track dependencies and packages only needed in the development environment. The local development files, `Pipfile` and `Pipfile.lock`, need to be in the `.gcloudignore` file, but still tracked in the Git repository. We are expecting an un-tracked `.env` file at the root of the project so the `config.py` works correctly, locally while these same settings should be duplicated in the `app.yaml` for the deployed site to work.
 
@@ -110,7 +111,8 @@ python application/model_db.py
 
 We are keeping a checklist for features and tasks that are both completed and are upcoming. This is intended as brief overview and to capture ongoing thoughts on how we are proceeding in developing this application. As a living document, it loosely indicates what we plan on working soon, with various degrees of specificity in planning. The current status of this file can be found in the following link:
 
-[Features & Tasks](./checklist.md)
+[Features & Tasks ver 0.3.0](./checklist-03.md)
+[Original Features & Tasks](./checklist.md)
 
 ## Core Features
 
@@ -145,8 +147,9 @@ Our application has "Influencer" users who are experts in social media that brin
 - As an active market influencer beginning new brand relationships, they would like to provide usable and verifiable data on the value they bring to their brand partners.
 - As a market influencer, they would like their significant history of influence and reach to be recognized by brands and marketing team members.
 - App use: Can easily login with facebook credentials and grant permission to our app
-- App use: Can review the permissions and revoke them at any time.
-- App use: Can setup the parameters for a campaign (or is this marketing team task?)
+- App use: Can review the permissions and revoke them at any time
+- App use: Can view metrics relating to their own account
+- App use: Outside of onboarding, additional ongoing tasks are not needed
 
 ### Brand - Deciding where to invest
 
@@ -162,3 +165,4 @@ Our application has "Influencer" users who are experts in social media that brin
 - App use: Can view useful and clearly defined data using google worksheets
 - App use: They know they are viewing reliable and accurate data.
 - App use: Does not need to issue commands or modify the code for the data they want
+- App use: Campaign reports give data and access to media file content
