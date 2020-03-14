@@ -704,9 +704,5 @@ def all(mod):
 @app.route('/<string:page_name>/')
 def render_static(page_name):
     """ Catch all for undefined routes. Return the requested static page. """
-    if page_name == 'favicon.ico':
-        # TODO: Create favicon.ico for site
-        return abort(404)
-    if page_name != 'robots.txt':
-        page_name += '.html'
+    page_name += '.html' if page_name != 'robots.txt' else ''
     return render_template(page_name)
