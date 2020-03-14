@@ -8,9 +8,9 @@
 |                    | **Initial Features Completed**               |
 | :heavy_check_mark: | Initial Investigation of media files complexity |
 | :heavy_check_mark: | Update Feature Goals & Documentation         |
-| :heavy_check_mark: | Separate Dev site owned by Bacchus           |
+|                    | Separate Dev site owned by Bacchus           |
 |                    | Campaign - Sort Posts by published date      |
-|                    | Favicon and robots.txt files                 |
+| :heavy_check_mark: | Favicon and robots.txt files                 |
 |                    | Integrate Flask-Migrate to assist ongoing DB changes |
 |                    | **Milestone 1 Completed**                    |
 |                    | Update Posts model (db structure) to Many-to-Many w/ campaigns |
@@ -137,8 +137,8 @@ Current Status:
   - [s] Attractive page styling for Influencer sign up portal & documents (ToS, privacy, etc)
   - [s] Content for Influencer sign-up portal (home view) to give them confidence in the process.
   - [s] Attractive and clear styling for profile and data views seen by Influencers.
-- [ ] favicon (looks nice in browser, less search engine errors)
-- [ ] Add robots.txt file so search engines are not getting errors.
+- [x] favicon (looks nice in browser, less search engine errors)
+- [x] Add robots.txt file so search engines are not getting errors.
 
 ### Other Site Functionality
 
@@ -162,6 +162,13 @@ Current Status:
 ### Code Structure, Testing, Clean up
 
 - [ ] Setup Dev Version as owned by Bacchus
+  - [x] Env has DEV site & config settings depend on DEV_RUN flag
+  - [x] Project created under Bacchus billing account - devfacebookinsights
+  - [ ] App Engine created in that Project - Chris does not have permission
+  - [ ] Connect Dev DB (cloned in Facebook Insights App)
+    - [ ] Ver A) Set permissions and confirm it can connect across Projects
+    - [ ] Ver B) Re-assign the cloned/dev DB to the Dev Project
+    - [ ] Ver C) See if the DB image/clone can be used to create DB in Dev Project.
 - [ ] Remove very excessive logs. Keeping high log level until onboarding is verified.
 - [ ] Remove excessive logs after we confirm numerous onboarding.
 - [ ] Update forms and API digesting with input validation to replace following functionality:
