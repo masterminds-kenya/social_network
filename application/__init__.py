@@ -1,7 +1,6 @@
 import logging
 from flask import Flask
 from flask_login import LoginManager
-from . import model_db
 
 
 def create_app(config, debug=False, testing=False, config_overrides=None):
@@ -26,11 +25,10 @@ def create_app(config, debug=False, testing=False, config_overrides=None):
 
     # Setup the data model.
     with app.app_context():
+        from . import model_db
         from . import routes  # noqa: F401
         model = model_db
         model.init_app(app)
-
-    # Routes
 
     # TODO: For production, the output of the error should be disabled.
     @app.errorhandler(500)

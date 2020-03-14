@@ -16,6 +16,7 @@ google-api-python-client = "*"
 google-auth-httplib2 = "*"
 google-auth = "*"
 flask-login = "*"
+flask-migrate = "*"
 
 [requires]
 python_version = "3.7"

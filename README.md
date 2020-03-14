@@ -21,7 +21,7 @@ Core packages required for this application:
 - flask
 - gunicorn
 - flask-sqlalchemy
-- flask-migrate
+- Flask-Migrate
 - flask-login
 - pymysql
 - google-api-python-client
@@ -85,7 +85,7 @@ We are currently deploying on google cloud (gcloud), with the Google App Engine 
 
 ## Development notes
 
-[Development Site]
+[Development Site](https://devfacebookinsights.appspot.com)
 
 For local development, we are using pipenv to help us track dependencies and packages only needed in the development environment. The local development files, `Pipfile` and `Pipfile.lock`, need to be in the `.gcloudignore` file, but still tracked in the Git repository. We are expecting an un-tracked `.env` file at the root of the project so the `config.py` works correctly, locally while these same settings should be duplicated in the `app.yaml` for the deployed site to work.
 

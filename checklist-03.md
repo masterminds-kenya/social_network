@@ -7,27 +7,27 @@
 | :heavy_check_mark: | Initial Features from [checklist](./checklist.md) |
 |                    | **Initial Features Completed**               |
 | :heavy_check_mark: | Initial Investigation of media files complexity |
-|                    | Update Feature Goals & Documentation         |
+| :heavy_check_mark: | Update Feature Goals & Documentation         |
 |                    | Separate Dev site owned by Bacchus           |
 |                    | Campaign - Sort Posts by published date      |
-|                    | Favicon and robots.txt files                 |
+| :heavy_check_mark: | Favicon and robots.txt files                 |
 |                    | Integrate Flask-Migrate to assist ongoing DB changes |
-|                    | **Milestone 1 Completion**                   |
+|                    | **Milestone 1 Completed**                    |
 |                    | Update Posts model (db structure) to Many-to-Many w/ campaigns |
 |                    | Posts can be assigned to multiple campaigns  |
 |                    | Remove dev only logging                      |
 |                    | Various code clean-ups & security updates    |
-|                    | Migrate & Deploy above updates to live site  |
-|                    | **Milestone 2 Completion**                   |
+|                    | Migrate live DB (and deploy all of above)    |
+|                    | **Milestone 2 Completed**                    |
 |                    | Saving Story Post media files                |
 |                    | View media files associated to a Campaign    |
-|                    | **Milestone 3 Completion**                   |
+|                    | **Milestone 3 Completed**                    |
 |                    | Story Webhook for full data at expiration    |
 |                    | Saving Post media (only if in a Campaign)    |
 |                    | Sheet Report layout update, multi-worksheets |
 |                    | Attaching media files to data report         |
 |                    | Update documentation to capture all updates  |
-|                    | **Milestone 4 Completion**                   |
+|                    | **Milestone 4 Completed**                    |
 |                    | **March 2020 Features Completed**            |
 
 ## Checklist
@@ -41,7 +41,7 @@
 - [s] Stretch Goal. Not for current feature plan.
 
 Current Status:
-2020-03-12 16:43:03
+2020-03-13 15:34:22
 <!-- Ctrl-Shift-I to generate timestamp -->
 
 ### Story & Media Files Features
@@ -73,7 +73,7 @@ Current Status:
 ### DB Design & Setup
 
 - [ ] Integrate flask-migrate
-  - [ ] Install package, update requirement files
+  - [x] Install package, update requirement files
   - [ ] Initial migration creation
   - [ ] test changes and migration management
 - [ ] Post model to Campaign is Many-to-Many relationship
@@ -137,8 +137,8 @@ Current Status:
   - [s] Attractive page styling for Influencer sign up portal & documents (ToS, privacy, etc)
   - [s] Content for Influencer sign-up portal (home view) to give them confidence in the process.
   - [s] Attractive and clear styling for profile and data views seen by Influencers.
-- [ ] favicon (looks nice in browser, less search engine errors)
-- [ ] Add robots.txt file so search engines are not getting errors.
+- [x] favicon (looks nice in browser, less search engine errors)
+- [x] Add robots.txt file so search engines are not getting errors.
 
 ### Other Site Functionality
 
@@ -162,6 +162,13 @@ Current Status:
 ### Code Structure, Testing, Clean up
 
 - [ ] Setup Dev Version as owned by Bacchus
+  - [x] Env has DEV site & config settings depend on DEV_RUN flag
+  - [x] Project created under Bacchus billing account - devfacebookinsights
+  - [ ] App Engine created in that Project - Chris does not have permission
+  - [ ] Connect Dev DB (cloned in Facebook Insights App)
+    - [ ] Ver A) Set permissions and confirm it can connect across Projects
+    - [ ] Ver B) Re-assign the cloned/dev DB to the Dev Project
+    - [ ] Ver C) See if the DB image/clone can be used to create DB in Dev Project.
 - [ ] Remove very excessive logs. Keeping high log level until onboarding is verified.
 - [ ] Remove excessive logs after we confirm numerous onboarding.
 - [ ] Update forms and API digesting with input validation to replace following functionality:

@@ -4,6 +4,7 @@ from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.dialects.mysql import BIGINT
 from sqlalchemy import or_, desc
+from flask_migrate import Migrate
 from datetime import datetime as dt
 from dateutil import parser
 import re
@@ -12,6 +13,7 @@ import json
 from pprint import pprint  # only for debugging
 
 db = SQLAlchemy()
+migrate = Migrate(current_app, db)
 
 
 def init_app(app):
