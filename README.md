@@ -21,7 +21,7 @@ Core packages required for this application:
 - flask
 - gunicorn
 - flask-sqlalchemy
-- flask-migrate
+- Flask-Migrate
 - flask-login
 - pymysql
 - google-api-python-client

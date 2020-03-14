@@ -30,8 +30,6 @@ def create_app(config, debug=False, testing=False, config_overrides=None):
         model = model_db
         model.init_app(app)
 
-    # Routes
-
     # TODO: For production, the output of the error should be disabled.
     @app.errorhandler(500)
     def server_error(e):
