@@ -107,7 +107,14 @@ We can create the database tables by running:
 python application/model_db.py
 ```
 
-For Database Migration Commands:
+For Database Migrations:
+setup Flask CLI for app, capture DB changes, apply DB changes:
+
+``` bash
+export FLASK_APP=main.py
+flask db migrate
+flask db upgrade
+```
 
 ### Current Feature Development
 
