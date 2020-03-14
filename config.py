@@ -32,7 +32,7 @@ if DEV_RUN:
     CLOUDSQL_PASSWORD = environ.get('DEV_DB_PASSWORD', CLOUDSQL_PASSWORD)
     CLOUDSQL_DATABASE = environ.get('DEV_DB_NAME', CLOUDSQL_DATABASE)
     DEPLOYED_URL = environ.get('DEV_URL', DEPLOYED_URL)
-    CLOUDSQL_CONNECTION_NAME = environ.get('DB_CONNECTION_NAME', CLOUDSQL_CONNECTION_NAME)
+    CLOUDSQL_CONNECTION_NAME = environ.get('DEV_DB_CONNECTION_NAME', CLOUDSQL_CONNECTION_NAME)
 # The CloudSQL proxy is used locally to connect to the cloudsql instance.
 # To start the proxy, use:
 #   $ cloud_sql_proxy -instances=your-connection-name=tcp:3306
