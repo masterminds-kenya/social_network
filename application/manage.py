@@ -1,8 +1,9 @@
-from .model_db import db, from_sql, User, Post, Audience, Campaign
+from .model_db import db, from_sql, User, Post, Audience
+from contextlib import suppress
 import json
 
 
-def update_campaign(ver, request):
+def update_campaign(campaign, request):
     """ Handle adding or removing posts assigned to a campaign, as well removing posts from the processing cue. """
     form_dict = request.form.to_dict(flat=True)
     # Radio Button | Management | Results | Manage Outcome  | Result Outcome
@@ -15,25 +16,28 @@ def update_campaign(ver, request):
         # TODO: handle error
         return False
     modified = Post.query.filter(Post.id.in_(data.keys())).all()
+    print('=========== Update Campaign ==================')
+    print(campaign)
     for post in modified:
-        campaign_id = data[post.id]
-        print(campaign_id)
-        campaign = Campaign.query.get(campaign_id)
-        print(campaign)
+        code = data[post.id]
+        print(code)
         # post.processed = True if data[post.id] != -2 else False  # old
-        if data[post.id] != -2:
-            campaign.posts.append(post)
-            print(f"Add {post} to Campaign with id {campaign_id} ")
-        elif post in campaign.posts:
-            print(f"Remove {post} from Campaign with id {campaign_id} ")
-            campaign.posts.remove(post)
         # post.campaign_id = data[post.id] if data[post.id] > 0 else None  # old
-        if data[post.id] > 0:
-            print(f"Reject {post} for Campaign with id {campaign_id} ")
-            campaign.rejected.append(post)
-        else:
-            print(f"Let {post} back as unprocessed candidate for Campaign with id {campaign_id} ")
-            campaign.rejected.remove(post)
+        if code == -2:  # un-process if processed, un-relate if related
+            if post in campaign.rejected:
+                campaign.rejected.remove(post)
+            if post in campaign.posts:
+                campaign.posts.remove(post)
+        elif code == -1:  # processed if not processed, un-relate if related
+            if post not in campaign.rejected:
+                campaign.rejected.append(post)
+            # with suppress(ValueError):
+            if post in campaign.posts:
+                campaign.posts.remove(post)
+        elif code > 0:  # process & make related, we know it was in neither.
+            # code == campaign.id should be True
+            campaign.rejected.append(post)  # ? if post not in campaign.rejected:
+            campaign.posts.append(post)  # ? if post not in campaign.posts:
     try:
         db.session.commit()
     except Exception as e:

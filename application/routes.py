@@ -337,7 +337,7 @@ def campaign(id, view='management'):
     campaign = Campaign.query.get(id)
     app.logger.info(f'=========== Campaign {view} ===========')
     if request.method == 'POST':
-        update_campaign(view, request)
+        update_campaign(campaign, request)
     for user in campaign.users:
         if view == 'collected':
             # TODO MARCH: Change following to a query w/ sort by published date
