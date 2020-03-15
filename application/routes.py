@@ -340,9 +340,13 @@ def campaign(id, view='management'):
         update_campaign(view, request)
     for user in campaign.users:
         if view == 'collected':
-            related[user] = [post_display(ea) for ea in user.posts if ea.campaign_id == id]
+            # TODO MARCH: Change following to a query w/ sort by published date
+            # related[user] = [post_display(ea) for ea in user.posts if ea.campaign_id == id]  # Old
+            related[user] = user.campaign_posts(campaign)
         elif view == 'management':
-            related[user] = [ea for ea in user.posts if not ea.processed]
+            # TODO MARCH: Change following to a query w/ sort by published date
+            # related[user] = [ea for ea in user.posts if not ea.processed]  # Old
+            related[user] = user.campaign_unprocessed(campaign)  # HERE NOW
         else:
             related[user] = []
     return render_template(template, mod=mod, view=view, data=campaign, related=related)

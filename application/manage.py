@@ -12,7 +12,7 @@ def update_campaign(ver, request):
     try:
         data = {int(key.replace('assign_', '')): int(val) for (key, val) in form_dict.items() if val != '0'}
     except ValueError as e:
-        # handle error
+        # TODO: handle error
         return False
     modified = Post.query.filter(Post.id.in_(data.keys())).all()
     for post in modified:
@@ -21,7 +21,7 @@ def update_campaign(ver, request):
     try:
         db.session.commit()
     except Exception as e:
-        # handle exception
+        # TODO: handle exception
         return False
     return True
 

@@ -107,6 +107,19 @@ class User(UserMixin, db.Model):
             kwargs['token'] = kwargs['token'].get('access_token', None)
         super().__init__(*args, **kwargs)
 
+    def campaign_posts(self, campaign):
+        """ Returns a Query of this User's Posts that are already assigned to the given Campaign """
+        # return self.posts.filter_by(campaign_id=campaign_id).order_by('recorded')
+        # campaign = Campaign.query.get(campaign_id)
+        return Post.query.filter(Post.user_id == self.id, Post.campaigns.contain(campaign)).order_by('recorded')
+
+    def campaign_unprocessed(self, campaign):
+        """ Returns a Query of this User's Posts that need to be determined if they belong to the given Campaign """
+        # return self.posts.filter(~Post.processed.contains(campaign_id)).order_by('recorded')
+        # campaign = Campaign.query.get(campaign_id)
+        return Post.query.filter(Post.user_id == self.id, ~Post.rejections.contains(campaign)).order_by('recorded')
+        # return self.posts
+
     def recent_insight(self, metrics):
         """ What is the most recent date that we collected the given insight metrics """
         if metrics == 'influence' or metrics == Insight.influence_metrics:
@@ -300,8 +313,8 @@ class Post(db.Model):
 
     id = db.Column(db.Integer,          primary_key=True)
     user_id = db.Column(db.Integer,     db.ForeignKey('users.id', ondelete='CASCADE'), nullable=False)
-    campaign_id = db.Column(db.Integer, db.ForeignKey('campaigns.id', ondelete='SET NULL'), nullable=True)
-    processed = db.Column(db.Boolean, default=False)
+    # old - campaign_id = db.Column(db.Integer, db.ForeignKey('campaigns.id', ondelete='SET NULL'), nullable=True)
+    # old - processed = db.Column(db.Boolean, default=False)
     media_id = db.Column(BIGINT(unsigned=True), index=True,  unique=True,  nullable=False)
     media_type = db.Column(db.String(47),       index=False, unique=False, nullable=True)
     caption = db.Column(db.Text,                index=False, unique=False, nullable=True)
@@ -324,7 +337,9 @@ class Post(db.Model):
     taps_forward = db.Column(db.Integer,        index=False,  unique=False, nullable=True)
     taps_back = db.Column(db.Integer,           index=False,  unique=False, nullable=True)
     # # user = backref from User.posts with lazy='select' (synonym for True)
-    # # campaign = backref from Campaign.posts with lazy='select' (synonym for True)
+    # # rejections = backref from Campaign.rejected with lazy='dynamic'
+    # # campaigns = backref from Campaign.posts with lazy='dynamic'
+    # old # campaign = backref from Campaign.posts with lazy='select' (synonym for True)
     metrics = {}
     metrics['basic'] = {'media_type', 'caption', 'comments_count', 'like_count', 'permalink', 'timestamp'}
     metrics['insight'] = {'impressions', 'reach'}
@@ -336,7 +351,7 @@ class Post(db.Model):
 
     def __init__(self, *args, **kwargs):
         kwargs = fix_date(Post, kwargs)
-        kwargs['processed'] = True if kwargs.get('processed') in {'on', True} else False  # TODO: ?is this needed?
+        # old - kwargs['processed'] = True if kwargs.get('processed') in {'on', True} else False  # TODO: ?is this needed?
         super().__init__(*args, **kwargs)
 
     def __str__(self):
@@ -360,6 +375,20 @@ brand_campaign = db.Table(
     db.Column('campaign_id', db.Integer, db.ForeignKey('campaigns.id', ondelete="CASCADE"))
 )
 
+post_campaign = db.Table(
+    'post_campaigns',
+    db.Column('id',          db.Integer, primary_key=True),
+    db.Column('post_id',    db.Integer, db.ForeignKey('posts.id',    ondelete="CASCADE")),
+    db.Column('campaign_id', db.Integer, db.ForeignKey('campaigns.id', ondelete="CASCADE"))
+)
+
+rejected_campaign = db.Table(
+    'rejected_campaigns',
+    db.Column('id',          db.Integer, primary_key=True),
+    db.Column('post_id',    db.Integer, db.ForeignKey('posts.id',    ondelete="CASCADE")),
+    db.Column('campaign_id', db.Integer, db.ForeignKey('campaigns.id', ondelete="CASCADE"))
+)
+
 
 class Campaign(db.Model):
     """ Model to manage the Campaign relationship between influencers and brands """
@@ -373,7 +402,9 @@ class Campaign(db.Model):
     created = db.Column(db.DateTime,    index=False, unique=False, nullable=False, default=dt.utcnow)
     users = db.relationship('User', secondary=user_campaign, backref=db.backref('campaigns', lazy='dynamic'))
     brands = db.relationship('User', secondary=brand_campaign, backref=db.backref('brand_campaigns', lazy='dynamic'))
-    posts = db.relationship('Post', backref='campaign', lazy=True)
+    posts = db.relationship('Post', secondary=post_campaign, backref=db.backref('campaigns', lazy='dynamic'))
+    rejected = db.relationship('Post', secondary=rejected_campaign, backref=db.backref('rejections', lazy='dynamic'))
+    # old - posts = db.relationship('Post', backref='campaign', lazy=True)
     UNSAFE = {''}
 
     def __init__(self, *args, **kwargs):
