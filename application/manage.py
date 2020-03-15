@@ -1,4 +1,4 @@
-from .model_db import db, from_sql, User, Post, Audience
+from .model_db import db, from_sql, User, Post, Audience, Campaign
 import json
 
 
@@ -16,11 +16,29 @@ def update_campaign(ver, request):
         return False
     modified = Post.query.filter(Post.id.in_(data.keys())).all()
     for post in modified:
-        post.processed = True if data[post.id] != -2 else False
-        post.campaign_id = data[post.id] if data[post.id] > 0 else None
+        campaign_id = data[post.id]
+        print(campaign_id)
+        campaign = Campaign.query.get(campaign_id)
+        print(campaign)
+        # post.processed = True if data[post.id] != -2 else False  # old
+        if data[post.id] != -2:
+            campaign.posts.append(post)
+            print(f"Add {post} to Campaign with id {campaign_id} ")
+        elif post in campaign.posts:
+            print(f"Remove {post} from Campaign with id {campaign_id} ")
+            campaign.posts.remove(post)
+        # post.campaign_id = data[post.id] if data[post.id] > 0 else None  # old
+        if data[post.id] > 0:
+            print(f"Reject {post} for Campaign with id {campaign_id} ")
+            campaign.rejected.append(post)
+        else:
+            print(f"Let {post} back as unprocessed candidate for Campaign with id {campaign_id} ")
+            campaign.rejected.remove(post)
     try:
         db.session.commit()
     except Exception as e:
+        print("We had an exception on the campaign update commit")
+        print(e)
         # TODO: handle exception
         return False
     return True

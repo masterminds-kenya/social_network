@@ -109,16 +109,11 @@ class User(UserMixin, db.Model):
 
     def campaign_posts(self, campaign):
         """ Returns a Query of this User's Posts that are already assigned to the given Campaign """
-        # return self.posts.filter_by(campaign_id=campaign_id).order_by('recorded')
-        # campaign = Campaign.query.get(campaign_id)
         return Post.query.filter(Post.user_id == self.id, Post.campaigns.contains(campaign)).order_by('recorded').all()
 
     def campaign_unprocessed(self, campaign):
         """ Returns a Query of this User's Posts that need to be determined if they belong to the given Campaign """
-        # return self.posts.filter(~Post.processed.contains(campaign_id)).order_by('recorded')
-        # campaign = Campaign.query.get(campaign_id)
         return Post.query.filter(Post.user_id == self.id, ~Post.rejections.contains(campaign)).order_by('recorded').all()
-        # return self.posts
 
     def recent_insight(self, metrics):
         """ What is the most recent date that we collected the given insight metrics """

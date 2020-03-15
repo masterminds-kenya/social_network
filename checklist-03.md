@@ -10,7 +10,7 @@
 | :heavy_check_mark: | Initial Investigation of media files complexity |
 | :heavy_check_mark: | Update Feature Goals & Documentation         |
 |                    | Separate Dev site owned by Bacchus           |
-|                    | Campaign - Sort Posts by published date      |
+| :heavy_check_mark: | Campaign - Sort Posts by published date      |
 | :heavy_check_mark: | Favicon and robots.txt files                 |
 | :heavy_check_mark: | Integrate Flask-Migrate to assist ongoing DB changes |
 |                    | **Milestone 2 Completion**                   |
@@ -64,8 +64,17 @@ Current Status:
 ### Campaign & Posts Management
 
 - [ ] Campaign Manage View - Assigning Posts
-  - [ ] Posts ordered by published date
+  - [x] Posts ordered by published date
   - [x] Fix or remove the .count() that used to be |length
+  - [ ] Fix references to no longer used fields:
+    - [ ] Post.processed
+    - [ ] Post.campaign_id
+    - [ ] Post.campaign
+    - [ ] Campaign.posts
+  - [ ] Using new fields and methods:
+    - [ ] Campaign.rejected, Campaign.posts
+    - [ ] Post.rejections, Post.campaigns
+    - [ ] User.campaign_posts(campaign), User.campaign_unprocessed(campaign)
   - [n] Assign & Remove from all Queue
   - [ ] Assign & Keep in all Queue
   - [ ] Reject & remove from only this Campaign Queue
@@ -83,6 +92,7 @@ Current Status:
   - [x] test changes and migration management
 - [ ] Post model to Campaign is Many-to-Many relationship
   - [ ] Additional fields or methods tracking what queues it is removed from
+  - [ ] Post.rejections to Post.processed, Campaign.rejected to Campaign.processed
 - [s] Update ON DELETE for a User's posts.
 - [s] How do we want to organize audience data?
 - [s] Refactor Audience Model to parse out the gender and age group fields
