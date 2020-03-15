@@ -337,16 +337,16 @@ def campaign(id, view='management'):
     campaign = Campaign.query.get(id)
     app.logger.info(f'=========== Campaign {view} ===========')
     if request.method == 'POST':
-        update_campaign(campaign, request)
+        success = update_campaign(campaign, request)
+        if not success:
+            app.logger.info("Update Campaign Failed")
     for user in campaign.users:
         if view == 'collected':
             # TODO MARCH: Change following to a query w/ sort by published date
             # related[user] = [post_display(ea) for ea in user.posts if ea.campaign_id == id]  # Old
-            related[user] = user.campaign_posts(campaign)
+            related[user] = [post_display(ea) for ea in user.campaign_posts(campaign)]
         elif view == 'management':
-            # TODO MARCH: Change following to a query w/ sort by published date
-            # related[user] = [ea for ea in user.posts if not ea.processed]  # Old
-            related[user] = user.campaign_unprocessed(campaign)  # HERE NOW
+            related[user] = user.campaign_unprocessed(campaign)
         else:
             related[user] = []
     return render_template(template, mod=mod, view=view, data=campaign, related=related)
