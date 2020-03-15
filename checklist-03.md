@@ -65,7 +65,7 @@ Current Status:
 
 - [ ] Campaign Manage View - Assigning Posts
   - [ ] Posts ordered by published date
-  - [ ] Fix or remove the .count() that used to be |length
+  - [x] Fix or remove the .count() that used to be |length
   - [n] Assign & Remove from all Queue
   - [ ] Assign & Keep in all Queue
   - [ ] Reject & remove from only this Campaign Queue

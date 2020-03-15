@@ -57,7 +57,7 @@
 <main>
   {% for user in data.users %}
   <div class="users" id="user_{{user.id}}">
-    <h2>Media Post Assignment for - {{user.name|e}} ( related[user].count() )</h2>
+    <h2>Media Post Assignment for - {{user.name|e}} ( {{related[user]|length}} )</h2>
     <form action="" method="POST">
       {% for post in related[user] %}
       <section class="posts" id="post_{{post.id}}">
