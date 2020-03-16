@@ -9,15 +9,17 @@
 |                    | **Milestone 1 Completion**                    |
 | :heavy_check_mark: | Initial Investigation of media files complexity |
 | :heavy_check_mark: | Update Feature Goals & Documentation         |
-|                    | Separate Dev site owned by Bacchus           |
+| :light_check_mark: | Separate Dev site owned by Bacchus           |
 | :heavy_check_mark: | Campaign - Sort Posts by published date      |
 | :heavy_check_mark: | Favicon and robots.txt files                 |
 | :heavy_check_mark: | Integrate Flask-Migrate to assist ongoing DB changes |
 |                    | **Milestone 2 Completion**                   |
 | :heavy_check_mark: | Update Posts model (db structure) to Many-to-Many w/ campaigns |
 | :heavy_check_mark: | Posts can be assigned to multiple campaigns  |
+| :heavy_check_mark: | Rejecting & accepting Posts only affects current Campaign |
+| :heavy_check_mark: | View & re-evaluate rejected Campaign Posts [stretch goal] |
+| :light_check_mark: | Remove dev only logging, code clean-up       |
 |                    | Security updates [stretch goal?]             |
-|                    | Remove dev only logging & code clean-ups     |
 |                    | Migrate live DB (and deploy all of above)    |
 |                    | **Milestone 3 Completion**                   |
 |                    | Saving Story Post media files                |
