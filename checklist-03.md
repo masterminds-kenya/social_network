@@ -14,8 +14,8 @@
 | :heavy_check_mark: | Favicon and robots.txt files                 |
 | :heavy_check_mark: | Integrate Flask-Migrate to assist ongoing DB changes |
 |                    | **Milestone 2 Completion**                   |
-|                    | Update Posts model (db structure) to Many-to-Many w/ campaigns |
-|                    | Posts can be assigned to multiple campaigns  |
+| :heavy_check_mark: | Update Posts model (db structure) to Many-to-Many w/ campaigns |
+| :heavy_check_mark: | Posts can be assigned to multiple campaigns  |
 |                    | Remove dev only logging & code clean-ups     |
 |                    | Security updates [stretch goal?]             |
 |                    | Migrate live DB (and deploy all of above)    |
@@ -84,7 +84,9 @@ Current Status:
   - [n] Un-assign & Add back to all Queue
   - [n] Un-assign & Remove from all Queue
   - [s] Un-assign & assign to different related campaign
-  - [ ] View and modify Posts that had been rejected for this campaign
+  - [x] Update & Improve wording for processing Campaign Posts
+  - [x] View and modify Posts that had been rejected for this campaign
+  - [?] Template radio input logic: if a view then value=0 checked, else other value
 
 ### DB Design & Setup
 

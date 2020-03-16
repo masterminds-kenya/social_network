@@ -5,7 +5,6 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.dialects.mysql import BIGINT
 from sqlalchemy import or_, desc
 from flask_migrate import Migrate
-from .manage import post_display
 from datetime import datetime as dt
 from dateutil import parser
 import re
@@ -116,13 +115,13 @@ class User(UserMixin, db.Model):
     def campaign_posts(self, campaign):
         """ Returns a Query of this User's Posts that are already assigned to the given Campaign """
         posts = Post.query.filter(Post.user_id == self.id, Post.campaigns.contains(campaign)).order_by('recorded').all()
-        return [post_display(ea) for ea in posts]
+        return [ea.display() for ea in posts]
 
     def campaign_rejected(self, campaign):
         """ Returns a Query of this User's Posts that have already been rejected for given Campaign """
         posts = Post.query.filter(Post.user_id == self.id, Post.rejections.contains(campaign))
         posts = posts.filter(~Post.campaigns.contains(campaign)).order_by('recorded').all()
-        return [post_display(ea) for ea in posts]
+        return [ea.display() for ea in posts]
 
     def recent_insight(self, metrics):
         """ What is the most recent date that we collected the given insight metrics """
@@ -357,6 +356,15 @@ class Post(db.Model):
         kwargs = fix_date(Post, kwargs)
         # old - kwargs['processed'] = True if kwargs.get('processed') in {'on', True} else False  # TODO: ?is this needed?
         super().__init__(*args, **kwargs)
+
+    def display(self):
+        """ Since different media post types have different metrics, we only want to show the appropriate fields. """
+        post = from_sql(self, related=False, safe=True)  # TODO: Allow related to show status in other campaigns
+        fields = {'id', 'user_id', 'campaigns', 'rejections', 'recorded'}
+        fields.update(Post.metrics['basic'])
+        fields.discard('timestamp')
+        fields.update(Post.metrics[post['media_type']])
+        return {key: val for (key, val) in post.items() if key in fields}
 
     def __str__(self):
         return f"{self.user} {self.media_type} Post on {self.recorded}"

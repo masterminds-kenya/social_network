@@ -1,5 +1,5 @@
 from .model_db import db, from_sql, User, Post, Audience
-from contextlib import suppress
+# from contextlib import suppress
 import json
 
 
@@ -34,10 +34,11 @@ def update_campaign(campaign, request):
             # with suppress(ValueError):
             if post in campaign.posts:
                 campaign.posts.remove(post)
-        elif code > 0:  # process & make related, we know it was in neither.
+        elif code > 0:  # process & make related, we know it was neither except in rejected view was already processed
             # code == campaign.id should be True
-            campaign.rejected.append(post)  # ? if post not in campaign.rejected:
-            campaign.posts.append(post)  # ? if post not in campaign.posts:
+            if post not in campaign.rejected:  # TODO: ? Needed for relationships & rejected view ?
+                campaign.rejected.append(post)
+            campaign.posts.append(post)
     try:
         db.session.commit()
     except Exception as e:
@@ -46,18 +47,6 @@ def update_campaign(campaign, request):
         # TODO: handle exception
         return False
     return True
-
-
-def post_display(post):
-    """ Since different media post types have different metrics, we only want to show the appropriate fields. """
-    Model = Post
-    if isinstance(post, Model):
-        post = from_sql(post, related=False, safe=True)
-    fields = {'id', 'user_id', 'campaigns', 'rejections', 'recorded'}
-    fields.update(Model.metrics['basic'])
-    fields.discard('timestamp')
-    fields.update(Model.metrics[post['media_type']])
-    return {key: val for (key, val) in post.items() if key in fields}
 
 
 def process_form(mod, request):

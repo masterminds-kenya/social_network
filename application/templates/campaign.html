@@ -80,22 +80,24 @@
         <div class="form-group">
           <label for="accept_{{post.id}}">
           <input type="radio" id="accept_{{post.id}}" name="assign_{{post.id}}"
-            {% if view == 'management' %} value="{{data.id}}"
+            {% if view == 'management' or view == 'rejected' %} value="{{data.id}}"
             {% elif view == 'collected' %} value="0" checked
             {% endif %} >
-          Campaign
+          Accept
           </label>
           <label for="reject_{{post.id}}">
           <input type="radio" id="reject_{{post.id}}" name="assign_{{post.id}}"
-            value="-1" >
-          Other
+            {% if view == 'rejected' %} value="0" checked
+            {% else %} value="-1"
+            {% endif %} >
+          Reject
           </label>
           <label for="ignore_{{post.id}}">
           <input type="radio" id="ignore_{{post.id}}" name="assign_{{post.id}}"
             {% if view == 'management' %} value="0" checked
-            {% elif view == 'collected' %} value="-2"
+            {% elif view == 'collected' or view == 'rejected' %} value="-2"
             {% endif %} >
-          Skip
+          Undecided
           </label>
         </div>
         <hr />

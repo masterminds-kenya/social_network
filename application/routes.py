@@ -1,12 +1,12 @@
 from flask import current_app as app
-from flask import render_template, redirect, url_for, request, abort, flash
+from flask import render_template, redirect, url_for, request, flash  # , abort
 from flask_login import current_user, login_user, logout_user, login_required
 from werkzeug.security import generate_password_hash, check_password_hash
 from .model_db import db_create, db_read, db_update, db_delete, db_all, from_sql
 from .model_db import User, OnlineFollowers, Insight, Audience, Post, Campaign  # , metric_clean
 from . import developer_admin
 from functools import wraps
-from .manage import update_campaign, process_form, post_display
+from .manage import update_campaign, process_form
 from .api import onboard_login, onboarding, get_insight, get_audience, get_posts, get_online_followers
 from .sheets import create_sheet, update_sheet, perm_add, perm_list, all_files
 import json
@@ -413,21 +413,19 @@ def view(mod, id):
     related_user = from_sql(model.user, related=False, safe=True) if getattr(model, 'user', None) else None
     model = from_sql(model, related=True, safe=True)
     template = 'view.html'
-    if mod == 'post':
+    if mod == 'insight':
         template = f"{mod}_{template}"
-        model = post_display(model)
+        model['user'] = related_user
     elif mod == 'audience':
         template = f"{mod}_{template}"
-        # model['user'] = db_read(model.get('user_id')).get('name')
         model['user'] = related_user
         value = json.loads(model['value'])
         if not isinstance(value, dict):  # For the id_data Audience records
             value = {'value': value}
         model['value'] = value
-    elif mod == 'insight':
+    elif mod == 'post':
         template = f"{mod}_{template}"
-        # model['user'] = db_read(model.get('user_id')).get('name')
-        model['user'] = related_user
+        model = model.display()
     return render_template(template, mod=mod, data=model)
 
 
