@@ -5,6 +5,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.dialects.mysql import BIGINT
 from sqlalchemy import or_, desc
 from flask_migrate import Migrate
+from .manage import post_display
 from datetime import datetime as dt
 from dateutil import parser
 import re
@@ -107,13 +108,21 @@ class User(UserMixin, db.Model):
             kwargs['token'] = kwargs['token'].get('access_token', None)
         super().__init__(*args, **kwargs)
 
-    def campaign_posts(self, campaign):
-        """ Returns a Query of this User's Posts that are already assigned to the given Campaign """
-        return Post.query.filter(Post.user_id == self.id, Post.campaigns.contains(campaign)).order_by('recorded').all()
-
     def campaign_unprocessed(self, campaign):
         """ Returns a Query of this User's Posts that need to be determined if they belong to the given Campaign """
-        return Post.query.filter(Post.user_id == self.id, ~Post.rejections.contains(campaign)).order_by('recorded').all()
+        posts = Post.query.filter(Post.user_id == self.id, ~Post.rejections.contains(campaign))
+        return posts.order_by('recorded').all()
+
+    def campaign_posts(self, campaign):
+        """ Returns a Query of this User's Posts that are already assigned to the given Campaign """
+        posts = Post.query.filter(Post.user_id == self.id, Post.campaigns.contains(campaign)).order_by('recorded').all()
+        return [post_display(ea) for ea in posts]
+
+    def campaign_rejected(self, campaign):
+        """ Returns a Query of this User's Posts that have already been rejected for given Campaign """
+        posts = Post.query.filter(Post.user_id == self.id, Post.rejections.contains(campaign))
+        posts = posts.filter(~Post.campaigns.contains(campaign)).order_by('recorded').all()
+        return [post_display(ea) for ea in posts]
 
     def recent_insight(self, metrics):
         """ What is the most recent date that we collected the given insight metrics """
@@ -141,7 +150,7 @@ class User(UserMixin, db.Model):
 
     def export_posts(self):
         """ Collect all posts for this user in a list of lists for populating a worksheet. """
-        ignore = ['id', 'user_id']  # ? 'media_id'
+        ignore = ['id', 'user_id']
         columns = [ea.name for ea in Post.__table__.columns if ea.name not in ignore]
         data = [[clean(getattr(post, ea, '')) for ea in columns] for post in self.posts]
         return [columns, *data]
@@ -391,13 +400,13 @@ class Campaign(db.Model):
 
     id = db.Column(db.Integer,       primary_key=True)
     completed = db.Column(db.Boolean, default=False)
-    name = db.Column(db.String(47),     index=True,  unique=True,  nullable=True)
-    notes = db.Column(db.String(191),   index=False, unique=False, nullable=True)
-    modified = db.Column(db.DateTime,   index=False, unique=False, nullable=False, default=dt.utcnow, onupdate=dt.utcnow)
-    created = db.Column(db.DateTime,    index=False, unique=False, nullable=False, default=dt.utcnow)
-    users = db.relationship('User', secondary=user_campaign, backref=db.backref('campaigns', lazy='dynamic'))
-    brands = db.relationship('User', secondary=brand_campaign, backref=db.backref('brand_campaigns', lazy='dynamic'))
-    posts = db.relationship('Post', secondary=post_campaign, backref=db.backref('campaigns', lazy='dynamic'))
+    name = db.Column(db.String(47),   index=True,  unique=True,  nullable=True)
+    notes = db.Column(db.String(191), index=False, unique=False, nullable=True)
+    modified = db.Column(db.DateTime, index=False, unique=False, nullable=False, default=dt.utcnow, onupdate=dt.utcnow)
+    created = db.Column(db.DateTime,  index=False, unique=False, nullable=False, default=dt.utcnow)
+    users = db.relationship('User',    secondary=user_campaign, backref=db.backref('campaigns', lazy='dynamic'))
+    brands = db.relationship('User',   secondary=brand_campaign, backref=db.backref('brand_campaigns', lazy='dynamic'))
+    posts = db.relationship('Post',    secondary=post_campaign, backref=db.backref('campaigns', lazy='dynamic'))
     rejected = db.relationship('Post', secondary=rejected_campaign, backref=db.backref('rejections', lazy='dynamic'))
     # old - posts = db.relationship('Post', backref='campaign', lazy=True)
     UNSAFE = {''}
@@ -407,8 +416,8 @@ class Campaign(db.Model):
         super().__init__(*args, **kwargs)
 
     def export_posts(self):
-        """ These are the columns used for showing the data for Posts assigned to a given Campaign """
-        ignore = ['id', 'user_id', 'campaign_id', 'processed']  # ? 'media_id'
+        """ Used for Sheets Report, a top label row followed by rows of Posts data. """
+        ignore = ['id', 'user_id']
         columns = [ea.name for ea in Post.__table__.columns if ea.name not in ignore]
         data = [[clean(getattr(post, ea, '')) for ea in columns] for post in self.posts]
         return [columns, *data]

@@ -52,6 +52,7 @@
 </table>
 {% endif %}
 {% if campaign_id %}
+<p>Does this ever show up? # TODO: </p>
 <ul>
   <li><a href="{{ url_for('data_permissions', mod=mod, id=id, sheet_id=sheet['id']) }}">View and Manage Access to the Worksheet</a></li>
   {% if mod == 'campaign' %}

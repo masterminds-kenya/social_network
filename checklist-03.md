@@ -63,26 +63,28 @@ Current Status:
 
 ### Campaign & Posts Management
 
-- [ ] Campaign Manage View - Assigning Posts
+- [x] Campaign Manage View - Assigning Posts
   - [x] Posts ordered by published date
-  - [x] Fix or remove the .count() that used to be |length
-  - [ ] Fix references to no longer used fields:
-    - [ ] Post.processed
-    - [ ] Post.campaign_id
-    - [ ] Post.campaign
-    - [ ] Campaign.posts
-  - [ ] Using new fields and methods:
-    - [ ] Campaign.rejected, Campaign.posts
-    - [ ] Post.rejections, Post.campaigns
-    - [ ] User.campaign_posts(campaign), User.campaign_unprocessed(campaign)
+    - [ ] Is this true for Sheet Report?
+  - [x] Fix Campaign template error on |length
+  - [x] Fix references to no longer used fields:
+    - [x] Post.processed
+    - [x] Post.campaign_id
+    - [x] Post.campaign
+    - [x] Campaign.posts
+  - [x] Using new fields and methods:
+    - [x] Campaign.rejected, Campaign.posts
+    - [x] Post.rejections, Post.campaigns, User.campaign_unprocessed(campaign)
+    - [x] User.campaign_posts(campaign), User.campaign_rejected(campaign)
   - [n] Assign & Remove from all Queue
-  - [ ] Assign & Keep in all Queue
-  - [ ] Reject & remove from only this Campaign Queue
-  - [ ] Un-assign & Add back to this Campaign Queue
-  - [ ] Un-assign & Remove from this Campaign Queue
+  - [x] Assign & Keep in all Queue
+  - [x] Reject & remove from only this Campaign Queue
+  - [x] Un-assign & Add back to this Campaign Queue
+  - [x] Un-assign & Remove from this Campaign Queue
   - [n] Un-assign & Add back to all Queue
   - [n] Un-assign & Remove from all Queue
   - [s] Un-assign & assign to different related campaign
+  - [ ] View and modify Posts that had been rejected for this campaign
 
 ### DB Design & Setup
 

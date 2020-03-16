@@ -53,7 +53,7 @@ def post_display(post):
     Model = Post
     if isinstance(post, Model):
         post = from_sql(post, related=False, safe=True)
-    fields = {'id', 'user_id', 'campaign_id', 'processed', 'recorded'}
+    fields = {'id', 'user_id', 'campaigns', 'rejections', 'recorded'}
     fields.update(Model.metrics['basic'])
     fields.discard('timestamp')
     fields.update(Model.metrics[post['media_type']])

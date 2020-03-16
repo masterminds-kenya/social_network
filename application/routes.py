@@ -318,6 +318,13 @@ def results(id):
     return render_template(template, mod=mod, view=view, data=campaign, related=related)
 
 
+@app.route('/campaign/<int:id>/rejected', methods=['GET', 'POST'])
+@staff_required()
+def rejected_campaign(id):
+    """ Used because campaign function over-rides route for detail view """
+    return campaign(id, view='rejected')
+
+
 @app.route('/campaign/<int:id>/detail', methods=['GET', 'POST'])
 @staff_required()
 def detail_campaign(id):
@@ -330,6 +337,7 @@ def detail_campaign(id):
 def campaign(id, view='management'):
     """ Defaults to management of assigning posts to a campaign.
         When view is 'collected', user can review and re-assess posts already assigned to the campaign.
+        When view is 'rejected', user can re-assess posts previously marked as rejected.
         On POST, updates the assigned media posts as indicated by the submitted form.
      """
     mod = 'campaign'
@@ -342,11 +350,11 @@ def campaign(id, view='management'):
             app.logger.info("Update Campaign Failed")
     for user in campaign.users:
         if view == 'collected':
-            # TODO MARCH: Change following to a query w/ sort by published date
-            # related[user] = [post_display(ea) for ea in user.posts if ea.campaign_id == id]  # Old
-            related[user] = [post_display(ea) for ea in user.campaign_posts(campaign)]
+            related[user] = user.campaign_posts(campaign)
         elif view == 'management':
             related[user] = user.campaign_unprocessed(campaign)
+        elif view == 'rejected':
+            related[user] = user.campaign_rejected(campaign)
         else:
             related[user] = []
     return render_template(template, mod=mod, view=view, data=campaign, related=related)
