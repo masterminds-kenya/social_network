@@ -107,6 +107,7 @@ Current Status:
 - [s] How do we want to organize audience data?
 - [s] Refactor Audience Model to parse out the gender and age group fields
   - [s] After refactor, make sure audience data does not overwrite previous data
+- [ ] Set order_by='recorded' inside db.relationship declarations?
 - [ ] Encrypt tokens
 - [n] Keep a DB table of worksheet ids?
   - [s] Will we have multiple report views?

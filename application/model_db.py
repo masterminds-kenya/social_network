@@ -534,13 +534,13 @@ def db_delete(id, Model=User):
 
 def db_all(Model=User, role=None):
     """ Returns all of the records for the indicated Model, or for User Model returns either brands or influencers. """
-    sort_field = Model.name if hasattr(Model, 'name') else Model.id
-    # TODO: For each model declare default sort, then use that here.
-    query = (Model.query.order_by(sort_field))
+    query = Model.query
     if Model == User:
         role_type = role if role else 'influencer'
         query = query.filter_by(role=role_type)
-    return query.all()
+    sort_field = Model.recorded if hasattr(Model, 'recorded') else Model.name if hasattr(Model, 'name') else Model.id
+    # TODO: For each model declare default sort, then use that here: query.order_by(Model.<sortfield>).all()
+    return query.order_by(sort_field).all()
 
 
 def create_many(dataset, Model=User):
