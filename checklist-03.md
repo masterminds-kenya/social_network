@@ -9,7 +9,7 @@
 |                    | **Milestone 1 Completion**                    |
 | :heavy_check_mark: | Initial Investigation of media files complexity |
 | :heavy_check_mark: | Update Feature Goals & Documentation         |
-| :light_check_mark: | Separate Dev site owned by Bacchus           |
+| :white_check_mark: | Separate Dev site owned by Bacchus           |
 | :heavy_check_mark: | Campaign - Sort Posts by published date      |
 | :heavy_check_mark: | Favicon and robots.txt files                 |
 | :heavy_check_mark: | Integrate Flask-Migrate to assist ongoing DB changes |
@@ -18,7 +18,7 @@
 | :heavy_check_mark: | Posts can be assigned to multiple campaigns  |
 | :heavy_check_mark: | Rejecting & accepting Posts only affects current Campaign |
 | :heavy_check_mark: | View & re-evaluate rejected Campaign Posts [stretch goal] |
-| :light_check_mark: | Remove dev only logging, code clean-up       |
+| :white_check_mark: | Remove dev only logging, code clean-up       |
 |                    | Security updates [stretch goal?]             |
 |                    | Migrate live DB (and deploy all of above)    |
 |                    | **Milestone 3 Completion**                   |
@@ -44,13 +44,16 @@
 - [s] Stretch Goal. Not for current feature plan.
 
 Current Status:
-2020-03-14 18:18:38
+2020-03-16 00:57:46
 <!-- Ctrl-Shift-I to generate timestamp -->
 
 ### Story & Media Files Features
 
 - [ ] WebHook to get Stories data at completion
   - [ ] Once confirmed, remove story data update from daily cron job
+- [ ] ? What storage structure is needed for larger media files ?
+  - [ ] Probably need to setup a storage bucket
+  - [ ] ? Maybe saved to our App instance ?
 - [ ] Capture Story Post media content files
   - [x] Do not require extra work from Influencers
   - [ ] Capture before story is assigned to campaign, before it expires
@@ -97,9 +100,9 @@ Current Status:
   - [x] Install package, update requirement files
   - [x] Initial migration creation
   - [x] test changes and migration management
-- [ ] Post model to Campaign is Many-to-Many relationship
+- [x] Post model to Campaign is Many-to-Many relationship
   - [x] Additional fields or methods tracking what queues it is removed from
-  - [ ] Post.rejections to Post.processed, Campaign.rejected to Campaign.processed
+- [ ] Post.rejections to Post.processed, Campaign.rejected to Campaign.processed
 - [s] Update ON DELETE for a User's posts.
 - [s] How do we want to organize audience data?
 - [s] Refactor Audience Model to parse out the gender and age group fields
@@ -121,6 +124,9 @@ Current Status:
 - [ ] Improve Google Sheet Report
   - [ ] Export Sheet functions should use multiple worksheets/tabs in the same file.
   - [ ] Check if Google Sheets has a max of 26 columns and 4011 rows.
+  - [ ] Media content is accessible from the Google Sheet
+    - [ ] ? Embed the content ?
+    - [ ] ? Link to the content ?
   - [s] Regex for A1 notation starting cell.
 - [s] When Export Sheet is created (for Campaign or User), current_user gets sheet permissions
 - [s] When Export Sheet is created, access is granted to some universal Admin
