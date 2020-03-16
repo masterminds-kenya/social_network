@@ -133,13 +133,12 @@ def login():
     """ This the the manual login process. """
     if request.method == 'POST':
         print('------- Post on Login ---------')
-        pprint(request.form)
+        # pprint(request.form)
         data = process_form('login', request)
         password = data.get('password', None)
         if not password:
             flash("A password is required.")
             return redirect(url_for('login'))
-
         user = User.query.filter_by(email=data['email']).first()
         if not user or not check_password_hash(user.password, data['password']):
             flash("Those login details did not work.")
@@ -206,21 +205,9 @@ def export(mod, id):
     """
     app.logger.info(f"==== {mod} Create Sheet ====")
     Model = mod_lookup(mod)
-    model = Model.query.get(id)  # db_read(id, Model=Model)
+    model = Model.query.get(id)
     sheet = create_sheet(model)
-    # TODO: ?refactor to use redirect(url_for('data', mod=mod, id=id, sheet_id=sheet['id']))
     return render_template('data.html', mod=mod, id=id, sheet=sheet)
-
-    # mod, view = 'campaign', 'results'
-    # template, related = f"{view}_{mod}.html", {}
-    # if request.method == 'POST':
-    #     sheet = create_sheet(model)
-    #     app.logger.info(f"==== {mod} Create Sheet ====")
-    #     # TODO: ?refactor to use redirect(url_for('data', mod=mod, id=id, sheet_id=sheet['id']))
-    #     return render_template('data.html', mod=mod, id=id, sheet=sheet)
-    # app.logger.info(f'=========== {mod} Sheet Export ===========')
-    # related = model.get_results()
-    # return render_template(template, mod=mod, view=view, data=model, related=related)
 
 
 @app.route('/data/update/<string:mod>/<int:id>/<string:sheet_id>')
@@ -230,7 +217,6 @@ def update_data(mod, id, sheet_id):
     Model = mod_lookup(mod)
     model = Model.query.get(id)
     sheet = update_sheet(model, id=sheet_id)
-    # TODO: ?refactor to use redirect(url_for('data', mod=mod, id=id, sheet_id=sheet['id']))
     return render_template('data.html', mod=mod, id=id, sheet=sheet)
 
 
@@ -252,7 +238,6 @@ def data_permissions(mod, id, sheet_id, perm_id=None):
             pass
         else:  # action == 'Add'
             sheet = perm_add(sheet_id, data)
-        # TODO: ?refactor to use redirect(url_for('data', mod=mod, id=id, sheet_id=sheet['id']))
         return render_template('data.html', mod=mod, id=id, sheet=sheet)
     return render_template(template, mod=mod, id=id, action=action, data=data, sheet=sheet)
 
@@ -306,7 +291,6 @@ def results(id):
     if request.method == 'POST':
         sheet = create_sheet(campaign)
         app.logger.info(f"==== Campaign {view} Create Sheet ====")
-        # TODO: ?refactor to use redirect(url_for('data', mod=mod, id=id, sheet_id=sheet['id']))
         return render_template('data.html', mod=mod, id=id, sheet=sheet)
     app.logger.info(f'=========== Campaign {view} ===========')
     related = campaign.get_results()
@@ -316,14 +300,14 @@ def results(id):
 @app.route('/campaign/<int:id>/rejected', methods=['GET', 'POST'])
 @staff_required()
 def rejected_campaign(id):
-    """ Used because campaign function over-rides route for detail view """
+    """ For a given Campaign, show rejected posts (processed but not accepted posts). """
     return campaign(id, view='rejected')
 
 
 @app.route('/campaign/<int:id>/detail', methods=['GET', 'POST'])
 @staff_required()
 def detail_campaign(id):
-    """ Used because campaign function over-rides route for detail view """
+    """ For a given Campaign, show posts accepted as part of the Campaign. """
     return campaign(id, view='collected')
 
 
@@ -344,14 +328,14 @@ def campaign(id, view='management'):
         if not success:
             app.logger.info("Update Campaign Failed")
     for user in campaign.users:
-        if view == 'collected':
-            related[user] = user.campaign_posts(campaign)
-        elif view == 'management':
+        if view == 'management':
             related[user] = user.campaign_unprocessed(campaign)
+        elif view == 'collected':
+            related[user] = user.campaign_posts(campaign)
         elif view == 'rejected':
             related[user] = user.campaign_rejected(campaign)
         else:
-            related[user] = []
+            related[user] = []  # This condition should not occur.
     return render_template(template, mod=mod, view=view, data=campaign, related=related)
 
 
@@ -373,7 +357,7 @@ def all_posts():
         return_path = url_for('admin')
     elif cron_run:
         message += "Cron job completed"
-        return_path = url_for('home')
+        return_path = url_for('home') # TODO: Check expected response on success / completion.
     app.logger.info(message)
     return redirect(return_path)
 
@@ -390,19 +374,16 @@ def view(mod, id):
             if current_user.role == mod and current_user.id != id:
                 flash('Incorrect location. You are being redirected to your own profile page')
                 return redirect(url_for('view', mod=current_user.role, id=current_user.id))
-            # otherwise they get to see their own profile page!
         elif mod in ['post', 'audience']:
             # The user can only view this detail view if they are associated to the data
             Model = mod_lookup(mod)
             model = Model.query.get(id)
             if model.user != current_user:
-                # ? Add the ability for brand user to see posts associated through a campaign?
                 flash('Incorrect location. You are being redirected to the home page.')
                 return redirect(url_for('home'))
         else:
             flash('This was not a correct location. You are redirected to the home page.')
             return redirect(url_for('home'))
-    # Otherwise user is admin, manager, or a user looking at their own data.
     Model = Model or mod_lookup(mod)
     model = model or Model.query.get(id)
     related_user = from_sql(model.user, related=False, safe=True) if getattr(model, 'user', None) else None
@@ -429,7 +410,6 @@ def view(mod, id):
 def insights(mod, id):
     """ For a given User (influencer or brand), show the account Insight data. """
     if current_user.role not in ['admin', 'manager'] and current_user.id != id:
-        # kick them out
         flash('This was not a correct location. You are redirected to the home page.')
         return redirect(url_for('home'))
     user = db_read(id)
@@ -475,7 +455,6 @@ def insights(mod, id):
 def new_audience(mod, id):
     """ Get new audience data from API for either. Input mod for either User or Brand, with given id. """
     if current_user.role not in ['admin', 'manager'] and current_user.id != id:
-        # kick them out
         flash('This was not a correct location. You are redirected to the home page.')
         return redirect(url_for('home'))
     audience = get_audience(id)
@@ -490,7 +469,6 @@ def new_audience(mod, id):
 def followers(mod, id):
     """ Get 'online_followers' report """
     if current_user.role not in ['admin', 'manager'] and current_user.id != id:
-        # kick them out
         flash('This was not a correct location. You are redirected to the home page.')
         return redirect(url_for('home'))
     follow_report = get_online_followers(id)
@@ -505,7 +483,6 @@ def followers(mod, id):
 def new_insight(mod, id):
     """ Get new account insight data from API. Input mod for either User or Brand, with given id. """
     if current_user.role not in ['admin', 'manager'] and current_user.id != id:
-        # kick them out
         flash('This was not a correct location. You are redirected to the home page.')
         return redirect(url_for('home'))
     insights = get_insight(id)
@@ -520,7 +497,6 @@ def new_insight(mod, id):
 def new_post(mod, id):
     """ Get new posts data from API. Input mod for either User or Brand, with a given id"""
     if current_user.role not in ['admin', 'manager'] and current_user.id != id:
-        # kick them out
         flash('This was not a correct location. You are redirected to the home page.')
         return redirect(url_for('home'))
     posts = get_posts(id)
@@ -588,7 +564,6 @@ def add_edit(mod, id=None):
                         message += "If you own the existing account you can try to Login instead. "
                 else:
                     flash('Please try again or contact an Admin')
-                # return redirect(url_for('edit', mod=mod, id=id))
         else:  # action == 'Add'
             try:
                 model = db_create(data, Model=Model)
@@ -598,12 +573,10 @@ def add_edit(mod, id=None):
                 flash('Error. Please try again or contact an Admin')
                 return redirect(url_for('add', mod=mod, id=id))
         return redirect(url_for('view', mod=mod, id=model['id']))
-    # If not a form POST, then give the user the form to submit.
     template, related = 'form.html', {}
     model = db_read(id, Model=Model) if action == 'Edit' else {}
     if mod == 'campaign':
         template = f"{mod}_{template}"
-        # add context for Brands and Users, only keeping id and name.
         users = User.query.filter_by(role='influencer').all()
         brands = User.query.filter_by(role='brand').all()
         related['users'] = [(ea.id, ea.name) for ea in users]
@@ -632,9 +605,7 @@ def edit(mod, id):
         app.logger.error(f"Unable to edit {mod}")
         flash(f"Editing a {mod} is not working right now. Contact an Admin")
         return redirect(request.referrer)
-    # check if current user is a manager, admin, or editing their own user account.
     if current_user.role not in ['admin', 'manager'] and (current_user.id != id or current_user.role != mod):
-        # kick them out. Even if an Influencer or Brand clicked to login, but clicked the wrong role login.
         flash('Something went wrong. Contact an admin or manager. Redirecting to the home page.')
         return redirect(url_for('home'))
     return add_edit(mod, id=id)
@@ -645,14 +616,10 @@ def edit(mod, id):
 def delete(mod, id):
     """ Permanently remove from DB the record for Model indicated by mod and id. """
     if current_user.role not in ['admin', 'manager'] and (current_user.id != id or current_user.role != mod):
-        # kick them out.
         message = 'Something went wrong. Can not delete. Contact an admin or manager. '
-        # message += 'Redirecting to the home page.'
         flash(message)
         return redirect(request.referrer)
-        # return redirect(url_for('home'))
     Model = mod_lookup(mod)
-
     if request.method == 'POST':
         confirm = True if request.form.get('confirm') == 'yes' else False
         if not confirm:
@@ -668,7 +635,6 @@ def delete(mod, id):
             flash(message)
             return redirect(request.form.get('next') or request.referrer)
         return redirect(url_for('home'))
-
     model = db_read(id, related=False, Model=Model)
     return render_template('delete_confirm.html', data=model, next=request.referrer)
 
@@ -692,11 +658,9 @@ def all(mod):
                 return redirect(url_for('signup'))
         flash('It seems that is not a correct route. You are redirected to the home page.')
         return redirect(url_for('home'))
-    # The following only runs if the user is an 'admin' or a 'manager' role.
     if mod not in ['campaign', *User.roles] and current_user.role != 'admin':
         flash('It seems that is not a correct route. You are redirected to the home page.')
         return redirect(url_for('home'))
-    # current_user.role can only be 'admin' at this point.
     if mod == 'file':
         models = all_files()
     else:

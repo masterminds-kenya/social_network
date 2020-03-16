@@ -135,7 +135,6 @@ class User(UserMixin, db.Model):
             metrics = [metrics]
         else:
             raise ValueError(f"{metrics} is not a valid Insight metric")
-
         # TODO: ?Would it be more efficient to use self.insights?
         q = Insight.query.filter(Insight.user_id == self.id, Insight.name.in_(metrics))
         recent = q.order_by(desc('recorded')).first()
@@ -291,8 +290,9 @@ class Audience(db.Model):
     UNSAFE = {''}
 
     def __init__(self, *args, **kwargs):
+        """ Clean out the not needed data from the API call. """
         kwargs = fix_date(Audience, kwargs)
-        data, kwargs = kwargs.copy(), {}  # cleans out the not-needed data from API call
+        data, kwargs = kwargs.copy(), {}
         kwargs['recorded'] = data.get('recorded')
         kwargs['user_id'] = data.get('user_id')
         kwargs['name'] = re.sub('^audience_', '', data.get('name'))
@@ -408,7 +408,6 @@ class Campaign(db.Model):
     brands = db.relationship('User',   secondary=brand_campaign, backref=db.backref('brand_campaigns', lazy='dynamic'))
     posts = db.relationship('Post',    secondary=post_campaign, backref=db.backref('campaigns', lazy='dynamic'))
     rejected = db.relationship('Post', secondary=rejected_campaign, backref=db.backref('rejections', lazy='dynamic'))
-    # old - posts = db.relationship('Post', backref='campaign', lazy=True)
     UNSAFE = {''}
 
     def __init__(self, *args, **kwargs):
@@ -459,7 +458,6 @@ class Campaign(db.Model):
                 curr['StDev'] = stdev(data) if len(data) > 1 else 0
                 related[group]['results'][metric] = curr
         return related
-        # end get_results
 
     def __str__(self):
         name = self.name if self.name else self.id
@@ -562,13 +560,8 @@ def db_create_or_update_many(dataset, user_id=None, Model=Post):
     allowed_models = {Post, Insight, Audience, OnlineFollowers}
     if Model not in allowed_models:
         return []
-    # composite_unique = ['recorded', 'name'] if Model in {Insight, Audience} else False
     composite_unique = [ea for ea in getattr(Model, 'composite_unique', []) if ea != 'user_id']
-    # Note: initially all Models only had 1 non-pk unique field
-    # However, those with table_args setting composite unique restrictions have a composite_unique class property.
-    # insp = db.inspect(Model)
     all_results, add_count, update_count, error_set = [], 0, 0, []
-    # print(f'---- Initial dataset has {len(dataset)} records ----')
     if composite_unique and user_id:
         match = Model.query.filter(Model.user_id == user_id).all()
         # print(f'------ Composite Unique for {Model.__name__}: {len(match)} possible matches ----------------')
