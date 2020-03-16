@@ -67,18 +67,14 @@ def admin_required(role=['admin']):
 def home():
     """ Default root route """
     data = ''
-#     data = 'You went to the test page!'
-#     print('Local: ', app.config.get('LOCAL_ENV'))
-#     print('stuff: ', app.config.get('FB_CLIENT_ID'))
-#     print('project: ', app.config.get('PROJECT_ID'))
-#     print('location: ', app.config.get('PROJECT_REGION'))
     return render_template('index.html', data=data)
 
 
 @app.route('/deletion')
 def fb_delete():
     """ Handle a Facebook Data Deletion Request
-        Required for App approval: https://developers.facebook.com/docs/apps/delete-data
+        More details: https://developers.facebook.com/docs/apps/delete-data
+        Not yet implemented.
     """
     response = {}
     response['user_id'] = 'test user_id'
@@ -94,10 +90,9 @@ def signup():
     app.logger.info(f'--------- Sign Up User ------------')
     ignore = ['influencer', 'brand']
     signup_roles = [role for role in User.roles if role not in ignore]
-
     if request.method == 'POST':
         print('------- Post on Sign Up ---------')
-        pprint(request.form)
+        # pprint(request.form)
         mod = request.form.get('role')
         if mod not in signup_roles:
             raise ValueError("That is not a valid role selection")

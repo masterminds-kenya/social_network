@@ -40,8 +40,6 @@ def from_sql(row, related=False, safe=True):
     """
     data = row.__dict__.copy()
     data['id'] = row.id
-    # current_app.logger.info('============= from_sql ===================')
-    # current_app.logger.info(row.__class__)
     if related:
         related_fields = []
         for name, rel in row.__mapper__.relationships.items():
@@ -192,7 +190,6 @@ class User(UserMixin, db.Model):
         small_stat = [('Total', sum), ('Average', mean)]
         small_metric_labels = [f"{metric} {ea[0]}" for metric in small_metrics for ea in small_stat]
         insight_labels.extend(small_metric_labels)
-        #  Include OnlineFollowers for this (usually brand) user.
         of_metrics = list(OnlineFollowers.metrics)
         of_stat = [('Median', median)]
         of_metric_lables = [f"{metric} {ea[0]}" for metric in of_metrics for ea in of_stat]
@@ -207,8 +204,7 @@ class User(UserMixin, db.Model):
             temp = {key: [] for key in met_stat}
             for insight in self.insights:
                 temp[insight.name].append(int(insight.value))
-            #  Include OnlineFollowers for this (usually brand) user.
-            for metric in of_metrics:  # probably just one element in this list.
+            for metric in of_metrics:
                 met_stat[metric] = of_stat
                 temp[metric] = [int(ea.value) for ea in self.aud_count]
             insight_data = [stat[1](temp[metric]) for metric, stats in met_stat.items() for stat in stats]
@@ -316,8 +312,6 @@ class Post(db.Model):
 
     id = db.Column(db.Integer,          primary_key=True)
     user_id = db.Column(db.Integer,     db.ForeignKey('users.id', ondelete='CASCADE'), nullable=False)
-    # old - campaign_id = db.Column(db.Integer, db.ForeignKey('campaigns.id', ondelete='SET NULL'), nullable=True)
-    # old - processed = db.Column(db.Boolean, default=False)
     media_id = db.Column(BIGINT(unsigned=True), index=True,  unique=True,  nullable=False)
     media_type = db.Column(db.String(47),       index=False, unique=False, nullable=True)
     caption = db.Column(db.Text,                index=False, unique=False, nullable=True)
@@ -342,7 +336,6 @@ class Post(db.Model):
     # # user = backref from User.posts with lazy='select' (synonym for True)
     # # rejections = backref from Campaign.rejected with lazy='dynamic'
     # # campaigns = backref from Campaign.posts with lazy='dynamic'
-    # old # campaign = backref from Campaign.posts with lazy='select' (synonym for True)
     metrics = {}
     metrics['basic'] = {'media_type', 'caption', 'comments_count', 'like_count', 'permalink', 'timestamp'}
     metrics['insight'] = {'impressions', 'reach'}
@@ -354,7 +347,6 @@ class Post(db.Model):
 
     def __init__(self, *args, **kwargs):
         kwargs = fix_date(Post, kwargs)
-        # old - kwargs['processed'] = True if kwargs.get('processed') in {'on', True} else False  # TODO: ?is this needed?
         super().__init__(*args, **kwargs)
 
     def display(self):

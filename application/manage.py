@@ -1,4 +1,4 @@
-from .model_db import db, from_sql, User, Post, Audience
+from .model_db import db, User, Post, Audience
 # from contextlib import suppress
 import json
 
@@ -17,12 +17,8 @@ def update_campaign(campaign, request):
         return False
     modified = Post.query.filter(Post.id.in_(data.keys())).all()
     print('=========== Update Campaign ==================')
-    print(campaign)
     for post in modified:
         code = data[post.id]
-        print(code)
-        # post.processed = True if data[post.id] != -2 else False  # old
-        # post.campaign_id = data[post.id] if data[post.id] > 0 else None  # old
         if code == -2:  # un-process if processed, un-relate if related
             if post in campaign.rejected:
                 campaign.rejected.remove(post)
@@ -31,10 +27,9 @@ def update_campaign(campaign, request):
         elif code == -1:  # processed if not processed, un-relate if related
             if post not in campaign.rejected:
                 campaign.rejected.append(post)
-            # with suppress(ValueError):
             if post in campaign.posts:
                 campaign.posts.remove(post)
-        elif code > 0:  # process & make related, we know it was neither except in rejected view was already processed
+        elif code > 0:  # process & make related, we know it was neither except in Rejected view was already processed
             # code == campaign.id should be True
             if post not in campaign.rejected:  # TODO: ? Needed for relationships & rejected view ?
                 campaign.rejected.append(post)
@@ -82,7 +77,7 @@ def process_form(mod, request):
     data.update(save)  # adds to the data dict if we did save some relationship collections
     # If the form has a checkbox for a Boolean in the form, we may need to reformat.
     # currently I think only Campaign and Post have checkboxes
-    bool_fields = {'campaign': 'completed', 'post': 'processed', 'login': 'remember'}
+    bool_fields = {'campaign': 'completed', 'login': 'remember'}
     # TODO: Add logic to find all Boolean fields in models and handle appropriately.
     if mod in bool_fields:
         data[bool_fields[mod]] = True if data.get(bool_fields[mod]) in {'on', True} else False

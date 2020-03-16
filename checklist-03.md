@@ -86,6 +86,7 @@ Current Status:
   - [s] Un-assign & assign to different related campaign
   - [x] Update & Improve wording for processing Campaign Posts
   - [x] View and modify Posts that had been rejected for this campaign
+  - [?] In all Campaign views, report what other Campaigns a Post belongs to if any
   - [?] Template radio input logic: if a view then value=0 checked, else other value
 
 ### DB Design & Setup
@@ -95,7 +96,7 @@ Current Status:
   - [x] Initial migration creation
   - [x] test changes and migration management
 - [ ] Post model to Campaign is Many-to-Many relationship
-  - [ ] Additional fields or methods tracking what queues it is removed from
+  - [x] Additional fields or methods tracking what queues it is removed from
   - [ ] Post.rejections to Post.processed, Campaign.rejected to Campaign.processed
 - [s] Update ON DELETE for a User's posts.
 - [s] How do we want to organize audience data?
@@ -117,7 +118,7 @@ Current Status:
 
 - [ ] Improve Google Sheet Report
   - [ ] Export Sheet functions should use multiple worksheets/tabs in the same file.
-  - [ ] Check if Google Sheets has a max of 26 columns and 4011 rows (as seemed once).
+  - [ ] Check if Google Sheets has a max of 26 columns and 4011 rows.
   - [s] Regex for A1 notation starting cell.
 - [s] When Export Sheet is created (for Campaign or User), current_user gets sheet permissions
 - [s] When Export Sheet is created, access is granted to some universal Admin
