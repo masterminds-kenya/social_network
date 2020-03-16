@@ -139,7 +139,7 @@ The typical process of adding a new manager or admin requires approval, and is i
 
 Campaigns, which are mutually agreed on relationships between influencers and brand partners, are created and processed by admin and managers. Only Bacchus staff and approved consultants have access to manage and generate reports for a campaign. These reports are delivered to influencers and brands for campaigns they are involved with, to better understand how the campaign performs.
 
-Influencers and brand partners have access to the data collected on their account. They are not given open access to the all the data on other influencers or on other brands, even if they have a partnership through a campaign. Brands (and influencers) are given a report of how a campaign performs. This report includes details about the influencers (and brand partners) in this campaign, but it is not granting unlimited access permission to look into the influencers (or brand partner) data in a way that is out of scope for their partnership.
+Influencers and brand partners have access to the data collected on their account. They are not given open access to the all the data on other influencers or on other brands, even if they have a partnership through a campaign. Brands (and influencers) are given a report of how a campaign performs. This report includes details about the influencers (and brand partners) in this campaign, but it is not granting excessive access permission to look into the influencers (or brand partner) data in a way that is out of scope for their partnership.
 
 ### Delivering Data and Metrics
 
@@ -171,7 +171,10 @@ Our application has "Influencer" users who are experts in social media that brin
 
 - As a marketer who has been active with social influencers for a few years, they have historically seeded/sampled/gifted product or paid for product placement in an influencer feed. They are unsure the actual ROI and is looking to understand which influencers bring the most real quality audience/customers.
 - As a marketer who is relatively new to influencer marketing, they answer to senior leadership who want clearly defined measurable results. This influencer marketing campaign must be comparable with all their other marketing opportunities, with all projects ladder up to a 360* digital eco-system. Without enough data on influencer campaigns, the marketing team cannot justify investment compared to their other clearly defined digital strategies.
-- App use: Can view useful and clearly defined data using google worksheets
+- App use: Can view useful and clearly defined data using google worksheets.
 - App use: They know they are viewing reliable and accurate data.
-- App use: Does not need to issue commands or modify the code for the data they want
-- App use: Campaign reports give data and access to media file content
+- App use: Uses the platform's interface to manage Campaigns and Posts assigned to them.
+- App use: Can assign posts to multiple Campaigns if needed.
+- App use: Campaigns can include one or many Brands and include one or many Influencers.
+- App use: Does not need to issue commands or modify the code for the data they want.
+- App use: Campaign reports give data and access to media file content.
