@@ -18,8 +18,9 @@
 </h1>
 
 <p>
-  {% if view != 'collected' %}<a href="{{url_for('detail_campaign', id=data.id)}}">Collected Posts</a> | {% endif %}
   {% if view != 'management' %}<a href="{{url_for('view', mod=mod, id=data.id)}}">Campaign Management</a> | {% endif %}
+  {% if view != 'collected' %}<a href="{{url_for('detail_campaign', id=data.id)}}">Collected Posts</a> | {% endif %}
+  {% if view != 'rejected' %}<a href="{{url_for('rejected_campaign', id=data.id)}}">Rejected Posts</a> | {% endif %}
   {% if view != 'results' %}<a href="{{url_for('results', id=data.id)}}">Campaign Results</a> | {% endif %}
   Last Updated on {{data.modified}} |
   {%if completed%}Finished Campaign{%else%}Active Campaign{%endif%} |
@@ -69,7 +70,7 @@
         {% if view == 'collected' %}
         <ul>
           {% for key, val in post.items() %}
-          {% if key not in ['id', 'user_id', 'campaign_id', 'processed', 'recorded', 'permalink', 'media_type', 'caption'] %}
+          {% if key not in ['id', 'user_id', 'recorded', 'permalink', 'media_type', 'caption'] %}
           <li>{{key|title}}: {{val}}</li>
           {% endif %}
           {% endfor %}
@@ -79,22 +80,24 @@
         <div class="form-group">
           <label for="accept_{{post.id}}">
           <input type="radio" id="accept_{{post.id}}" name="assign_{{post.id}}"
-            {% if view == 'management' %} value="{{data.id}}"
+            {% if view == 'management' or view == 'rejected' %} value="{{data.id}}"
             {% elif view == 'collected' %} value="0" checked
             {% endif %} >
-          Campaign
+          Accept
           </label>
           <label for="reject_{{post.id}}">
           <input type="radio" id="reject_{{post.id}}" name="assign_{{post.id}}"
-            value="-1" >
-          Other
+            {% if view == 'rejected' %} value="0" checked
+            {% else %} value="-1"
+            {% endif %} >
+          Reject
           </label>
           <label for="ignore_{{post.id}}">
           <input type="radio" id="ignore_{{post.id}}" name="assign_{{post.id}}"
             {% if view == 'management' %} value="0" checked
-            {% elif view == 'collected' %} value="-2"
+            {% elif view == 'collected' or view == 'rejected' %} value="-2"
             {% endif %} >
-          Skip
+          Undecided
           </label>
         </div>
         <hr />

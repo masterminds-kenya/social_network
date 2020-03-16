@@ -10,24 +10,25 @@
 | :heavy_check_mark: | Initial Investigation of media files complexity |
 | :heavy_check_mark: | Update Feature Goals & Documentation         |
 |                    | Separate Dev site owned by Bacchus           |
-|                    | Campaign - Sort Posts by published date      |
+| :heavy_check_mark: | Campaign - Sort Posts by published date      |
 | :heavy_check_mark: | Favicon and robots.txt files                 |
 | :heavy_check_mark: | Integrate Flask-Migrate to assist ongoing DB changes |
 |                    | **Milestone 2 Completion**                   |
-|                    | Update Posts model (db structure) to Many-to-Many w/ campaigns |
-|                    | Posts can be assigned to multiple campaigns  |
-|                    | Remove dev only logging                      |
-|                    | Various code clean-ups & security updates    |
+| :heavy_check_mark: | Update Posts model (db structure) to Many-to-Many w/ campaigns |
+| :heavy_check_mark: | Posts can be assigned to multiple campaigns  |
+|                    | Remove dev only logging & code clean-ups     |
+|                    | Security updates [stretch goal?]             |
 |                    | Migrate live DB (and deploy all of above)    |
 |                    | **Milestone 3 Completion**                   |
 |                    | Saving Story Post media files                |
 |                    | View media files associated to a Campaign    |
 |                    | **Milestone 4 Completion**                   |
 |                    | Story Webhook for full data at expiration    |
-|                    | Saving Post media (only if in a Campaign)    |
 |                    | Sheet Report layout update, multi-worksheets |
-|                    | Attaching media files to data report         |
 |                    | Update documentation to capture all updates  |
+|                    | **Stretch Goals**                            |
+|                    | Saving Post files (only if in a Campaign)    |
+|                    | Attaching media files to data report         |
 |                    | **March 2020 Features Completed**            |
 
 ## Checklist
@@ -41,7 +42,7 @@
 - [s] Stretch Goal. Not for current feature plan.
 
 Current Status:
-2020-03-13 15:34:22
+2020-03-14 18:18:38
 <!-- Ctrl-Shift-I to generate timestamp -->
 
 ### Story & Media Files Features
@@ -62,13 +63,31 @@ Current Status:
 
 ### Campaign & Posts Management
 
-- [ ] Campaign Manage View - Assigning Posts
-  - [ ] Posts ordered by published date
-  - [ ] Assign & Remove from all Queue
-  - [ ] Assign & Keep in all Queue
-  - [ ] Un-assign & Add back to all Queue
-  - [ ] Un-assign & Remove from all Queue
+- [x] Campaign Manage View - Assigning Posts
+  - [x] Posts ordered by published date
+    - [ ] Is this true for Sheet Report?
+  - [x] Fix Campaign template error on |length
+  - [x] Fix references to no longer used fields:
+    - [x] Post.processed
+    - [x] Post.campaign_id
+    - [x] Post.campaign
+    - [x] Campaign.posts
+  - [x] Using new fields and methods:
+    - [x] Campaign.rejected, Campaign.posts
+    - [x] Post.rejections, Post.campaigns, User.campaign_unprocessed(campaign)
+    - [x] User.campaign_posts(campaign), User.campaign_rejected(campaign)
+  - [n] Assign & Remove from all Queue
+  - [x] Assign & Keep in all Queue
+  - [x] Reject & remove from only this Campaign Queue
+  - [x] Un-assign & Add back to this Campaign Queue
+  - [x] Un-assign & Remove from this Campaign Queue
+  - [n] Un-assign & Add back to all Queue
+  - [n] Un-assign & Remove from all Queue
   - [s] Un-assign & assign to different related campaign
+  - [x] Update & Improve wording for processing Campaign Posts
+  - [x] View and modify Posts that had been rejected for this campaign
+  - [?] In all Campaign views, report what other Campaigns a Post belongs to if any
+  - [?] Template radio input logic: if a view then value=0 checked, else other value
 
 ### DB Design & Setup
 
@@ -77,7 +96,8 @@ Current Status:
   - [x] Initial migration creation
   - [x] test changes and migration management
 - [ ] Post model to Campaign is Many-to-Many relationship
-  - [ ] Additional fields or methods tracking what queues it is removed from
+  - [x] Additional fields or methods tracking what queues it is removed from
+  - [ ] Post.rejections to Post.processed, Campaign.rejected to Campaign.processed
 - [s] Update ON DELETE for a User's posts.
 - [s] How do we want to organize audience data?
 - [s] Refactor Audience Model to parse out the gender and age group fields
@@ -86,34 +106,34 @@ Current Status:
 - [n] Keep a DB table of worksheet ids?
   - [s] Will we have multiple report views?
 - [s] DB Migration: Integrate flask-migrate?
-- [ ] ?Delete User information in response to a Facebook callback to delete.?
+- [s] ?Delete User information in response to a Facebook callback to delete.?
 - [x] Allow a user to delete their account on the platform
   - [x] Confirmation page before delete?
   - [ ] What about posts assigned to a campaign?
-- [ ] Revisit structure for ON DELETE, ON UPDATE,
+- [ ] Revisit structure for ON DELETE, ON UPDATE (especially on User delete)
 - [ ] Revisit structure for how related tables are loaded (lazy=?)
-- [ ] Revisit method of reporting Campaign Results.
+- [s] Revisit method of reporting Campaign Results.
 
 ### Google Drive & Sheets Functionality
 
 - [ ] Improve Google Sheet Report
   - [ ] Export Sheet functions should use multiple worksheets/tabs in the same file.
-  - [ ] Check if Google Sheets has a max of 26 columns and 4011 rows (as seemed once).
-  - [ ] Regex for A1 notation starting cell.
-- [ ] When Export Sheet is created (for Campaign or User), current_user gets sheet permissions
+  - [ ] Check if Google Sheets has a max of 26 columns and 4011 rows.
+  - [s] Regex for A1 notation starting cell.
+- [s] When Export Sheet is created (for Campaign or User), current_user gets sheet permissions
 - [s] When Export Sheet is created, access is granted to some universal Admin
 - [s] Embed the worksheet as a view in our app (after admin login feature)
-- [ ] For a given worksheet, ability to delete existing permissions
-- [ ] For a given worksheet, ability to delete the file
+- [s] For a given worksheet, ability to delete existing permissions
+- [s] For a given worksheet, ability to delete the file
 - [s] Attach worksheets to the Campaign model so we not always creating new.
 
 ### Login & Authentication Features
 
 - [?] Fix brand select an IG account
-- [ ] Update User name method
+- [s] Update User name method
   - [x] Old: temporary name if we do not have one while we are waiting for their IG account selection
-  - [ ] ? Use their email address from facebook ?
-  - [ ] ? Other plan ?
+  - [s] ? Use their email address from facebook ?
+  - [s] ? Other plan ?
 - [?] Fix: The 'add admin' from admin list does not work because it should redirect.
 - [s] Allow admin to create a user w/o a password.
   - [s] Require the user to set password on first login.
@@ -125,7 +145,7 @@ Current Status:
 ### Permissions to Routes and Showing/Hiding links in Templates
 
 - [ ] Any Routes / Template views needed to also have limited access?
-- [ ] Other Security checks?
+- [s] Other Security checks?
 - [x] Delete Campaign link limited to just Admin
   - [s] What if a manager accidentally created one?
 - [s] Global revoke permissions to all Sheet/file in Drive for a given user
@@ -170,13 +190,17 @@ Current Status:
     - [ ] Ver B) Re-assign the cloned/dev DB to the Dev Project
     - [ ] Ver C) See if the DB image/clone can be used to create DB in Dev Project.
 - [ ] Remove very excessive logs. Keeping high log level until onboarding is verified.
-- [ ] Remove excessive logs after we confirm numerous onboarding.
-- [ ] Update forms and API digesting with input validation to replace following functionality:
+- [ ] Check and comply to expected response on a cron job.
+- [ ] Flatten Migrate files to not create and delete unneeded changes (esp. test changes)
+- [ ] Migrate Live DB (test with having Dev site connect to it before deploy live code?)
+- [ ] Set DEV_RUN=False, and deploy to live site.
+- [s] Remove excessive logs after we confirm numerous onboarding.
+- [s] Update forms and API digesting with input validation to replace following functionality:
   - [x] Currently fix_date used for both create model, and when create_or_update many
   - [x] Currently create_or_update_many also has to modify inputs from Audience API calls
   - [x] Should campaign management view extend base instead of view?
-- [ ] Is current onboard process slow? Delay some data collection?
-- [ ] Other feedback for expected sign up flow?
-- [ ] Form Validate: Add method to validate form. Safe against form injection?
-- [ ] Error handling on adding user with duplicate email address.
-- [ ] Error handling on adding user with duplicate name.
+- [s] Is current onboard process slow? Delay some data collection?
+- [s] Other feedback for expected sign up flow?
+- [s] Form Validate: Add method to validate form. Safe against form injection?
+- [s] Error handling on adding user with duplicate email address.
+- [s] Error handling on adding user with duplicate name.

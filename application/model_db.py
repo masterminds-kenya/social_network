@@ -40,8 +40,6 @@ def from_sql(row, related=False, safe=True):
     """
     data = row.__dict__.copy()
     data['id'] = row.id
-    # current_app.logger.info('============= from_sql ===================')
-    # current_app.logger.info(row.__class__)
     if related:
         related_fields = []
         for name, rel in row.__mapper__.relationships.items():
@@ -107,6 +105,22 @@ class User(UserMixin, db.Model):
             kwargs['token'] = kwargs['token'].get('access_token', None)
         super().__init__(*args, **kwargs)
 
+    def campaign_unprocessed(self, campaign):
+        """ Returns a Query of this User's Posts that need to be determined if they belong to the given Campaign """
+        posts = Post.query.filter(Post.user_id == self.id, ~Post.rejections.contains(campaign))
+        return posts.order_by('recorded').all()
+
+    def campaign_posts(self, campaign):
+        """ Returns a Query of this User's Posts that are already assigned to the given Campaign """
+        posts = Post.query.filter(Post.user_id == self.id, Post.campaigns.contains(campaign)).order_by('recorded').all()
+        return [ea.display() for ea in posts]
+
+    def campaign_rejected(self, campaign):
+        """ Returns a Query of this User's Posts that have already been rejected for given Campaign """
+        posts = Post.query.filter(Post.user_id == self.id, Post.rejections.contains(campaign))
+        posts = posts.filter(~Post.campaigns.contains(campaign)).order_by('recorded').all()
+        return [ea.display() for ea in posts]
+
     def recent_insight(self, metrics):
         """ What is the most recent date that we collected the given insight metrics """
         if metrics == 'influence' or metrics == Insight.influence_metrics:
@@ -121,7 +135,6 @@ class User(UserMixin, db.Model):
             metrics = [metrics]
         else:
             raise ValueError(f"{metrics} is not a valid Insight metric")
-
         # TODO: ?Would it be more efficient to use self.insights?
         q = Insight.query.filter(Insight.user_id == self.id, Insight.name.in_(metrics))
         recent = q.order_by(desc('recorded')).first()
@@ -133,7 +146,7 @@ class User(UserMixin, db.Model):
 
     def export_posts(self):
         """ Collect all posts for this user in a list of lists for populating a worksheet. """
-        ignore = ['id', 'user_id']  # ? 'media_id'
+        ignore = ['id', 'user_id']
         columns = [ea.name for ea in Post.__table__.columns if ea.name not in ignore]
         data = [[clean(getattr(post, ea, '')) for ea in columns] for post in self.posts]
         return [columns, *data]
@@ -176,7 +189,6 @@ class User(UserMixin, db.Model):
         small_stat = [('Total', sum), ('Average', mean)]
         small_metric_labels = [f"{metric} {ea[0]}" for metric in small_metrics for ea in small_stat]
         insight_labels.extend(small_metric_labels)
-        #  Include OnlineFollowers for this (usually brand) user.
         of_metrics = list(OnlineFollowers.metrics)
         of_stat = [('Median', median)]
         of_metric_lables = [f"{metric} {ea[0]}" for metric in of_metrics for ea in of_stat]
@@ -191,8 +203,7 @@ class User(UserMixin, db.Model):
             temp = {key: [] for key in met_stat}
             for insight in self.insights:
                 temp[insight.name].append(int(insight.value))
-            #  Include OnlineFollowers for this (usually brand) user.
-            for metric in of_metrics:  # probably just one element in this list.
+            for metric in of_metrics:
                 met_stat[metric] = of_stat
                 temp[metric] = [int(ea.value) for ea in self.aud_count]
             insight_data = [stat[1](temp[metric]) for metric, stats in met_stat.items() for stat in stats]
@@ -279,8 +290,9 @@ class Audience(db.Model):
     UNSAFE = {''}
 
     def __init__(self, *args, **kwargs):
+        """ Clean out the not needed data from the API call. """
         kwargs = fix_date(Audience, kwargs)
-        data, kwargs = kwargs.copy(), {}  # cleans out the not-needed data from API call
+        data, kwargs = kwargs.copy(), {}
         kwargs['recorded'] = data.get('recorded')
         kwargs['user_id'] = data.get('user_id')
         kwargs['name'] = re.sub('^audience_', '', data.get('name'))
@@ -300,8 +312,6 @@ class Post(db.Model):
 
     id = db.Column(db.Integer,          primary_key=True)
     user_id = db.Column(db.Integer,     db.ForeignKey('users.id', ondelete='CASCADE'), nullable=False)
-    campaign_id = db.Column(db.Integer, db.ForeignKey('campaigns.id', ondelete='SET NULL'), nullable=True)
-    processed = db.Column(db.Boolean, default=False)
     media_id = db.Column(BIGINT(unsigned=True), index=True,  unique=True,  nullable=False)
     media_type = db.Column(db.String(47),       index=False, unique=False, nullable=True)
     caption = db.Column(db.Text,                index=False, unique=False, nullable=True)
@@ -324,7 +334,8 @@ class Post(db.Model):
     taps_forward = db.Column(db.Integer,        index=False,  unique=False, nullable=True)
     taps_back = db.Column(db.Integer,           index=False,  unique=False, nullable=True)
     # # user = backref from User.posts with lazy='select' (synonym for True)
-    # # campaign = backref from Campaign.posts with lazy='select' (synonym for True)
+    # # rejections = backref from Campaign.rejected with lazy='dynamic'
+    # # campaigns = backref from Campaign.posts with lazy='dynamic'
     metrics = {}
     metrics['basic'] = {'media_type', 'caption', 'comments_count', 'like_count', 'permalink', 'timestamp'}
     metrics['insight'] = {'impressions', 'reach'}
@@ -336,8 +347,16 @@ class Post(db.Model):
 
     def __init__(self, *args, **kwargs):
         kwargs = fix_date(Post, kwargs)
-        kwargs['processed'] = True if kwargs.get('processed') in {'on', True} else False  # TODO: ?is this needed?
         super().__init__(*args, **kwargs)
+
+    def display(self):
+        """ Since different media post types have different metrics, we only want to show the appropriate fields. """
+        post = from_sql(self, related=False, safe=True)  # TODO: Allow related to show status in other campaigns
+        fields = {'id', 'user_id', 'campaigns', 'rejections', 'recorded'}
+        fields.update(Post.metrics['basic'])
+        fields.discard('timestamp')
+        fields.update(Post.metrics[post['media_type']])
+        return {key: val for (key, val) in post.items() if key in fields}
 
     def __str__(self):
         return f"{self.user} {self.media_type} Post on {self.recorded}"
@@ -360,6 +379,20 @@ brand_campaign = db.Table(
     db.Column('campaign_id', db.Integer, db.ForeignKey('campaigns.id', ondelete="CASCADE"))
 )
 
+post_campaign = db.Table(
+    'post_campaigns',
+    db.Column('id',          db.Integer, primary_key=True),
+    db.Column('post_id',    db.Integer, db.ForeignKey('posts.id',    ondelete="CASCADE")),
+    db.Column('campaign_id', db.Integer, db.ForeignKey('campaigns.id', ondelete="CASCADE"))
+)
+
+rejected_campaign = db.Table(
+    'rejected_campaigns',
+    db.Column('id',          db.Integer, primary_key=True),
+    db.Column('post_id',    db.Integer, db.ForeignKey('posts.id',    ondelete="CASCADE")),
+    db.Column('campaign_id', db.Integer, db.ForeignKey('campaigns.id', ondelete="CASCADE"))
+)
+
 
 class Campaign(db.Model):
     """ Model to manage the Campaign relationship between influencers and brands """
@@ -367,13 +400,14 @@ class Campaign(db.Model):
 
     id = db.Column(db.Integer,       primary_key=True)
     completed = db.Column(db.Boolean, default=False)
-    name = db.Column(db.String(47),     index=True,  unique=True,  nullable=True)
-    notes = db.Column(db.String(191),   index=False, unique=False, nullable=True)
-    modified = db.Column(db.DateTime,   index=False, unique=False, nullable=False, default=dt.utcnow, onupdate=dt.utcnow)
-    created = db.Column(db.DateTime,    index=False, unique=False, nullable=False, default=dt.utcnow)
-    users = db.relationship('User', secondary=user_campaign, backref=db.backref('campaigns', lazy='dynamic'))
-    brands = db.relationship('User', secondary=brand_campaign, backref=db.backref('brand_campaigns', lazy='dynamic'))
-    posts = db.relationship('Post', backref='campaign', lazy=True)
+    name = db.Column(db.String(47),   index=True,  unique=True,  nullable=True)
+    notes = db.Column(db.String(191), index=False, unique=False, nullable=True)
+    modified = db.Column(db.DateTime, index=False, unique=False, nullable=False, default=dt.utcnow, onupdate=dt.utcnow)
+    created = db.Column(db.DateTime,  index=False, unique=False, nullable=False, default=dt.utcnow)
+    users = db.relationship('User',    secondary=user_campaign, backref=db.backref('campaigns', lazy='dynamic'))
+    brands = db.relationship('User',   secondary=brand_campaign, backref=db.backref('brand_campaigns', lazy='dynamic'))
+    posts = db.relationship('Post',    secondary=post_campaign, backref=db.backref('campaigns', lazy='dynamic'))
+    rejected = db.relationship('Post', secondary=rejected_campaign, backref=db.backref('rejections', lazy='dynamic'))
     UNSAFE = {''}
 
     def __init__(self, *args, **kwargs):
@@ -381,8 +415,8 @@ class Campaign(db.Model):
         super().__init__(*args, **kwargs)
 
     def export_posts(self):
-        """ These are the columns used for showing the data for Posts assigned to a given Campaign """
-        ignore = ['id', 'user_id', 'campaign_id', 'processed']  # ? 'media_id'
+        """ Used for Sheets Report, a top label row followed by rows of Posts data. """
+        ignore = ['id', 'user_id']
         columns = [ea.name for ea in Post.__table__.columns if ea.name not in ignore]
         data = [[clean(getattr(post, ea, '')) for ea in columns] for post in self.posts]
         return [columns, *data]
@@ -424,7 +458,6 @@ class Campaign(db.Model):
                 curr['StDev'] = stdev(data) if len(data) > 1 else 0
                 related[group]['results'][metric] = curr
         return related
-        # end get_results
 
     def __str__(self):
         name = self.name if self.name else self.id
@@ -527,13 +560,8 @@ def db_create_or_update_many(dataset, user_id=None, Model=Post):
     allowed_models = {Post, Insight, Audience, OnlineFollowers}
     if Model not in allowed_models:
         return []
-    # composite_unique = ['recorded', 'name'] if Model in {Insight, Audience} else False
     composite_unique = [ea for ea in getattr(Model, 'composite_unique', []) if ea != 'user_id']
-    # Note: initially all Models only had 1 non-pk unique field
-    # However, those with table_args setting composite unique restrictions have a composite_unique class property.
-    # insp = db.inspect(Model)
     all_results, add_count, update_count, error_set = [], 0, 0, []
-    # print(f'---- Initial dataset has {len(dataset)} records ----')
     if composite_unique and user_id:
         match = Model.query.filter(Model.user_id == user_id).all()
         # print(f'------ Composite Unique for {Model.__name__}: {len(match)} possible matches ----------------')

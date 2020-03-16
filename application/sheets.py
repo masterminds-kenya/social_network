@@ -5,9 +5,9 @@ from googleapiclient.discovery import build
 from google.oauth2 import service_account
 from datetime import datetime as dt
 import re
-from pprint import pprint
+# from pprint import pprint  # Only used for debugging.
 
-SHARED_SHEET_ID = '1LyUFeo5in3F-IbR1eMnkp-XeQXD_zvfYraxCJBUkZPs'
+SHARED_SHEET_ID = ''
 service_config = {
     'sheets': {
         'file': 'env/sheet_secret.json',
@@ -18,26 +18,22 @@ service_config = {
 
 def get_creds(config):
     """ Using google.oauth2.service_account to get credentials for the service account """
-    # app.logger.info('---------- Get Creds ----------')
     creds = None
     if not path.exists(config.get('file')):
         message = 'Wrong Path to Secret File'
         app.logger.error(message)
         raise FileNotFoundError(message)
-    if app.config.get('LOCAL_ENV') is True:
-        # Could add local testing credential method.
+    if app.config.get('LOCAL_ENV') is True:  # Could add local testing credential method.
         message = "Won't work when running locally"
         app.logger.error(message)
         raise EnvironmentError(message)
     try:
         credentials = service_account.Credentials.from_service_account_file(config['file'])
-        # app.logger.info("Created the service account credentials")
     except Exception as e:
         app.logger.error("Could not get credentials")
         app.logger.error(e)
     try:
         creds = credentials.with_scopes(config.get('scopes'))
-        # app.logger.info("Credentials with scopes!")
     except Exception as e:
         app.logger.error("Could not get Scopes for credentials")
         app.logger.error(e)
@@ -78,16 +74,6 @@ def perm_add(sheet_id, add_users, service=None):
                 body=user_permission,
                 fields='id',
         ))
-        # domain_permission = {
-        #     'type': 'domain',
-        #     'role': 'reader',
-        #     'domain': 'export-sheet@social-network-255302.iam.gserviceaccount.com'  # app.config.get('DEPLOYED_URL')
-        # }
-        # batch.add(service.permissions().create(
-        #         fileId=sheet_id,
-        #         body=domain_permission,
-        #         fields='id',
-        # ))
     batch.execute()
     return perm_list(sheet_id, service=service)
 
@@ -131,7 +117,6 @@ def create_sheet(model, service=None):
     title = f"{name}_{timestamp}"
     spreadsheet = {'properties': {'title': title}}
     spreadsheet = service.spreadsheets().create(body=spreadsheet, fields='spreadsheetId').execute()
-    # app.logger.info(f"spreadsheet id: {spreadsheet.get('spreadsheetId')}")
     message = f"Before you can view the Google Sheet, you must give yourself access "
     message += f"with the View and Manage Access link."
     flash(message)
@@ -182,11 +167,9 @@ def read_sheet(id=SHARED_SHEET_ID, range_=None, service=None):
 def get_vals(model):
     """ Get the values we want to put into our worksheet report """
     model_name = model.__class__.__name__
-    # app.logger.info(f"-------- Get vals for a {model_name} Model instance --------")
     if model_name == 'User':
         # flash(f"Sheet has {model.role} {model_name} data for {model.name}. ")
         insights = model.insight_report()
-        # media_posts = [['label row', 'each', 'column', 'has', 'a', 'label'], ['each row is a post'], []]
         media_posts = model.export_posts()
         sheet_rows = [*insights, [''], *media_posts, ['']]
     elif model_name == 'Campaign':
@@ -207,7 +190,6 @@ def get_vals(model):
         data = [logstring]
         media_posts = [['media_posts label row']]
         sheet_rows = [data, [''], *media_posts, ['']]
-    # app.logger.info(f"-------- Total rows: {len(sheet_rows)}, with {len(media_posts) - 1} rows of posts --------")
     return sheet_rows
 
 

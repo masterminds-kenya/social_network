@@ -109,7 +109,6 @@ def get_audience(user_id, ig_id=None, facebook=None):
     for ea in audience.get('data'):
         ea['user_id'] = user_id
         results.append(ea)
-
     ig_info = get_ig_info(ig_id, token=token, facebook=facebook)
     for name in Audience.ig_data:  # {'media_count', 'followers_count'}
         temp = {}
@@ -118,12 +117,11 @@ def get_audience(user_id, ig_id=None, facebook=None):
             temp['name'] = name
             temp['values'] = [value]
             results.append(temp)
-
     return db_create_or_update_many(results, user_id=user_id, Model=Audience)
 
 
 def get_posts(user_id, ig_id=None, facebook=None):
-    """ Get media posts for the (influencer or brand) user with given user_id """
+    """ Get media posts (including stories) for the (influencer or brand) user with given user_id """
     app.logger.info('==================== Get Posts ====================')
     post_metrics = {key: ','.join(val) for (key, val) in Post.metrics.items()}
     results, token = [], ''
@@ -185,12 +183,12 @@ def get_ig_info(ig_id, token=None, facebook=None):
         return logstring
     url = f"https://graph.facebook.com/v4.0/{ig_id}?fields={fields}"
     res = facebook.get(url).json() if facebook else requests.get(f"{url}&access_token={token}").json()
-    pprint(res)
+    # pprint(res)
     end_time = dt.utcnow().isoformat(timespec='seconds') + '+0000'
     for name in Audience.ig_data:
         res[name] = {'end_time': end_time, 'value': res.get(name)}
-    print('-----------------')
-    pprint(res)
+    # print('-----------------')
+    # pprint(res)
     return res
 
 
@@ -221,9 +219,7 @@ def find_instagram_id(accounts, facebook=None):
 def onboard_login(mod):
     """ Process the initiation of creating a new influencer or brand user with facebook authorization. """
     callback = URL + '/callback/' + mod
-    facebook = requests_oauthlib.OAuth2Session(
-        FB_CLIENT_ID, redirect_uri=callback, scope=FB_SCOPE
-    )
+    facebook = requests_oauthlib.OAuth2Session(FB_CLIENT_ID, redirect_uri=callback, scope=FB_SCOPE)
     authorization_url, state = facebook.authorization_url(FB_AUTHORIZATION_BASE_URL)
     # session['oauth_state'] = state
     return authorization_url
@@ -237,7 +233,6 @@ def onboarding(mod, request):
     token = facebook.fetch_token(FB_TOKEN_URL, client_secret=FB_CLIENT_SECRET, authorization_response=request.url)
     if 'error' in token:
         return ('error', token, None)
-    # Fetch a protected resources:
     facebook_user_data = facebook.get("https://graph.facebook.com/me?fields=id,accounts").json()
     if 'error' in facebook_user_data:
         return ('error', facebook_user_data, None)
@@ -246,9 +241,7 @@ def onboarding(mod, request):
     data['role'] = mod
     data['token'] = token
     accounts = data.pop('accounts', None)
-    # Collect IG usernames for all options
     ig_list = find_instagram_id(accounts, facebook=facebook)
-    # If they only have 1 ig account, assign the appropriate instagram_id
     ig_id = None
     if len(ig_list) == 1:
         ig_info = ig_list.pop()
@@ -265,22 +258,19 @@ def onboarding(mod, request):
     else:
         data['name'] = data.get('id', None) if 'name' not in data else data['name']
         app.logger.info(f'------ Found {len(ig_list)} potential IG accounts ------')
-    app.logger.info('=========== Data sent to Create User account ===============')
-    pprint(data)
+    # app.logger.info('=========== Data sent to Create User account ===============')
+    # pprint(data)
     # TODO: Create and use a User method that will create or use existing User, and returns a User object.
-    # Refactor next three lines to utilize this method so we are just dealing with the User object.
+    # Refactor next three lines to utilize this method so we don't need the extra query based on id.
     account = db_create(data)
     account_id = account.get('id')
     user = User.query.get(account_id)
     login_user(user, force=True, remember=True)
-    app.logger.info(f"New {mod} User: {account_id} should match {user.id}")
     if ig_id:
-        # Relate Data
         insights = get_insight(account_id, ig_id=ig_id, facebook=facebook)
         print('We have IG account insights') if insights else print('No IG account insights')
         audience = get_audience(account_id, ig_id=ig_id, facebook=facebook)
         print('Audience data collected') if audience else print('No Audience data')
         return ('complete', 0, account_id)
-    else:
-        # Allow this Facebook account to select one of many of their IG business accounts
+    else:  # This Facebook user needs to select one of many of their IG business accounts
         return ('decide', ig_list, account_id)

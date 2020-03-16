@@ -1,8 +1,9 @@
-from .model_db import db, from_sql, User, Post, Audience
+from .model_db import db, User, Post, Audience
+# from contextlib import suppress
 import json
 
 
-def update_campaign(ver, request):
+def update_campaign(campaign, request):
     """ Handle adding or removing posts assigned to a campaign, as well removing posts from the processing cue. """
     form_dict = request.form.to_dict(flat=True)
     # Radio Button | Management | Results | Manage Outcome  | Result Outcome
@@ -12,30 +13,35 @@ def update_campaign(ver, request):
     try:
         data = {int(key.replace('assign_', '')): int(val) for (key, val) in form_dict.items() if val != '0'}
     except ValueError as e:
-        # handle error
+        # TODO: handle error
         return False
     modified = Post.query.filter(Post.id.in_(data.keys())).all()
+    print('=========== Update Campaign ==================')
     for post in modified:
-        post.processed = True if data[post.id] != -2 else False
-        post.campaign_id = data[post.id] if data[post.id] > 0 else None
+        code = data[post.id]
+        if code == -2:  # un-process if processed, un-relate if related
+            if post in campaign.rejected:
+                campaign.rejected.remove(post)
+            if post in campaign.posts:
+                campaign.posts.remove(post)
+        elif code == -1:  # processed if not processed, un-relate if related
+            if post not in campaign.rejected:
+                campaign.rejected.append(post)
+            if post in campaign.posts:
+                campaign.posts.remove(post)
+        elif code > 0:  # process & make related, we know it was neither except in Rejected view was already processed
+            # code == campaign.id should be True
+            if post not in campaign.rejected:  # TODO: ? Needed for relationships & rejected view ?
+                campaign.rejected.append(post)
+            campaign.posts.append(post)
     try:
         db.session.commit()
     except Exception as e:
-        # handle exception
+        print("We had an exception on the campaign update commit")
+        print(e)
+        # TODO: handle exception
         return False
     return True
-
-
-def post_display(post):
-    """ Since different media post types have different metrics, we only want to show the appropriate fields. """
-    Model = Post
-    if isinstance(post, Model):
-        post = from_sql(post, related=False, safe=True)
-    fields = {'id', 'user_id', 'campaign_id', 'processed', 'recorded'}
-    fields.update(Model.metrics['basic'])
-    fields.discard('timestamp')
-    fields.update(Model.metrics[post['media_type']])
-    return {key: val for (key, val) in post.items() if key in fields}
 
 
 def process_form(mod, request):
@@ -71,7 +77,7 @@ def process_form(mod, request):
     data.update(save)  # adds to the data dict if we did save some relationship collections
     # If the form has a checkbox for a Boolean in the form, we may need to reformat.
     # currently I think only Campaign and Post have checkboxes
-    bool_fields = {'campaign': 'completed', 'post': 'processed', 'login': 'remember'}
+    bool_fields = {'campaign': 'completed', 'login': 'remember'}
     # TODO: Add logic to find all Boolean fields in models and handle appropriately.
     if mod in bool_fields:
         data[bool_fields[mod]] = True if data.get(bool_fields[mod]) in {'on', True} else False
