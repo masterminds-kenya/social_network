@@ -326,7 +326,7 @@ def campaign(id, view='management'):
     if request.method == 'POST':
         success = update_campaign(campaign, request)
         if not success:
-            app.logger.info("Update Campaign Failed")
+            app.logger.error("Update Campaign Failed")
     for user in campaign.users:
         if view == 'management':
             related[user] = user.campaign_unprocessed(campaign)

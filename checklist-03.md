@@ -16,8 +16,8 @@
 |                    | **Milestone 2 Completion**                   |
 | :heavy_check_mark: | Update Posts model (db structure) to Many-to-Many w/ campaigns |
 | :heavy_check_mark: | Posts can be assigned to multiple campaigns  |
-|                    | Remove dev only logging & code clean-ups     |
 |                    | Security updates [stretch goal?]             |
+|                    | Remove dev only logging & code clean-ups     |
 |                    | Migrate live DB (and deploy all of above)    |
 |                    | **Milestone 3 Completion**                   |
 |                    | Saving Story Post media files                |
