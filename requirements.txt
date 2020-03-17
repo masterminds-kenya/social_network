@@ -1,8 +1,10 @@
 alembic==1.4.1
 cachetools==4.0.0
 certifi==2019.11.28
+cffi==1.14.0
 chardet==3.0.4
 click==7.1.1
+cryptography==2.8
 Flask==1.1.1
 Flask-Login==0.5.0
 Flask-Migrate==2.5.3
@@ -23,6 +25,7 @@ oauthlib==3.1.0
 protobuf==3.11.3
 pyasn1==0.4.8
 pyasn1-modules==0.2.8
+pycparser==2.20
 PyMySQL==0.9.3
 python-dateutil==2.8.1
 python-editor==1.0.4

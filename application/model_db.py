@@ -4,8 +4,9 @@ from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.dialects.mysql import BIGINT
 from sqlalchemy import or_, desc
-from sqlalchemy_utils import EncryptedType  # encrypt
-from sqlalchemy_utils.types.encrypted.encrypted_type import AesEngine  # encrypt
+# from sqlalchemy_utils import EncryptedType  # encrypt
+# from sqlalchemy_utils.types.encrypted.encrypted_type import AesEngine  # encrypt
+# from cryptography.fernet import Fernet
 from flask_migrate import Migrate
 from datetime import datetime as dt
 from dateutil import parser
@@ -16,7 +17,7 @@ from pprint import pprint  # only for debugging
 
 db = SQLAlchemy()
 migrate = Migrate(current_app, db)
-SECRET_KEY = current_app.config.get('SECRET_KEY')
+# SECRET_KEY = current_app.config.get('SECRET_KEY')
 
 
 def init_app(app):
@@ -86,7 +87,7 @@ class User(UserMixin, db.Model):
     instagram_id = db.Column(BIGINT(unsigned=True), index=True,  unique=True,  nullable=True)
     facebook_id = db.Column(BIGINT(unsigned=True),  index=False, unique=False, nullable=True)
     token = db.Column(db.String(255),               index=False, unique=False, nullable=True)
-    token = db.Column(EncryptedType(db.string(255), SECRET_KEY, AesEngine, 'pkcs5'))  # encrypt
+    # token = db.Column(EncryptedType(db.String(255), SECRET_KEY, AesEngine, 'pkcs5'))  # encrypt
     token_expires = db.Column(db.DateTime,          index=False, unique=False, nullable=True)
     notes = db.Column(db.String(191),               index=False, unique=False, nullable=True)
     modified = db.Column(db.DateTime,               index=False, unique=False, nullable=False, default=dt.utcnow, onupdate=dt.utcnow)
