@@ -4,6 +4,8 @@ from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.dialects.mysql import BIGINT
 from sqlalchemy import or_, desc
+# from sqlalchemy_utils import EncryptedType  # encrypt
+# from sqlalchemy_utils.types.encrypted.encrypted_type import AesEngine  # encrypt
 from flask_migrate import Migrate
 from datetime import datetime as dt
 from dateutil import parser
@@ -14,6 +16,7 @@ from pprint import pprint  # only for debugging
 
 db = SQLAlchemy()
 migrate = Migrate(current_app, db)
+# secret_key = 'change-this'  # encrypt
 
 
 def init_app(app):
@@ -83,16 +86,17 @@ class User(UserMixin, db.Model):
     instagram_id = db.Column(BIGINT(unsigned=True), index=True,  unique=True,  nullable=True)
     facebook_id = db.Column(BIGINT(unsigned=True),  index=False, unique=False, nullable=True)
     token = db.Column(db.String(255),               index=False, unique=False, nullable=True)
+    # token = db.Column(EncryptedType(db.string(255), secret_key, AesEngine, 'pkcs5'))  # encrypt
     token_expires = db.Column(db.DateTime,          index=False, unique=False, nullable=True)
     notes = db.Column(db.String(191),               index=False, unique=False, nullable=True)
     modified = db.Column(db.DateTime,               index=False, unique=False, nullable=False, default=dt.utcnow, onupdate=dt.utcnow)
     created = db.Column(db.DateTime,                index=False, unique=False, nullable=False, default=dt.utcnow)
-    insights = db.relationship('Insight',          backref='user', lazy=True, passive_deletes=True)
-    audiences = db.relationship('Audience',        backref='user', lazy=True, passive_deletes=True)
-    aud_count = db.relationship('OnlineFollowers', backref='user', lazy=True, passive_deletes=True)
-    posts = db.relationship('Post',                backref='user', lazy=True, passive_deletes=True)  # ? query_class=GetActive,
-    # # campaigns = backref from Campaign.users with lazy='dynamic'
-    # # brand_campaigns = backref from Campaign.brands with lazy='dynamic'
+    insights = db.relationship('Insight',          order_by='Insight.recorded', backref='user', passive_deletes=True)
+    audiences = db.relationship('Audience',        order_by='Audience.recorded', backref='user', passive_deletes=True)
+    aud_count = db.relationship('OnlineFollowers', order_by='OnlineFollowers.recorded', backref='user', passive_deletes=True)
+    posts = db.relationship('Post',                order_by='Post.recorded', backref='user', passive_deletes=True)
+    # # campaigns = backref from Campaign.users has lazy='dynamic' on other side
+    # # brand_campaigns = backref from Campaign.brands has lazy='dynamic' on other side
     UNSAFE = {'password', 'token', 'token_expires', 'modified', 'created'}
 
     def __init__(self, *args, **kwargs):
@@ -107,7 +111,7 @@ class User(UserMixin, db.Model):
 
     def campaign_unprocessed(self, campaign):
         """ Returns a Query of this User's Posts that need to be determined if they belong to the given Campaign """
-        posts = Post.query.filter(Post.user_id == self.id, ~Post.rejections.contains(campaign))
+        posts = Post.query.filter(Post.user_id == self.id, ~Post.processed.contains(campaign))
         return posts.order_by('recorded').all()
 
     def campaign_posts(self, campaign):
@@ -117,7 +121,7 @@ class User(UserMixin, db.Model):
 
     def campaign_rejected(self, campaign):
         """ Returns a Query of this User's Posts that have already been rejected for given Campaign """
-        posts = Post.query.filter(Post.user_id == self.id, Post.rejections.contains(campaign))
+        posts = Post.query.filter(Post.user_id == self.id, Post.processed.contains(campaign))
         posts = posts.filter(~Post.campaigns.contains(campaign)).order_by('recorded').all()
         return [ea.display() for ea in posts]
 
@@ -228,7 +232,7 @@ class OnlineFollowers(db.Model):
     recorded = db.Column(db.DateTime, index=False, unique=False, nullable=False)
     hour = db.Column(db.Integer,      index=False, unique=False, nullable=False)
     value = db.Column(db.Integer,     index=False, unique=False, nullable=True)
-    # # user = backref from User.aud_count with lazy='select' (synonym for True)
+    # # user = backref from User.aud_count
     metrics = ['online_followers']
     UNSAFE = {''}
 
@@ -254,7 +258,7 @@ class Insight(db.Model):
     recorded = db.Column(db.DateTime,          index=False, unique=False, nullable=False)
     name = db.Column(db.String(47),            index=False, unique=False, nullable=False)
     value = db.Column(db.Integer,              index=False, unique=False, nullable=True)
-    # # user = backref from User.insights with lazy='select' (synonym for True)
+    # # user = backref from User.insights
     influence_metrics = {'impressions', 'reach'}
     profile_metrics = {'phone_call_clicks', 'text_message_clicks', 'email_contacts',
                        'get_directions_clicks', 'website_clicks', 'profile_views', 'follower_count'}
@@ -284,7 +288,7 @@ class Audience(db.Model):
     recorded = db.Column(db.DateTime,          index=False, unique=False, nullable=False)
     name = db.Column(db.String(47),            index=False, unique=False, nullable=False)
     value = db.Column(db.Text,                 index=False, unique=False, nullable=True)
-    # # user = backref from User.audiences with lazy='select' (synonym for True)
+    # # user = backref from User.audiences
     metrics = {'audience_city', 'audience_country', 'audience_gender_age'}
     ig_data = {'media_count', 'followers_count'}  # these are created when assigning an instagram_id to a User
     UNSAFE = {''}
@@ -311,7 +315,7 @@ class Post(db.Model):
     __tablename__ = 'posts'
 
     id = db.Column(db.Integer,          primary_key=True)
-    user_id = db.Column(db.Integer,     db.ForeignKey('users.id', ondelete='CASCADE'), nullable=False)
+    user_id = db.Column(db.Integer,     db.ForeignKey('users.id', ondelete='SET NULL'), nullable=True)
     media_id = db.Column(BIGINT(unsigned=True), index=True,  unique=True,  nullable=False)
     media_type = db.Column(db.String(47),       index=False, unique=False, nullable=True)
     caption = db.Column(db.Text,                index=False, unique=False, nullable=True)
@@ -333,9 +337,9 @@ class Post(db.Model):
     replies = db.Column(db.Integer,             index=False,  unique=False, nullable=True)
     taps_forward = db.Column(db.Integer,        index=False,  unique=False, nullable=True)
     taps_back = db.Column(db.Integer,           index=False,  unique=False, nullable=True)
-    # # user = backref from User.posts with lazy='select' (synonym for True)
-    # # rejections = backref from Campaign.rejected with lazy='dynamic'
-    # # campaigns = backref from Campaign.posts with lazy='dynamic'
+    # # user = backref from User.posts
+    # # processed = backref from Campaign.processed
+    # # campaigns = backref from Campaign.posts
     metrics = {}
     metrics['basic'] = {'media_type', 'caption', 'comments_count', 'like_count', 'permalink', 'timestamp'}
     metrics['insight'] = {'impressions', 'reach'}
@@ -352,7 +356,7 @@ class Post(db.Model):
     def display(self):
         """ Since different media post types have different metrics, we only want to show the appropriate fields. """
         post = from_sql(self, related=False, safe=True)  # TODO: Allow related to show status in other campaigns
-        fields = {'id', 'user_id', 'campaigns', 'rejections', 'recorded'}
+        fields = {'id', 'user_id', 'campaigns', 'processed', 'recorded'}
         fields.update(Post.metrics['basic'])
         fields.discard('timestamp')
         fields.update(Post.metrics[post['media_type']])
@@ -386,8 +390,8 @@ post_campaign = db.Table(
     db.Column('campaign_id', db.Integer, db.ForeignKey('campaigns.id', ondelete="CASCADE"))
 )
 
-rejected_campaign = db.Table(
-    'rejected_campaigns',
+processed_campaign = db.Table(
+    'processed_campaigns',
     db.Column('id',          db.Integer, primary_key=True),
     db.Column('post_id',    db.Integer, db.ForeignKey('posts.id',    ondelete="CASCADE")),
     db.Column('campaign_id', db.Integer, db.ForeignKey('campaigns.id', ondelete="CASCADE"))
@@ -404,10 +408,10 @@ class Campaign(db.Model):
     notes = db.Column(db.String(191), index=False, unique=False, nullable=True)
     modified = db.Column(db.DateTime, index=False, unique=False, nullable=False, default=dt.utcnow, onupdate=dt.utcnow)
     created = db.Column(db.DateTime,  index=False, unique=False, nullable=False, default=dt.utcnow)
-    users = db.relationship('User',    secondary=user_campaign, backref=db.backref('campaigns', lazy='dynamic'))
-    brands = db.relationship('User',   secondary=brand_campaign, backref=db.backref('brand_campaigns', lazy='dynamic'))
-    posts = db.relationship('Post',    secondary=post_campaign, backref=db.backref('campaigns', lazy='dynamic'))
-    rejected = db.relationship('Post', secondary=rejected_campaign, backref=db.backref('rejections', lazy='dynamic'))
+    users = db.relationship('User',    secondary=user_campaign, backref='campaigns', lazy='dynamic')
+    brands = db.relationship('User',   secondary=brand_campaign, backref='brand_campaigns', lazy='dynamic')
+    posts = db.relationship('Post',     order_by='Post.recorded', secondary=post_campaign, backref='campaigns')
+    processed = db.relationship('Post', order_by='Post.recorded', secondary=processed_campaign, backref='processed')
     UNSAFE = {''}
 
     def __init__(self, *args, **kwargs):

@@ -20,19 +20,19 @@ def update_campaign(campaign, request):
     for post in modified:
         code = data[post.id]
         if code == -2:  # un-process if processed, un-relate if related
-            if post in campaign.rejected:
-                campaign.rejected.remove(post)
+            if post in campaign.processed:
+                campaign.processed.remove(post)
             if post in campaign.posts:
                 campaign.posts.remove(post)
         elif code == -1:  # processed if not processed, un-relate if related
-            if post not in campaign.rejected:
-                campaign.rejected.append(post)
+            if post not in campaign.processed:
+                campaign.processed.append(post)
             if post in campaign.posts:
                 campaign.posts.remove(post)
         elif code > 0:  # process & make related, we know it was neither except in Rejected view was already processed
             # code == campaign.id should be True
-            if post not in campaign.rejected:  # TODO: ? Needed for relationships & rejected view ?
-                campaign.rejected.append(post)
+            if post not in campaign.processed:  # TODO: ? Needed for relationships & rejected view ?
+                campaign.processed.append(post)
             campaign.posts.append(post)
     try:
         db.session.commit()

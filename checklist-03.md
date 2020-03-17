@@ -9,7 +9,7 @@
 |                    | **Milestone 1 Completion**                    |
 | :heavy_check_mark: | Initial Investigation of media files complexity |
 | :heavy_check_mark: | Update Feature Goals & Documentation         |
-| :white_check_mark: | Separate Dev site owned by Bacchus           |
+| :heavy_check_mark: | Separate Dev site owned by Bacchus           |
 | :heavy_check_mark: | Campaign - Sort Posts by published date      |
 | :heavy_check_mark: | Favicon and robots.txt files                 |
 | :heavy_check_mark: | Integrate Flask-Migrate to assist ongoing DB changes |
@@ -44,7 +44,7 @@
 - [s] Stretch Goal. Not for current feature plan.
 
 Current Status:
-2020-03-16 00:57:46
+2020-03-16 21:08:53
 <!-- Ctrl-Shift-I to generate timestamp -->
 
 ### Story & Media Files Features
@@ -70,7 +70,7 @@ Current Status:
 
 - [x] Campaign Manage View - Assigning Posts
   - [x] Posts ordered by published date
-    - [ ] Is this true for Sheet Report?
+    - [x] Is this true for Sheet Report?
   - [x] Fix Campaign template error on |length
   - [x] Fix references to no longer used fields:
     - [x] Post.processed
@@ -102,12 +102,12 @@ Current Status:
   - [x] test changes and migration management
 - [x] Post model to Campaign is Many-to-Many relationship
   - [x] Additional fields or methods tracking what queues it is removed from
-- [ ] Post.rejections to Post.processed, Campaign.rejected to Campaign.processed
+- [x] Post.rejections to Post.processed, Campaign.rejected to Campaign.processed
 - [s] Update ON DELETE for a User's posts.
 - [s] How do we want to organize audience data?
 - [s] Refactor Audience Model to parse out the gender and age group fields
   - [s] After refactor, make sure audience data does not overwrite previous data
-- [ ] Set order_by='recorded' inside db.relationship declarations?
+- [x] Set order_by='recorded' inside db.relationship declarations?
 - [ ] Encrypt tokens
 - [n] Keep a DB table of worksheet ids?
   - [s] Will we have multiple report views?
