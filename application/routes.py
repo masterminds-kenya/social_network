@@ -387,7 +387,7 @@ def all_posts():
         return_path = url_for('admin')
     elif cron_run:
         message += "Cron job completed"
-        return_path = url_for('home') # TODO: Check expected response on success / completion.
+        return_path = url_for('home')  # TODO: Check expected response on success / completion.
     app.logger.info(message)
     return redirect(return_path)
 

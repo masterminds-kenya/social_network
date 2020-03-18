@@ -157,7 +157,7 @@ Current Status:
 ### Permissions to Routes and Showing/Hiding links in Templates
 
 - [ ] Any Routes / Template views needed to also have limited access?
-  - [ ] Influencer (and Brand?) Link to export to sheet.
+  - [x] Remove Influencer and Brand user link to export to sheet. Admin only feature.
 - [s] Other Security checks?
 - [x] Delete Campaign link limited to just Admin.
   - [s] What if a manager accidentally created one?

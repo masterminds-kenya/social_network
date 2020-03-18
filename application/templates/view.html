@@ -47,12 +47,14 @@
   <li><a href="{{ url_for('new_post', mod=mod, id=data.id) }}">Get New Media / Posts</a> </li>
   <li><a href="{{ url_for('new_insight', mod=mod, id=data.id) }}">Get New {{mod|title}} Insights</a> </li>
   <li><a href="{{ url_for('new_audience', mod=mod, id=data.id) }}">Get New Audience Data</a> </li>
-  <li><a href="{{ url_for('export', mod=mod, id=data.id)}}">Export Data to a Google Sheet</a></li>
   {% endif %}
   <li>CAREFUL BELOW!</li>
   <li><a href="{{ url_for('edit', mod=mod, id=data.id) }}">Update {{ mod|title }}</a></li>
   {% if current_user.role == 'admin' or (current_user.id == data.id and current_user.role == mod) %}
   <li><a href="{{ url_for('delete', mod=mod, id=data.id) }}">Delete {{ mod|title }}</a></li>
+  {% endif %}
+  {% if current_user.role == 'admin' %}
+  <li><a href="{{ url_for('export', mod=mod, id=data.id)}}">Export Data to a Google Sheet</a></li>
   {% endif %}
 </ul>
 {% endif %}
