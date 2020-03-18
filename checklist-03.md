@@ -108,6 +108,8 @@ Current Status:
 - [s] Refactor Audience Model to parse out the gender and age group fields
   - [s] After refactor, make sure audience data does not overwrite previous data
 - [x] Set order_by='recorded' inside db.relationship declarations?
+  - [ ] Confirm this does not break templates somehow?
+- [ ] fix data.brands (Campaign.brands): TypeError: object of type 'AppenderBaseQuery' has no len()
 - [ ] Encrypt tokens
 - [n] Keep a DB table of worksheet ids?
   - [s] Will we have multiple report views?
@@ -167,6 +169,11 @@ Current Status:
   - [s] Content for Influencer sign-up portal (home view) to give them confidence in the process.
   - [s] Attractive and clear styling for profile and data views seen by Influencers.
 - [x] favicon (looks nice in browser, less search engine errors)
+- [x] Confirm all templates build off a template that points to favicon location
+  - [x] extends "base.html" is safe
+  - [x] extends "view.html" is safe
+  - [x] extends "campaign.html" is safe
+  - [x] All template files are extensions of base or other confirmed sources.
 - [x] Add robots.txt file so search engines are not getting errors.
 
 ### Other Site Functionality

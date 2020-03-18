@@ -252,4 +252,5 @@ backup_app.yaml
 ngrok.yml
 ngrok
 /test
+logs.txt
 app.yaml

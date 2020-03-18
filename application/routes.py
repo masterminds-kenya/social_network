@@ -244,7 +244,6 @@ def data_permissions(mod, id, sheet_id, perm_id=None):
 
 # ############# End Worksheets #############
 
-
 @app.route('/login/<string:mod>')
 def fb_login(mod):
     """ Initiate the creation of a new Influencer or Brand, as indicated by 'mod' """
@@ -279,6 +278,8 @@ def callback(mod):
         return redirect(url_for('error', data=data), code=307)
     else:
         return redirect(url_for('error', data='unknown response'), code=307)
+
+# ########## The following are for Campaign Views ############
 
 
 @app.route('/campaign/<int:id>/results', methods=['GET', 'POST'])
@@ -337,6 +338,9 @@ def campaign(id, view='management'):
         else:
             related[user] = []  # This condition should not occur.
     return render_template(template, mod=mod, view=view, data=campaign, related=related)
+
+# ########## End of Campaign Views ############
+# ########## The following are for general Views ############
 
 
 @app.route('/all_posts')

@@ -96,8 +96,8 @@ class User(UserMixin, db.Model):
     audiences = db.relationship('Audience',        order_by='Audience.recorded', backref='user', passive_deletes=True)
     aud_count = db.relationship('OnlineFollowers', order_by='OnlineFollowers.recorded', backref='user', passive_deletes=True)
     posts = db.relationship('Post',                order_by='Post.recorded', backref='user', passive_deletes=True)
-    # # campaigns = backref from Campaign.users has lazy='dynamic' on other side
-    # # brand_campaigns = backref from Campaign.brands has lazy='dynamic' on other side
+    # # campaigns = backref from Campaign.users has lazy='joined' on other side
+    # # brand_campaigns = backref from Campaign.brands has lazy='joined' on other side
     UNSAFE = {'password', 'token', 'token_expires', 'modified', 'created'}
 
     def __init__(self, *args, **kwargs):
@@ -409,8 +409,8 @@ class Campaign(db.Model):
     notes = db.Column(db.String(191), index=False, unique=False, nullable=True)
     modified = db.Column(db.DateTime, index=False, unique=False, nullable=False, default=dt.utcnow, onupdate=dt.utcnow)
     created = db.Column(db.DateTime,  index=False, unique=False, nullable=False, default=dt.utcnow)
-    users = db.relationship('User',    secondary=user_campaign, backref='campaigns', lazy='dynamic')
-    brands = db.relationship('User',   secondary=brand_campaign, backref='brand_campaigns', lazy='dynamic')
+    users = db.relationship('User',    lazy='joined',             secondary=user_campaign, backref='campaigns')
+    brands = db.relationship('User',   lazy='joined',             secondary=brand_campaign, backref='brand_campaigns')
     posts = db.relationship('Post',     order_by='Post.recorded', secondary=post_campaign, backref='campaigns')
     processed = db.relationship('Post', order_by='Post.recorded', secondary=processed_campaign, backref='processed')
     UNSAFE = {''}
