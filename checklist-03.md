@@ -44,7 +44,7 @@
 - [s] Stretch Goal. Not for current feature plan.
 
 Current Status:
-2020-03-16 21:08:53
+2020-03-18 00:21:01
 <!-- Ctrl-Shift-I to generate timestamp -->
 
 ### Story & Media Files Features
@@ -108,8 +108,8 @@ Current Status:
 - [s] Refactor Audience Model to parse out the gender and age group fields
   - [s] After refactor, make sure audience data does not overwrite previous data
 - [x] Set order_by='recorded' inside db.relationship declarations?
-  - [ ] Confirm this does not break templates somehow?
-- [ ] fix data.brands (Campaign.brands): TypeError: object of type 'AppenderBaseQuery' has no len()
+  - [x] Confirm this does not break templates somehow?
+- [x] fix data.brands (Campaign.brands): TypeError: object of type 'AppenderBaseQuery' has no len()
 - [ ] Encrypt tokens
 - [n] Keep a DB table of worksheet ids?
   - [s] Will we have multiple report views?
@@ -197,14 +197,14 @@ Current Status:
 
 ### Code Structure, Testing, Clean up
 
-- [ ] Setup Dev Version as owned by Bacchus
+- [x] Setup Dev Version as owned by Bacchus
   - [x] Env has DEV site & config settings depend on DEV_RUN flag
   - [x] Project created under Bacchus billing account - devfacebookinsights
-  - [ ] App Engine created in that Project - Chris does not have permission
-  - [ ] Connect Dev DB (cloned in Facebook Insights App)
-    - [ ] Ver A) Set permissions and confirm it can connect across Projects
-    - [ ] Ver B) Re-assign the cloned/dev DB to the Dev Project
-    - [ ] Ver C) See if the DB image/clone can be used to create DB in Dev Project.
+  - [x] App Engine created in that Project - Chris does not have permission
+  - [x] Connect Dev DB (cloned in Facebook Insights App)
+    - [x] Ver A) Set permissions and confirm it can connect across Projects
+    - [n] Ver B) Re-assign the cloned/dev DB to the Dev Project
+    - [n] Ver C) See if the DB image/clone can be used to create DB in Dev Project.
 - [ ] Remove very excessive logs. Keeping high log level until onboarding is verified.
 - [ ] Check and comply to expected response on a cron job.
 - [ ] Flatten Migrate files to not create and delete unneeded changes (esp. test changes)
