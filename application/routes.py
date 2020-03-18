@@ -164,13 +164,12 @@ def error():
 
 @app.route('/admin')
 @admin_required()
-def admin():
+def admin(data=None):
     """ Platform Admin view to view links and actions unique to admin """
     dev_email = ['hepcatchris@gmail.com', 'christopherlchapman42@gmail.com']
     dev = current_user.email in dev_email
     # files = None if app.config.get('LOCAL_ENV') else all_files()
     files = None
-    data = None
     return render_template('admin.html', dev=dev, data=data, files=files)
 
 
@@ -192,6 +191,33 @@ def backup_save(mod, id):
     app.logger.info(message)
     flash(message)
     return redirect(url_for('view', mod='influencer', id=id))
+
+
+@app.route('/data/encrypt/')
+@admin_required()
+def encrypt():
+    """ This is a temporary development function. Will be removed for production. """
+    from .model_db import db
+
+    message, count = '', 0
+    users = User.query.all()
+    try:
+        for user in users:
+            value = getattr(user, 'token')
+            print(value)
+            setattr(user, 'crypt', value)
+            count += 1
+        message += f"Adjusted for {count} users. "
+        db.session.commit()
+        message += "Commit Finished! "
+    except error as e:
+        temp = f"Encrypt method error. Count: {count}. "
+        app.logger.error(temp)
+        app.logger.error(e)
+        message += temp
+        db.session.rollback()
+    flash(message)
+    return redirect(url_for('admin'))
 
 
 # ########## The following are for worksheets ############

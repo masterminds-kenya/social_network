@@ -18,8 +18,9 @@
 | :heavy_check_mark: | Posts can be assigned to multiple campaigns  |
 | :heavy_check_mark: | Rejecting & accepting Posts only affects current Campaign |
 | :heavy_check_mark: | View & re-evaluate rejected Campaign Posts [stretch goal] |
-| :white_check_mark: | Remove dev only logging, code clean-up       |
-|                    | Security updates [stretch goal?]             |
+| :heavy_check_mark: | Remove dev only logging, code clean-up       |
+| :heavy_check_mark: | Security updates [stretch goal?]             |
+| :white_check_mark: | On User delete, remove metrics & keep Posts  |
 |                    | Migrate live DB (and deploy all of above)    |
 |                    | **Milestone 3 Completion**                   |
 |                    | Saving Story Post media files                |
@@ -110,7 +111,7 @@ Current Status:
 - [x] Set order_by='recorded' inside db.relationship declarations?
   - [x] Confirm this does not break templates somehow?
 - [x] fix data.brands (Campaign.brands): TypeError: object of type 'AppenderBaseQuery' has no len()
-- [ ] Encrypt tokens
+- [x] Encrypt tokens
 - [n] Keep a DB table of worksheet ids?
   - [s] Will we have multiple report views?
 - [s] DB Migration: Integrate flask-migrate?
@@ -156,10 +157,11 @@ Current Status:
 ### Permissions to Routes and Showing/Hiding links in Templates
 
 - [ ] Any Routes / Template views needed to also have limited access?
+  - [ ] Influencer (and Brand?) Link to export to sheet.
 - [s] Other Security checks?
-- [x] Delete Campaign link limited to just Admin
+- [x] Delete Campaign link limited to just Admin.
   - [s] What if a manager accidentally created one?
-- [s] Global revoke permissions to all Sheet/file in Drive for a given user
+- [s] Global revoke permissions to all Sheet/file in Drive for a given user.
 
 ### Site Content & Style
 
