@@ -5,17 +5,21 @@ from selenium import webdriver
 options = webdriver.ChromeOptions()
 options.add_argument('--ignore-certificate-errors')
 options.add_argument("--test-type")
-options.binary_location = "/usr/bin/chromium"
+# options.binary_location = "/usr/bin/chromium"
 location = ''
+URL = app.config.get('URL')
 driver = webdriver.Chrome(chrome_options=options)
 
 
 def get_fullscreen(post, filename):
     """ Visits the permalink for give Post, creates a screenshot named the given filename. """
-
-    url = post.permalink
-    driver.get(url)
+    ig_url = post.permalink
+    driver.get(ig_url)
     filepath = location + filename + '.png'
-    success = driver.save_screenshot(filepath)  # saves in current app location.
+    success = driver.save_screenshot(filepath)
     driver.close()
-    return success
+    message = 'File Saved! ' if success else "Error in Screen Grab. "
+    app.logger.debug(message)
+    flash(message)
+    answer = f"{URL}/{filepath}" if success else f"Failed. {success} "
+    return answer

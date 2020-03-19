@@ -39,8 +39,9 @@
 ### Key
 
 - [x] Completed.
-- [N] No: does not work or decided against.
+- [n] No: does not work or decided against.
 - [ ] Still needs to be done.
+- [c] Needs to be confirmed.
 - [?] Unsure if needed.
 - [s] Stretch Goal. Not for current feature plan.
 
@@ -58,9 +59,9 @@ Current Status:
 - [ ] Capture Story Post media content files
   - [x] Do not require extra work from Influencers
   - [ ] Capture before story is assigned to campaign, before it expires
-  - [ ] Ver A: Investigate if any possible API technique
-  - [ ] Ver B: Web Scrapper the obscured media files
-  - [ ] Ver C: Web Scrapper and screen capture
+  - [n] Ver A: Investigate if any possible API technique
+  - [s] Ver B: Web Scrapper the obscured media files
+  - [ ] Ver C: Web Scrapper and screen capture, see Capture Media Files
 - [ ] Associate captured Story media content if it is later assigned to a campaign
 - [ ] Non-Story Post media files
   - [x] Current: permalink given. Require manager to screen capture and crop
@@ -69,14 +70,27 @@ Current Status:
 
 ### Capture Media Files
 
-- [x] Install selenium
+- [s] If we know the file, or can traverse web page to it.
+  - [s] from bs4 import BeautifulSoup, also use requests, urllib.request, time.
+- [x] Install selenium, which can do a screenshot.
 - [ ] Can visit the desired location.
 - [ ] Save the full page screenshot.
 - [ ] Store the file in a desired location.
   - [ ] assigned file directory.
-  - [ ] Media / Static files location.
-  - [ ] storage bucket location.
-- [ ]
+  - [?] Media / Static files location.
+  - [?] storage bucket location.
+- [ ] Make the stored file available as a link.
+- [ ] Link to file is stored as property on the Post object.
+  - [ ] ? Replace permalink with our created link to the media file?
+  - [ ] ? Add another field in the DB for our local_permalink?
+- [ ] Function called for Story Media right after story media is discovered.
+- [ ] Determine options for video files.
+  - [ ] Can we grab the entire video?
+  - [ ] Can we grab a frame of the video, or default view?
+- [ ] After story media files works, apply to other media files content.
+  - [ ] Make it a function called when create a sheet report.
+- [ ] Sheet Report can have a link to the file as stored by us.
+- [s] The actual file is copied to the worksheet in the Sheet Report.
 
 ### Campaign & Posts Management
 
@@ -104,7 +118,7 @@ Current Status:
   - [x] Update & Improve wording for processing Campaign Posts
   - [x] View and modify Posts that had been rejected for this campaign
   - [?] In all Campaign views, report what other Campaigns a Post belongs to if any
-  - [?] Template radio input logic: if a view then value=0 checked, else other value
+  - [s] Cleaner written template radio input logic: if a view then value=0 checked, else other value
 
 ### DB Design & Setup
 
@@ -130,8 +144,8 @@ Current Status:
 - [x] Allow a user to delete their account on the platform
   - [x] Confirmation page before delete?
   - [ ] What about posts assigned to a campaign?
-- [ ] Revisit structure for ON DELETE, ON UPDATE (especially on User delete)
-- [ ] Revisit structure for how related tables are loaded (lazy=?)
+- [c] Revisit structure for ON DELETE, ON UPDATE (especially on User delete)
+- [c] Revisit structure for how related tables are loaded (lazy=?)
 - [s] Revisit method of reporting Campaign Results.
 
 ### Google Drive & Sheets Functionality
@@ -140,8 +154,8 @@ Current Status:
   - [ ] Export Sheet functions should use multiple worksheets/tabs in the same file.
   - [ ] Check if Google Sheets has a max of 26 columns and 4011 rows.
   - [ ] Media content is accessible from the Google Sheet
-    - [ ] ? Embed the content ?
     - [ ] ? Link to the content ?
+    - [s] ? Embed the content ?
   - [s] Regex for A1 notation starting cell.
 - [s] When Export Sheet is created (for Campaign or User), current_user gets sheet permissions
 - [s] When Export Sheet is created, access is granted to some universal Admin
@@ -157,7 +171,7 @@ Current Status:
   - [x] Old: temporary name if we do not have one while we are waiting for their IG account selection
   - [s] ? Use their email address from facebook ?
   - [s] ? Other plan ?
-- [?] Fix: The 'add admin' from admin list does not work because it should redirect.
+- [c] Fix: The 'add admin' from admin list does not work because it should redirect.
 - [s] Allow admin to create a user w/o a password.
   - [s] Require the user to set password on first login.
 - [?] ?Confirm Google login for Worksheet access?
@@ -187,7 +201,8 @@ Current Status:
   - [x] extends "view.html" is safe
   - [x] extends "campaign.html" is safe
   - [x] All template files are extensions of base or other confirmed sources.
-- [ ] Error response using template vs app.errorhandler(500)
+- [ ] Error response using template vs app.errorhandler(500).
+- [ ] Turn off the extra info for an error 500 for deployed live site.
 - [x] Add robots.txt file so search engines are not getting errors.
 
 ### Other Site Functionality
@@ -224,7 +239,7 @@ Current Status:
   - [x] Modify to use logger.exception as appropriate
   - [x] Change settings so live site does not log DEBUG
   - [x] ? Change settings so live site does not log INFO ?
-- [s] Remove excessive logs after we confirm numerous onboarding.
+- [c] Remove excessive logs after we confirm numerous onboarding.
 - [ ] Check and comply to expected response on a cron job.
 - [ ] Flatten Migrate files to not create and delete unneeded changes (esp. test changes)
 - [ ] Migrate Live DB (test with having Dev site connect to it before deploy live code?)
@@ -233,8 +248,8 @@ Current Status:
   - [x] Currently fix_date used for both create model, and when create_or_update many
   - [x] Currently create_or_update_many also has to modify inputs from Audience API calls
   - [x] Should campaign management view extend base instead of view?
-- [s] Is current onboard process slow? Delay some data collection?
-- [s] Other feedback for expected sign up flow?
+- [c] Is current onboard process slow? Delay some data collection?
+- [c] Other feedback for expected sign up flow?
 - [s] Form Validate: Add method to validate form. Safe against form injection?
 - [s] Error handling on adding user with duplicate email address.
 - [s] Error handling on adding user with duplicate name.
