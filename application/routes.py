@@ -210,7 +210,7 @@ def encrypt():
     except error as e:
         temp = f"Encrypt method error. Count: {count}. "
         app.logger.error(temp)
-        app.logger.error(e)
+        app.logger.exception(e)
         message += temp
         db.session.rollback()
     flash(message)
@@ -565,7 +565,7 @@ def add_edit(mod, id=None):
                 model = db_update(data, id, Model=Model)
             except ValueError as e:
                 app.logger.error('------- Came back as ValueError from Integrity Error -----')
-                app.logger.error(e)
+                app.logger.exception(e)
                 # Possibly that User account exists for the 'instagram_id'
                 # If true, then switch to updating the existing user account
                 #     and delete this newly created User account that was trying to be a duplicate.
@@ -580,7 +580,7 @@ def add_edit(mod, id=None):
                         except ValueError as e:
                             message = 'Unable to update existing user'
                             app.logger.error(f'----- {message} ----')
-                            app.logger.error(e)
+                            app.logger.exception(e)
                             flash(message)
                             return redirect(url_for('home'))
                         login_user(found_user, force=True, remember=True)
@@ -597,7 +597,7 @@ def add_edit(mod, id=None):
                 model = db_create(data, Model=Model)
             except ValueError as e:
                 app.logger.error('------- Came back as ValueError from Integrity Error -----')
-                app.logger.error(e)
+                app.logger.exception(e)
                 flash('Error. Please try again or contact an Admin')
                 return redirect(url_for('add', mod=mod, id=id))
         return redirect(url_for('view', mod=mod, id=model['id']))
@@ -659,7 +659,7 @@ def delete(mod, id):
         except Exception as e:
             message = f"We were unable to delete {mod} - {Model} - {id}. "
             app.logger.error(message)
-            app.logger.error(e)
+            app.logger.exception(e)
             flash(message)
             return redirect(request.form.get('next') or request.referrer)
         return redirect(url_for('home'))

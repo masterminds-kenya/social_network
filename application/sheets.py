@@ -31,12 +31,12 @@ def get_creds(config):
         credentials = service_account.Credentials.from_service_account_file(config['file'])
     except Exception as e:
         app.logger.error("Could not get credentials")
-        app.logger.error(e)
+        app.logger.exception(e)
     try:
         creds = credentials.with_scopes(config.get('scopes'))
     except Exception as e:
         app.logger.error("Could not get Scopes for credentials")
-        app.logger.error(e)
+        app.logger.exception(e)
     return creds
 
 
@@ -50,7 +50,7 @@ def perm_add(sheet_id, add_users, service=None):
     def callback(request_id, response, exception):
         if exception:
             # TODO: Handle error
-            app.logger.error(exception)
+            app.logger.exception(exception)
         else:
             app.logger.info(f"Permission Id: {response.get('id')} Request Id: {request_id}")
             pass
@@ -246,5 +246,5 @@ def update_sheet(model, id=SHARED_SHEET_ID, service=None):
         spreadsheet = request.execute()
     except Exception as e:
         spreadsheet = {}
-        app.logger.error(f"Could not update sheet: {e}")
+        app.logger.exception(f"Could not update sheet: {e}")
     return read_sheet(id=spreadsheet.get('spreadsheetId', id), range_=range_, service=service)

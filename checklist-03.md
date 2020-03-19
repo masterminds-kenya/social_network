@@ -208,7 +208,7 @@ Current Status:
     - [x] Ver A) Set permissions and confirm it can connect across Projects
     - [n] Ver B) Re-assign the cloned/dev DB to the Dev Project
     - [n] Ver C) See if the DB image/clone can be used to create DB in Dev Project.
-- [ ] Remove very excessive logs. Keeping high log level until onboarding is verified.
+- [x] Remove very excessive logs. Keeping high log level until onboarding is verified.
 - [ ] Check and comply to expected response on a cron job.
 - [ ] Flatten Migrate files to not create and delete unneeded changes (esp. test changes)
 - [ ] Migrate Live DB (test with having Dev site connect to it before deploy live code?)

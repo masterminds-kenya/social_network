@@ -10,7 +10,7 @@ def create_app(config, debug=False, testing=False, config_overrides=None):
     app.testing = testing
     if config_overrides:
         app.config.update(config_overrides)
-    # Configure logging depth: DEBUG, INFO, WARNING, ERROR
+    # Configure logging depth: ?NOTSET?, DEBUG, INFO, WARNING, ERROR, CRITICAL
     if not app.testing:
         log_level = logging.DEBUG if app.debug else logging.WARNING
         logging.basicConfig(level=log_level)

@@ -496,7 +496,7 @@ def db_create(data, Model=User):
         flash(message)
     except Exception as e:
         current_app.logger.error('**************** DB CREATE Error *******************')
-        current_app.logger.error(e)
+        current_app.logger.exception(e)
     return from_sql(model, related=False, safe=True)
 
 
@@ -520,7 +520,7 @@ def db_update(data, id, related=False, Model=User):
                 setattr(model, k, v)
         db.session.commit()
     except IntegrityError as e:
-        current_app.logger.error(e)
+        current_app.logger.exception(e)
         db.session.rollback()
         if Model == User:
             message = 'Found existing user. '

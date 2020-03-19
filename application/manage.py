@@ -15,7 +15,7 @@ def update_campaign(campaign, request):
         data = {int(key.replace('assign_', '')): int(val) for (key, val) in form_dict.items() if val != '0'}
     except ValueError as e:
         app.logger.error("Error in update_campaign, ValueError translating form to data dict. ")
-        app.logger.error(e)
+        app.logger.exception(e)
         # TODO: handle error
         return False
     modified = Post.query.filter(Post.id.in_(data.keys())).all()
@@ -40,7 +40,7 @@ def update_campaign(campaign, request):
         db.session.commit()
     except Exception as e:
         app.logger.error("We had an exception on the campaign update commit")
-        app.logger.error(e)
+        app.logger.exception(e)
         # TODO: handle exception
         return False
     return True
