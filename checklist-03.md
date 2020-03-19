@@ -209,11 +209,15 @@ Current Status:
     - [n] Ver B) Re-assign the cloned/dev DB to the Dev Project
     - [n] Ver C) See if the DB image/clone can be used to create DB in Dev Project.
 - [x] Remove very excessive logs. Keeping high log level until onboarding is verified.
+  - [x] Modify to use logger.debug as appropriate
+  - [x] Modify to use logger.exception as appropriate
+  - [x] Change settings so live site does not log DEBUG
+  - [x] ? Change settings so live site does not log INFO ?
+- [s] Remove excessive logs after we confirm numerous onboarding.
 - [ ] Check and comply to expected response on a cron job.
 - [ ] Flatten Migrate files to not create and delete unneeded changes (esp. test changes)
 - [ ] Migrate Live DB (test with having Dev site connect to it before deploy live code?)
 - [ ] Set DEV_RUN=False, and deploy to live site.
-- [s] Remove excessive logs after we confirm numerous onboarding.
 - [s] Update forms and API digesting with input validation to replace following functionality:
   - [x] Currently fix_date used for both create model, and when create_or_update many
   - [x] Currently create_or_update_many also has to modify inputs from Audience API calls
