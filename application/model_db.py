@@ -412,6 +412,8 @@ class Campaign(db.Model):
     brands = db.relationship('User',   lazy='joined',             secondary=brand_campaign, backref='brand_campaigns')
     posts = db.relationship('Post',     order_by='Post.recorded', secondary=post_campaign, backref='campaigns')
     processed = db.relationship('Post', order_by='Post.recorded', secondary=processed_campaign, backref='processed')
+    # TODO: Method so posts, and rejected (subset of processed) can be grouped by user and then sorted by recorded.
+    # Currently this functionality is solved with method calls to each influencer User account connected to a campaign.
     UNSAFE = {''}
 
     def __init__(self, *args, **kwargs):

@@ -10,7 +10,7 @@ from .manage import update_campaign, process_form
 from .api import onboard_login, onboarding, get_insight, get_audience, get_posts, get_online_followers
 from .sheets import create_sheet, update_sheet, perm_add, perm_list, all_files
 import json
-from pprint import pprint
+# from pprint import pprint
 
 
 def mod_lookup(mod):
@@ -51,16 +51,16 @@ def admin_required(role=['admin']):
     return wrapper
 
 
-# def self_or_staff_required(role=['admin', 'manager']):
-#     """ This decorator limits access to staff or if the resource belongs to the current_user. """
-#     def wrapper(fn):
-#         @wraps(fn)
-#         def decorated_view(*args, **kwargs):
-#             if not current_user.is_authenticated or current_user.role not in role:
-#                 return app.login_manager.unauthorized()
-#             return fn(*args, **kwargs)
-#         return decorated_view
-#     return wrapper
+def self_or_staff_required(role=['admin', 'manager'], user=current_user):
+    """ This decorator limits access to staff or if the resource belongs to the current_user. """
+    def wrapper(fn):
+        @wraps(fn)
+        def decorated_view(*args, **kwargs):
+            if not current_user.is_authenticated or current_user.role not in role:
+                return app.login_manager.unauthorized()
+            return fn(*args, **kwargs)
+        return decorated_view
+    return wrapper
 
 
 @app.route('/')
