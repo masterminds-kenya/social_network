@@ -143,9 +143,9 @@ class User(UserMixin, db.Model):
         q = Insight.query.filter(Insight.user_id == self.id, Insight.name.in_(metrics))
         recent = q.order_by(desc('recorded')).first()
         date = getattr(recent, 'recorded', 0) if recent else 0
-        current_app.logger.info(f"Recent Insight: {metrics} | {recent} ")
-        current_app.logger.info('-------------------------------------')
-        current_app.logger.info(date)
+        current_app.logger.debug(f"Recent Insight: {metrics} | {recent} ")
+        current_app.logger.debug('-------------------------------------')
+        current_app.logger.debug(date)
         return date
 
     def export_posts(self):
@@ -568,7 +568,7 @@ def db_create_or_update_many(dataset, user_id=None, Model=Post):
     all_results, add_count, update_count, error_set = [], 0, 0, []
     if composite_unique and user_id:
         match = Model.query.filter(Model.user_id == user_id).all()
-        current_app.logger.info(f'------- Composite Unique for {Model.__name__}: {len(match)} possible matches -------')
+        current_app.logger.debug(f'------- Composite Unique for {Model.__name__}: {len(match)} possible matches -------')
         lookup = {tuple([getattr(ea, key) for key in composite_unique]): ea for ea in match}
         # pprint(lookup)
         for data in dataset:
@@ -580,7 +580,7 @@ def db_create_or_update_many(dataset, user_id=None, Model=Post):
                 data.pop('id', None)
             key = tuple([data.get(ea) for ea in composite_unique])
             model = lookup.get(key, None)
-            current_app.logger.info(f'------- {key} -------')
+            current_app.logger.debug(f'------- {key} -------')
             if model:
                 # pprint(model)
                 # TODO: Look into Model.update method
@@ -591,7 +591,7 @@ def db_create_or_update_many(dataset, user_id=None, Model=Post):
                     getattr(model, k).append(v)
                 update_count += 1
             else:
-                current_app.logger.info('No match in existing data')
+                current_app.logger.debug('No match in existing data')
                 model = Model(**data)
                 db.session.add(model)
                 add_count += 1

@@ -201,7 +201,7 @@ def encrypt():
     try:
         for user in users:
             value = getattr(user, 'token')
-            app.logger.info(value)
+            app.logger.debug(value)
             setattr(user, 'crypt', value)
             count += 1
         message += f"Adjusted for {count} users. "
@@ -214,6 +214,7 @@ def encrypt():
         message += temp
         db.session.rollback()
     flash(message)
+    app.logger.info(message)
     return redirect(url_for('admin'))
 
 
@@ -252,7 +253,7 @@ def data_permissions(mod, id, sheet_id, perm_id=None):
     sheet = perm_list(sheet_id)
     data = next((x for x in sheet.get('permissions', []) if x.id == perm_id), {}) if perm_id else {}
     action = 'Edit' if perm_id else 'Add'
-    app.logger.info(f'-------- {mod} Sheet {action} Permissions --------')
+    app.logger.debug(f'-------- {mod} Sheet {action} Permissions --------')
     if request.method == 'POST':
         data = request.form.to_dict(flat=True)
         if action == 'Edit':
@@ -292,7 +293,7 @@ def callback(mod):
             for key, value in ig_info.items():
                 cleaned[key] = json.dumps(value) if key in Audience.ig_data else value
             ig_list.append(cleaned)
-        app.logger.info(f"Amongst these IG options: {ig_list}")
+        app.logger.debug(f"Amongst these IG options: {ig_list}")
         return render_template('decide_ig.html', mod=mod, id=account_id, ig_list=ig_list)
     elif view == 'complete':
         app.logger.info(f"Completed User")

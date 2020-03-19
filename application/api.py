@@ -37,13 +37,13 @@ def get_insight(user_id, first=1, influence_last=30*12, profile_last=30*3, ig_id
     profile_date = user.recent_insight('profile')
     if influence_date:
         influence_last = max(30, int(min(influence_last, (now - influence_date).days)))
-        # app.logger.info('Updated Influence Last')
+        app.logger.debug('Updated Influence Last')
     if profile_date:
         profile_last = max(30, int(min(profile_last, (now - profile_date).days)))
-        # app.logger.info('Updated Profile Last')
-    # app.logger.info("------------ Get Insight: Influence, Profile ---------------")
-    # app.logger.info(influence_last)
-    # app.logger.info(profile_last)
+        app.logger.debug('Updated Profile Last')
+    app.logger.info("------------ Get Insight: Influence, Profile ---------------")
+    app.logger.debug(influence_last)
+    app.logger.debug(profile_last)
     for insight_metrics, last in [(Insight.influence_metrics, influence_last), (Insight.profile_metrics, profile_last)]:
         metric = ','.join(insight_metrics)
         for i in range(first, last + 2 - 30, 30):
@@ -61,8 +61,8 @@ def get_insight(user_id, first=1, influence_last=30*12, profile_last=30*3, ig_id
                     results.append(val)
     models = db_create_or_update_many(results, user_id=user_id, Model=Insight)
     follow_report = get_online_followers(user_id, ig_id=ig_id, facebook=facebook)
-    # logstring = f"Added Online Followers data" if follow_report else "No follow report"
-    # app.logger.info(logstring)
+    logstring = f"Added Online Followers data" if follow_report else "No follow report"
+    app.logger.debug(logstring)
     return (models, follow_report)
 
 
@@ -140,7 +140,7 @@ def get_posts(user_id, ig_id=None, facebook=None):
         app.logger.error('Error: ', response.get('error', 'NA'))
         return []
     media.extend(stories)
-    app.logger.info(f"------- Looking up a total of {len(media)} Media Posts, including {len(stories)} Stories -------")
+    app.logger.debug(f"------- Looking up a total of {len(media)} Media Posts, including {len(stories)} Stories -------")
     for post in media:
         media_id = post.get('id')
         url = f"https://graph.facebook.com/{media_id}?fields={post_metrics['basic']}"
@@ -161,7 +161,7 @@ def get_posts(user_id, ig_id=None, facebook=None):
                 temp = {metric_clean(key): val for key, val in temp.items()}
             res.update(temp)
         else:
-            app.logger.info(f"media {media_id} had NO INSIGHTS for type {media_type} --- {res_insight}")
+            app.logger.debug(f"media {media_id} had NO INSIGHTS for type {media_type} --- {res_insight}")
         results.append(res)
     return db_create_or_update_many(results, Post)
 
@@ -196,7 +196,7 @@ def find_instagram_id(accounts, facebook=None):
     if not facebook:
         app.logger.error('The parameter for facebook can not be None. ')
     if pages:
-        app.logger.info(f'============ Pages count: {len(pages)} ============')
+        app.logger.debug(f'============ Pages count: {len(pages)} ============')
         for page in pages:
             instagram_data = facebook.get(f"https://graph.facebook.com/v4.0/{page}?fields=instagram_business_account").json()
             if 'error' in instagram_data:
@@ -249,10 +249,10 @@ def onboarding(mod, request):
             if value:
                 models.append(Audience(name=name, values=[value]))
         data['audiences'] = models
-        app.logger.info('------ Only 1 InstaGram business account ------')
+        app.logger.debug('------ Only 1 InstaGram business account ------')
     else:
         data['name'] = data.get('id', None) if 'name' not in data else data['name']
-        app.logger.info(f'------ Found {len(ig_list)} potential IG accounts ------')
+        app.logger.debug(f'------ Found {len(ig_list)} potential IG accounts ------')
     # TODO: Create and use a User method that will create or use existing User, and returns a User object.
     # Refactor next three lines to utilize this method so we don't need the extra query based on id.
     account = db_create(data)

@@ -52,7 +52,7 @@ def perm_add(sheet_id, add_users, service=None):
             # TODO: Handle error
             app.logger.error(exception)
         else:
-            # app.logger.info(f"Permission Id: {response.get('id')} Request Id: {request_id}")
+            app.logger.info(f"Permission Id: {response.get('id')} Request Id: {request_id}")
             pass
 
     if not service:
@@ -215,7 +215,7 @@ def compute_A1(arr2d, start='A1', sheet='Sheet1'):
     # TODO: Find out if the max rows is 4011 and max cols is 26. Manage if we exceed the max.
     final_row = row_count + row
     result = f"{sheet}!{start}:{final_col}{final_row}"
-    app.logger.info(f"A1 format is {result} for {row_count} rows & {col_count} columns")
+    app.logger.debug(f"A1 format is {result} for {row_count} rows & {col_count} columns")
     return result
 
 
