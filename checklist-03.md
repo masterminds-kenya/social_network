@@ -45,7 +45,7 @@
 - [s] Stretch Goal. Not for current feature plan.
 
 Current Status:
-2020-03-18 00:21:01
+2020-03-19 02:08:50
 <!-- Ctrl-Shift-I to generate timestamp -->
 
 ### Story & Media Files Features
@@ -66,6 +66,17 @@ Current Status:
   - [x] Current: permalink given. Require manager to screen capture and crop
   - [ ] Capture media file only if associated to a campaign
     - [ ] Use the same technique used for Story media files.
+
+### Capture Media Files
+
+- [x] Install selenium
+- [ ] Can visit the desired location.
+- [ ] Save the full page screenshot.
+- [ ] Store the file in a desired location.
+  - [ ] assigned file directory.
+  - [ ] Media / Static files location.
+  - [ ] storage bucket location.
+- [ ]
 
 ### Campaign & Posts Management
 

@@ -19,6 +19,7 @@ flask-login = "*"
 flask-migrate = "*"
 sqlalchemy-utils = "*"
 cryptography = "*"
+selenium = "*"
 
 [requires]
 python_version = "3.7"
