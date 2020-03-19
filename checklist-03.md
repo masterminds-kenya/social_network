@@ -176,6 +176,7 @@ Current Status:
   - [x] extends "view.html" is safe
   - [x] extends "campaign.html" is safe
   - [x] All template files are extensions of base or other confirmed sources.
+- [ ] Error response using template vs app.errorhandler(500)
 - [x] Add robots.txt file so search engines are not getting errors.
 
 ### Other Site Functionality

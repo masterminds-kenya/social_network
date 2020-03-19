@@ -87,7 +87,6 @@ def get_online_followers(user_id, ig_id=None, facebook=None):
         end_time = day.get('end_time')
         for hour, val in day.get('value', {}).items():
             results.append({'user_id': user_id, 'hour': int(hour), 'value': int(val), 'end_time': end_time})
-    # pprint(results)
     return db_create_or_update_many(results, user_id=user_id, Model=OnlineFollowers)
 
 
@@ -95,7 +94,6 @@ def get_audience(user_id, ig_id=None, facebook=None):
     """ Get the audience data for the (influencer or brand) user with given user_id """
     app.logger.info('=========================== Get Audience Data ======================')
     audience_metric = ','.join(Audience.metrics)
-    # app.logger.info(audience_metric)
     ig_period = 'lifetime'
     results, token = [], ''
     if not facebook or not ig_id:
@@ -142,7 +140,7 @@ def get_posts(user_id, ig_id=None, facebook=None):
         app.logger.error('Error: ', response.get('error', 'NA'))
         return []
     media.extend(stories)
-    # print(f"----------- Looking up a total of {len(media)} Media Posts, including {len(stories)} Stories ----------- ")
+    app.logger.info(f"------- Looking up a total of {len(media)} Media Posts, including {len(stories)} Stories -------")
     for post in media:
         media_id = post.get('id')
         url = f"https://graph.facebook.com/{media_id}?fields={post_metrics['basic']}"
@@ -183,12 +181,9 @@ def get_ig_info(ig_id, token=None, facebook=None):
         return logstring
     url = f"https://graph.facebook.com/v4.0/{ig_id}?fields={fields}"
     res = facebook.get(url).json() if facebook else requests.get(f"{url}&access_token={token}").json()
-    # pprint(res)
     end_time = dt.utcnow().isoformat(timespec='seconds') + '+0000'
     for name in Audience.ig_data:
         res[name] = {'end_time': end_time, 'value': res.get(name)}
-    # print('-----------------')
-    # pprint(res)
     return res
 
 
@@ -258,8 +253,6 @@ def onboarding(mod, request):
     else:
         data['name'] = data.get('id', None) if 'name' not in data else data['name']
         app.logger.info(f'------ Found {len(ig_list)} potential IG accounts ------')
-    # app.logger.info('=========== Data sent to Create User account ===============')
-    # pprint(data)
     # TODO: Create and use a User method that will create or use existing User, and returns a User object.
     # Refactor next three lines to utilize this method so we don't need the extra query based on id.
     account = db_create(data)
@@ -268,9 +261,10 @@ def onboarding(mod, request):
     login_user(user, force=True, remember=True)
     if ig_id:
         insights = get_insight(account_id, ig_id=ig_id, facebook=facebook)
-        print('We have IG account insights') if insights else print('No IG account insights')
+        message = 'We have IG account insights. ' if insights else 'No IG account insights. '
         audience = get_audience(account_id, ig_id=ig_id, facebook=facebook)
-        print('Audience data collected') if audience else print('No Audience data')
+        message += 'Audience data collected. ' if audience else 'No Audience data. '
+        app.logger.info(message)
         return ('complete', 0, account_id)
     else:  # This Facebook user needs to select one of many of their IG business accounts
         return ('decide', ig_list, account_id)

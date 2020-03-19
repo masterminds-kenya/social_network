@@ -91,8 +91,6 @@ def signup():
     ignore = ['influencer', 'brand']
     signup_roles = [role for role in User.roles if role not in ignore]
     if request.method == 'POST':
-        print('------- Post on Sign Up ---------')
-        # pprint(request.form)
         mod = request.form.get('role')
         if mod not in signup_roles:
             raise ValueError("That is not a valid role selection")
@@ -132,8 +130,6 @@ def signup():
 def login():
     """ This the the manual login process. """
     if request.method == 'POST':
-        print('------- Post on Login ---------')
-        # pprint(request.form)
         data = process_form('login', request)
         password = data.get('password', None)
         if not password:
@@ -159,6 +155,7 @@ def logout():
 @app.route('/error', methods=['GET', 'POST'])
 def error():
     err = request.form.get('data')
+    app.logger.error(err)
     return render_template('error.html', err=err)
 
 
@@ -204,7 +201,7 @@ def encrypt():
     try:
         for user in users:
             value = getattr(user, 'token')
-            print(value)
+            app.logger.info(value)
             setattr(user, 'crypt', value)
             count += 1
         message += f"Adjusted for {count} users. "

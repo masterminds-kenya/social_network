@@ -1,10 +1,11 @@
 from .model_db import db, User, Post, Audience
-# from contextlib import suppress
+from flask import current_app as app
 import json
 
 
 def update_campaign(campaign, request):
     """ Handle adding or removing posts assigned to a campaign, as well removing posts from the processing cue. """
+    app.logger.info('=========== Update Campaign ==================')
     form_dict = request.form.to_dict(flat=True)
     # Radio Button | Management | Results | Manage Outcome  | Result Outcome
     # accept       |  data.id   |    0    | camp_id = val   | leave alone
@@ -13,10 +14,11 @@ def update_campaign(campaign, request):
     try:
         data = {int(key.replace('assign_', '')): int(val) for (key, val) in form_dict.items() if val != '0'}
     except ValueError as e:
+        app.logger.error("Error in update_campaign, ValueError translating form to data dict. ")
+        app.logger.error(e)
         # TODO: handle error
         return False
     modified = Post.query.filter(Post.id.in_(data.keys())).all()
-    print('=========== Update Campaign ==================')
     for post in modified:
         code = data[post.id]
         if code == -2:  # un-process if processed, un-relate if related
@@ -37,8 +39,8 @@ def update_campaign(campaign, request):
     try:
         db.session.commit()
     except Exception as e:
-        print("We had an exception on the campaign update commit")
-        print(e)
+        app.logger.error("We had an exception on the campaign update commit")
+        app.logger.error(e)
         # TODO: handle exception
         return False
     return True

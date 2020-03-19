@@ -494,9 +494,9 @@ def db_create(data, Model=User):
             message = f'Cannot create due to collision on unique fields. Cannot retrieve existing record'
         current_app.logger.error(message)
         flash(message)
-    # except Exception as e:
-    #     print('**************** DB CREATE Error *******************')
-    #     print(e)
+    except Exception as e:
+        current_app.logger.error('**************** DB CREATE Error *******************')
+        current_app.logger.error(e)
     return from_sql(model, related=False, safe=True)
 
 
@@ -568,7 +568,7 @@ def db_create_or_update_many(dataset, user_id=None, Model=Post):
     all_results, add_count, update_count, error_set = [], 0, 0, []
     if composite_unique and user_id:
         match = Model.query.filter(Model.user_id == user_id).all()
-        # print(f'------ Composite Unique for {Model.__name__}: {len(match)} possible matches ----------------')
+        current_app.logger.info(f'------- Composite Unique for {Model.__name__}: {len(match)} possible matches -------')
         lookup = {tuple([getattr(ea, key) for key in composite_unique]): ea for ea in match}
         # pprint(lookup)
         for data in dataset:
@@ -580,7 +580,7 @@ def db_create_or_update_many(dataset, user_id=None, Model=Post):
                 data.pop('id', None)
             key = tuple([data.get(ea) for ea in composite_unique])
             model = lookup.get(key, None)
-            # print(f'------- {key} -------')
+            current_app.logger.info(f'------- {key} -------')
             if model:
                 # pprint(model)
                 # TODO: Look into Model.update method
@@ -591,7 +591,7 @@ def db_create_or_update_many(dataset, user_id=None, Model=Post):
                     getattr(model, k).append(v)
                 update_count += 1
             else:
-                # print('No match in existing data')
+                current_app.logger.info('No match in existing data')
                 model = Model(**data)
                 db.session.add(model)
                 add_count += 1
@@ -634,12 +634,12 @@ def db_create_or_update_many(dataset, user_id=None, Model=Post):
                 db.session.add(model)
                 add_count += 1
                 all_results.append(model)
-    print('------------------------------------------------------------------------------')
-    print(f'The all results has {len(all_results)} records to commit')
-    print(f'This includes {update_count} updated records')
-    print(f'This includes {add_count} added records')
-    print(f'We were unable to handle {len(error_set)} of the incoming dataset items')
-    print('------------------------------------------------------------------------------')
+    current_app.logger.info('------------------------------------------------------------------------------')
+    current_app.logger.info(f'The all results has {len(all_results)} records to commit')
+    current_app.logger.info(f'This includes {update_count} updated records')
+    current_app.logger.info(f'This includes {add_count} added records')
+    current_app.logger.info(f'We were unable to handle {len(error_set)} of the incoming dataset items')
+    current_app.logger.info('------------------------------------------------------------------------------')
     db.session.commit()
     current_app.logger.info('All records saved')
     return [from_sql(ea, related=False, safe=True) for ea in all_results]
