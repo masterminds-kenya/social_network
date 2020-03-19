@@ -4,6 +4,9 @@ from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.dialects.mysql import BIGINT
 from sqlalchemy import or_, desc
+from sqlalchemy_utils import EncryptedType  # encrypt
+from sqlalchemy_utils.types.encrypted.encrypted_type import AesEngine  # encrypt
+from cryptography.fernet import Fernet  # encrypt
 from flask_migrate import Migrate
 from datetime import datetime as dt
 from dateutil import parser
@@ -14,6 +17,7 @@ from pprint import pprint  # only for debugging
 
 db = SQLAlchemy()
 migrate = Migrate(current_app, db)
+SECRET_KEY = current_app.config.get('SECRET_KEY')
 
 
 def init_app(app):
@@ -82,17 +86,17 @@ class User(UserMixin, db.Model):
     password = db.Column(db.String(191),            index=False, unique=False, nullable=True)
     instagram_id = db.Column(BIGINT(unsigned=True), index=True,  unique=True,  nullable=True)
     facebook_id = db.Column(BIGINT(unsigned=True),  index=False, unique=False, nullable=True)
-    token = db.Column(db.String(255),               index=False, unique=False, nullable=True)
+    token = db.Column(EncryptedType(db.String(255), SECRET_KEY, AesEngine, 'pkcs5'))  # encrypt
     token_expires = db.Column(db.DateTime,          index=False, unique=False, nullable=True)
     notes = db.Column(db.String(191),               index=False, unique=False, nullable=True)
     modified = db.Column(db.DateTime,               index=False, unique=False, nullable=False, default=dt.utcnow, onupdate=dt.utcnow)
     created = db.Column(db.DateTime,                index=False, unique=False, nullable=False, default=dt.utcnow)
-    insights = db.relationship('Insight',          backref='user', lazy=True, passive_deletes=True)
-    audiences = db.relationship('Audience',        backref='user', lazy=True, passive_deletes=True)
-    aud_count = db.relationship('OnlineFollowers', backref='user', lazy=True, passive_deletes=True)
-    posts = db.relationship('Post',                backref='user', lazy=True, passive_deletes=True)  # ? query_class=GetActive,
-    # # campaigns = backref from Campaign.users with lazy='dynamic'
-    # # brand_campaigns = backref from Campaign.brands with lazy='dynamic'
+    insights = db.relationship('Insight',          order_by='Insight.recorded', backref='user', passive_deletes=True)
+    audiences = db.relationship('Audience',        order_by='Audience.recorded', backref='user', passive_deletes=True)
+    aud_count = db.relationship('OnlineFollowers', order_by='OnlineFollowers.recorded', backref='user', passive_deletes=True)
+    posts = db.relationship('Post',                order_by='Post.recorded', backref='user', passive_deletes=True)
+    # # campaigns = backref from Campaign.users has lazy='joined' on other side
+    # # brand_campaigns = backref from Campaign.brands has lazy='joined' on other side
     UNSAFE = {'password', 'token', 'token_expires', 'modified', 'created'}
 
     def __init__(self, *args, **kwargs):
@@ -107,7 +111,7 @@ class User(UserMixin, db.Model):
 
     def campaign_unprocessed(self, campaign):
         """ Returns a Query of this User's Posts that need to be determined if they belong to the given Campaign """
-        posts = Post.query.filter(Post.user_id == self.id, ~Post.rejections.contains(campaign))
+        posts = Post.query.filter(Post.user_id == self.id, ~Post.processed.contains(campaign))
         return posts.order_by('recorded').all()
 
     def campaign_posts(self, campaign):
@@ -117,7 +121,7 @@ class User(UserMixin, db.Model):
 
     def campaign_rejected(self, campaign):
         """ Returns a Query of this User's Posts that have already been rejected for given Campaign """
-        posts = Post.query.filter(Post.user_id == self.id, Post.rejections.contains(campaign))
+        posts = Post.query.filter(Post.user_id == self.id, Post.processed.contains(campaign))
         posts = posts.filter(~Post.campaigns.contains(campaign)).order_by('recorded').all()
         return [ea.display() for ea in posts]
 
@@ -139,9 +143,9 @@ class User(UserMixin, db.Model):
         q = Insight.query.filter(Insight.user_id == self.id, Insight.name.in_(metrics))
         recent = q.order_by(desc('recorded')).first()
         date = getattr(recent, 'recorded', 0) if recent else 0
-        current_app.logger.info(f"Recent Insight: {metrics} | {recent} ")
-        current_app.logger.info('-------------------------------------')
-        current_app.logger.info(date)
+        current_app.logger.debug(f"Recent Insight: {metrics} | {recent} ")
+        current_app.logger.debug('-------------------------------------')
+        current_app.logger.debug(date)
         return date
 
     def export_posts(self):
@@ -228,7 +232,7 @@ class OnlineFollowers(db.Model):
     recorded = db.Column(db.DateTime, index=False, unique=False, nullable=False)
     hour = db.Column(db.Integer,      index=False, unique=False, nullable=False)
     value = db.Column(db.Integer,     index=False, unique=False, nullable=True)
-    # # user = backref from User.aud_count with lazy='select' (synonym for True)
+    # # user = backref from User.aud_count
     metrics = ['online_followers']
     UNSAFE = {''}
 
@@ -254,7 +258,7 @@ class Insight(db.Model):
     recorded = db.Column(db.DateTime,          index=False, unique=False, nullable=False)
     name = db.Column(db.String(47),            index=False, unique=False, nullable=False)
     value = db.Column(db.Integer,              index=False, unique=False, nullable=True)
-    # # user = backref from User.insights with lazy='select' (synonym for True)
+    # # user = backref from User.insights
     influence_metrics = {'impressions', 'reach'}
     profile_metrics = {'phone_call_clicks', 'text_message_clicks', 'email_contacts',
                        'get_directions_clicks', 'website_clicks', 'profile_views', 'follower_count'}
@@ -284,7 +288,7 @@ class Audience(db.Model):
     recorded = db.Column(db.DateTime,          index=False, unique=False, nullable=False)
     name = db.Column(db.String(47),            index=False, unique=False, nullable=False)
     value = db.Column(db.Text,                 index=False, unique=False, nullable=True)
-    # # user = backref from User.audiences with lazy='select' (synonym for True)
+    # # user = backref from User.audiences
     metrics = {'audience_city', 'audience_country', 'audience_gender_age'}
     ig_data = {'media_count', 'followers_count'}  # these are created when assigning an instagram_id to a User
     UNSAFE = {''}
@@ -311,7 +315,7 @@ class Post(db.Model):
     __tablename__ = 'posts'
 
     id = db.Column(db.Integer,          primary_key=True)
-    user_id = db.Column(db.Integer,     db.ForeignKey('users.id', ondelete='CASCADE'), nullable=False)
+    user_id = db.Column(db.Integer,     db.ForeignKey('users.id', ondelete='SET NULL'), nullable=True)
     media_id = db.Column(BIGINT(unsigned=True), index=True,  unique=True,  nullable=False)
     media_type = db.Column(db.String(47),       index=False, unique=False, nullable=True)
     caption = db.Column(db.Text,                index=False, unique=False, nullable=True)
@@ -333,9 +337,9 @@ class Post(db.Model):
     replies = db.Column(db.Integer,             index=False,  unique=False, nullable=True)
     taps_forward = db.Column(db.Integer,        index=False,  unique=False, nullable=True)
     taps_back = db.Column(db.Integer,           index=False,  unique=False, nullable=True)
-    # # user = backref from User.posts with lazy='select' (synonym for True)
-    # # rejections = backref from Campaign.rejected with lazy='dynamic'
-    # # campaigns = backref from Campaign.posts with lazy='dynamic'
+    # # user = backref from User.posts
+    # # processed = backref from Campaign.processed
+    # # campaigns = backref from Campaign.posts
     metrics = {}
     metrics['basic'] = {'media_type', 'caption', 'comments_count', 'like_count', 'permalink', 'timestamp'}
     metrics['insight'] = {'impressions', 'reach'}
@@ -352,7 +356,7 @@ class Post(db.Model):
     def display(self):
         """ Since different media post types have different metrics, we only want to show the appropriate fields. """
         post = from_sql(self, related=False, safe=True)  # TODO: Allow related to show status in other campaigns
-        fields = {'id', 'user_id', 'campaigns', 'rejections', 'recorded'}
+        fields = {'id', 'user_id', 'campaigns', 'processed', 'recorded'}
         fields.update(Post.metrics['basic'])
         fields.discard('timestamp')
         fields.update(Post.metrics[post['media_type']])
@@ -386,10 +390,10 @@ post_campaign = db.Table(
     db.Column('campaign_id', db.Integer, db.ForeignKey('campaigns.id', ondelete="CASCADE"))
 )
 
-rejected_campaign = db.Table(
-    'rejected_campaigns',
+processed_campaign = db.Table(
+    'processed_campaigns',
     db.Column('id',          db.Integer, primary_key=True),
-    db.Column('post_id',    db.Integer, db.ForeignKey('posts.id',    ondelete="CASCADE")),
+    db.Column('post_id',     db.Integer, db.ForeignKey('posts.id',    ondelete="CASCADE")),
     db.Column('campaign_id', db.Integer, db.ForeignKey('campaigns.id', ondelete="CASCADE"))
 )
 
@@ -404,10 +408,10 @@ class Campaign(db.Model):
     notes = db.Column(db.String(191), index=False, unique=False, nullable=True)
     modified = db.Column(db.DateTime, index=False, unique=False, nullable=False, default=dt.utcnow, onupdate=dt.utcnow)
     created = db.Column(db.DateTime,  index=False, unique=False, nullable=False, default=dt.utcnow)
-    users = db.relationship('User',    secondary=user_campaign, backref=db.backref('campaigns', lazy='dynamic'))
-    brands = db.relationship('User',   secondary=brand_campaign, backref=db.backref('brand_campaigns', lazy='dynamic'))
-    posts = db.relationship('Post',    secondary=post_campaign, backref=db.backref('campaigns', lazy='dynamic'))
-    rejected = db.relationship('Post', secondary=rejected_campaign, backref=db.backref('rejections', lazy='dynamic'))
+    users = db.relationship('User',    lazy='joined',             secondary=user_campaign, backref='campaigns')
+    brands = db.relationship('User',   lazy='joined',             secondary=brand_campaign, backref='brand_campaigns')
+    posts = db.relationship('Post',     order_by='Post.recorded', secondary=post_campaign, backref='campaigns')
+    processed = db.relationship('Post', order_by='Post.recorded', secondary=processed_campaign, backref='processed')
     UNSAFE = {''}
 
     def __init__(self, *args, **kwargs):
@@ -490,9 +494,9 @@ def db_create(data, Model=User):
             message = f'Cannot create due to collision on unique fields. Cannot retrieve existing record'
         current_app.logger.error(message)
         flash(message)
-    # except Exception as e:
-    #     print('**************** DB CREATE Error *******************')
-    #     print(e)
+    except Exception as e:
+        current_app.logger.error('**************** DB CREATE Error *******************')
+        current_app.logger.exception(e)
     return from_sql(model, related=False, safe=True)
 
 
@@ -516,7 +520,7 @@ def db_update(data, id, related=False, Model=User):
                 setattr(model, k, v)
         db.session.commit()
     except IntegrityError as e:
-        current_app.logger.error(e)
+        current_app.logger.exception(e)
         db.session.rollback()
         if Model == User:
             message = 'Found existing user. '
@@ -534,13 +538,13 @@ def db_delete(id, Model=User):
 
 def db_all(Model=User, role=None):
     """ Returns all of the records for the indicated Model, or for User Model returns either brands or influencers. """
-    sort_field = Model.name if hasattr(Model, 'name') else Model.id
-    # TODO: For each model declare default sort, then use that here.
-    query = (Model.query.order_by(sort_field))
+    query = Model.query
     if Model == User:
         role_type = role if role else 'influencer'
         query = query.filter_by(role=role_type)
-    return query.all()
+    sort_field = Model.recorded if hasattr(Model, 'recorded') else Model.name if hasattr(Model, 'name') else Model.id
+    # TODO: For each model declare default sort, then use that here: query.order_by(Model.<sortfield>).all()
+    return query.order_by(sort_field).all()
 
 
 def create_many(dataset, Model=User):
@@ -564,7 +568,7 @@ def db_create_or_update_many(dataset, user_id=None, Model=Post):
     all_results, add_count, update_count, error_set = [], 0, 0, []
     if composite_unique and user_id:
         match = Model.query.filter(Model.user_id == user_id).all()
-        # print(f'------ Composite Unique for {Model.__name__}: {len(match)} possible matches ----------------')
+        current_app.logger.debug(f'------- Composite Unique for {Model.__name__}: {len(match)} possible matches -------')
         lookup = {tuple([getattr(ea, key) for key in composite_unique]): ea for ea in match}
         # pprint(lookup)
         for data in dataset:
@@ -576,7 +580,7 @@ def db_create_or_update_many(dataset, user_id=None, Model=Post):
                 data.pop('id', None)
             key = tuple([data.get(ea) for ea in composite_unique])
             model = lookup.get(key, None)
-            # print(f'------- {key} -------')
+            current_app.logger.debug(f'------- {key} -------')
             if model:
                 # pprint(model)
                 # TODO: Look into Model.update method
@@ -587,7 +591,7 @@ def db_create_or_update_many(dataset, user_id=None, Model=Post):
                     getattr(model, k).append(v)
                 update_count += 1
             else:
-                # print('No match in existing data')
+                current_app.logger.debug('No match in existing data')
                 model = Model(**data)
                 db.session.add(model)
                 add_count += 1
@@ -630,12 +634,12 @@ def db_create_or_update_many(dataset, user_id=None, Model=Post):
                 db.session.add(model)
                 add_count += 1
                 all_results.append(model)
-    print('------------------------------------------------------------------------------')
-    print(f'The all results has {len(all_results)} records to commit')
-    print(f'This includes {update_count} updated records')
-    print(f'This includes {add_count} added records')
-    print(f'We were unable to handle {len(error_set)} of the incoming dataset items')
-    print('------------------------------------------------------------------------------')
+    current_app.logger.info('------------------------------------------------------------------------------')
+    current_app.logger.info(f'The all results has {len(all_results)} records to commit')
+    current_app.logger.info(f'This includes {update_count} updated records')
+    current_app.logger.info(f'This includes {add_count} added records')
+    current_app.logger.info(f'We were unable to handle {len(error_set)} of the incoming dataset items')
+    current_app.logger.info('------------------------------------------------------------------------------')
     db.session.commit()
     current_app.logger.info('All records saved')
     return [from_sql(ea, related=False, safe=True) for ea in all_results]

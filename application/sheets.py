@@ -31,12 +31,12 @@ def get_creds(config):
         credentials = service_account.Credentials.from_service_account_file(config['file'])
     except Exception as e:
         app.logger.error("Could not get credentials")
-        app.logger.error(e)
+        app.logger.exception(e)
     try:
         creds = credentials.with_scopes(config.get('scopes'))
     except Exception as e:
         app.logger.error("Could not get Scopes for credentials")
-        app.logger.error(e)
+        app.logger.exception(e)
     return creds
 
 
@@ -50,9 +50,9 @@ def perm_add(sheet_id, add_users, service=None):
     def callback(request_id, response, exception):
         if exception:
             # TODO: Handle error
-            app.logger.error(exception)
+            app.logger.exception(exception)
         else:
-            # app.logger.info(f"Permission Id: {response.get('id')} Request Id: {request_id}")
+            app.logger.info(f"Permission Id: {response.get('id')} Request Id: {request_id}")
             pass
 
     if not service:
@@ -215,7 +215,7 @@ def compute_A1(arr2d, start='A1', sheet='Sheet1'):
     # TODO: Find out if the max rows is 4011 and max cols is 26. Manage if we exceed the max.
     final_row = row_count + row
     result = f"{sheet}!{start}:{final_col}{final_row}"
-    # app.logger.info(f"A1 format is {result} for {row_count} rows & {col_count} columns")
+    app.logger.debug(f"A1 format is {result} for {row_count} rows & {col_count} columns")
     return result
 
 
@@ -246,5 +246,5 @@ def update_sheet(model, id=SHARED_SHEET_ID, service=None):
         spreadsheet = request.execute()
     except Exception as e:
         spreadsheet = {}
-        app.logger.error(f"Could not update sheet: {e}")
+        app.logger.exception(f"Could not update sheet: {e}")
     return read_sheet(id=spreadsheet.get('spreadsheetId', id), range_=range_, service=service)

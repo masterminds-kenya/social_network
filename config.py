@@ -8,6 +8,7 @@ SECRET_KEY = environ.get('SECRET_KEY')  # for session cookies & flash messages
 FB_CLIENT_ID = environ.get("FB_CLIENT_ID")
 FB_CLIENT_SECRET = environ.get("FB_CLIENT_SECRET")
 DEV_RUN = True if environ.get('DEV_RUN') == 'True' else False
+DEBUG = DEV_RUN or environ.get('DEBUG') == 'True'
 PROJECT_NAME = environ.get('PROJECT_NAME')
 PROJECT_ID = environ.get('PROJECT_ID')
 PROJECT_NUMBER = environ.get('PROJECT_NUMBER')

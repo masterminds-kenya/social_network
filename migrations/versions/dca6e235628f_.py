@@ -1,7 +1,7 @@
 """empty message
 
 Revision ID: dca6e235628f
-Revises: 1f292a866062
+Revises:
 Create Date: 2020-03-15 00:04:08.459880
 
 """
@@ -11,7 +11,7 @@ from sqlalchemy.dialects import mysql
 
 # revision identifiers, used by Alembic.
 revision = 'dca6e235628f'
-down_revision = '1f292a866062'
+down_revision = None
 branch_labels = None
 depends_on = None
 
@@ -26,7 +26,7 @@ def upgrade():
     sa.ForeignKeyConstraint(['post_id'], ['posts.id'], ondelete='CASCADE'),
     sa.PrimaryKeyConstraint('id')
     )
-    op.create_table('rejected_campaigns',
+    op.create_table('processed_campaigns',
     sa.Column('id', sa.Integer(), nullable=False),
     sa.Column('post_id', sa.Integer(), nullable=True),
     sa.Column('campaign_id', sa.Integer(), nullable=True),
@@ -45,6 +45,6 @@ def downgrade():
     op.add_column('posts', sa.Column('campaign_id', mysql.INTEGER(display_width=11), autoincrement=False, nullable=True))
     op.add_column('posts', sa.Column('processed', mysql.TINYINT(display_width=1), autoincrement=False, nullable=True))
     op.create_foreign_key('posts_ibfk_2', 'posts', 'campaigns', ['campaign_id'], ['id'], ondelete='SET NULL')
-    op.drop_table('rejected_campaigns')
+    op.drop_table('processed_campaigns')
     op.drop_table('post_campaigns')
     # ### end Alembic commands ###

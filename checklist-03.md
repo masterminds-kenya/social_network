@@ -9,7 +9,7 @@
 |                    | **Milestone 1 Completion**                    |
 | :heavy_check_mark: | Initial Investigation of media files complexity |
 | :heavy_check_mark: | Update Feature Goals & Documentation         |
-| :white_check_mark: | Separate Dev site owned by Bacchus           |
+| :heavy_check_mark: | Separate Dev site owned by Bacchus           |
 | :heavy_check_mark: | Campaign - Sort Posts by published date      |
 | :heavy_check_mark: | Favicon and robots.txt files                 |
 | :heavy_check_mark: | Integrate Flask-Migrate to assist ongoing DB changes |
@@ -18,8 +18,9 @@
 | :heavy_check_mark: | Posts can be assigned to multiple campaigns  |
 | :heavy_check_mark: | Rejecting & accepting Posts only affects current Campaign |
 | :heavy_check_mark: | View & re-evaluate rejected Campaign Posts [stretch goal] |
-| :white_check_mark: | Remove dev only logging, code clean-up       |
-|                    | Security updates [stretch goal?]             |
+| :heavy_check_mark: | Remove dev only logging, code clean-up       |
+| :heavy_check_mark: | Security updates [stretch goal?]             |
+| :white_check_mark: | On User delete, remove metrics & keep Posts  |
 |                    | Migrate live DB (and deploy all of above)    |
 |                    | **Milestone 3 Completion**                   |
 |                    | Saving Story Post media files                |
@@ -44,7 +45,7 @@
 - [s] Stretch Goal. Not for current feature plan.
 
 Current Status:
-2020-03-16 00:57:46
+2020-03-18 00:21:01
 <!-- Ctrl-Shift-I to generate timestamp -->
 
 ### Story & Media Files Features
@@ -70,7 +71,7 @@ Current Status:
 
 - [x] Campaign Manage View - Assigning Posts
   - [x] Posts ordered by published date
-    - [ ] Is this true for Sheet Report?
+    - [x] Is this true for Sheet Report?
   - [x] Fix Campaign template error on |length
   - [x] Fix references to no longer used fields:
     - [x] Post.processed
@@ -102,12 +103,15 @@ Current Status:
   - [x] test changes and migration management
 - [x] Post model to Campaign is Many-to-Many relationship
   - [x] Additional fields or methods tracking what queues it is removed from
-- [ ] Post.rejections to Post.processed, Campaign.rejected to Campaign.processed
+- [x] Post.rejections to Post.processed, Campaign.rejected to Campaign.processed
 - [s] Update ON DELETE for a User's posts.
 - [s] How do we want to organize audience data?
 - [s] Refactor Audience Model to parse out the gender and age group fields
   - [s] After refactor, make sure audience data does not overwrite previous data
-- [ ] Encrypt tokens
+- [x] Set order_by='recorded' inside db.relationship declarations?
+  - [x] Confirm this does not break templates somehow?
+- [x] fix data.brands (Campaign.brands): TypeError: object of type 'AppenderBaseQuery' has no len()
+- [x] Encrypt tokens
 - [n] Keep a DB table of worksheet ids?
   - [s] Will we have multiple report views?
 - [s] DB Migration: Integrate flask-migrate?
@@ -153,10 +157,11 @@ Current Status:
 ### Permissions to Routes and Showing/Hiding links in Templates
 
 - [ ] Any Routes / Template views needed to also have limited access?
+  - [x] Remove Influencer and Brand user link to export to sheet. Admin only feature.
 - [s] Other Security checks?
-- [x] Delete Campaign link limited to just Admin
+- [x] Delete Campaign link limited to just Admin.
   - [s] What if a manager accidentally created one?
-- [s] Global revoke permissions to all Sheet/file in Drive for a given user
+- [s] Global revoke permissions to all Sheet/file in Drive for a given user.
 
 ### Site Content & Style
 
@@ -166,6 +171,12 @@ Current Status:
   - [s] Content for Influencer sign-up portal (home view) to give them confidence in the process.
   - [s] Attractive and clear styling for profile and data views seen by Influencers.
 - [x] favicon (looks nice in browser, less search engine errors)
+- [x] Confirm all templates build off a template that points to favicon location
+  - [x] extends "base.html" is safe
+  - [x] extends "view.html" is safe
+  - [x] extends "campaign.html" is safe
+  - [x] All template files are extensions of base or other confirmed sources.
+- [ ] Error response using template vs app.errorhandler(500)
 - [x] Add robots.txt file so search engines are not getting errors.
 
 ### Other Site Functionality
@@ -189,20 +200,24 @@ Current Status:
 
 ### Code Structure, Testing, Clean up
 
-- [ ] Setup Dev Version as owned by Bacchus
+- [x] Setup Dev Version as owned by Bacchus
   - [x] Env has DEV site & config settings depend on DEV_RUN flag
   - [x] Project created under Bacchus billing account - devfacebookinsights
-  - [ ] App Engine created in that Project - Chris does not have permission
-  - [ ] Connect Dev DB (cloned in Facebook Insights App)
-    - [ ] Ver A) Set permissions and confirm it can connect across Projects
-    - [ ] Ver B) Re-assign the cloned/dev DB to the Dev Project
-    - [ ] Ver C) See if the DB image/clone can be used to create DB in Dev Project.
-- [ ] Remove very excessive logs. Keeping high log level until onboarding is verified.
+  - [x] App Engine created in that Project - Chris does not have permission
+  - [x] Connect Dev DB (cloned in Facebook Insights App)
+    - [x] Ver A) Set permissions and confirm it can connect across Projects
+    - [n] Ver B) Re-assign the cloned/dev DB to the Dev Project
+    - [n] Ver C) See if the DB image/clone can be used to create DB in Dev Project.
+- [x] Remove very excessive logs. Keeping high log level until onboarding is verified.
+  - [x] Modify to use logger.debug as appropriate
+  - [x] Modify to use logger.exception as appropriate
+  - [x] Change settings so live site does not log DEBUG
+  - [x] ? Change settings so live site does not log INFO ?
+- [s] Remove excessive logs after we confirm numerous onboarding.
 - [ ] Check and comply to expected response on a cron job.
 - [ ] Flatten Migrate files to not create and delete unneeded changes (esp. test changes)
 - [ ] Migrate Live DB (test with having Dev site connect to it before deploy live code?)
 - [ ] Set DEV_RUN=False, and deploy to live site.
-- [s] Remove excessive logs after we confirm numerous onboarding.
 - [s] Update forms and API digesting with input validation to replace following functionality:
   - [x] Currently fix_date used for both create model, and when create_or_update many
   - [x] Currently create_or_update_many also has to modify inputs from Audience API calls

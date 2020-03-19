@@ -17,6 +17,8 @@ google-auth-httplib2 = "*"
 google-auth = "*"
 flask-login = "*"
 flask-migrate = "*"
+sqlalchemy-utils = "*"
+cryptography = "*"
 
 [requires]
 python_version = "3.7"

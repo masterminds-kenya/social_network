@@ -91,8 +91,6 @@ def signup():
     ignore = ['influencer', 'brand']
     signup_roles = [role for role in User.roles if role not in ignore]
     if request.method == 'POST':
-        print('------- Post on Sign Up ---------')
-        # pprint(request.form)
         mod = request.form.get('role')
         if mod not in signup_roles:
             raise ValueError("That is not a valid role selection")
@@ -132,8 +130,6 @@ def signup():
 def login():
     """ This the the manual login process. """
     if request.method == 'POST':
-        print('------- Post on Login ---------')
-        # pprint(request.form)
         data = process_form('login', request)
         password = data.get('password', None)
         if not password:
@@ -159,18 +155,18 @@ def logout():
 @app.route('/error', methods=['GET', 'POST'])
 def error():
     err = request.form.get('data')
+    app.logger.error(err)
     return render_template('error.html', err=err)
 
 
 @app.route('/admin')
 @admin_required()
-def admin():
+def admin(data=None):
     """ Platform Admin view to view links and actions unique to admin """
     dev_email = ['hepcatchris@gmail.com', 'christopherlchapman42@gmail.com']
     dev = current_user.email in dev_email
     # files = None if app.config.get('LOCAL_ENV') else all_files()
     files = None
-    data = None
     return render_template('admin.html', dev=dev, data=data, files=files)
 
 
@@ -192,6 +188,34 @@ def backup_save(mod, id):
     app.logger.info(message)
     flash(message)
     return redirect(url_for('view', mod='influencer', id=id))
+
+
+@app.route('/data/encrypt/')
+@admin_required()
+def encrypt():
+    """ This is a temporary development function. Will be removed for production. """
+    from .model_db import db
+
+    message, count = '', 0
+    users = User.query.all()
+    try:
+        for user in users:
+            value = getattr(user, 'token')
+            app.logger.debug(value)
+            setattr(user, 'crypt', value)
+            count += 1
+        message += f"Adjusted for {count} users. "
+        db.session.commit()
+        message += "Commit Finished! "
+    except error as e:
+        temp = f"Encrypt method error. Count: {count}. "
+        app.logger.error(temp)
+        app.logger.exception(e)
+        message += temp
+        db.session.rollback()
+    flash(message)
+    app.logger.info(message)
+    return redirect(url_for('admin'))
 
 
 # ########## The following are for worksheets ############
@@ -229,7 +253,7 @@ def data_permissions(mod, id, sheet_id, perm_id=None):
     sheet = perm_list(sheet_id)
     data = next((x for x in sheet.get('permissions', []) if x.id == perm_id), {}) if perm_id else {}
     action = 'Edit' if perm_id else 'Add'
-    app.logger.info(f'-------- {mod} Sheet {action} Permissions --------')
+    app.logger.debug(f'-------- {mod} Sheet {action} Permissions --------')
     if request.method == 'POST':
         data = request.form.to_dict(flat=True)
         if action == 'Edit':
@@ -243,7 +267,6 @@ def data_permissions(mod, id, sheet_id, perm_id=None):
 
 
 # ############# End Worksheets #############
-
 
 @app.route('/login/<string:mod>')
 def fb_login(mod):
@@ -270,7 +293,7 @@ def callback(mod):
             for key, value in ig_info.items():
                 cleaned[key] = json.dumps(value) if key in Audience.ig_data else value
             ig_list.append(cleaned)
-        app.logger.info(f"Amongst these IG options: {ig_list}")
+        app.logger.debug(f"Amongst these IG options: {ig_list}")
         return render_template('decide_ig.html', mod=mod, id=account_id, ig_list=ig_list)
     elif view == 'complete':
         app.logger.info(f"Completed User")
@@ -279,6 +302,8 @@ def callback(mod):
         return redirect(url_for('error', data=data), code=307)
     else:
         return redirect(url_for('error', data='unknown response'), code=307)
+
+# ########## The following are for Campaign Views ############
 
 
 @app.route('/campaign/<int:id>/results', methods=['GET', 'POST'])
@@ -338,6 +363,9 @@ def campaign(id, view='management'):
             related[user] = []  # This condition should not occur.
     return render_template(template, mod=mod, view=view, data=campaign, related=related)
 
+# ########## End of Campaign Views ############
+# ########## The following are for general Views ############
+
 
 @app.route('/all_posts')
 def all_posts():
@@ -357,7 +385,7 @@ def all_posts():
         return_path = url_for('admin')
     elif cron_run:
         message += "Cron job completed"
-        return_path = url_for('home') # TODO: Check expected response on success / completion.
+        return_path = url_for('home')  # TODO: Check expected response on success / completion.
     app.logger.info(message)
     return redirect(return_path)
 
@@ -537,7 +565,7 @@ def add_edit(mod, id=None):
                 model = db_update(data, id, Model=Model)
             except ValueError as e:
                 app.logger.error('------- Came back as ValueError from Integrity Error -----')
-                app.logger.error(e)
+                app.logger.exception(e)
                 # Possibly that User account exists for the 'instagram_id'
                 # If true, then switch to updating the existing user account
                 #     and delete this newly created User account that was trying to be a duplicate.
@@ -552,7 +580,7 @@ def add_edit(mod, id=None):
                         except ValueError as e:
                             message = 'Unable to update existing user'
                             app.logger.error(f'----- {message} ----')
-                            app.logger.error(e)
+                            app.logger.exception(e)
                             flash(message)
                             return redirect(url_for('home'))
                         login_user(found_user, force=True, remember=True)
@@ -569,7 +597,7 @@ def add_edit(mod, id=None):
                 model = db_create(data, Model=Model)
             except ValueError as e:
                 app.logger.error('------- Came back as ValueError from Integrity Error -----')
-                app.logger.error(e)
+                app.logger.exception(e)
                 flash('Error. Please try again or contact an Admin')
                 return redirect(url_for('add', mod=mod, id=id))
         return redirect(url_for('view', mod=mod, id=model['id']))
@@ -631,7 +659,7 @@ def delete(mod, id):
         except Exception as e:
             message = f"We were unable to delete {mod} - {Model} - {id}. "
             app.logger.error(message)
-            app.logger.error(e)
+            app.logger.exception(e)
             flash(message)
             return redirect(request.form.get('next') or request.referrer)
         return redirect(url_for('home'))

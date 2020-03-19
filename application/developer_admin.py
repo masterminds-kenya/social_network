@@ -20,7 +20,7 @@ def load():
             app.logger.info(user['username'])
             new_users.append(user)
     created_users = create_many(new_users)
-    print(f'------------- Create from File: {len(created_users)} users -------------')
+    app.logger.info(f'------------- Create from File: {len(created_users)} users -------------')
     return True if len(created_users) else False
 
 
@@ -34,7 +34,7 @@ def save(mod, id, Model):
     model.pop('modified', None)
     model.pop('insight', None)
     model.pop('audience', None)
-    print('Old Account: ', model)
+    app.logger.info('Old Account: ', model)
     count = 0
     with open(filename, 'a') as file:
         file.write(json.dumps(model))

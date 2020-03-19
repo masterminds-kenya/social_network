@@ -6,13 +6,14 @@ from flask_login import LoginManager
 def create_app(config, debug=False, testing=False, config_overrides=None):
     app = Flask(__name__)
     app.config.from_object(config)
-    app.debug = debug
+    app.debug = config.DEBUG or debug
     app.testing = testing
     if config_overrides:
         app.config.update(config_overrides)
-    # Configure logging
+    # Configure logging depth: ?NOTSET?, DEBUG, INFO, WARNING, ERROR, CRITICAL
     if not app.testing:
-        logging.basicConfig(level=logging.INFO)
+        log_level = logging.DEBUG if app.debug else logging.WARNING
+        logging.basicConfig(level=log_level)
     # Configure flask_login
     login_manager = LoginManager()
     login_manager.login_view = 'signup'  # where to find the login route
