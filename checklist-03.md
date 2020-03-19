@@ -73,8 +73,13 @@ Current Status:
 - [s] If we know the file, or can traverse web page to it.
   - [s] from bs4 import BeautifulSoup, also use requests, urllib.request, time.
 - [x] Install selenium, which can do a screenshot.
-- [ ] Can visit the desired location.
-- [ ] Save the full page screenshot.
+- [x] Running Locally:
+  - [x] Can visit the desired location
+  - [x] Save the full page screenshot.
+- [ ] Running from Server:
+  - [ ] Setup browser emulation when called on server.
+  - [ ] Can visit the desired location.
+  - [ ] Save the full page screenshot.
 - [ ] Store the file in a desired location.
   - [ ] assigned file directory.
   - [?] Media / Static files location.

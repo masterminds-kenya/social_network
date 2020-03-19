@@ -222,7 +222,14 @@ def encrypt():
 @admin_required()
 def capture_media():
     """ Capture the media files. Currently on an Admin function, to be updated later. """
-    post = Post.query.filter(Post.media_id == 17914427410349900).one()
+    # update for a valid Post
+    # post = Post.query.filter(Post.media_id == '17914427410349900').first()
+    post = Post.query.get('250')
+    if not post:
+        message = f"Post not found. "
+        app.logger.debug(message)
+        flash(message)
+        return redirect(url_for('admin'))
     filename = 'screensot'  # the name of the file that will be saved
     path = get_fullscreen(post, filename)
     return admin(data=path)

@@ -8,12 +8,12 @@ options.add_argument("--test-type")
 # options.binary_location = "/usr/bin/chromium"
 location = ''
 URL = app.config.get('URL')
-driver = webdriver.Chrome(chrome_options=options)
 
 
 def get_fullscreen(post, filename):
     """ Visits the permalink for give Post, creates a screenshot named the given filename. """
     ig_url = post.permalink
+    driver = webdriver.Chrome(chrome_options=options)
     driver.get(ig_url)
     filepath = location + filename + '.png'
     success = driver.save_screenshot(filepath)
