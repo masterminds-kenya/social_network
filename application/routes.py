@@ -432,21 +432,22 @@ def view(mod, id):
     Model = Model or mod_lookup(mod)
     model = model or Model.query.get(id)
     related_user = from_sql(model.user, related=False, safe=True) if getattr(model, 'user', None) else None
-    model = from_sql(model, related=True, safe=True)
     template = 'view.html'
-    if mod == 'insight':
-        template = f"{mod}_{template}"
-        model['user'] = related_user
-    elif mod == 'audience':
-        template = f"{mod}_{template}"
-        model['user'] = related_user
-        value = json.loads(model['value'])
-        if not isinstance(value, dict):  # For the id_data Audience records
-            value = {'value': value}
-        model['value'] = value
-    elif mod == 'post':
+    if mod == 'post':
         template = f"{mod}_{template}"
         model = model.display()
+    else:
+        model = from_sql(model, related=True, safe=True)
+        if mod == 'insight':
+            template = f"{mod}_{template}"
+            model['user'] = related_user
+        elif mod == 'audience':
+            template = f"{mod}_{template}"
+            model['user'] = related_user
+            value = json.loads(model['value'])
+            if not isinstance(value, dict):  # For the id_data Audience records
+                value = {'value': value}
+            model['value'] = value
     return render_template(template, mod=mod, data=model)
 
 
@@ -703,9 +704,9 @@ def all(mod):
                 return redirect(url_for('signup'))
         flash('It seems that is not a correct route. You are redirected to the home page.')
         return redirect(url_for('home'))
-    if mod not in ['campaign', *User.roles] and current_user.role != 'admin':
-        flash('It seems that is not a correct route. You are redirected to the home page.')
-        return redirect(url_for('home'))
+    # if mod not in ['campaign', *User.roles] and current_user.role != 'admin':
+    #     flash('It seems that is not a correct route. You are redirected to the home page.')
+    #     return redirect(url_for('home'))
     if mod == 'file':
         models = all_files()
     else:
