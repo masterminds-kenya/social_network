@@ -70,12 +70,17 @@ Current Status:
 
 ### Capture Media Files
 
-- [s] If we know the file, or can traverse web page to it.
-  - [s] from bs4 import BeautifulSoup, also use requests, urllib.request, time.
-- [x] Install selenium, which can do a screenshot.
+- [n] If we know the file, or can traverse web page to it.
+  - [x] from bs4 import BeautifulSoup, also use requests, urllib.request, time.
+  - [x] I do not think this will work since IG is a React App.
+- [x] Install selenium, and maybe we can traverse result page with BeautifulSoup.
+  - [x] Can we get a Chrome instance to give the needed data for BeautifulSoup?
+  - [x] Can we traverse the DOM to get the img files?
+- [x] Install selenium and with a chrome instance, do a screenshot.
 - [x] Running Locally:
-  - [x] Can visit the desired location
+  - [x] Can visit the desired location.
   - [x] Save the full page screenshot.
+  - [ ] Can save file in a sub-directory.
 - [ ] Running from Server:
   - [ ] Setup browser emulation when called on server.
   - [ ] Can visit the desired location.

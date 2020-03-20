@@ -5,7 +5,7 @@ from werkzeug.security import generate_password_hash, check_password_hash
 from .model_db import db_create, db_read, db_update, db_delete, db_all, from_sql
 from .model_db import User, OnlineFollowers, Insight, Audience, Post, Campaign  # , metric_clean
 from . import developer_admin
-from .media_capture import get_fullscreen
+from .media_capture import capture
 from functools import wraps
 from .manage import update_campaign, process_form
 from .api import onboard_login, onboarding, get_insight, get_audience, get_posts, get_online_followers
@@ -231,7 +231,7 @@ def capture_media():
         flash(message)
         return redirect(url_for('admin'))
     filename = 'screensot'  # the name of the file that will be saved
-    path = get_fullscreen(post, filename)
+    path = capture(post, filename)
     return admin(data=path)
 
 
