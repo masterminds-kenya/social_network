@@ -230,7 +230,7 @@ def capture_media():
         app.logger.debug(message)
         flash(message)
         return redirect(url_for('admin'))
-    filename = 'screensot'  # the name of the file that will be saved
+    filename = 'capture'  # the name of the file that will be saved
     path = capture(post, filename)
     return admin(data=path)
 

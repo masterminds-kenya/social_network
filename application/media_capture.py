@@ -10,35 +10,13 @@ from selenium import webdriver
 # import json
 from pprint import pprint
 
-location = './save/'
+location = 'application/save/'
 URL = app.config.get('URL')
-
-
-def chrome_screenshot(target_url, filename):
-    """ A simple screenshot, using selenium webdriver with Chrome. """
-    filepath = location + filename + '.png'
-
-    options = webdriver.ChromeOptions()
-    options.add_argument('--ignore-certificate-errors')
-    options.add_argument("--test-type")
-    # options.binary_location = "/usr/bin/chromium"
-
-    driver = webdriver.Chrome(chrome_options=options)
-    driver.get(target_url)
-    success = driver.save_screenshot(filepath)
-    driver.close()
-    message = 'File Saved! ' if success else "Error in Screen Grab. "
-    app.logger.debug(message)
-    flash(message)
-    answer = f"{URL}/{filepath}" if success else f"Failed. {success} "
-    return answer
 
 
 def chrome_grab(ig_url, filename):
     """ Using selenium webdriver with Chrome and grabing the file from the page content. """
     filepath = location + filename
-    # filepath = filename
-
     options = webdriver.ChromeOptions()
     options.add_argument('--ignore-certificate-errors')
     options.add_argument("--test-type")
@@ -48,26 +26,26 @@ def chrome_grab(ig_url, filename):
     driver = webdriver.Chrome(chrome_options=options)
     driver.get(ig_url)
     success = driver.save_screenshot(f"{filepath}_full.png")
-    count = 1 if success else 0
-    app.logger.debug(f"Start of count at {count}. ")
+    count = 0 if success else -1
+    app.logger.debug(f"Start of count at {count + 1}. ")
     soup = bs(driver.page_source, 'html.parser')
     target = [img.get('src') for img in soup.findAll('img') if not re.search("^\/", img.get('src'))]
     pprint(target)
     for ea in target:
+        count += 1
         time.sleep(1)
         try:
             driver.get(ea)
             temp = f"{filepath}_{count}.png"
             app.logger.debug(temp)
             driver.save_screenshot(temp)
-            count += 1
         except Exception as e:
             message = f"Error on file # {count} . "
             app.logger.error(message)
             app.logger.exception(e)
             flash(message)
     success = count == len(target)
-    message = 'File Saved! ' if success else "Error in Screen Grab. "
+    message = 'Files Saved! ' if success else "Error in Screen Grab. "
     app.logger.debug(message)
     flash(message)
     answer = f"{URL}/{filepath}_full.png" if success else f"Failed. {success} "

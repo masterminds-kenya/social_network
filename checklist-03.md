@@ -80,7 +80,8 @@ Current Status:
 - [x] Running Locally:
   - [x] Can visit the desired location.
   - [x] Save the full page screenshot.
-  - [ ] Can save file in a sub-directory.
+  - [x] Can save file in a sub-directory.
+    - [x] It is relative to the root of the repo, not relative to the application folder.
 - [ ] Running from Server:
   - [ ] Setup browser emulation when called on server.
   - [ ] Can visit the desired location.
