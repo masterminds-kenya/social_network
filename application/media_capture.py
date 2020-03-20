@@ -36,8 +36,8 @@ def chrome_screenshot(target_url, filename):
 
 def chrome_grab(ig_url, filename):
     """ Using selenium webdriver with Chrome and grabing the file from the page content. """
-    # filepath = location + filename
-    filepath = filename
+    filepath = location + filename
+    # filepath = filename
 
     options = webdriver.ChromeOptions()
     options.add_argument('--ignore-certificate-errors')
@@ -97,7 +97,6 @@ def capture(post, filename):
     # flash(message)
     # answer = f"{URL}/{filepath}" if success else f"Failed. {success} "
     return answer
-
 
     # script = body.find('script', text=lambda t: t.startswith('window._sharedData'))
     # page_json = script.text.split(' = ', 1)[1].rstrip(';')
