@@ -21,6 +21,7 @@ sqlalchemy-utils = "*"
 cryptography = "*"
 selenium = "*"
 bs4 = "*"
+chromedriver-binary = "*"
 
 [requires]
 python_version = "3.7"
