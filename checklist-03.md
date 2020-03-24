@@ -82,7 +82,9 @@ Current Status:
   - [x] Save the full page screenshot.
   - [x] Can save file in a sub-directory.
     - [x] It is relative to the root of the repo, not relative to the application folder.
+  - [ ] Can install Chrome browser used just by project, and connect to it and not existing Chrome.
 - [ ] Running from Server:
+  - [ ] Can install Chrome browser so it can be run as a headless browser.
   - [ ] Setup browser emulation when called on server.
   - [ ] Can visit the desired location.
   - [ ] Save the full page screenshot.

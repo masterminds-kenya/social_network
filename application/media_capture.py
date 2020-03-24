@@ -48,7 +48,7 @@ def chrome_grab(ig_url, filename):
     message = 'Files Saved! ' if success else "Error in Screen Grab. "
     app.logger.debug(message)
     flash(message)
-    answer = f"{URL}/{filepath}_full.png" if success else f"Failed. {success} "
+    answer = f"{URL}/{filepath}_full.png" if success else f"Failed. See flash messages above. "
     driver.close()
     # driver.exit()  # Needed?
     return answer
