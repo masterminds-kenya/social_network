@@ -21,27 +21,18 @@ def chrome_grab(ig_url, filename):
     options.add_argument('--no-sandbox')  # required when running as root user to avoid sandbox errors.
     options.add_argument('--disable-dev-shm-usage')
     options.add_argument('--headless')
+    options.add_argument("--remote-debugging-port=9222")
     # options.add_argument('blink-settings=imagesEnabled=false')
-    # options.add_argument('--disable-gpu')  # Possibly only for Windows only, may be out of date.
-    # options.add_argument("--remote-debugging-port=9222")
     # options.add_experimental_option("useAutomationExtension", False)
     # options.add_argument('--ignore-certificate-errors')
     # options.add_argument('--test-type')
     # "--disable-gpu", "start-maximized", "disable-infobars", "--disable-extensions",
     # options.setExperimentalOption("useAutomationExtension", false);
     # options.add_argument('--log-level=ALL')
+    # service_args = ['--verbose', '--log-path=/tmp/chromedriver.log', '--log-level=ALL']  # TODO: Set accurate values
     if myProxy:
         options.add_argument(f"--proxy-server={myProxy}")
-    # options.binary_location = "/usr/bin/chromium"
     options.binary_location = chromedriver_binary.chromedriver_filename
-    # chrome_path = '/home/dev/chromedriver'  # TODO: Set accurate values
-    # service_args = ['--verbose', '--log-path=/tmp/chromedriver.log', '--log-level=ALL']  # TODO: Set accurate values
-    # service_args = ['--log-level=ALL']
-    # # Instead of ChromeOptions approach, could use pyvirtualdisplay
-    # from pyvirtualdisplay import Display
-    # display = Display(visible=0, size=(1024, 768))
-    # display.start()
-    # driver = webdriver.Chrome(driver_path=chrome_path, service_args=service_args)
     driver = webdriver.Chrome(chrome_options=options)
     # driver = webdriver.Chrome(chrome_options=options, service_args=service_args)
     # Firefox:
