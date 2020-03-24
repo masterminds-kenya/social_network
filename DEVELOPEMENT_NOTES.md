@@ -8,7 +8,7 @@ The 'webdriver' in Selenium appears to be an interface for connecting Selenium e
 
 It is unclear if we need a Selenium server running to use a remote WebDriver. This seems to include installing java java package.
 
-There are *many* questions and places of confusion online for getting Chrome, chromedriver, and Selenium all working together. It is possible to have some experimental options, which take a key, value pair input in the form of `options.add_experimental_option(key, value)`. There are many proposed solutions for what seem like the same problem. The most common combinations include the following settings. One or two sources claim that the '--no-sandbox' setting should be listed first.
+There are *many* questions and places of confusion online for getting Chrome, chromedriver, and Selenium all working together. There are many proposed solutions for what seem like the same problem. The most common combinations include the following settings. One or two sources claim that the '--no-sandbox' setting should be listed first.
 
 ``` Python
     import chromedriver_binary  # Adds chromedriver binary to path
@@ -26,10 +26,26 @@ When you run Chrome with --remote-debugging-port=9222, it starts an instance wit
     options.add_argument("--remote-debugging-port=9222")
 ```
 
-The '--disable-gpu' is not needed on most platforms as it is only (maybe an out of date)  requirement applying to only Windows. Xvfb is not needed (any more). Headless Chrome doesn't use a window so a display server like Xvfb is no longer needed. You can happily run your automated tests without it.
+It is possible to have some experimental options, which take a key, value pair input in the form of `options.add_experimental_option(key, value)`. The many other sources and solutions include a wide variety of other options that are less commonly present between them. Here are a few examples that *might* be of value to us:
+
+``` Python
+    options.add_argument('blink-settings=imagesEnabled=false')
+    options.add_experimental_option("useAutomationExtension", False)
+    options.add_argument('--ignore-certificate-errors')
+    options.add_argument('--test-type')
+    options.add_argument('--disable-extensions')
+    options.add_argument('--disable-infobars')
+    options.add_argument('disable-infobars')
+    options.add_argument(f"--proxy-server={myProxy}")  # when myProxy in the form of "10.0.x.x:yyyy"
+    options.add_argument('--log-level=ALL')
+    service_args = ['--verbose', '--log-path=/tmp/chromedriver.log', '--log-level=ALL']
+```
+
+The '--disable-gpu' option came up often but but is not needed on most platforms as it is only (maybe an out of date)  requirement applying to only Windows. Xvfb is not needed (any more). Headless Chrome doesn't use a window so a display server like Xvfb is no longer needed. You can happily run your automated tests without it.
 [Google Docs Source](https://developers.google.com/web/updates/2017/04/headless-chrome#faq)
 
-Besides the above options, we need the Chrome browser discoverable in the path (or additional settings for driver below). To bring all this together our code needs the following code block example. Some online examples use the deprecated `chrome_options` instead of the more up-to-date `options` keyword. The 'service_args' setting is only needed if we are setting any, and the executable_path may be optional if it will be found in the path. *It is unclear to me if `binary_location` vs `executable_path` is supposed to point to the chromedriver vs path of running the actual Chrome browser. It is not clear to me if we should have only one of these, or both*
+Besides the above options, we need the Chrome browser discoverable in the path (or additional settings for driver below). To bring all this together our code needs the following code block example. Some online examples use the deprecated `chrome_options` instead of the more up-to-date `options` keyword. The 'service_args' setting (expects a list) as well as the settings shown set to None, are only needed if we are setting them to some values. The executable_path may be optional if it will be found in the path.
+*It is unclear to me if `binary_location` vs `executable_path` is supposed to point to the chromedriver vs path of running the actual Chrome browser. It is not clear to me if we should have only one of these, or both*
 
 ``` Python
     options.binary_location = chromedriver_binary.chromedriver_filename
@@ -37,7 +53,9 @@ Besides the above options, we need the Chrome browser discoverable in the path (
     # options.binary_location = "path/to/chrome"
     driver = webdriver.Chrome(executable_path='chromedriver',
                               options=options,
-                              service_args=service_args
+                              service_args=service_args,
+                              desired_capabilities=None,
+                              service_log_path=None,
                               )
     # Do all the work we want with the driver, such as:
     driver.get(url)
@@ -48,7 +66,7 @@ Besides the above options, we need the Chrome browser discoverable in the path (
     # driver.quit()  # Is this also needed?
 ```
 
-executable_path='chromedriver', port=0, options=None, service_args=None, desired_capabilities=None, service_log_path=None, chrome_options=None, keep_alive=True
+### Other Setups, including other Browsers
 
 One tutorial source claimed that instead of using the ChromeOptions approach above, we could use:
 
@@ -59,7 +77,20 @@ One tutorial source claimed that instead of using the ChromeOptions approach abo
     driver = webdriver.Chrome(driver_path=chrome_path, service_args=service_args)
 ```
 
-Besides Chrome, there is Selenium phantomjs, which is a headless browser that can be used with the Selenium web automation module.
+There has been mention of using FireFox, which follows a very similar process as Chrome with ChromeOptions above, but using FireFox settings. There was a mention of how proxy settings are different for FireFox, using the following pattern:
+
+``` Python
+    firefox_proxy = Proxy({
+        'proxyType': ProxyType.MANUAL,
+        'httpProxy': myProxy,
+        'ftpProxy': myProxy,
+        'sslProxy': myProxy,
+        'noProxy': ''
+    })
+    ff_driver = webdriver.Firefox(proxy=firefox_proxy)
+```
+
+Besides Chrome and FireFox, there is Selenium phantomjs, which is a headless browser that can be used with the Selenium web automation module.
 
 ## String Encoding in MySQL
 

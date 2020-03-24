@@ -9,41 +9,18 @@ from pprint import pprint
 
 location = 'application/save/'
 URL = app.config.get('URL')
-# chrome_path = chromedriver_binary.chromedriver_filename
-# myProxy = "10.0.x.x:yyyy"
-myProxy = None
 
 
 def chrome_grab(ig_url, filename):
     """ Using selenium webdriver with Chrome and grabing the file from the page content. """
     filepath = location + filename
     options = webdriver.ChromeOptions()
-    options.add_argument('--no-sandbox')  # required when running as root user to avoid sandbox errors.
+    options.add_argument('--no-sandbox')
     options.add_argument('--disable-dev-shm-usage')
     options.add_argument('--headless')
     options.add_argument("--remote-debugging-port=9222")
-    # options.add_argument('blink-settings=imagesEnabled=false')
-    # options.add_experimental_option("useAutomationExtension", False)
-    # options.add_argument('--ignore-certificate-errors')
-    # options.add_argument('--test-type')
-    # "--disable-gpu", "start-maximized", "disable-infobars", "--disable-extensions",
-    # options.setExperimentalOption("useAutomationExtension", false);
-    # options.add_argument('--log-level=ALL')
-    # service_args = ['--verbose', '--log-path=/tmp/chromedriver.log', '--log-level=ALL']  # TODO: Set accurate values
-    if myProxy:
-        options.add_argument(f"--proxy-server={myProxy}")
     options.binary_location = chromedriver_binary.chromedriver_filename
     driver = webdriver.Chrome(chrome_options=options)
-    # driver = webdriver.Chrome(chrome_options=options, service_args=service_args)
-    # Firefox:
-    # firefox_proxy = Proxy({
-    #     'proxyType': ProxyType.MANUAL,
-    #     'httpProxy': myProxy,
-    #     'ftpProxy': myProxy,
-    #     'sslProxy': myProxy,
-    #     'noProxy': ''
-    # })
-    # ff_driver = webdriver.Firefox(proxy=firefox_proxy)
 
     app.logger.info("==============================================")
     driver.get(ig_url)
@@ -51,6 +28,7 @@ def chrome_grab(ig_url, filename):
     count = 0 if success else -1
     app.logger.debug(f"Start of count at {count + 1}. ")
     soup = bs(driver.page_source, 'html.parser')
+    # TODO: Determine if we can do this without BeautifulSoup processes.
     target = [img.get('src') for img in soup.findAll('img') if not re.search("^\/", img.get('src'))]
     pprint(target)
     for ea in target:
@@ -72,6 +50,7 @@ def chrome_grab(ig_url, filename):
     flash(message)
     answer = f"{URL}/{filepath}_full.png" if success else f"Failed. {success} "
     driver.close()
+    # driver.exit()  # Needed?
     return answer
 
 
