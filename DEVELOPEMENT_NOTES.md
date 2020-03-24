@@ -26,7 +26,7 @@ When you run Chrome with --remote-debugging-port=9222, it starts an instance wit
     options.add_argument("--remote-debugging-port=9222")
 ```
 
-It is possible to have some experimental options, which take a key, value pair input in the form of `options.add_experimental_option(key, value)`. The many other sources and solutions include a wide variety of other options that are less commonly present between them. Here are a few examples that *might* be of value to us:
+It is possible to have some experimental options, which take a key, value pair input in the form of `options.add_experimental_option(key, value)`. It seems the `service_args` is a list of args sent to the chromedriver, while the other add_argument values are passed to the actual Chrome browser that is opened. The many other sources and solutions include a wide variety of other options that are less commonly present between them. Here are a few examples that *might* be of value to us:
 
 ``` Python
     options.add_argument('blink-settings=imagesEnabled=false')
@@ -46,6 +46,7 @@ The '--disable-gpu' option came up often but but is not needed on most platforms
 
 Besides the above options, we need the Chrome browser discoverable in the path (or additional settings for driver below). To bring all this together our code needs the following code block example. Some online examples use the deprecated `chrome_options` instead of the more up-to-date `options` keyword. The 'service_args' setting (expects a list) as well as the settings shown set to None, are only needed if we are setting them to some values. The executable_path may be optional if it will be found in the path.
 *It is unclear to me if `binary_location` vs `executable_path` is supposed to point to the chromedriver vs path of running the actual Chrome browser. It is not clear to me if we should have only one of these, or both*
+Current guess: 1) `options.binary_location = 'usr/bin/chrome'` when 'usr/bin/chrome' is the path to how to actually open and run the browser. 2) `executable_path=chromedriver_binary.chromedriver_filename` to point to the chromedriver file location.
 
 ``` Python
     options.binary_location = chromedriver_binary.chromedriver_filename
