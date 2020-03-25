@@ -22,6 +22,8 @@ cryptography = "*"
 selenium = "*"
 bs4 = "*"
 chromedriver-binary = "*"
+phantomjs = "*"
+phantomjs-binary = "*"
 
 [requires]
 python_version = "3.7"

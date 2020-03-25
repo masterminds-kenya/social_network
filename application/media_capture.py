@@ -1,18 +1,58 @@
 from flask import flash, current_app as app
-import chromedriver_binary  # Adds chromedriver binary to path
+# from phantomjs import Phantom
+from phantomjs_bin import executable_path
 from bs4 import BeautifulSoup as bs
 from selenium import webdriver
 import time
 import re
+from os import path
 from pprint import pprint
 # import json
 
+# phantom = Phantom()
 location = 'application/save/'
 URL = app.config.get('URL')
 
 
+def phantom_grab(ig_url, filename):
+    """ Using selenium webdriver with phantom js and grabing the file from the page content. """
+    filepath = location + filename
+    driver = webdriver.PhantomJS(executable_path=executable_path)
+    app.logger.info("==============================================")
+    driver.get(ig_url)
+    success = driver.save_screenshot(f"{filepath}_full.png")
+    count = 0 if success else -1
+    app.logger.debug(f"Start of count at {count + 1}. ")
+    soup = bs(driver.page_source, 'html.parser')
+    # TODO: Determine if we can do this without BeautifulSoup processes.
+    target = [img.get('src') for img in soup.findAll('img') if not re.search("^\/", img.get('src'))]
+    pprint(target)
+    for ea in target:
+        count += 1
+        time.sleep(1)
+        try:
+            driver.get(ea)
+            temp = f"{filepath}_{count}.png"
+            app.logger.debug(temp)
+            driver.save_screenshot(temp)
+        except Exception as e:
+            message = f"Error on file # {count} . "
+            app.logger.error(message)
+            app.logger.exception(e)
+            flash(message)
+    success = count == len(target)
+    message = 'Files Saved! ' if success else "Error in Screen Grab. "
+    app.logger.debug(message)
+    flash(message)
+    answer = f"{URL}/{filepath}_full.png" if success else f"Failed. See flash messages above. "
+    driver.close()
+    # driver.exit()  # Needed?
+    return answer
+
+
 def chrome_grab(ig_url, filename):
     """ Using selenium webdriver with Chrome and grabing the file from the page content. """
+    import chromedriver_binary  # Adds chromedriver binary to path
     filepath = location + filename
     options = webdriver.ChromeOptions()
     options.add_argument('--no-sandbox')
@@ -55,7 +95,9 @@ def chrome_grab(ig_url, filename):
 
 
 def soup_no_chrome(ig_url, filename):
-    """ If possible, approach that does not require a browser emulation. """
+    """ If possible, approach that does not require a browser emulation.
+        If the page is a react app, or depends on javascript, this probably won't work.
+    """
     import requests
     import urllib.request
     filepath = location + filename
@@ -64,11 +106,13 @@ def soup_no_chrome(ig_url, filename):
         """ Helper function to traverse and capture image files.
             Recursive call if image source points to another web page.
         """
+        # extensions = ('.png', '.jpg', '.jpeg', '.gif', '.tiff', '.bmp',)
+        # vid_extensions = ('.mp4', '.mpeg', '.mpg', '.m4p', '.m4v', '.mp2', '.avi',)
         response = requests.get(ig_url)
         app.logger.debug(response)
         soup = bs(response.text, "html.parser")
         app.logger.debug(soup)
-        images = [img.get('src') for img in soup.findAll('img')]
+        images = [img.get('src') for img in soup.findAll('img') if not re.search("^\/", img.get('src'))]
         app.logger.debug(images)
         goal, bonus = len(images), 0
         file_count = 1
@@ -76,14 +120,17 @@ def soup_no_chrome(ig_url, filename):
             # TODO: The following steps are not fully implemented.
             # Check if the src pointed to actual images, or a web page
             # 1) regex to grab the file extension
+            name, ext = path.splitext(image)
             # 2) if file extension exists, confirm it matches known image extensions.
-            extension = 'png'  # example, but actually set according to a.
-            #   a) set the output filename to have the same file extension as original file.
-            urllib.request.urlretrieve(image, f"{filepath}_{file_count}.{extension}")
-            # 3) if no file extension or doesn't match known extensions, assume a web page view.
-            recur_goal, recur_found = _get_images(image, f"filename_{file_count}")
-            goal += recur_goal
-            bonus += recur_found
+            if ext:
+                # extension = 'png'  # example, but actually set according to a.
+                #   a) set the output filename to have the same file extension as original file.
+                urllib.request.urlretrieve(image, f"{filepath}_{file_count}.{ext}")
+            else:
+                # 3) if no file extension or doesn't match known extensions, assume a web page view.
+                recur_goal, recur_found = _get_images(image, f"filename_{file_count}")
+                goal += recur_goal
+                bonus += recur_found
             file_count += 1
         return (goal, file_count + bonus)
 
@@ -99,7 +146,9 @@ def soup_no_chrome(ig_url, filename):
 def capture(post, filename):
     """ Visits the permalink for give Post, creates a screenshot named the given filename. """
     ig_url = post.permalink
-    answer = chrome_grab(ig_url, filename)
+    # answer = chrome_grab(ig_url, filename)
+    answer = phantom_grab(ig_url, filename)
+    # answer = soup_no_chrome(ig_url, filename)
     return answer
 
     # script = body.find('script', text=lambda t: t.startswith('window._sharedData'))
