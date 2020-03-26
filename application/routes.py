@@ -10,7 +10,7 @@ from .manage import update_campaign, process_form
 from .api import onboard_login, onboarding, get_insight, get_audience, get_posts, get_online_followers
 from .sheets import create_sheet, update_sheet, perm_add, perm_list, all_files
 import json
-from pprint import pprint
+# from pprint import pprint
 
 
 def mod_lookup(mod):
@@ -51,16 +51,16 @@ def admin_required(role=['admin']):
     return wrapper
 
 
-# def self_or_staff_required(role=['admin', 'manager']):
-#     """ This decorator limits access to staff or if the resource belongs to the current_user. """
-#     def wrapper(fn):
-#         @wraps(fn)
-#         def decorated_view(*args, **kwargs):
-#             if not current_user.is_authenticated or current_user.role not in role:
-#                 return app.login_manager.unauthorized()
-#             return fn(*args, **kwargs)
-#         return decorated_view
-#     return wrapper
+def self_or_staff_required(role=['admin', 'manager'], user=current_user):
+    """ This decorator limits access to staff or if the resource belongs to the current_user. """
+    def wrapper(fn):
+        @wraps(fn)
+        def decorated_view(*args, **kwargs):
+            if not current_user.is_authenticated or current_user.role not in role:
+                return app.login_manager.unauthorized()
+            return fn(*args, **kwargs)
+        return decorated_view
+    return wrapper
 
 
 @app.route('/')
@@ -161,12 +161,11 @@ def error():
 
 @app.route('/admin')
 @admin_required()
-def admin(data=None):
+def admin(data=None, files=None):
     """ Platform Admin view to view links and actions unique to admin """
     dev_email = ['hepcatchris@gmail.com', 'christopherlchapman42@gmail.com']
     dev = current_user.email in dev_email
     # files = None if app.config.get('LOCAL_ENV') else all_files()
-    files = None
     return render_template('admin.html', dev=dev, data=data, files=files)
 
 
@@ -216,6 +215,21 @@ def encrypt():
     flash(message)
     app.logger.info(message)
     return redirect(url_for('admin'))
+
+
+@app.route('/data/capture/')
+@admin_required()
+def capture_media():
+    """ Capture the media files. Currently on an Admin function, to be updated later. """
+    post = Post.query.get('250')  # TODO: Change to assign by a parameter for Post id.
+    if not post:
+        message = f"Post not found. "
+        app.logger.debug(message)
+        flash(message)
+        return redirect(url_for('admin'))
+    filename = 'capture'  # TODO: Change to assign by a parameter for filename.
+    path = developer_admin.capture(post, filename)
+    return admin(data=path)
 
 
 # ########## The following are for worksheets ############
@@ -415,21 +429,22 @@ def view(mod, id):
     Model = Model or mod_lookup(mod)
     model = model or Model.query.get(id)
     related_user = from_sql(model.user, related=False, safe=True) if getattr(model, 'user', None) else None
-    model = from_sql(model, related=True, safe=True)
     template = 'view.html'
-    if mod == 'insight':
-        template = f"{mod}_{template}"
-        model['user'] = related_user
-    elif mod == 'audience':
-        template = f"{mod}_{template}"
-        model['user'] = related_user
-        value = json.loads(model['value'])
-        if not isinstance(value, dict):  # For the id_data Audience records
-            value = {'value': value}
-        model['value'] = value
-    elif mod == 'post':
+    if mod == 'post':
         template = f"{mod}_{template}"
         model = model.display()
+    else:
+        model = from_sql(model, related=True, safe=True)
+        if mod == 'insight':
+            template = f"{mod}_{template}"
+            model['user'] = related_user
+        elif mod == 'audience':
+            template = f"{mod}_{template}"
+            model['user'] = related_user
+            value = json.loads(model['value'])
+            if not isinstance(value, dict):  # For the id_data Audience records
+                value = {'value': value}
+            model['value'] = value
     return render_template(template, mod=mod, data=model)
 
 
@@ -686,9 +701,9 @@ def all(mod):
                 return redirect(url_for('signup'))
         flash('It seems that is not a correct route. You are redirected to the home page.')
         return redirect(url_for('home'))
-    if mod not in ['campaign', *User.roles] and current_user.role != 'admin':
-        flash('It seems that is not a correct route. You are redirected to the home page.')
-        return redirect(url_for('home'))
+    # if mod not in ['campaign', *User.roles] and current_user.role != 'admin':
+    #     flash('It seems that is not a correct route. You are redirected to the home page.')
+    #     return redirect(url_for('home'))
     if mod == 'file':
         models = all_files()
     else:

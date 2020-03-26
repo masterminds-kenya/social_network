@@ -83,38 +83,11 @@ Through our [manually built Facebook Login flow](https://developers.facebook.com
 
 We are currently deploying on google cloud (gcloud), with the Google App Engine standard environment. Some packages and code would need to be modified if we switched to App Engine flex, or other gcloud deploy services. Google Cloud (GCloud) is expecting a pip requirements file (`requirements.txt`), a `app.yaml` file (indicating what python version to use, and environment variables), and a `main.py` file as a point of entry for the application server to run. Gcloud also allows an ignore file - `.gcloudignore` which follows the same concepts from `.gitignore` files, as well as additional techniques for allowing files otherwise ignored in the `.gitignore` file.
 
-## Development notes
+## Development Notes
 
 [Development Site](https://devfacebookinsights.appspot.com)
 
-For local development, we are using pipenv to help us track dependencies and packages only needed in the development environment. The local development files, `Pipfile` and `Pipfile.lock`, need to be in the `.gcloudignore` file, but still tracked in the Git repository. We are expecting an un-tracked `.env` file at the root of the project so the `config.py` works correctly, locally while these same settings should be duplicated in the `app.yaml` for the deployed site to work.
-
-When running locally, we can proxy the database. This requires a cloud_sql_proxy file, and knowing the DB_CONNECTION_NAME. In the terminal, substituting as needed, execute the following command:
-
-``` bash
-./cloud_sql_proxy -instances="DB_CONNECTION_NAME"=tcp:3306
-```
-
-We can login to the SQL terminal, knowing the correct user and password, with the Google Cloud CLI (replace [DB_INSTANCE] and [username] as appropriate).
-
-```bash
-gcloud sql connect [DB_INSTANCE] --user=[username]
-```
-
-We can create the database tables by running:
-
-``` bash
-python application/model_db.py
-```
-
-For Database Migrations:
-setup Flask CLI for app, capture DB changes, apply DB changes:
-
-``` bash
-export FLASK_APP=main.py
-flask db migrate
-flask db upgrade
-```
+We are using pipenv, for local development, to help us track both dependencies and packages only needed in the development environment and those needed for the deployed environment. For running locally, we utilize `cloud_sql_proxy` for database connections. We are using the `gcloud` CLI for connecting and managing our Google Cloud development and deployed sites. More development tools and notes can be found in [Development Notes](./DEVELOPEMENT_NOTES.md) section.
 
 ### Current Feature Development
 
