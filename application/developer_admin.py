@@ -41,3 +41,14 @@ def save(mod, id, Model):
         file.write('\n')
         count += 1
     return count
+
+
+def capture(post, filename):
+    """ Visits the permalink for give Post, creates a screenshot named the given filename. """
+    ig_url, answer = post.permalink, 'None. '
+    app.logger.debug('========== Capture Media Files ==========')
+    app.logger.debug(ig_url)
+    # answer = chrome_grab(ig_url, filename)
+    # answer = phantom_grab(ig_url, filename)
+    # answer = soup_no_chrome(ig_url, filename)
+    return answer

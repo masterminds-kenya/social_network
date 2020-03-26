@@ -5,7 +5,6 @@ from werkzeug.security import generate_password_hash, check_password_hash
 from .model_db import db_create, db_read, db_update, db_delete, db_all, from_sql
 from .model_db import User, OnlineFollowers, Insight, Audience, Post, Campaign  # , metric_clean
 from . import developer_admin
-from .media_capture import capture
 from functools import wraps
 from .manage import update_campaign, process_form
 from .api import onboard_login, onboarding, get_insight, get_audience, get_posts, get_online_followers
@@ -222,16 +221,14 @@ def encrypt():
 @admin_required()
 def capture_media():
     """ Capture the media files. Currently on an Admin function, to be updated later. """
-    # update for a valid Post
-    # post = Post.query.filter(Post.media_id == '17914427410349900').first()
-    post = Post.query.get('250')
+    post = Post.query.get('250')  # TODO: Change to assign by a parameter for Post id.
     if not post:
         message = f"Post not found. "
         app.logger.debug(message)
         flash(message)
         return redirect(url_for('admin'))
-    filename = 'capture'  # the name of the file that will be saved
-    path = capture(post, filename)
+    filename = 'capture'  # TODO: Change to assign by a parameter for filename.
+    path = developer_admin.capture(post, filename)
     return admin(data=path)
 
 
