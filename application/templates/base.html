@@ -41,15 +41,15 @@
     </p>
     {% endif %}
   </nav>
-  {% endblock header %}
+{% endblock header %}
 
-  {% with messages = get_flashed_messages() %}
+{% with messages = get_flashed_messages() %}
   {% if messages %}
     {% for message in messages %}
     <h3>{{ message }}</h3>
     {% endfor %}
   {% endif %}
-  {% endwith %}
+{% endwith %}
 </header>
 
 {% block content %}
