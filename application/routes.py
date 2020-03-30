@@ -7,7 +7,7 @@ from .model_db import User, OnlineFollowers, Insight, Audience, Post, Campaign  
 from . import developer_admin
 from functools import wraps
 from .manage import update_campaign, process_form
-from .api import onboard_login, onboarding, get_insight, get_audience, get_posts, get_online_followers
+from .api import onboard_login, onboarding, get_insight, get_audience, get_posts, get_online_followers, capture_media
 from .sheets import create_sheet, update_sheet, perm_add, perm_list, all_files
 import json
 # from pprint import pprint
@@ -219,7 +219,7 @@ def encrypt():
 
 @app.route('/data/capture/')
 @admin_required()
-def capture_media():
+def capture_test():
     """ Capture the media files. Currently on an Admin function, to be updated later. """
     post = Post.query.get('250')  # TODO: Change to assign by a parameter for Post id.
     if not post:
@@ -227,9 +227,11 @@ def capture_media():
         app.logger.debug(message)
         flash(message)
         return redirect(url_for('admin'))
-    filename = 'capture'  # TODO: Change to assign by a parameter for filename.
-    path = developer_admin.capture(post, filename)
-    return admin(data=path)
+    answer = capture_media(post)
+    message = "API gave success response. " if answer.get('success') else "API response failed. "
+    message += "Saved url for saved_media on Post. " if answer.get('saved_media') else "Media NOT saved. "
+    flash(message)
+    return admin(data=answer)
 
 
 # ########## The following are for worksheets ############
