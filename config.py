@@ -5,8 +5,9 @@ from os import environ
 SECRET_KEY = environ.get('SECRET_KEY')  # for session cookies & flash messages
 # FLASK_APP = environ.get('FLASK_APP')
 # FLASK_ENV = environ.get('FLASK_ENV')
-FB_CLIENT_ID = environ.get("FB_CLIENT_ID")
-FB_CLIENT_SECRET = environ.get("FB_CLIENT_SECRET")
+CAPTURE_BASE_URL = environ.get('CAPTURE_BASE_URL')
+FB_CLIENT_ID = environ.get('FB_CLIENT_ID')
+FB_CLIENT_SECRET = environ.get('FB_CLIENT_SECRET')
 DEV_RUN = True if environ.get('DEV_RUN') == 'True' else False
 DEBUG = DEV_RUN or environ.get('DEBUG') == 'True'
 PROJECT_NAME = environ.get('PROJECT_NAME')
