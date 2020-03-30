@@ -83,6 +83,8 @@ Through our [manually built Facebook Login flow](https://developers.facebook.com
 
 We are currently deploying on google cloud (gcloud), with the Google App Engine standard environment. Some packages and code would need to be modified if we switched to App Engine flex, or other gcloud deploy services. Google Cloud (GCloud) is expecting a pip requirements file (`requirements.txt`), a `app.yaml` file (indicating what python version to use, and environment variables), and a `main.py` file as a point of entry for the application server to run. Gcloud also allows an ignore file - `.gcloudignore` which follows the same concepts from `.gitignore` files, as well as additional techniques for allowing files otherwise ignored in the `.gitignore` file.
 
+This platform application also depends on the [test-site-content](https://github.com/SeattleChris/test-site-content) application running. This platform calls this API as a service to record confirmation of content. This service API is also hosted on Google Cloud Platform, and is a part of the same project that our platform application belongs to.
+
 ## Development Notes
 
 [Development Site](https://devfacebookinsights.appspot.com)

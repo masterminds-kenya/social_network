@@ -134,6 +134,8 @@ Current Status:
 - [c] Sheet Report can have a link to the file as stored by us.
 - [s] The actual file is copied to the worksheet in the Sheet Report.
 
+Also see items in the [test-site-content checklist](https://github.com/SeattleChris/test-site-content/blob/master/checklist.md)
+
 ### Campaign & Posts Management
 
 - [x] Campaign Manage View - Assigning Posts
