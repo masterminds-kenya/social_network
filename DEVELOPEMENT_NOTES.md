@@ -171,10 +171,13 @@ python application/model_db.py
 ```
 
 For Database Migrations:
-setup Flask CLI for app, capture DB changes, apply DB changes:
+Before upgrading, MAKE SURE our proxy is to the correct database.
+
+If 'FLASK_APP' is not already set in our .env, then in the terminal we need: `export FLASK_APP=main.py`
+After that is confirmed set, we can create a migrate file of instructions, and then apply them.
+Setup Flask CLI for app, capture DB changes, apply DB changes:
 
 ``` bash
-export FLASK_APP=main.py
 flask db migrate
 flask db upgrade
 ```

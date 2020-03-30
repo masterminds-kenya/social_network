@@ -7,7 +7,7 @@ from .model_db import User, OnlineFollowers, Insight, Audience, Post, Campaign  
 from . import developer_admin
 from functools import wraps
 from .manage import update_campaign, process_form
-from .api import onboard_login, onboarding, get_insight, get_audience, get_posts, get_online_followers
+from .api import onboard_login, onboarding, get_insight, get_audience, get_posts, get_online_followers, capture_media
 from .sheets import create_sheet, update_sheet, perm_add, perm_list, all_files
 import json
 # from pprint import pprint
@@ -219,7 +219,7 @@ def encrypt():
 
 @app.route('/data/capture/')
 @admin_required()
-def capture_media():
+def capture_test():
     """ Capture the media files. Currently on an Admin function, to be updated later. """
     post = Post.query.get('250')  # TODO: Change to assign by a parameter for Post id.
     if not post:
@@ -227,9 +227,11 @@ def capture_media():
         app.logger.debug(message)
         flash(message)
         return redirect(url_for('admin'))
-    filename = 'capture'  # TODO: Change to assign by a parameter for filename.
-    path = developer_admin.capture(post, filename)
-    return admin(data=path)
+    answer = capture_media(post)
+    message = "API gave success response. " if answer.get('success') else "API response failed. "
+    message += "Saved url for saved_media on Post. " if answer.get('saved_media') else "Media NOT saved. "
+    flash(message)
+    return admin(data=answer)
 
 
 # ########## The following are for worksheets ############
@@ -399,7 +401,7 @@ def all_posts():
         return_path = url_for('admin')
     elif cron_run:
         message += "Cron job completed"
-        return_path = url_for('home')  # TODO: Check expected response on success / completion.
+        return_path = url_for('home')  # TODO: URGENT Check expected response on success / completion.
     app.logger.info(message)
     return redirect(return_path)
 
@@ -528,8 +530,10 @@ def new_insight(mod, id):
     if current_user.role not in ['admin', 'manager'] and current_user.id != id:
         flash('This was not a correct location. You are redirected to the home page.')
         return redirect(url_for('home'))
-    insights = get_insight(id)
-    logstring = f'New Insight data for {mod} - {id} ' if insights else f'No new insight data found for {mod}'
+    insights, follow_report = get_insight(id)
+    logstring = f"For {mod} - {id}: "
+    logstring += "New Insight data added. " if insights else "No new insight data found. "
+    logstring += "New Online Followers data added. " if follow_report else f"No new online followers data found. "
     app.logger.info(logstring)
     flash(logstring)
     return redirect(url_for('insights', mod=mod, id=id))
@@ -543,7 +547,7 @@ def new_post(mod, id):
         flash('This was not a correct location. You are redirected to the home page.')
         return redirect(url_for('home'))
     posts = get_posts(id)
-    logstring = 'New Posts were retrieved. ' if len(posts) else 'No new posts were found. '
+    logstring = f"Retrieved {len(posts)} new Posts. " if posts else "No new posts were found. "
     app.logger.info(logstring)
     flash(logstring)
     return_path = request.referrer

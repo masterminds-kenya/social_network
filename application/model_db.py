@@ -322,6 +322,7 @@ class Post(db.Model):
     comments_count = db.Column(db.Integer,      index=False, unique=False, nullable=True)
     like_count = db.Column(db.Integer,          index=False, unique=False, nullable=True)
     permalink = db.Column(db.String(191),       index=False, unique=False, nullable=True)
+    saved_media = db.Column(db.String(191),     index=False, unique=False, nullable=True)
     recorded = db.Column(db.DateTime,           index=False, unique=False, nullable=False)  # timestamp*
     modified = db.Column(db.DateTime,           index=False, unique=False, nullable=False, default=dt.utcnow, onupdate=dt.utcnow)
     created = db.Column(db.DateTime,            index=False, unique=False, nullable=False, default=dt.utcnow)
@@ -561,7 +562,7 @@ def create_many(dataset, Model=User):
 
 
 def db_create_or_update_many(dataset, user_id=None, Model=Post):
-    """ Create or Update if the record exists for all of the dataset list """
+    """ Create or Update if the record exists for all of the dataset list. Returns a list of Model objects. """
     current_app.logger.info(f'============== Create or Update Many {Model.__name__} ====================')
     allowed_models = {Post, Insight, Audience, OnlineFollowers}
     if Model not in allowed_models:
@@ -644,7 +645,8 @@ def db_create_or_update_many(dataset, user_id=None, Model=Post):
     current_app.logger.info('------------------------------------------------------------------------------')
     db.session.commit()
     current_app.logger.info('All records saved')
-    return [from_sql(ea, related=False, safe=True) for ea in all_results]
+    # return [from_sql(ea, related=False, safe=True) for ea in all_results]
+    return all_results
 
 
 def _create_database():

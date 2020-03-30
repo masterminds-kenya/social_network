@@ -59,14 +59,42 @@ Current Status:
 - [ ] Capture Story Post media content files
   - [x] Do not require extra work from Influencers
   - [ ] Capture before story is assigned to campaign, before it expires
+    - [x] Temp solution: attempt capture when created or updated.
+    - [ ] Manage missed captures (capture API slow) and make non-blocking process.
+      - [ ] Use tasks or some kind of queue to manage this process.
   - [n] Ver A: Investigate if any possible API technique
-  - [s] Ver B: Web Scrapper the obscured media files
-  - [ ] Ver C: Web Scrapper and screen capture, see Capture Media Files
-- [ ] Associate captured Story media content if it is later assigned to a campaign
-- [ ] Non-Story Post media files
-  - [x] Current: permalink given. Require manager to screen capture and crop
-  - [ ] Capture media file only if associated to a campaign
-    - [ ] Use the same technique used for Story media files.
+  - [n] Ver B: Web Scrapper the obscured media files
+  - [n] Ver C: Web Scrapper and screen capture, see Capture Media Files
+  - [ ] Ver D: Create a separate media capture service and API
+    - [n] Google Cloud Functions can run code, but not resources for browser.
+    - [n] GCP App Engine - Standard can not install browser and run on its resources.
+    - [?] GCP App Engine - Flex environment can install Docker, so maybe could work.
+    - [x] Setup GCP Compute Engine w/ Chrome and Flask app to capture.
+      - [ ] Compute Engine Flask App can continue running: see `screen` .
+      - [ ] Make startup script for Compute Engine to launch Flask App and keep it running.
+      - [ ] Compute Engine Flask App can save to a bucket.
+      - [s] Compute Engine Code and Resources can be easily maintained and updated.
+        - [s] Create Docker Container of the code.
+        - [s] Technique to install and/or update Chrome.
+        - [s] Technique to determine the correct chromedriver version, then install and/or update it.
+        - [s] Refactor the startup script for starting the Flask App.
+        - [s] Technique to stage update dependencies in our Docker to be tested.
+        - [s] Tests of functionality for our API and Docker to confirm updates can go live.
+- [ ] Associate captured Story media content if it is later assigned to a campaign.
+  - [x] API associates captured media files to a Post, creating a directory matching Post id.
+  - [x] Update Post model to have a `saved_media` field for a url string of the media files location.
+    - [x] update code.
+    - [x] migrate Dev DB.
+  - [x] API returns a `url` whose value represents where the captured media files can be accessed.
+  - [c] Campaign sheet report includes a column for this captured and saved media content.
+- [s] Non-Story Post media files.
+  - [x] Current: permalink given. Require manager to screen capture and crop.
+  - [s] Capture media file only if associated to a campaign.
+    - [s] Use the same technique used for Story media files.
+- [s] Process for releasing and deleting saved media files.
+  - [s] At what point is a Story old enough, and still not in a Campaign, it should be deleted?
+  - [s] Should we delete or put into some other long-term storage for old Campaign media files?
+  - [x] Document in API that 'saved_media' and 'post_model' are reserved keys in response.
 
 ### Capture Media Files
 
@@ -82,27 +110,28 @@ Current Status:
   - [x] Save the full page screenshot.
   - [x] Can save file in a sub-directory.
     - [x] It is relative to the root of the repo, not relative to the application folder.
-  - [ ] Can install Chrome browser used just by project, and connect to it and not existing Chrome.
-- [ ] Running from Server:
-  - [ ] Can install Chrome browser so it can be run as a headless browser.
-  - [ ] Setup browser emulation when called on server.
-  - [ ] Can visit the desired location.
-  - [ ] Save the full page screenshot.
+  - [n] Can install Chrome browser used just by project, and connect to it and not existing Chrome.
+- [x] Running from Server:
+  - [x] Can install Chrome browser so it can be run as a headless browser.
+  - [x] Setup browser emulation when called on server.
+  - [x] Can visit the desired location.
+  - [x] Save the full page screenshot.
+  - [x] Save a screenshot for each candidate image file, if possible.
 - [ ] Store the file in a desired location.
-  - [ ] assigned file directory.
+  - [x] assigned file directory.
   - [?] Media / Static files location.
   - [?] storage bucket location.
 - [ ] Make the stored file available as a link.
 - [ ] Link to file is stored as property on the Post object.
-  - [ ] ? Replace permalink with our created link to the media file?
-  - [ ] ? Add another field in the DB for our local_permalink?
-- [ ] Function called for Story Media right after story media is discovered.
-- [ ] Determine options for video files.
-  - [ ] Can we grab the entire video?
-  - [ ] Can we grab a frame of the video, or default view?
-- [ ] After story media files works, apply to other media files content.
-  - [ ] Make it a function called when create a sheet report.
-- [ ] Sheet Report can have a link to the file as stored by us.
+  - [n] ? Replace permalink with our created link to the media file?
+  - [x] Add another field in the DB for our local_permalink
+- [x] Function called for Story Media right after story media is discovered.
+- [s] Determine options for video files.
+  - [s] Can we grab the entire video?
+  - [s] Can we grab a frame of the video, or default view?
+- [s] After story media files works, apply to other media files content.
+  - [s] Make it a function called when create a sheet report.
+- [c] Sheet Report can have a link to the file as stored by us.
 - [s] The actual file is copied to the worksheet in the Sheet Report.
 
 ### Campaign & Posts Management
@@ -167,7 +196,7 @@ Current Status:
   - [ ] Export Sheet functions should use multiple worksheets/tabs in the same file.
   - [ ] Check if Google Sheets has a max of 26 columns and 4011 rows.
   - [ ] Media content is accessible from the Google Sheet
-    - [ ] ? Link to the content ?
+    - [c] ? Link to the content ?
     - [s] ? Embed the content ?
   - [s] Regex for A1 notation starting cell.
 - [s] When Export Sheet is created (for Campaign or User), current_user gets sheet permissions

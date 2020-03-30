@@ -10,6 +10,7 @@ from datetime import timedelta
 from pprint import pprint
 
 URL = app.config.get('URL')
+CAPTURE_BASE_URL = app.config.get('CAPTURE_BASE_URL')
 FB_CLIENT_ID = app.config.get('FB_CLIENT_ID')
 FB_CLIENT_SECRET = app.config.get('FB_CLIENT_SECRET')
 FB_AUTHORIZATION_BASE_URL = "https://www.facebook.com/dialog/oauth"
@@ -20,6 +21,23 @@ FB_SCOPE = [
     'instagram_manage_insights',
     'manage_pages'
         ]
+
+
+def capture_media(post):
+    """ For a given Post obj, call the API we created for capturing the images of that InstaGram page. """
+    #  /api/v1/post/[id]/[media_type]/[media_id]/?url=[url-to-test-for-images]
+    payload = {'url': post.permalink}
+    url = f"{CAPTURE_BASE_URL}/api/v1/post/{str(post.id)}/{post.media_type}/{str(post.media_id)}/"
+    res = requests.get(url, params=payload)
+    answer = res.json()
+    app.logger.debug(answer)
+    if answer.get('success'):
+        post.saved_media = answer.get('url')  # TODO: URGENT Confirm works, or use db_update.
+        answer['saved_media'] = True
+    else:
+        answer['saved_media'] = False
+    answer['post_model'] = post
+    return answer
 
 
 def get_insight(user_id, first=1, influence_last=30*12, profile_last=30*3, ig_id=None, facebook=None):
@@ -151,7 +169,7 @@ def get_posts(user_id, ig_id=None, facebook=None):
         res['media_type'] = media_type
         metrics = post_metrics.get(media_type, post_metrics['insight'])
         if metrics == post_metrics['insight']:
-            app.logger.error(f" Match not found for {media_type} media_type parameter ")
+            app.logger.error(f" Match not found for {media_type} media_type parameter. ")
         url = f"https://graph.facebook.com/{media_id}/insights?metric={metrics}"
         res_insight = facebook.get(url).json() if facebook else requests.get(f"{url}&access_token={token}").json()
         insights = res_insight.get('data')
@@ -163,7 +181,12 @@ def get_posts(user_id, ig_id=None, facebook=None):
         else:
             app.logger.debug(f"media {media_id} had NO INSIGHTS for type {media_type} --- {res_insight}")
         results.append(res)
-    return db_create_or_update_many(results, Post)
+    saved = db_create_or_update_many(results, Post)
+    # TODO: URGENT Capture Media for all stories in saved.
+    # captured = [capture_media(ea) for ea in saved if ea.get('media_id') in story_ids]
+    capture_responses = [capture_media(ea) for ea in saved if ea.media_type == 'STORY']
+
+    return saved
 
 
 def get_ig_info(ig_id, token=None, facebook=None):
@@ -260,8 +283,9 @@ def onboarding(mod, request):
     user = User.query.get(account_id)
     login_user(user, force=True, remember=True)
     if ig_id:
-        insights = get_insight(account_id, ig_id=ig_id, facebook=facebook)
+        insights, follow_report = get_insight(account_id, ig_id=ig_id, facebook=facebook)
         message = 'We have IG account insights. ' if insights else 'No IG account insights. '
+        message += 'We have IG followers report. ' if follow_report else 'No IG followers report. '
         audience = get_audience(account_id, ig_id=ig_id, facebook=facebook)
         message += 'Audience data collected. ' if audience else 'No Audience data. '
         app.logger.info(message)
