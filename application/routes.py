@@ -399,7 +399,7 @@ def all_posts():
         return_path = url_for('admin')
     elif cron_run:
         message += "Cron job completed"
-        return_path = url_for('home')  # TODO: Check expected response on success / completion.
+        return_path = url_for('home')  # TODO: URGENT Check expected response on success / completion.
     app.logger.info(message)
     return redirect(return_path)
 
@@ -528,8 +528,10 @@ def new_insight(mod, id):
     if current_user.role not in ['admin', 'manager'] and current_user.id != id:
         flash('This was not a correct location. You are redirected to the home page.')
         return redirect(url_for('home'))
-    insights = get_insight(id)
-    logstring = f'New Insight data for {mod} - {id} ' if insights else f'No new insight data found for {mod}'
+    insights, follow_report = get_insight(id)
+    logstring = f"For {mod} - {id}: "
+    logstring += "New Insight data added. " if insights else "No new insight data found. "
+    logstring += "New Online Followers data added. " if follow_report else f"No new online followers data found. "
     app.logger.info(logstring)
     flash(logstring)
     return redirect(url_for('insights', mod=mod, id=id))
@@ -543,7 +545,7 @@ def new_post(mod, id):
         flash('This was not a correct location. You are redirected to the home page.')
         return redirect(url_for('home'))
     posts = get_posts(id)
-    logstring = 'New Posts were retrieved. ' if len(posts) else 'No new posts were found. '
+    logstring = f"Retrieved {len(posts)} new Posts. " if posts else "No new posts were found. "
     app.logger.info(logstring)
     flash(logstring)
     return_path = request.referrer
