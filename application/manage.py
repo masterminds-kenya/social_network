@@ -39,7 +39,7 @@ def update_campaign(campaign, request):
     try:
         db.session.commit()
     except Exception as e:
-        app.logger.error("We had an exception on the campaign update commit")
+        app.logger.error("We had an exception on the campaign update commit. ")
         app.logger.exception(e)
         # TODO: handle exception
         return False

@@ -20,22 +20,22 @@ def get_creds(config):
     """ Using google.oauth2.service_account to get credentials for the service account """
     creds = None
     if not path.exists(config.get('file')):
-        message = 'Wrong Path to Secret File'
+        message = "Wrong Path to Secret File. "
         app.logger.error(message)
         raise FileNotFoundError(message)
     if app.config.get('LOCAL_ENV') is True:  # Could add local testing credential method.
-        message = "Won't work when running locally"
+        message = "Won't work when running locally. "
         app.logger.error(message)
         raise EnvironmentError(message)
     try:
         credentials = service_account.Credentials.from_service_account_file(config['file'])
     except Exception as e:
-        app.logger.error("Could not get credentials")
+        app.logger.error("Could not get credentials. ")
         app.logger.exception(e)
     try:
         creds = credentials.with_scopes(config.get('scopes'))
     except Exception as e:
-        app.logger.error("Could not get Scopes for credentials")
+        app.logger.error("Could not get Scopes for credentials. ")
         app.logger.exception(e)
     return creds
 
@@ -52,7 +52,7 @@ def perm_add(sheet_id, add_users, service=None):
             # TODO: Handle error
             app.logger.exception(exception)
         else:
-            app.logger.info(f"Permission Id: {response.get('id')} Request Id: {request_id}")
+            app.logger.info(f"Permission Id: {response.get('id')} Request Id: {request_id}. ")
             pass
 
     if not service:
@@ -118,7 +118,7 @@ def create_sheet(model, service=None):
     spreadsheet = {'properties': {'title': title}}
     spreadsheet = service.spreadsheets().create(body=spreadsheet, fields='spreadsheetId').execute()
     message = f"Before you can view the Google Sheet, you must give yourself access "
-    message += f"with the View and Manage Access link."
+    message += f"with the View and Manage Access link. "
     flash(message)
     return update_sheet(model, id=spreadsheet.get('spreadsheetId'), service=service)
 
@@ -184,7 +184,7 @@ def get_vals(model):
         for brand in model.brands:
             sheet_rows.extend(brand.insight_report())
     else:
-        logstring = f'Unexpected {model_name} model at this time'
+        logstring = f"Unexpected {model_name} model at this time. "
         flash(logstring)
         app.logger.error(f'-------- {logstring} --------')
         data = [logstring]
@@ -215,7 +215,7 @@ def compute_A1(arr2d, start='A1', sheet='Sheet1'):
     # TODO: Find out if the max rows is 4011 and max cols is 26. Manage if we exceed the max.
     final_row = row_count + row
     result = f"{sheet}!{start}:{final_col}{final_row}"
-    app.logger.debug(f"A1 format is {result} for {row_count} rows & {col_count} columns")
+    app.logger.debug(f"A1 format is {result} for {row_count} rows & {col_count} columns. ")
     return result
 
 
@@ -246,5 +246,5 @@ def update_sheet(model, id=SHARED_SHEET_ID, service=None):
         spreadsheet = request.execute()
     except Exception as e:
         spreadsheet = {}
-        app.logger.exception(f"Could not update sheet: {e}")
+        app.logger.exception(f"Could not update sheet: {e}. ")
     return read_sheet(id=spreadsheet.get('spreadsheetId', id), range_=range_, service=service)
