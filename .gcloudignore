@@ -21,6 +21,7 @@ Pipfile.lock
 
 # Include otherwise excluded files or directories by starting with an exclamation point
 !app.yaml
+!dev.yaml
 !env/
 
 # Python pycache:

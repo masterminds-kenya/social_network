@@ -2,6 +2,24 @@
 
 The following, non-exhaustive references, where discovered and influenced choices made when developing this platform application. Expanding on the main README "Development Notes" section, the "Running Locally ..." section(s) below cover details to help the workflow for developers of this platform application.
 
+## Default Env Variables
+
+[App Engine Standard Docs](https://cloud.google.com/appengine/docs/standard/python3/runtime)
+
+| Default Env Variable |  Description |
+|:--------------------:|:-----------------:|
+| GAE_APPLICATION      | GAE App ID, prefixed with 'region code~' such as 'e~' for Europe deployed.
+| GAE_DEPLOYMENT_ID    | The ID of the current deployment.
+| GAE_ENV              | The App Engine environment. Set to standard.
+| GAE_INSTANCE         | The ID of the instance on which your service is currently running.
+| GAE_MEMORY_MB        | The amount of memory available to the application process, in MB.
+| GAE_RUNTIME          | The runtime specified in your app.yaml file.
+| GAE_SERVICE          | The service name specified in your app.yaml file (or default).
+| GAE_VERSION          | The current version label of your service.
+| GOOGLE_CLOUD_PROJECT | The Cloud project ID associated with your application.
+| NODE_ENV             | Set to production when your service is deployed.
+| PORT                 | The port that receives HTTP requests.
+
 ## Selenium, testing, and grabbing webpage content for analysis
 
 The 'webdriver' in Selenium appears to be an interface for connecting Selenium either directly to an installed browser, or control an installed browser through a browser driver. So webdriver.CHROME for Chrome and Chromium browsers, webdriver.FIREFOX for FireFox and gecko based browsers, etc. The browser driver code allows further automation and this code package (provided by the makers of those browsers) should be installed. The browser driver code is actually middleware, allowing control over appropriate browser. The browser still needs needs to be installed as well. The desired browser settings, location of the driver, and location of the browser, are passed (or discoverable in the path) to the Selenium webdriver for configuration.
