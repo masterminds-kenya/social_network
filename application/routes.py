@@ -80,7 +80,7 @@ def fb_delete():
     response['user_id'] = 'test user_id'
     response['url'] = 'see status of deletion'
     response['confirmation_code'] = 'some unique code'
-    # do stuff
+    # TODO: do stuff
     return json.dumps(response)
 
 

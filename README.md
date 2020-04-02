@@ -87,7 +87,7 @@ This platform application also depends on the [test-site-content](https://github
 
 ## Development Notes
 
-[Development Site](https://devfacebookinsights.appspot.com)
+[Development Site](https://dev-dot-engaged-builder-257615.appspot.com)
 
 We are using pipenv, for local development, to help us track both dependencies and packages only needed in the development environment and those needed for the deployed environment. For running locally, we utilize `cloud_sql_proxy` for database connections. We are using the `gcloud` CLI for connecting and managing our Google Cloud development and deployed sites. More development tools and notes can be found in [Development Notes](./DEVELOPEMENT_NOTES.md) section.
 

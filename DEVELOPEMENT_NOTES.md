@@ -20,6 +20,13 @@ The following, non-exhaustive references, where discovered and influenced choice
 | NODE_ENV             | Set to production when your service is deployed.
 | PORT                 | The port that receives HTTP requests.
 
+## Gcloud Docs and Links
+
+- [Dispatch: url routing](https://cloud.google.com/appengine/docs/standard/python3/reference/dispatch-yaml)
+- [Service to Service](https://cloud.google.com/appengine/docs/standard/python3/communicating-between-services)
+- [Firewall Settings](https://console.cloud.google.com/networking/firewalls/list?project=engaged-builder-257615)
+- [Connector Settings](https://console.cloud.google.com/networking/connectors/list?project=engaged-builder-257615)
+
 ## Selenium, testing, and grabbing webpage content for analysis
 
 The 'webdriver' in Selenium appears to be an interface for connecting Selenium either directly to an installed browser, or control an installed browser through a browser driver. So webdriver.CHROME for Chrome and Chromium browsers, webdriver.FIREFOX for FireFox and gecko based browsers, etc. The browser driver code allows further automation and this code package (provided by the makers of those browsers) should be installed. The browser driver code is actually middleware, allowing control over appropriate browser. The browser still needs needs to be installed as well. The desired browser settings, location of the driver, and location of the browser, are passed (or discoverable in the path) to the Selenium webdriver for configuration.
