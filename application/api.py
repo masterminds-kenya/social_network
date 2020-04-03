@@ -27,7 +27,7 @@ def capture_media(post):
     """ For a given Post obj, call the API we created for capturing the images of that InstaGram page. """
     #  /api/v1/post/[id]/[media_type]/[media_id]/?url=[url-to-test-for-images]
     payload = {'url': post.permalink}
-    url = f"{CAPTURE_BASE_URL}/api/v1/post/{str(post.id)}/{post.media_type}/{str(post.media_id)}/"
+    url = f"{CAPTURE_BASE_URL}/api/v1/post/{str(post.id)}/{post.media_type.lower()}/{str(post.media_id)}/"
     res = requests.get(url, params=payload)
     answer = res.json()
     app.logger.debug(answer)

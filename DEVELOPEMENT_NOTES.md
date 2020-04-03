@@ -2,6 +2,22 @@
 
 The following, non-exhaustive references, where discovered and influenced choices made when developing this platform application. Expanding on the main README "Development Notes" section, the "Running Locally ..." section(s) below cover details to help the workflow for developers of this platform application.
 
+## Deploying to Production, Development or Service
+
+The default service, set with the `app.yaml` file, is our deployed production site. The development site and code is being deployed to the `dev` service. To create or update a service named `service_name`, we create a `service_name.yaml` file that has a line to set `service: service_name`. Then we run the command below.
+
+``` Bash
+    gcloud app deploy [service_name.yaml]
+```
+
+If the service setting line is missing, then it assumes it is for the default service. The default service yaml file should be name `app.yaml`.
+
+To view logs of a service:
+
+``` Bash
+    gcloud app logs tail -s [service_name]
+```
+
 ## Default Env Variables
 
 [App Engine Standard Docs](https://cloud.google.com/appengine/docs/standard/python3/runtime)
