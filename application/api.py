@@ -27,7 +27,7 @@ def capture_media(post):
     """ For a given Post obj, call the API we created for capturing the images of that InstaGram page. """
     #  /api/v1/post/[id]/[media_type]/[media_id]/?url=[url-to-test-for-images]
     payload = {'url': post.permalink}
-    url = f"{CAPTURE_BASE_URL}/api/v1/post/{str(post.id)}/{post.media_type}/{str(post.media_id)}/"
+    url = f"{CAPTURE_BASE_URL}/api/v1/post/{str(post.id)}/{post.media_type.lower()}/{str(post.media_id)}/"
     res = requests.get(url, params=payload)
     answer = res.json()
     app.logger.debug(answer)
@@ -55,7 +55,7 @@ def get_insight(user_id, first=1, influence_last=30*12, profile_last=30*3, ig_id
     profile_date = user.recent_insight('profile')
     if influence_date:
         influence_last = max(30, int(min(influence_last, (now - influence_date).days)))
-        app.logger.debug('Updated Influence Last')
+        app.logger.debug("Updated Influence Last. ")
     if profile_date:
         profile_last = max(30, int(min(profile_last, (now - profile_date).days)))
         app.logger.debug('Updated Profile Last')
@@ -79,7 +79,7 @@ def get_insight(user_id, first=1, influence_last=30*12, profile_last=30*3, ig_id
                     results.append(val)
     models = db_create_or_update_many(results, user_id=user_id, Model=Insight)
     follow_report = get_online_followers(user_id, ig_id=ig_id, facebook=facebook)
-    logstring = f"Added Online Followers data" if follow_report else "No follow report"
+    logstring = f"Added Online Followers data. " if follow_report else "No follow report. "
     app.logger.debug(logstring)
     return (models, follow_report)
 
@@ -98,7 +98,7 @@ def get_online_followers(user_id, ig_id=None, facebook=None):
     response = facebook.get(url).json() if facebook else requests.get(f"{url}&access_token={token}").json()
     data = response.get('data')
     if not data:
-        app.logger.error(f"Online Followers Error: {response.get('error')}")
+        app.logger.error(f"Online Followers Error: {response.get('error')}. ")
         return None
     results = []
     for day in data[0].get('values', []):  # We expect only 1 element in the 'data' list
@@ -179,13 +179,17 @@ def get_posts(user_id, ig_id=None, facebook=None):
                 temp = {metric_clean(key): val for key, val in temp.items()}
             res.update(temp)
         else:
-            app.logger.debug(f"media {media_id} had NO INSIGHTS for type {media_type} --- {res_insight}")
+            app.logger.debug(f"media {media_id} had NO INSIGHTS for type {media_type} --- {res_insight}. ")
         results.append(res)
     saved = db_create_or_update_many(results, Post)
     # TODO: URGENT Capture Media for all stories in saved.
     # captured = [capture_media(ea) for ea in saved if ea.get('media_id') in story_ids]
     capture_responses = [capture_media(ea) for ea in saved if ea.media_type == 'STORY']
-
+    failed_capture = [ea.get('post') for ea in capture_responses if not ea.get('saved_media')]
+    message = f"Had {len(capture_responses)} story posts. "
+    message += f"Had {len(failed_capture)} failed media captures. " if failed_capture else "All media captured. "
+    app.logger.info(message)
+    app.logger.info(failed_capture)
     return saved
 
 
@@ -217,20 +221,20 @@ def find_instagram_id(accounts, facebook=None):
     ig_list = []
     pages = [page.get('id') for page in accounts.get('data')] if accounts and 'data' in accounts else None
     if not facebook:
-        app.logger.error('The parameter for facebook can not be None. ')
+        app.logger.error("The parameter for facebook can not be None. ")
     if pages:
-        app.logger.debug(f'============ Pages count: {len(pages)} ============')
+        app.logger.debug(f"============ Pages count: {len(pages)} ============")
         for page in pages:
             instagram_data = facebook.get(f"https://graph.facebook.com/v4.0/{page}?fields=instagram_business_account").json()
             if 'error' in instagram_data:
-                app.logger.error(f'Error on getting info from {page} Page')
+                app.logger.error(f"Error on getting info from {page} Page. ")
                 pprint(instagram_data)
             ig_business = instagram_data.get('instagram_business_account', None)
             if ig_business:
                 ig_info = get_ig_info(ig_business.get('id', None), facebook=facebook)
                 ig_list.append(ig_info)
     else:
-        app.logger.error(f"No pages found from accounts data: {accounts}")
+        app.logger.error(f"No pages found from accounts data: {accounts}. ")
     return ig_list
 
 
@@ -284,10 +288,10 @@ def onboarding(mod, request):
     login_user(user, force=True, remember=True)
     if ig_id:
         insights, follow_report = get_insight(account_id, ig_id=ig_id, facebook=facebook)
-        message = 'We have IG account insights. ' if insights else 'No IG account insights. '
-        message += 'We have IG followers report. ' if follow_report else 'No IG followers report. '
+        message = "We have IG account insights. " if insights else "No IG account insights. "
+        message += "We have IG followers report. " if follow_report else "No IG followers report. "
         audience = get_audience(account_id, ig_id=ig_id, facebook=facebook)
-        message += 'Audience data collected. ' if audience else 'No Audience data. '
+        message += "Audience data collected. " if audience else "No Audience data. "
         app.logger.info(message)
         return ('complete', 0, account_id)
     else:  # This Facebook user needs to select one of many of their IG business accounts

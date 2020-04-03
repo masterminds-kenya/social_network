@@ -9,32 +9,23 @@ CAPTURE_BASE_URL = environ.get('CAPTURE_BASE_URL')
 FB_CLIENT_ID = environ.get('FB_CLIENT_ID')
 FB_CLIENT_SECRET = environ.get('FB_CLIENT_SECRET')
 DEV_RUN = True if environ.get('DEV_RUN') == 'True' else False
-DEBUG = DEV_RUN or environ.get('DEBUG') == 'True'
+GAE_SERVICE = environ.get('GAE_SERVICE')
+DEBUG = any([DEV_RUN, environ.get('DEBUG') == 'True', GAE_SERVICE == 'dev'])
 PROJECT_NAME = environ.get('PROJECT_NAME')
-PROJECT_ID = environ.get('PROJECT_ID')
+PROJECT_ID = environ.get('GOOGLE_CLOUD_PROJECT', environ.get('PROJECT_ID', None))
 PROJECT_NUMBER = environ.get('PROJECT_NUMBER')
 PROJECT_REGION = environ.get('PROJECT_REGION')
+PROJECT_ZONE = environ.get('PROJECT_ZONE')
 CLOUDSQL_INSTANCE = environ.get('DB_INSTANCE')
 CLOUDSQL_USER = environ.get('DB_USER')
 CLOUDSQL_PASSWORD = environ.get('DB_PASSWORD')
 CLOUDSQL_DATABASE = environ.get('DB_NAME')
-DEPLOYED_URL = environ.get('DEPLOYED_URL')
+GCLOUD_URL = environ.get('URL')
 # Set the following value to the Cloud SQL connection name, e.g.
 #   "project:region:cloudsql-instance".
 # You must also update the value in app.yaml.
 # CLOUDSQL_CONNECTION_NAME = f'{PROJECT_ID}:{PROJECT_REGION}:{CLOUDSQL_INSTANCE}'
 CLOUDSQL_CONNECTION_NAME = environ.get('DB_CONNECTION_NAME')
-if DEV_RUN:
-    PROJECT_NAME = environ.get('DEV_PROJECT_NAME', PROJECT_NAME)
-    PROJECT_ID = environ.get('DEV_PROJECT_ID', PROJECT_ID)
-    PROJECT_NUMBER = environ.get('DEV_PROJECT_NUMBER', PROJECT_NUMBER)
-    PROJECT_REGION = environ.get('DEV_PROJECT_REGION', PROJECT_REGION)
-    CLOUDSQL_INSTANCE = environ.get('DEV_DB_INSTANCE', CLOUDSQL_INSTANCE)
-    CLOUDSQL_USER = environ.get('DEV_DB_USER', CLOUDSQL_USER)
-    CLOUDSQL_PASSWORD = environ.get('DEV_DB_PASSWORD', CLOUDSQL_PASSWORD)
-    CLOUDSQL_DATABASE = environ.get('DEV_DB_NAME', CLOUDSQL_DATABASE)
-    DEPLOYED_URL = environ.get('DEV_URL', DEPLOYED_URL)
-    CLOUDSQL_CONNECTION_NAME = environ.get('DEV_DB_CONNECTION_NAME', CLOUDSQL_CONNECTION_NAME)
 # The CloudSQL proxy is used locally to connect to the cloudsql instance.
 # To start the proxy, use:
 #   $ cloud_sql_proxy -instances=your-connection-name=tcp:3306
@@ -53,7 +44,7 @@ LIVE_SQLALCHEMY_DATABASE_URI = (
 LOCAL_URL = 'http://127.0.0.1:8080'
 if environ.get('GAE_INSTANCE'):
     SQLALCHEMY_DATABASE_URI = LIVE_SQLALCHEMY_DATABASE_URI
-    URL = DEPLOYED_URL
+    URL = GCLOUD_URL
     LOCAL_ENV = False
 else:
     SQLALCHEMY_DATABASE_URI = LOCAL_SQLALCHEMY_DATABASE_URI

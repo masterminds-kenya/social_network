@@ -1,0 +1,29 @@
+runtime: python37
+
+# instance_class: F1
+service: default or dev
+
+env_variables:
+  SECRET_KEY: 'Replace-with-secret'
+  CAPTURE_BASE_URL: 'url-to-capture-api'
+  FB_CLIENT_ID: 'from-fb-dashboard'
+  FB_CLIENT_SECRET: 'from-fb-dashboard'
+  PROJECT_NAME: 'from-GCP-dashboard'
+  PROJECT_ID: 'from-GCP-dashboard'
+  PROJECT_NUMBER: 'from-GCP-dashboard'
+  PROJECT_REGION: 'from-GCP-usually-ends-in-number'
+  PROJECT_ZONE: 'from-GCP-usually-ends-in-letter'
+  PROJECT_CONNECTOR_NAME: 'from-GCP-Serverless-VPC-access'
+  DB_INSTANCE: 'from-GCP-SQL'
+  DB_USER: 'from-GCP-SQL'
+  DB_PASSWORD: 'from-GCP-SQL'
+  DB_NAME: 'from-database'
+  DB_CONNECTION_NAME: '[PROJECT_ID]:[PROJECT_REGION]:[DB_INSTANCE]'
+  DEPLOYED_URL: 'set-by-user'
+  GCLOUD_URL: 'https://[PROJECT_ID].[REGION_ID].r.appspot.com'
+  DEV_URL: 'https://[VERSION_ID]-dot-[SERVICE_ID]-dot-[PROJECT_ID].[REGION_ID].r.appspot.com'
+  DEV_RUN: 'True'
+
+vpc_access_connector:
+  name: "projects/[PROJECT_ID]/locations/[PROJECT_REGION]/connectors/[PROJECT_CONNECTOR_NAME]"
+#
