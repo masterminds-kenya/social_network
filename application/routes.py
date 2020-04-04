@@ -227,7 +227,7 @@ def capture_test():
         app.logger.debug(message)
         flash(message)
         return redirect(url_for('admin'))
-    answer = capture_media(post)
+    answer = capture_media(post, False)
     message = "API gave success response. " if answer.get('success') else "API response failed. "
     message += "Saved url for saved_media on Post. " if answer.get('saved_media') else "Media NOT saved. "
     flash(message)

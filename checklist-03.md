@@ -69,10 +69,18 @@ Current Status:
     - [n] Google Cloud Functions can run code, but not resources for browser.
     - [n] GCP App Engine - Standard can not install browser and run on its resources.
     - [?] GCP App Engine - Flex environment can install Docker, so maybe could work.
-    - [x] Setup GCP Compute Engine w/ Chrome and Flask app to capture.
-      - [ ] Compute Engine Flask App can continue running: see `screen` .
-      - [ ] Make startup script for Compute Engine to launch Flask App and keep it running.
-      - [ ] Compute Engine Flask App can save to a bucket.
+      - [x] Create Dockerfile that builds on python3.7, installs Chrome and & Chromedriver
+        - [x] Dockerfile is self-maintaining for Chrome, installs up-to-date stable version.
+        - [x] Dockerfile can determine correct chromedriver, install and configure as needed.
+        - [x] Dockerfile is self-maintaining for linux, python3.7, chrome, chromedriver.
+      - [ ] Captured media storage
+        - [x] Proof-of-life: save to the filesystem of the instance.
+        - [ ] Connect to a Storage bucket.
+        - [ ] Save files to Storage bucket instead of filesystem.
+    - [n] Setup GCP Compute Engine w/ Chrome and Flask app to capture.
+      - [?] Compute Engine Flask App can continue running: see `screen` .
+      - [?] Make startup script for Compute Engine to launch Flask App and keep it running.
+      - [?] Compute Engine Flask App can save to a bucket.
       - [s] Compute Engine Code and Resources can be easily maintained and updated.
         - [s] Create Docker Container of the code.
         - [s] Technique to install and/or update Chrome.
@@ -120,7 +128,7 @@ Current Status:
 - [ ] Store the file in a desired location.
   - [x] assigned file directory.
   - [?] Media / Static files location.
-  - [?] storage bucket location.
+  - [ ] storage bucket location.
 - [ ] Make the stored file available as a link.
 - [ ] Link to file is stored as property on the Post object.
   - [n] ? Replace permalink with our created link to the media file?
