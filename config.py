@@ -3,8 +3,8 @@ from os import environ
 # class Config:
 #     """ Flask configuration variables """
 SECRET_KEY = environ.get('SECRET_KEY')  # for session cookies & flash messages
-# FLASK_APP = environ.get('FLASK_APP')
-# FLASK_ENV = environ.get('FLASK_ENV')
+FLASK_APP = environ.get('FLASK_APP')
+FLASK_ENV = environ.get('FLASK_ENV')
 CAPTURE_BASE_URL = environ.get('CAPTURE_BASE_URL')
 FB_CLIENT_ID = environ.get('FB_CLIENT_ID')
 FB_CLIENT_SECRET = environ.get('FB_CLIENT_SECRET')
@@ -20,7 +20,7 @@ CLOUDSQL_INSTANCE = environ.get('DB_INSTANCE')
 CLOUDSQL_USER = environ.get('DB_USER')
 CLOUDSQL_PASSWORD = environ.get('DB_PASSWORD')
 CLOUDSQL_DATABASE = environ.get('DB_NAME')
-GCLOUD_URL = environ.get('URL')
+GCLOUD_URL = environ.get('URL', environ.get('GCLOUD_URL', ''))
 # Set the following value to the Cloud SQL connection name, e.g.
 #   "project:region:cloudsql-instance".
 # You must also update the value in app.yaml.
