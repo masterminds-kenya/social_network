@@ -46,7 +46,7 @@
 - [s] Stretch Goal. Not for current feature plan.
 
 Current Status:
-2020-03-19 02:08:50
+2020-04-07 23:30:38
 <!-- Ctrl-Shift-I to generate timestamp -->
 
 ### Story & Media Files Features
@@ -58,25 +58,25 @@ Current Status:
   - [ ] ? Maybe saved to our App instance ?
 - [ ] Capture Story Post media content files
   - [x] Do not require extra work from Influencers
-  - [ ] Capture before story is assigned to campaign, before it expires
+  - [?] Capture before story is assigned to campaign, before it expires
     - [x] Temp solution: attempt capture when created or updated.
     - [ ] Manage missed captures (capture API slow) and make non-blocking process.
       - [ ] Use tasks or some kind of queue to manage this process.
   - [n] Ver A: Investigate if any possible API technique
   - [n] Ver B: Web Scrapper the obscured media files
   - [n] Ver C: Web Scrapper and screen capture, see Capture Media Files
-  - [ ] Ver D: Create a separate media capture service and API
+  - [x] Ver D: Create a separate media capture service and API
     - [n] Google Cloud Functions can run code, but not resources for browser.
     - [n] GCP App Engine - Standard can not install browser and run on its resources.
-    - [?] GCP App Engine - Flex environment can install Docker, so maybe could work.
+    - [x] GCP App Engine - Flex environment can install via Docker, custom runtime.
       - [x] Create Dockerfile that builds on python3.7, installs Chrome and & Chromedriver
         - [x] Dockerfile is self-maintaining for Chrome, installs up-to-date stable version.
         - [x] Dockerfile can determine correct chromedriver, install and configure as needed.
         - [x] Dockerfile is self-maintaining for linux, python3.7, chrome, chromedriver.
-      - [ ] Captured media storage
+      - [x] Captured media storage
         - [x] Proof-of-life: save to the filesystem of the instance.
-        - [ ] Connect to a Storage bucket.
-        - [ ] Save files to Storage bucket instead of filesystem.
+        - [x] Connect to a Storage bucket.
+        - [x] Save files to Storage bucket instead of filesystem.
     - [n] Setup GCP Compute Engine w/ Chrome and Flask app to capture.
       - [?] Compute Engine Flask App can continue running: see `screen` .
       - [?] Make startup script for Compute Engine to launch Flask App and keep it running.
@@ -125,12 +125,12 @@ Current Status:
   - [x] Can visit the desired location.
   - [x] Save the full page screenshot.
   - [x] Save a screenshot for each candidate image file, if possible.
-- [ ] Store the file in a desired location.
+- [x] Store the file in a desired location.
   - [x] assigned file directory.
-  - [?] Media / Static files location.
-  - [ ] storage bucket location.
-- [ ] Make the stored file available as a link.
-- [ ] Link to file is stored as property on the Post object.
+  - [n] Media / Static files location.
+  - [x] storage bucket location.
+- [x] Make the stored file available as a link.
+- [?] Link to file is stored as property on the Post object.
   - [n] ? Replace permalink with our created link to the media file?
   - [x] Add another field in the DB for our local_permalink
 - [x] Function called for Story Media right after story media is discovered.
