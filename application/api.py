@@ -30,15 +30,15 @@ def capture_media(post_or_posts, get_story_only):
     #  API URL format:
     #  /api/v1/post/[id]/[media_type]/[media_id]/?url=[url-to-test-for-images]
     #  Expected JSON response has the following properties:
-    #  'success', 'message', 'file_list', 'url'
+    #  'success', 'message', 'file_list', 'url', 'url_list', 'error_files', 'deleted'
     started_with_many = True
     if isinstance(post_or_posts, Post):
         posts = [post_or_posts]
         started_with_many = False
-    elif not isinstance(post_or_posts, (list, tuple)):
-        raise TypeError("Input must be a Post or an iterable of Posts. ")
-    else:
+    elif isinstance(post_or_posts, (list, tuple)):
         posts = post_or_posts
+    else:
+        raise TypeError("Input must be a Post or an iterable of Posts. ")
     results = []
     for post in posts:
         if not isinstance(post, Post):
@@ -58,18 +58,20 @@ def capture_media(post_or_posts, get_story_only):
         answer = res.json()
         app.logger.debug(answer)
         if answer.get('success'):
-            post.saved_media = answer.get('url')  # TODO: URGENT Confirm works, or use db_update.
+            post.saved_media = answer.get('url')
             answer['saved_media'] = True
         else:
             answer['saved_media'] = False
         answer['post_model'] = post
         results.append(answer)
-    if not results:
-        message = "Started with no Posts. " if not posts else "No story Posts. " if get_story_only else "Error. "
-        answer = {'success': True, 'message': message, 'file_list': [], 'url': ''}
-        results.append(answer)
-    else:
+    if results:
         db.session.commit()
+    else:
+        message = "Started with no Posts. " if not posts else "No story Posts. " if get_story_only else "Error. "
+        answer = {'success': True, 'message': message, 'url': ''}
+        for key in ['file_list', 'url_list', 'error_files', 'deleted']:
+            answer[key] = []
+        results.append(answer)
     return results if started_with_many else results[0]
 
 
