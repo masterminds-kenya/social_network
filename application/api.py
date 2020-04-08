@@ -217,14 +217,11 @@ def get_posts(user_id, ig_id=None, facebook=None):
             app.logger.debug(f"media {media_id} had NO INSIGHTS for type {media_type} --- {res_insight}. ")
         results.append(res)
     saved = db_create_or_update_many(results, Post)
-    # TODO: URGENT Capture Media for all stories in saved.
-    # captured = [capture_media(ea) for ea in saved if ea.get('media_id') in story_ids]
     capture_responses = capture_media(saved, True)
     failed_capture = [ea.get('post') for ea in capture_responses if not ea.get('saved_media')]
     message = f"Had {len(capture_responses)} story posts. "
     message += f"Had {len(failed_capture)} failed media captures. " if failed_capture else "All media captured. "
     app.logger.info(message)
-    app.logger.info(failed_capture)
     return saved
 
 

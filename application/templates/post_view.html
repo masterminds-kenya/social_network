@@ -5,6 +5,8 @@
 {% for key in data.keys() %}
   {% if key == 'permalink' %}
   <li><a href="{{ data[key] }}">Instagram {{key}}</a> </li>
+  {% elif key == 'saved' and data[key] %}
+  <li><a href="{{ data[key] }}">Captured - Saved Media</a></li>
   {% else %}
   <li>{{key}}: {{data[key]}} </li>
   {% endif %}
@@ -12,4 +14,9 @@
 <li>No Data</li>
 {% endfor %}
 </ul>
+{% if current_user.role in ['admin', 'manager'] %}
+<p>
+  <a href="{{ url_for('capture', id=data['id']) }}">Capture Media Files</a>
+</p>
+{% endif %}
 {% endblock data_view %}

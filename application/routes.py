@@ -217,11 +217,11 @@ def encrypt():
     return redirect(url_for('admin'))
 
 
-@app.route('/data/capture/')
+@app.route('/data/capture/<int:id>')
 @admin_required()
-def capture_test():
+def capture(id):
     """ Capture the media files. Currently on an Admin function, to be updated later. """
-    post = Post.query.get('250')  # TODO: Change to assign by a parameter for Post id.
+    post = Post.query.get(id)
     if not post:
         message = f"Post not found. "
         app.logger.debug(message)
