@@ -20,6 +20,7 @@ env_variables:
   DB_NAME: 'from-database'
   DB_CONNECTION_NAME: '[PROJECT_ID]:[PROJECT_REGION]:[DB_INSTANCE]'
   DEPLOYED_URL: 'set-by-user'
+  URL: 'this-url-will-take-precedence-unless-run-local'
   GCLOUD_URL: 'https://[PROJECT_ID].[REGION_ID].r.appspot.com'
   DEV_URL: 'https://[VERSION_ID]-dot-[SERVICE_ID]-dot-[PROJECT_ID].[REGION_ID].r.appspot.com'
   DEV_RUN: 'True'

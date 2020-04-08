@@ -1,6 +1,6 @@
 from flask import current_app as app
 from flask_login import login_user
-from .model_db import db_create, db_read, db_create_or_update_many
+from .model_db import db_create, db_read, db_create_or_update_many, db
 from .model_db import metric_clean, Insight, Audience, Post, OnlineFollowers, User  # , Campaign
 import requests
 import requests_oauthlib
@@ -23,21 +23,56 @@ FB_SCOPE = [
         ]
 
 
-def capture_media(post):
-    """ For a given Post obj, call the API we created for capturing the images of that InstaGram page. """
+def capture_media(post_or_posts, get_story_only):
+    """ For a given Post or list of Post objects, call the API for capturing the images of that InstaGram page.
+        If get_story_only is True, then only process the Posts that have media_type equal to 'STORY'.
+    """
+    #  API URL format:
     #  /api/v1/post/[id]/[media_type]/[media_id]/?url=[url-to-test-for-images]
-    payload = {'url': post.permalink}
-    url = f"{CAPTURE_BASE_URL}/api/v1/post/{str(post.id)}/{post.media_type.lower()}/{str(post.media_id)}/"
-    res = requests.get(url, params=payload)
-    answer = res.json()
-    app.logger.debug(answer)
-    if answer.get('success'):
-        post.saved_media = answer.get('url')  # TODO: URGENT Confirm works, or use db_update.
-        answer['saved_media'] = True
+    #  Expected JSON response has the following properties:
+    #  'success', 'message', 'file_list', 'url', 'url_list', 'error_files', 'deleted'
+    started_with_many = True
+    if isinstance(post_or_posts, Post):
+        posts = [post_or_posts]
+        started_with_many = False
+    elif isinstance(post_or_posts, (list, tuple)):
+        posts = post_or_posts
     else:
-        answer['saved_media'] = False
-    answer['post_model'] = post
-    return answer
+        raise TypeError("Input must be a Post or an iterable of Posts. ")
+    results = []
+    for post in posts:
+        if not isinstance(post, Post):
+            raise TypeError("Every element must be a Post object. ")
+        if get_story_only and post.media_type != 'STORY':
+            continue  # Skip this one if we are skipping non-story posts.
+        payload = {'url': post.permalink}
+        url = f"{CAPTURE_BASE_URL}/api/v1/post/{str(post.id)}/{post.media_type.lower()}/{str(post.media_id)}/"
+        app.logger.debug('--------- Capture Media Url -------------')
+        app.logger.debug(url)
+        try:
+            res = requests.get(url, params=payload)
+        except Exception as e:
+            app.logger.debug("-------- Exception on calling the capture API ----------")
+            app.logger.error(e)
+            continue
+        answer = res.json()
+        app.logger.debug(answer)
+        if answer.get('success'):
+            post.saved_media = answer.get('url')
+            answer['saved_media'] = True
+        else:
+            answer['saved_media'] = False
+        answer['post_model'] = post
+        results.append(answer)
+    if results:
+        db.session.commit()
+    else:
+        message = "Started with no Posts. " if not posts else "No story Posts. " if get_story_only else "Error. "
+        answer = {'success': True, 'message': message, 'url': ''}
+        for key in ['file_list', 'url_list', 'error_files', 'deleted']:
+            answer[key] = []
+        results.append(answer)
+    return results if started_with_many else results[0]
 
 
 def get_insight(user_id, first=1, influence_last=30*12, profile_last=30*3, ig_id=None, facebook=None):
@@ -184,7 +219,7 @@ def get_posts(user_id, ig_id=None, facebook=None):
     saved = db_create_or_update_many(results, Post)
     # TODO: URGENT Capture Media for all stories in saved.
     # captured = [capture_media(ea) for ea in saved if ea.get('media_id') in story_ids]
-    capture_responses = [capture_media(ea) for ea in saved if ea.media_type == 'STORY']
+    capture_responses = capture_media(saved, True)
     failed_capture = [ea.get('post') for ea in capture_responses if not ea.get('saved_media')]
     message = f"Had {len(capture_responses)} story posts. "
     message += f"Had {len(failed_capture)} failed media captures. " if failed_capture else "All media captured. "
