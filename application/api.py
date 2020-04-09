@@ -60,8 +60,9 @@ def capture_media(post_or_posts, get_story_only):
         if answer.get('success'):
             # data = {'saved_media': answer.get('url')}
             # db_update(data, post.id, Model=Post)
-            post.saved_media = answer.get('url')  # TODO: Update post model.
-            db.session.add(post)
+            # post.saved_media = answer.get('url')  # If using single url for summary.txt file.
+            post.saved_media = answer.get('url_list')  # If using hybrid_property for saved_media.
+            db.session.add(post)  # TODO: Check if this is needed.
             answer['saved_media'] = True
         else:
             answer['saved_media'] = False

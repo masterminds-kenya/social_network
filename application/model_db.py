@@ -2,6 +2,7 @@ from flask import Flask, flash, current_app
 from flask_login import UserMixin
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy.exc import IntegrityError
+from sqlalchemy.ext.hybrid import hybrid_property
 from sqlalchemy.dialects.mysql import BIGINT
 from sqlalchemy import or_, desc
 from sqlalchemy_utils import EncryptedType  # encrypt
@@ -39,9 +40,6 @@ def clean(obj):
 
 
 def from_sql(row, related=False, safe=True):
-    """ Translates a SQLAlchemy model instance into a dictionary.
-        Will return only viewable fields when 'safe' is True.
-    """
     data = row.__dict__.copy()
     data['id'] = row.id
     if related:
@@ -322,7 +320,7 @@ class Post(db.Model):
     comments_count = db.Column(db.Integer,      index=False, unique=False, nullable=True)
     like_count = db.Column(db.Integer,          index=False, unique=False, nullable=True)
     permalink = db.Column(db.String(191),       index=False, unique=False, nullable=True)
-    saved_media = db.Column(db.String(191),     index=False, unique=False, nullable=True)
+    _saved_media = db.Column('saved_media', db.Text, index=False, unique=False, nullable=True)
     recorded = db.Column(db.DateTime,           index=False, unique=False, nullable=False)  # timestamp*
     modified = db.Column(db.DateTime,           index=False, unique=False, nullable=False, default=dt.utcnow, onupdate=dt.utcnow)
     created = db.Column(db.DateTime,            index=False, unique=False, nullable=False, default=dt.utcnow)
@@ -354,13 +352,39 @@ class Post(db.Model):
         kwargs = fix_date(Post, kwargs)
         super().__init__(*args, **kwargs)
 
+    @hybrid_property
+    def saved_media(self):
+        return None if self._saved_media is None else json.loads(self._saved_media)[0]
+
+    @saved_media.setter
+    def saved_media(self, saved_urls, display=0):
+        if not isinstance(saved_urls, (list, tuple, type(None))):
+            raise TypeError("The saved_media must be a list of strings for the urls, or None. ")
+        if not isinstance(display, int):
+            raise TypeError("The display keyword must be set to an integer. ")
+        elif saved_urls and display > len(saved_urls) - 1:
+            raise ValueError("The display keyword was out of bounds for the input list. ")
+        if display != 0 and saved_urls:
+            saved_urls[display], saved_urls[0] = saved_urls[0], saved_urls[display]
+        self._saved_media = json.dumps(saved_urls) if saved_urls else None
+
+    @hybrid_property
+    def saved_media_options(self):
+        """ Return the list of all saved_media url links. """
+        return None if self._saved_media is None else json.loads(self._saved_media)
+
+    @saved_media_options.setter
+    def saved_media_options(self, saved_urls):
+        self.saved_media(saved_urls, display=0)
+
     def display(self):
         """ Since different media post types have different metrics, we only want to show the appropriate fields. """
-        post = from_sql(self, related=True, safe=True)  # TODO: CHECK if worked - Allow related to show status in other campaigns
-        fields = {'id', 'user_id', 'saved_media', 'campaigns', 'processed', 'recorded'}
+        post = from_sql(self, related=True, safe=True)
+        fields = {'id', 'user_id', 'saved_media', 'saved_media_options', 'campaigns', 'processed', 'recorded'}
         fields.update(Post.metrics['basic'])
         fields.discard('timestamp')
         fields.update(Post.metrics[post['media_type']])
+        # return {key: post[key] for key in post.keys() - fields}
         return {key: val for (key, val) in post.items() if key in fields}
 
     def __str__(self):
