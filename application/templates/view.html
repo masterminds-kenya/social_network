@@ -17,24 +17,49 @@
 {% for key in data.keys() %}
   {% if key == 'insights' and data[key]|length %}
   <li><a href="{{ url_for('insights', mod=mod, id=data.id) }}">See Insights</a> </li>
-  {% elif key == 'audiences' and data[key]|length %}
-  <li> {{ key }} </li>
+  {% elif key == 'aud_count' %}
+  <li>
+    audience count: {% for ea in data[key] %}{{ea}}, {% else %}EMPTY NONE{% endfor %}
+  </li>
+  {% elif key == 'posts' and data[key]|length %}
+  <li> {{ key }}
     <ul>
     {% for ea in data[key] %}
-      <li><a href="{{ url_for('view', mod='audience', id=ea.id) }}">
-        {{ ea.name }} as of {{ea.recorded}}</a>
+      <li>
+        <a href="{{ url_for('view', mod='post', id=ea.id) }}"># {{ea.id}} posted on {{ea.recorded}}</a>
       </li>
-    {% else %}
-      <li>None</li>
     {% endfor %}
     </ul>
+  </li>
+  {% elif key == 'audiences' and data[key]|length %}
+  <li> {{ key }}
+    <ul>
+    {% for ea in data[key] %}
+      <li>
+        <a href="{{ url_for('view', mod='audience', id=ea.id) }}">
+        {{ ea.name }} as of {{ea.recorded}}</a>
+      </li>
+    {% endfor %}
+    </ul>
+  </li>
   {% elif key in ['facebook_id', 'instagram_id'] %}
   <li>{{key}}: {%if data[key] is none %} Not {% endif %} Known</li>
-  {% elif key not in data['related'] and key != 'related' %}
-  <li>{{key}}: {{data[key]}} </li>
+  {% else %}
+  <li>
+    {{key}}:
+    {% if data[key] is iterable and data[key] is not string %}
+      {% if data[key]|length %}
+      <ul>{% for ea in data[key] %}<li>{{ ea }}</li>{% endfor %}</ul>
+      {% else %}
+      EMPTY NONE
+      {% endif %}
+    {% else %}
+    {{data[key]}}
+    {% endif %}
+  </li>
   {% endif %}
 {% else %}
-  <li>No Data</li>
+  <li>NO DATA</li>
 {% endfor %}
 </ul>
 {% endblock data_view %}

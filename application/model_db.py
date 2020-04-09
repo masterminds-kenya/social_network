@@ -238,7 +238,7 @@ class OnlineFollowers(db.Model):
         super().__init__(*args, **kwargs)
 
     def __str__(self):
-        return int(self.value)
+        return str(int(self.value))
 
     def __repr__(self):
         return f"<OnlineFollowers {self.recorded} | Hour: {self.hour} | User {self.user_id} >"
