@@ -23,7 +23,7 @@
 | :white_check_mark: | On User delete, remove metrics & keep Posts  |
 |                    | Migrate live DB (and deploy all of above)    |
 |                    | **Milestone 3 Completion**                   |
-|                    | Saving Story Post media files                |
+| :heavy_check_mark: | Saving Story Post media files                |
 |                    | View media files associated to a Campaign    |
 |                    | **Milestone 4 Completion**                   |
 |                    | Story Webhook for full data at expiration    |
