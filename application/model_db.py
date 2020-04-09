@@ -39,7 +39,7 @@ def clean(obj):
     return obj
 
 
-def from_sql(row, related=False, safe=True):
+def old_from_sql(row, related=False, safe=True):
     data = row.__dict__.copy()
     data['id'] = row.id
     if related:
@@ -54,6 +54,23 @@ def from_sql(row, related=False, safe=True):
     if safe:
         Model = row.__class__
         data = {k: data[k] for k in data.keys() - Model.UNSAFE}
+    return data
+
+
+def from_sql(row, related=False, safe=True):
+    """ Translates a SQLAlchemy model instance into a dictionary.
+        Can return all properties, both column fields and properties declared by decorators.
+        Will return ORM related fields unless 'related' is False.
+        Will return only safe for viewing fields when 'safe' is True.
+    """
+    data = {k: getattr(row, k) for k in dir(row.__mapper__.all_orm_descriptors) if not str(k).startswith('_')}
+    unwanted_keys = set()
+    if not related:
+        unwanted_keys.update(row.__mapper__.relationships)
+    if safe:
+        unwanted_keys.update(row.__class__.UNSAFE)
+    if len(unwanted_keys):
+        data = {k: data[k] for k in data.keys() - unwanted_keys}
     return data
 
 
