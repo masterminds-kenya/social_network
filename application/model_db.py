@@ -39,31 +39,13 @@ def clean(obj):
     return obj
 
 
-def old_from_sql(row, related=False, safe=True):
-    data = row.__dict__.copy()
-    data['id'] = row.id
-    if related:
-        related_fields = []
-        for name, rel in row.__mapper__.relationships.items():
-            data[name] = getattr(row, name, [])
-            related_fields.append(name)
-        data['related'] = related_fields
-    temp = data.pop('_sa_instance_state', None)
-    if not temp:
-        current_app.logger.error('Not a model instance!')
-    if safe:
-        Model = row.__class__
-        data = {k: data[k] for k in data.keys() - Model.UNSAFE}
-    return data
-
-
 def from_sql(row, related=False, safe=True):
     """ Translates a SQLAlchemy model instance into a dictionary.
         Can return all properties, both column fields and properties declared by decorators.
         Will return ORM related fields unless 'related' is False.
         Will return only safe for viewing fields when 'safe' is True.
     """
-    data = {k: getattr(row, k) for k in dir(row.__mapper__.all_orm_descriptors) if not str(k).startswith('_')}
+    data = {k: getattr(row, k) for k in dir(row.__mapper__.all_orm_descriptors) if not k.startswith('_')}
     unwanted_keys = set()
     if not related:
         unwanted_keys.update(row.__mapper__.relationships)
@@ -464,8 +446,9 @@ class Campaign(db.Model):
 
     def export_posts(self):
         """ Used for Sheets Report, a top label row followed by rows of Posts data. """
-        ignore = ['id', 'user_id']
+        ignore = {'id', 'user_id'}
         columns = [ea.name for ea in Post.__table__.columns if ea.name not in ignore]
+        # TODO: check on mapped non-column properties. See updated from_sql code for insights.
         data = [[clean(getattr(post, ea, '')) for ea in columns] for post in self.posts]
         return [columns, *data]
 
@@ -533,9 +516,9 @@ def db_create(data, Model=User):
         pprint(unique)
         model = Model.query.filter(*[getattr(Model, key) == val for key, val in unique.items()]).one_or_none()
         if model:
-            message = f"A {model.__class__.__name__} already exists with id: {model.id} . Using existing."
+            message = f"A {model.__class__.__name__} already exists with id: {model.id} . Using existing. "
         else:
-            message = f'Cannot create due to collision on unique fields. Cannot retrieve existing record'
+            message = f"Cannot create due to collision on unique fields. Cannot retrieve existing record. "
         current_app.logger.error(message)
         flash(message)
     except Exception as e:
@@ -567,9 +550,9 @@ def db_update(data, id, related=False, Model=User):
         current_app.logger.exception(e)
         db.session.rollback()
         if Model == User:
-            message = 'Found existing user. '
+            message = "Found existing user. "
         else:
-            message = "Input Error. Make sure values are unique where required, and confirm all inputs are valid."
+            message = "Input Error. Make sure values are unique where required, and confirm all inputs are valid. "
         flash(message)
         raise ValueError(e)
     return from_sql(model, related=related, safe=True)
