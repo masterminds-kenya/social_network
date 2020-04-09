@@ -356,8 +356,8 @@ class Post(db.Model):
 
     def display(self):
         """ Since different media post types have different metrics, we only want to show the appropriate fields. """
-        post = from_sql(self, related=False, safe=True)  # TODO: Allow related to show status in other campaigns
-        fields = {'id', 'user_id', 'campaigns', 'processed', 'recorded'}
+        post = from_sql(self, related=True, safe=True)  # TODO: CHECK if worked - Allow related to show status in other campaigns
+        fields = {'id', 'user_id', 'saved_media', 'campaigns', 'processed', 'recorded'}
         fields.update(Post.metrics['basic'])
         fields.discard('timestamp')
         fields.update(Post.metrics[post['media_type']])

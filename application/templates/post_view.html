@@ -5,7 +5,7 @@
 {% for key in data.keys() %}
   {% if key == 'permalink' %}
   <li><a href="{{ data[key] }}">Instagram {{key}}</a> </li>
-  {% elif key == 'saved' and data[key] %}
+  {% elif key == 'saved_media' and data[key] %}
   <li><a href="{{ data[key] }}">Captured - Saved Media</a></li>
   {% else %}
   <li>{{key}}: {{data[key]}} </li>
