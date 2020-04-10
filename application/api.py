@@ -47,8 +47,8 @@ def capture_media(post_or_posts, get_story_only):
             continue  # Skip this one if we are skipping non-story posts.
         payload = {'url': post.permalink}
         url = f"{CAPTURE_BASE_URL}/api/v1/post/{str(post.id)}/{post.media_type.lower()}/{str(post.media_id)}/"
-        app.logger.debug('--------- Capture Media Url -------------')
-        app.logger.debug(url)
+        # app.logger.debug('--------- Capture Media Url -------------')
+        # app.logger.debug(url)
         try:
             res = requests.get(url, params=payload)
         except Exception as e:
@@ -58,7 +58,11 @@ def capture_media(post_or_posts, get_story_only):
         answer = res.json()
         app.logger.debug(answer)
         if answer.get('success'):
-            post.saved_media = answer.get('url')
+            # data = {'saved_media': answer.get('url')}
+            # db_update(data, post.id, Model=Post)
+            # post.saved_media = answer.get('url')  # If using single url for summary.txt file.
+            post.saved_media = answer.get('url_list')  # If using hybrid_property for saved_media.
+            db.session.add(post)  # TODO: Check if this is needed.
             answer['saved_media'] = True
         else:
             answer['saved_media'] = False
@@ -66,6 +70,7 @@ def capture_media(post_or_posts, get_story_only):
         results.append(answer)
     if results:
         db.session.commit()
+        # pass
     else:
         message = "Started with no Posts. " if not posts else "No story Posts. " if get_story_only else "Error. "
         answer = {'success': True, 'message': message, 'url': ''}
@@ -217,14 +222,11 @@ def get_posts(user_id, ig_id=None, facebook=None):
             app.logger.debug(f"media {media_id} had NO INSIGHTS for type {media_type} --- {res_insight}. ")
         results.append(res)
     saved = db_create_or_update_many(results, Post)
-    # TODO: URGENT Capture Media for all stories in saved.
-    # captured = [capture_media(ea) for ea in saved if ea.get('media_id') in story_ids]
     capture_responses = capture_media(saved, True)
     failed_capture = [ea.get('post') for ea in capture_responses if not ea.get('saved_media')]
     message = f"Had {len(capture_responses)} story posts. "
     message += f"Had {len(failed_capture)} failed media captures. " if failed_capture else "All media captured. "
     app.logger.info(message)
-    app.logger.info(failed_capture)
     return saved
 
 

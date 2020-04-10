@@ -17,7 +17,7 @@ service_config = {
 
 
 def get_creds(config):
-    """ Using google.oauth2.service_account to get credentials for the service account """
+    """ Using google.oauth2.service_account to get credentials for the service account. """
     creds = None
     if not path.exists(config.get('file')):
         message = "Wrong Path to Secret File. "
@@ -52,7 +52,7 @@ def perm_add(sheet_id, add_users, service=None):
             # TODO: Handle error
             app.logger.exception(exception)
         else:
-            app.logger.info(f"Permission Id: {response.get('id')} Request Id: {request_id}. ")
+            app.logger.debug(f"Permission Id: {response.get('id')} Request Id: {request_id}. ")
             pass
 
     if not service:
@@ -79,8 +79,8 @@ def perm_add(sheet_id, add_users, service=None):
 
 
 def all_files(*args, service=None):
-    """ List, and possibly manage, all files owned by the app """
-    app.logger.info(f"======== List all Google Sheet Files ========")
+    """ List, and possibly manage, all files owned by the app. """
+    app.logger.debug(f"======== List all Google Sheet Files ========")
     if not service:
         creds = get_creds(service_config['sheets'])
         service = build('drive', 'v3', credentials=creds, cache_discovery=False)
@@ -107,8 +107,8 @@ def perm_list(sheet_id, service=None):
 
 
 def create_sheet(model, service=None):
-    """ Takes in a Model instance, usually from Campaign or User (but must have a name property) and create a worksheet. """
-    app.logger.info(f'======== create {model.name} sheet ========')
+    """ Takes in a Model instance, usually from Campaign or User (must have a name property) and create a worksheet. """
+    app.logger.debug(f'======== create {model.name} sheet ========')
     if not service:
         creds = get_creds(service_config['sheets'])
         service = build('sheets', 'v4', credentials=creds, cache_discovery=False)
@@ -126,7 +126,7 @@ def create_sheet(model, service=None):
 # TODO: ? Is this going to be used, or it should be deleted?
 def read_sheet_full(id=SHARED_SHEET_ID, service=None):
     """ Get the information (not the values) for a worksheet with permissions granted to our app service. """
-    app.logger.info('================== read sheet full =======================')
+    app.logger.debug('================== read sheet full =======================')
     if not service:
         creds = get_creds(service_config['sheets'])
         service = build('sheets', 'v4', credentials=creds, cache_discovery=False)
@@ -140,14 +140,14 @@ def read_sheet_full(id=SHARED_SHEET_ID, service=None):
     return (spreadsheet, id, link)
 
 
-def read_sheet(id=SHARED_SHEET_ID, range_=None, service=None):
+def read_sheet(id=SHARED_SHEET_ID, ranges=None, service=None):
     """ Read a sheet that our app service account has been given permission for. """
-    app.logger.info(f'============== read sheet: {id} =====================')
+    app.logger.debug(f'============== read sheet: {id} =====================')
     if not service:
         creds = get_creds(service_config['sheets'])
         service = build('sheets', 'v4', credentials=creds, cache_discovery=False)
     # TODO: Currently okay if range_ is known. Otherwise we need to figure it so we can see the sheet data.
-    range_ = range_ or 'Sheet1!A1:B3'
+    range_ = ranges[0] if isinstance(ranges, (list, tuple)) else 'Sheet1!A1:B3'
     value_render_option = 'FORMATTED_VALUE'  # 'FORMATTED_VALUE' | 'UNFORMATTED_VALUE' | 'FORMULA'
     date_time_render_option = 'FORMATTED_STRING'  # 'FORMATTED_STRING' | 'SERIAL_NUMBER'
     major_dimension = 'ROWS'  # 'ROWS' | 'COLUMNS'
@@ -160,36 +160,61 @@ def read_sheet(id=SHARED_SHEET_ID, range_=None, service=None):
         )
     spreadsheet = request.execute()
     spreadsheet['id'] = spreadsheet.get('spreadsheetId', id)
+    spreadsheet['ranges'] = ranges
     spreadsheet['link'] = spreadsheet.get('link', f"https://docs.google.com/spreadsheets/d/{id}/edit#gid=0")
     return spreadsheet
 
 
 def get_vals(model):
-    """ Get the values we want to put into our worksheet report """
+    """ Get the values we want to put into our worksheet report. """
     model_name = model.__class__.__name__
     if model_name == 'User':
         # flash(f"Sheet has {model.role} {model_name} data for {model.name}. ")
+        header_row = [model.role, model.name]
         insights = model.insight_report()
         media_posts = model.export_posts()
-        sheet_rows = [*insights, [''], *media_posts, ['']]
+        sheet_rows = [header_row, *insights, [''], *media_posts, ['']]
     elif model_name == 'Campaign':
         # flash(f"Sheet has {model_name} data for {model.name}. ")
-        brands = ['Brand', ', '.join([ea.name for ea in model.brands])]
-        users = ['Influencer', ', '.join([ea.name for ea in model.users])]
+        brands = ['Brand(s)', ', '.join([ea.name for ea in model.brands])]
+        users = ['Influencer(s)', ', '.join([ea.name for ea in model.users])]
+        info = ['Notes', model.notes]
         brand_data = [model.brands[0].insight_summary(label_only=True)]
         for brand in model.brands:
             brand_data.append(brand.insight_summary())
         media_posts = model.export_posts()
-        sheet_rows = [brands, users, [''], *brand_data, [''], *media_posts, ['']]
+        sheet_rows = [brands, users, info, [''], *brand_data, [''], *media_posts, ['']]
+    else:
+        sheet_rows = unexpected_model(model_name)
+    return sheet_rows
+
+
+def unexpected_model(model_name):
+    """ Generate sheet content that confirms making sheets work but the error was with the model. """
+    logstring = f"Unexpected {model_name} model at this time. "
+    flash(logstring)
+    app.logger.error(f'-------- {logstring} --------')
+    data = [logstring]
+    media_posts = [['media_posts label row']]
+    sheet_rows = [data, [''], *media_posts, ['']]
+    return sheet_rows
+
+
+def get_insight_report(model):
+    """ Get the insight reports for brands and/or influencers connected to the given model. """
+    model_name = model.__class__.__name__
+    if model_name == 'User':
+        header_row = [model.role, model.name]
+        insights = model.insight_report()
+        sheet_rows = [header_row, [''], *insights, ['']]
+    elif model_name == 'Campaign':
+        header_row = ['Brand(s)', ', '.join([ea.name for ea in model.brands])]
+        sheet_rows = [header_row, ['']]
         for brand in model.brands:
             sheet_rows.extend(brand.insight_report())
+        sheet_rows.append([''])
     else:
-        logstring = f"Unexpected {model_name} model at this time. "
-        flash(logstring)
-        app.logger.error(f'-------- {logstring} --------')
-        data = [logstring]
-        media_posts = [['media_posts label row']]
-        sheet_rows = [data, [''], *media_posts, ['']]
+        sheet_rows = unexpected_model(model_name)
     return sheet_rows
 
 
@@ -219,24 +244,19 @@ def compute_A1(arr2d, start='A1', sheet='Sheet1'):
     return result
 
 
-def update_sheet(model, id=SHARED_SHEET_ID, service=None):
-    """ Get the data we want from the model instance, then append it to the worksheet """
-    app.logger.info(f'================== update sheet {id} =======================')
-    if not service:
-        creds = get_creds(service_config['sheets'])
-        service = build('sheets', 'v4', credentials=creds, cache_discovery=False)
+def add_page(sheet_rows, range_, sheet_id, service):
+    """ Add the sheet_rows data on the cells indicated by range for the given sheet id. """
     value_input_option = 'USER_ENTERED'  # 'RAW' | 'USER_ENTERED' | 'INPUT_VALUE_OPTION_UNSPECIFIED'
     insert_data_option = 'OVERWRITE'  # 'OVERWITE' | 'INSERT_ROWS'
     major_dimension = 'ROWS'  # 'ROWS' | 'COLUMNS'
-    vals = get_vals(model)
-    range_ = compute_A1(vals) or 'Sheet1!A1:B2'
     value_range_body = {
         "majorDimension": major_dimension,
         "range": range_,
-        "values": vals
+        "values": sheet_rows
     }
+    app.logger.debug("==================== add page ====================")
     request = service.spreadsheets().values().append(
-        spreadsheetId=id,
+        spreadsheetId=sheet_id,
         range=range_,
         valueInputOption=value_input_option,
         insertDataOption=insert_data_option,
@@ -247,4 +267,25 @@ def update_sheet(model, id=SHARED_SHEET_ID, service=None):
     except Exception as e:
         spreadsheet = {}
         app.logger.exception(f"Could not update sheet: {e}. ")
-    return read_sheet(id=spreadsheet.get('spreadsheetId', id), range_=range_, service=service)
+        raise e
+    return spreadsheet
+
+
+def update_sheet(model, id=SHARED_SHEET_ID, service=None):
+    """ Get the data we want from the model instance, then append it to the worksheet. """
+    app.logger.debug(f'================== update sheet {id} =======================')
+    if not service:
+        creds = get_creds(service_config['sheets'])
+        service = build('sheets', 'v4', credentials=creds, cache_discovery=False)
+    pages, ranges, page_num = [], [], 1
+    pages.append(get_vals(model))
+    pages.append(get_insight_report(model))
+    # append pages with more sheet_rows like data if additional pages are needed.
+    for page in pages:
+        sheet_range = compute_A1(page, sheet=f"Sheet{page_num}")
+        ranges.append(sheet_range)
+        spreadsheet = add_page(page, sheet_range, id, service)
+        if not spreadsheet:
+            raise Exception("The add_page function had no Exceptions, but gave no results. ")
+        page_num += 1
+    return read_sheet(id=spreadsheet.get('spreadsheetId', id), ranges=ranges, service=service)

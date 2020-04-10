@@ -37,9 +37,29 @@
   {% endfor %}
 </ul>
 {% elif sheet.get('values') %}
-<p>
-  The first sheet in this document has {{ sheet['values']|length }} rows of data.
-</p>
+<table>
+  {% for row in sheet['values'] %}
+  <tr>
+    {% for col in row %}
+    <td>{{col}}</td>
+    {% else %}
+    <td>Blank</td>
+    {% endfor %}
+  </tr>
+  {% else %}
+  <tr><td>No rows</td></tr>
+  {% endfor %}
+</table>
+{% endif %}
+{% if campaign_id %}
+<p>Does this ever show up? # TODO: </p>
+<ul>
+  <li><a href="{{ url_for('data_permissions', mod=mod, id=id, sheet_id=sheet['id']) }}">View and Manage Access to the Worksheet</a></li>
+  {% if mod == 'campaign' %}
+  <li><a href="{{ url_for('campaign', id=id) }}">Return to Campaign Manage Page</a></li>
+  <li><a href="{{ url_for('detail_campaign', id=id) }}">View Collected Posts for this Campaign</a></li>
+  {% endif %}
+</ul>
 {% endif %}
 
 {% endblock content %}

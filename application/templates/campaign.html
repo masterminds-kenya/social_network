@@ -63,14 +63,27 @@
       {% for post in related[user] %}
       <section class="posts" id="post_{{post.id}}">
         <article>
+          {% if post.media_type == 'STORY' %}
+          <p>
+            {% if post.saved_media %}
+            <a href="{{post.saved_media}}">{{post.media_type}} | {{post.recorded}}</a> ||
+            {% else %}
+            <a href="{{post.permalink}}">{{post.media_type}} | {{post.recorded}}</a> ||
+            {% endif %}
+            Other images available as authoritative view.
+            <a href="{{ url_for('view', mod='post', id=post.id) }}">Update selected image</a>
+            (not yet available).
+          </p>
+          {% else %}
           <p><a href="{{post.permalink}}">{{post.media_type}} | {{post.recorded}}</a></p>
+          {% endif %}
           <p>{{ post.caption|e }}</p>
         </article>
         <div class="metrics">
         {% if view == 'collected' %}
         <ul>
           {% for key, val in post.items() %}
-          {% if key not in ['id', 'user_id', 'recorded', 'permalink', 'media_type', 'caption'] %}
+          {% if key not in ['id', 'user_id', 'recorded', 'permalink', 'media_type', 'caption', 'processed', 'campaigns'] %}
           <li>{{key|title}}: {{val}}</li>
           {% endif %}
           {% endfor %}

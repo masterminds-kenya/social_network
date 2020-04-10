@@ -23,15 +23,15 @@
 | :white_check_mark: | On User delete, remove metrics & keep Posts  |
 |                    | Migrate live DB (and deploy all of above)    |
 |                    | **Milestone 3 Completion**                   |
-|                    | Saving Story Post media files                |
-|                    | View media files associated to a Campaign    |
+| :heavy_check_mark: | Saving Story Post media files                |
+| :heavy_check_mark: | Can view saved media in Campaign processing  |
 |                    | **Milestone 4 Completion**                   |
 |                    | Story Webhook for full data at expiration    |
 |                    | Sheet Report layout update, multi-worksheets |
 |                    | Update documentation to capture all updates  |
 |                    | **Stretch Goals**                            |
 |                    | Saving Post files (only if in a Campaign)    |
-|                    | Attaching media files to data report         |
+| :heavy_check_mark: | Campaign sheet reports include saved media   |
 |                    | **March 2020 Features Completed**            |
 
 ## Checklist
@@ -46,7 +46,7 @@
 - [s] Stretch Goal. Not for current feature plan.
 
 Current Status:
-2020-04-07 23:30:38
+2020-04-09 14:07:34
 <!-- Ctrl-Shift-I to generate timestamp -->
 
 ### Story & Media Files Features
@@ -93,7 +93,7 @@ Current Status:
   - [x] Update Post model to have a `saved_media` field for a url string of the media files location.
     - [x] update code.
     - [x] migrate Dev DB.
-  - [x] API returns a `url` whose value represents where the captured media files can be accessed.
+  - [x] API returns a `url_list` whose value represents where the captured media files can be accessed.
   - [c] Campaign sheet report includes a column for this captured and saved media content.
 - [s] Non-Story Post media files.
   - [x] Current: permalink given. Require manager to screen capture and crop.
@@ -130,7 +130,7 @@ Current Status:
   - [n] Media / Static files location.
   - [x] storage bucket location.
 - [x] Make the stored file available as a link.
-- [?] Link to file is stored as property on the Post object.
+- [x] Link to file is stored as property on the Post object.
   - [n] ? Replace permalink with our created link to the media file?
   - [x] Add another field in the DB for our local_permalink
 - [x] Function called for Story Media right after story media is discovered.

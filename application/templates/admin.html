@@ -48,11 +48,13 @@
   <li><a href="{{ url_for('all', mod='insight') }}">List all Insights</a></li>
   <li><a href="{{ url_for('all', mod='audience') }}">List all Audience Data</a></li>
   {% if dev %}
-  <li>Developer Only Functions Below</li>
+  <li>Dangerous Developer Only Functions</li>
   <li><a href="{{ url_for('encrypt') }}">Run Encrypt Process</a></li>
-  <li><a href="{{ url_for('capture_test') }}">Capture Media Test Link</a></li>
   <li><a href="{{ url_for('load_user') }}">Load File contents into Database</a> </li>
+  <li>Developer Only Functions</li>
   <li><a href="{{ url_for('add', mod='influencer') }}">Add Fake Influencer</a></li>
+  <li><a href="{{ url_for('test_method') }}">Dev Test Method</a></li>
+  <li><a href="{{ url_for('capture', id=378) }}">Capture Media Test Link</a></li>
   {% endif %}
 </ul>
 

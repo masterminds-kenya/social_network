@@ -2,6 +2,7 @@ from flask import Flask, flash, current_app
 from flask_login import UserMixin
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy.exc import IntegrityError
+from sqlalchemy.ext.hybrid import hybrid_property
 from sqlalchemy.dialects.mysql import BIGINT
 from sqlalchemy import or_, desc
 from sqlalchemy_utils import EncryptedType  # encrypt
@@ -35,27 +36,30 @@ def clean(obj):
     """ Make sure this obj is serializable. Datetime objects should be turned to strings. """
     if isinstance(obj, dt):
         return obj.isoformat()
+    elif isinstance(obj, (list, tuple, set)):
+        temp = []
+        for ea in obj:
+            temp.append(clean(ea))
+        return temp
+    elif isinstance(obj, (Campaign, User)):
+        return str(obj)
     return obj
 
 
 def from_sql(row, related=False, safe=True):
     """ Translates a SQLAlchemy model instance into a dictionary.
-        Will return only viewable fields when 'safe' is True.
+        Can return all properties, both column fields and properties declared by decorators.
+        Will return ORM related fields unless 'related' is False.
+        Will return only safe for viewing fields when 'safe' is True.
     """
-    data = row.__dict__.copy()
-    data['id'] = row.id
-    if related:
-        related_fields = []
-        for name, rel in row.__mapper__.relationships.items():
-            data[name] = getattr(row, name, [])
-            related_fields.append(name)
-        data['related'] = related_fields
-    temp = data.pop('_sa_instance_state', None)
-    if not temp:
-        current_app.logger.error('Not a model instance!')
+    data = {k: getattr(row, k) for k in dir(row.__mapper__.all_orm_descriptors) if not k.startswith('_')}
+    unwanted_keys = set()
+    if not related:
+        unwanted_keys.update(row.__mapper__.relationships)
     if safe:
-        Model = row.__class__
-        data = {k: data[k] for k in data.keys() - Model.UNSAFE}
+        unwanted_keys.update(row.__class__.UNSAFE)
+    if len(unwanted_keys):
+        data = {k: data[k] for k in data.keys() - unwanted_keys}
     return data
 
 
@@ -241,7 +245,7 @@ class OnlineFollowers(db.Model):
         super().__init__(*args, **kwargs)
 
     def __str__(self):
-        return int(self.value)
+        return str(int(self.value))
 
     def __repr__(self):
         return f"<OnlineFollowers {self.recorded} | Hour: {self.hour} | User {self.user_id} >"
@@ -322,7 +326,7 @@ class Post(db.Model):
     comments_count = db.Column(db.Integer,      index=False, unique=False, nullable=True)
     like_count = db.Column(db.Integer,          index=False, unique=False, nullable=True)
     permalink = db.Column(db.String(191),       index=False, unique=False, nullable=True)
-    saved_media = db.Column(db.String(191),     index=False, unique=False, nullable=True)
+    _saved_media = db.Column('saved_media', db.Text, index=False, unique=False, nullable=True)
     recorded = db.Column(db.DateTime,           index=False, unique=False, nullable=False)  # timestamp*
     modified = db.Column(db.DateTime,           index=False, unique=False, nullable=False, default=dt.utcnow, onupdate=dt.utcnow)
     created = db.Column(db.DateTime,            index=False, unique=False, nullable=False, default=dt.utcnow)
@@ -354,13 +358,39 @@ class Post(db.Model):
         kwargs = fix_date(Post, kwargs)
         super().__init__(*args, **kwargs)
 
+    @hybrid_property
+    def saved_media(self):
+        return None if self._saved_media is None else json.loads(self._saved_media)[0]
+
+    @saved_media.setter
+    def saved_media(self, saved_urls, display=0):
+        if not isinstance(saved_urls, (list, tuple, type(None))):
+            raise TypeError("The saved_media must be a list of strings for the urls, or None. ")
+        if not isinstance(display, int):
+            raise TypeError("The display keyword must be set to an integer. ")
+        elif saved_urls and display > len(saved_urls) - 1:
+            raise ValueError("The display keyword was out of bounds for the input list. ")
+        if display != 0 and saved_urls:
+            saved_urls[display], saved_urls[0] = saved_urls[0], saved_urls[display]
+        self._saved_media = json.dumps(saved_urls) if saved_urls else None
+
+    @hybrid_property
+    def saved_media_options(self):
+        """ Return the list of all saved_media url links. """
+        return None if self._saved_media is None else json.loads(self._saved_media)
+
+    @saved_media_options.setter
+    def saved_media_options(self, saved_urls):
+        self.saved_media(saved_urls, display=0)
+
     def display(self):
         """ Since different media post types have different metrics, we only want to show the appropriate fields. """
-        post = from_sql(self, related=False, safe=True)  # TODO: Allow related to show status in other campaigns
-        fields = {'id', 'user_id', 'campaigns', 'processed', 'recorded'}
+        post = from_sql(self, related=True, safe=True)
+        fields = {'id', 'user_id', 'saved_media', 'saved_media_options', 'campaigns', 'processed', 'recorded'}
         fields.update(Post.metrics['basic'])
         fields.discard('timestamp')
         fields.update(Post.metrics[post['media_type']])
+        # return {key: post[key] for key in post.keys() - fields}
         return {key: val for (key, val) in post.items() if key in fields}
 
     def __str__(self):
@@ -423,10 +453,13 @@ class Campaign(db.Model):
 
     def export_posts(self):
         """ Used for Sheets Report, a top label row followed by rows of Posts data. """
-        ignore = ['id', 'user_id']
-        columns = [ea.name for ea in Post.__table__.columns if ea.name not in ignore]
-        data = [[clean(getattr(post, ea, '')) for ea in columns] for post in self.posts]
-        return [columns, *data]
+        ignore = {'id', 'user_id', 'user', 'processed'}
+        ignore.update(Post.UNSAFE)
+        # columns = [ea.name for ea in Post.__table__.columns if ea.name not in ignore]
+        # TODO: check on mapped non-column properties. See updated from_sql code for insights.
+        properties = [k for k in dir(Post.__mapper__.all_orm_descriptors) if not k.startswith('_') and k not in ignore]
+        data = [[clean(getattr(post, ea, '')) for ea in properties] for post in self.posts]
+        return [properties, *data]
 
     def get_results(self):
         """ We want the datasets and summary statistics """
@@ -467,9 +500,9 @@ class Campaign(db.Model):
         return related
 
     def __str__(self):
-        name = self.name if self.name else self.id
+        name = self.name if self.name else str(self.id)
         brands = ', '.join([brand.name for brand in self.brands]) if self.brands else 'NA'
-        return f"Campaign: {name} with Brand(s): {brands}"
+        return f"Campaign: {name} with Brand(s): {brands}. "
 
     def __repr__(self):
         name = self.name if self.name else self.id
@@ -492,9 +525,9 @@ def db_create(data, Model=User):
         pprint(unique)
         model = Model.query.filter(*[getattr(Model, key) == val for key, val in unique.items()]).one_or_none()
         if model:
-            message = f"A {model.__class__.__name__} already exists with id: {model.id} . Using existing."
+            message = f"A {model.__class__.__name__} already exists with id: {model.id} . Using existing. "
         else:
-            message = f'Cannot create due to collision on unique fields. Cannot retrieve existing record'
+            message = f"Cannot create due to collision on unique fields. Cannot retrieve existing record. "
         current_app.logger.error(message)
         flash(message)
     except Exception as e:
@@ -526,9 +559,9 @@ def db_update(data, id, related=False, Model=User):
         current_app.logger.exception(e)
         db.session.rollback()
         if Model == User:
-            message = 'Found existing user. '
+            message = "Found existing user. "
         else:
-            message = "Input Error. Make sure values are unique where required, and confirm all inputs are valid."
+            message = "Input Error. Make sure values are unique where required, and confirm all inputs are valid. "
         flash(message)
         raise ValueError(e)
     return from_sql(model, related=related, safe=True)
