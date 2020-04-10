@@ -27,7 +27,7 @@
 | :heavy_check_mark: | Can view saved media in Campaign processing  |
 |                    | **Milestone 4 Completion**                   |
 |                    | Story Webhook for full data at expiration    |
-|                    | Sheet Report layout update, multi-worksheets |
+| :heavy_check_mark: | Sheet Report layout update, multi-worksheets |
 |                    | Update documentation to capture all updates  |
 |                    | **Stretch Goals**                            |
 |                    | Saving Post files (only if in a Campaign)    |
@@ -88,7 +88,7 @@ Current Status:
         - [s] Refactor the startup script for starting the Flask App.
         - [s] Technique to stage update dependencies in our Docker to be tested.
         - [s] Tests of functionality for our API and Docker to confirm updates can go live.
-- [ ] Associate captured Story media content if it is later assigned to a campaign.
+- [x] Associate captured Story media content if it is later assigned to a campaign.
   - [x] API associates captured media files to a Post, creating a directory matching Post id.
   - [x] Update Post model to have a `saved_media` field for a url string of the media files location.
     - [x] update code.
@@ -202,10 +202,10 @@ Also see items in the [test-site-content checklist](https://github.com/SeattleCh
 
 ### Google Drive & Sheets Functionality
 
-- [ ] Improve Google Sheet Report
-  - [ ] Export Sheet functions should use multiple worksheets/tabs in the same file.
-  - [ ] Check if Google Sheets has a max of 26 columns and 4011 rows.
-  - [ ] Media content is accessible from the Google Sheet
+- [x] Improve Google Sheet Report
+  - [x] Export Sheet functions should use multiple worksheets/tabs in the same file.
+  - [?] Check if Google Sheets has a max of 26 columns and 4011 rows.
+  - [x] Media content is accessible from the Google Sheet
     - [c] ? Link to the content ?
     - [s] ? Embed the content ?
   - [s] Regex for A1 notation starting cell.
