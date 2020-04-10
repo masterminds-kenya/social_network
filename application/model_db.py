@@ -36,6 +36,13 @@ def clean(obj):
     """ Make sure this obj is serializable. Datetime objects should be turned to strings. """
     if isinstance(obj, dt):
         return obj.isoformat()
+    elif isinstance(obj, (list, tuple, set)):
+        temp = []
+        for ea in obj:
+            temp.append(clean(ea))
+        return temp
+    elif isinstance(obj, (Campaign, User)):
+        return str(obj)
     return obj
 
 
@@ -493,9 +500,9 @@ class Campaign(db.Model):
         return related
 
     def __str__(self):
-        name = self.name if self.name else self.id
+        name = self.name if self.name else str(self.id)
         brands = ', '.join([brand.name for brand in self.brands]) if self.brands else 'NA'
-        return f"Campaign: {name} with Brand(s): {brands}"
+        return f"Campaign: {name} with Brand(s): {brands}. "
 
     def __repr__(self):
         name = self.name if self.name else self.id
