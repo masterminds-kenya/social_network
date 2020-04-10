@@ -36,13 +36,13 @@ def clean(obj):
     """ Make sure this obj is serializable. Datetime objects should be turned to strings. """
     if isinstance(obj, dt):
         return obj.isoformat()
-    elif isinstance(obj, (list, tuple, set)):
-        temp = []
-        for ea in obj:
-            temp.append(clean(ea))
-        return temp
-    elif isinstance(obj, (Campaign, User)):
-        return str(obj)
+    # elif isinstance(obj, (list, tuple, set)):
+    #     temp = []
+    #     for ea in obj:
+    #         temp.append(clean(ea))
+    #     return temp
+    # elif isinstance(obj, (Campaign, User)):
+    #     return obj.id
     return obj
 
 
@@ -453,8 +453,11 @@ class Campaign(db.Model):
 
     def export_posts(self):
         """ Used for Sheets Report, a top label row followed by rows of Posts data. """
-        ignore = {'id', 'user_id', 'user', 'processed'}
+        ignore = {'id', 'user_id'}
         ignore.update(Post.UNSAFE)
+        ignore.update(Post.__mapper__.relationships.keys())
+        current_app.logger.debug('--------- export posts ----------')
+        pprint(ignore)
         # columns = [ea.name for ea in Post.__table__.columns if ea.name not in ignore]
         # TODO: check on mapped non-column properties. See updated from_sql code for insights.
         properties = [k for k in dir(Post.__mapper__.all_orm_descriptors) if not k.startswith('_') and k not in ignore]
