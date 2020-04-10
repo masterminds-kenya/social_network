@@ -52,7 +52,7 @@ def perm_add(sheet_id, add_users, service=None):
             # TODO: Handle error
             app.logger.exception(exception)
         else:
-            app.logger.info(f"Permission Id: {response.get('id')} Request Id: {request_id}. ")
+            app.logger.debug(f"Permission Id: {response.get('id')} Request Id: {request_id}. ")
             pass
 
     if not service:
@@ -79,8 +79,8 @@ def perm_add(sheet_id, add_users, service=None):
 
 
 def all_files(*args, service=None):
-    """ List, and possibly manage, all files owned by the app """
-    app.logger.info(f"======== List all Google Sheet Files ========")
+    """ List, and possibly manage, all files owned by the app. """
+    app.logger.debug(f"======== List all Google Sheet Files ========")
     if not service:
         creds = get_creds(service_config['sheets'])
         service = build('drive', 'v3', credentials=creds, cache_discovery=False)
@@ -108,7 +108,7 @@ def perm_list(sheet_id, service=None):
 
 def create_sheet(model, service=None):
     """ Takes in a Model instance, usually from Campaign or User (must have a name property) and create a worksheet. """
-    app.logger.info(f'======== create {model.name} sheet ========')
+    app.logger.debug(f'======== create {model.name} sheet ========')
     if not service:
         creds = get_creds(service_config['sheets'])
         service = build('sheets', 'v4', credentials=creds, cache_discovery=False)
@@ -126,7 +126,7 @@ def create_sheet(model, service=None):
 # TODO: ? Is this going to be used, or it should be deleted?
 def read_sheet_full(id=SHARED_SHEET_ID, service=None):
     """ Get the information (not the values) for a worksheet with permissions granted to our app service. """
-    app.logger.info('================== read sheet full =======================')
+    app.logger.debug('================== read sheet full =======================')
     if not service:
         creds = get_creds(service_config['sheets'])
         service = build('sheets', 'v4', credentials=creds, cache_discovery=False)
@@ -142,7 +142,7 @@ def read_sheet_full(id=SHARED_SHEET_ID, service=None):
 
 def read_sheet(id=SHARED_SHEET_ID, ranges=None, service=None):
     """ Read a sheet that our app service account has been given permission for. """
-    app.logger.info(f'============== read sheet: {id} =====================')
+    app.logger.debug(f'============== read sheet: {id} =====================')
     if not service:
         creds = get_creds(service_config['sheets'])
         service = build('sheets', 'v4', credentials=creds, cache_discovery=False)
