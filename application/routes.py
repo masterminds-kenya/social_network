@@ -169,6 +169,17 @@ def admin(data=None, files=None):
     return render_template('admin.html', dev=dev, data=data, files=files)
 
 
+@app.route('/data/test')
+@admin_required()
+def test_method():
+    """ Temporary route and function for developer to test components. """
+    from pprint import pprint
+    model = Campaign.query.get(14)
+    results = model.export_posts()
+    pprint(results[0])
+    return render_template('admin.html', dev=True, data=results[0], files=None)
+
+
 @app.route('/data/load/')
 @admin_required()
 def load_user():

@@ -446,11 +446,13 @@ class Campaign(db.Model):
 
     def export_posts(self):
         """ Used for Sheets Report, a top label row followed by rows of Posts data. """
-        ignore = {'id', 'user_id'}
-        columns = [ea.name for ea in Post.__table__.columns if ea.name not in ignore]
+        ignore = {'id', 'user_id', 'user', 'processed'}
+        ignore.update(Post.UNSAFE)
+        # columns = [ea.name for ea in Post.__table__.columns if ea.name not in ignore]
         # TODO: check on mapped non-column properties. See updated from_sql code for insights.
-        data = [[clean(getattr(post, ea, '')) for ea in columns] for post in self.posts]
-        return [columns, *data]
+        properties = [k for k in dir(Post.__mapper__.all_orm_descriptors) if not k.startswith('_') and k not in ignore]
+        data = [[clean(getattr(post, ea, '')) for ea in properties] for post in self.posts]
+        return [properties, *data]
 
     def get_results(self):
         """ We want the datasets and summary statistics """
