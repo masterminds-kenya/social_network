@@ -24,15 +24,14 @@
 |                    | Migrate live DB (and deploy all of above)    |
 |                    | **Milestone 3 Completion**                   |
 | :heavy_check_mark: | Saving Story Post media files                |
-| :heavy_check_mark: | Can view saved media in Campaign processing. |
-|                    | Campaign sheet reports include saved media.  |
+| :heavy_check_mark: | Can view saved media in Campaign processing  |
 |                    | **Milestone 4 Completion**                   |
 |                    | Story Webhook for full data at expiration    |
 |                    | Sheet Report layout update, multi-worksheets |
 |                    | Update documentation to capture all updates  |
 |                    | **Stretch Goals**                            |
 |                    | Saving Post files (only if in a Campaign)    |
-|                    | Attaching media files to data report         |
+| :heavy_check_mark: | Campaign sheet reports include saved media   |
 |                    | **March 2020 Features Completed**            |
 
 ## Checklist
