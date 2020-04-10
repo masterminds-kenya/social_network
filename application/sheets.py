@@ -115,7 +115,7 @@ def create_sheet(model, service=None):
     timestamp = int(dt.timestamp(dt.now()))
     name = str(model.name).replace(' ', '_')
     title = f"{name}_{timestamp}"
-    spreadsheet = {'properties': {'title': title}}
+    spreadsheet = {'properties': {'title': title}, 'sheets': [{}, {}]}
     spreadsheet = service.spreadsheets().create(body=spreadsheet, fields='spreadsheetId').execute()
     message = f"Before you can view the Google Sheet, you must give yourself access "
     message += f"with the View and Manage Access link. "
@@ -254,7 +254,9 @@ def add_page(sheet_rows, range_, sheet_id, service):
         "range": range_,
         "values": sheet_rows
     }
-    app.logger.debug("==================== add page ====================")
+    add_sheet = {"addSheet": {}}
+
+    app.logger.debug("==================== add page content ====================")
     request = service.spreadsheets().values().append(
         spreadsheetId=sheet_id,
         range=range_,
