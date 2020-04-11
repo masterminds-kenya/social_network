@@ -398,9 +398,11 @@ def campaign(id, view='management'):
 def all_posts():
     app.logger.info("===================== All Posts Process Run =====================")
     cron_run = request.headers.get('X-Appengine-Cron', None)
-    admin_run = request.referrer == url_for('admin')
+    admin_run = current_user.is_authenticated and current_user.role == 'admin'
     if not cron_run and not admin_run:
-        app.logger.error("All posts was run by something other than cron job or admin link. ")
+        message = "All posts was run by something other than cron job or admin link. "
+        flash(message)
+        app.logger.error(message)
         return redirect(url_for('error'))
     all_ig = User.query.filter(User.instagram_id.isnot(None)).all()
     for ea in all_ig:
@@ -409,12 +411,13 @@ def all_posts():
     if admin_run:
         message += "Admin requested getting posts for all users. "
         flash(message)
-        return_path = url_for('admin')
+        response = redirect(url_for('admin'))
     elif cron_run:
         message += "Cron job completed. "
-        return_path = url_for('home')  # TODO: URGENT Check expected response on success / completion.
+        # TODO: URGENT Check expected response on success / completion.
+        response = json.dumps({'User_count': len(all_ig), 'message': message, 'status_code': 200})
     app.logger.info(message)
-    return redirect(return_path)
+    return response
 
 
 @app.route('/<string:mod>/<int:id>')
