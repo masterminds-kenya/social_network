@@ -238,7 +238,7 @@ def capture(id):
         app.logger.debug(message)
         flash(message)
         return redirect(url_for('admin'))
-    answer = capture_media(post, False)
+    answer = capture_media(post, False)  # TODO: ? add post to capture queue?
     message = "API gave success response. " if answer.get('success') else "API response failed. "
     message += "Saved url for saved_media on Post. " if answer.get('saved_media') else "Media NOT saved. "
     flash(message)
@@ -405,8 +405,8 @@ def all_posts():
         app.logger.error(message)
         return redirect(url_for('error'))
     all_ig = User.query.filter(User.instagram_id.isnot(None)).all()
-    for ea in all_ig:
-        get_posts(ea.id)
+    saved_posts = get_posts(all_ig)
+
     message = f"Got all posts for {len(all_ig)} accounts. "
     if admin_run:
         message += "Admin requested getting posts for all users. "

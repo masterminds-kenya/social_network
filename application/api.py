@@ -30,13 +30,13 @@ def capture_media(post_or_posts, get_story_only):
     #  API URL format:
     #  /api/v1/post/[id]/[media_type]/[media_id]/?url=[url-to-test-for-images]
     #  Expected JSON response has the following properties:
-    #  'success', 'message', 'file_list', 'url', 'url_list', 'error_files', 'deleted'
-    started_with_many = True
+    #  'success', 'message', 'file_list', url_list', 'error_files', 'deleted'
     if isinstance(post_or_posts, Post):
         posts = [post_or_posts]
         started_with_many = False
     elif isinstance(post_or_posts, (list, tuple)):
         posts = post_or_posts
+        started_with_many = True
     else:
         raise TypeError("Input must be a Post or an iterable of Posts. ")
     results = []
@@ -176,14 +176,24 @@ def get_audience(user_id, ig_id=None, facebook=None):
     return db_create_or_update_many(results, user_id=user_id, Model=Audience)
 
 
-def get_posts(user_id, ig_id=None, facebook=None):
-    """ Get media posts (including stories) for the (influencer or brand) user with given user_id """
-    app.logger.info('==================== Get Posts ====================')
+def _get_posts_data_of_user(user_id, ig_id=None, facebook=None):
+    """ Called by get_posts. Returns the API response data for posts on a single user. """
+    user, token = None, None
+    if isinstance(user_id, User):
+        user = user_id
+        user_id = user.id
+    if isinstance(user_id, (int, str)):
+        pass
+    else:
+        raise TypeError(f"Expected an id or instance of User, but got {type({user_id})}: {user_id} ")
+    if not facebook or not ig_id:
+        # model = db_read(user_id, safe=False)
+        # ig_id, token = model.get('instagram_id'), model.get('token')
+        user = user or User.query.get(user_id)
+        ig_id, token = getattr(user, 'instagram_id', None), getattr(user, 'token', None)
+    app.logger.info(f"==================== Get Posts on User {user_id} ====================")
     post_metrics = {key: ','.join(val) for (key, val) in Post.metrics.items()}
     results, token = [], ''
-    if not facebook or not ig_id:
-        model = db_read(user_id, safe=False)
-        ig_id, token = model.get('instagram_id'), model.get('token')
     url = f"https://graph.facebook.com/{ig_id}/stories"
     story_res = facebook.get(url).json() if facebook else requests.get(f"{url}?access_token={token}").json()
     stories = story_res.get('data')
@@ -221,12 +231,24 @@ def get_posts(user_id, ig_id=None, facebook=None):
         else:
             app.logger.debug(f"media {media_id} had NO INSIGHTS for type {media_type} --- {res_insight}. ")
         results.append(res)
+    return results
+
+
+def get_posts(data, ig_id=None, facebook=None):
+    """ Get media posts (including stories) for the (influencer or brand) user with given user_id """
+    if not isinstance(data, (list, tuple)):
+        data = [data]
+    results = []
+    for ea in data:
+        results.extend(_get_posts_data_of_user(ea, ig_id=ig_id, facebook=facebook))
     saved = db_create_or_update_many(results, Post)
+    # TODO: Add posts to capture queue.
     capture_responses = capture_media(saved, True)
     failed_capture = [ea.get('post') for ea in capture_responses if not ea.get('saved_media')]
     message = f"Had {len(capture_responses)} story posts. "
     message += f"Had {len(failed_capture)} failed media captures. " if failed_capture else "All media captured. "
     app.logger.info(message)
+    # flash(message)
     return saved
 
 
