@@ -292,7 +292,7 @@ Also see items in the [test-site-content checklist](https://github.com/SeattleCh
   - [x] Change settings so live site does not log DEBUG
   - [x] ? Change settings so live site does not log INFO ?
 - [c] Remove excessive logs after we confirm numerous onboarding.
-- [ ] Check and comply to expected response on a cron job.
+- [?] Check and comply to expected response on a cron job.
 - [ ] Flatten Migrate files to not create and delete unneeded changes (esp. test changes)
 - [ ] Migrate Live DB (test with having Dev site connect to it before deploy live code?)
 - [ ] Set DEV_RUN=False, and deploy to live site.

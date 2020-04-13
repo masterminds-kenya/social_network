@@ -405,17 +405,15 @@ def all_posts():
         app.logger.error(message)
         return redirect(url_for('error'))
     all_ig = User.query.filter(User.instagram_id.isnot(None)).all()
-    saved_posts = get_posts(all_ig)
-
-    message = f"Got all posts for {len(all_ig)} accounts. "
+    saved = get_posts(all_ig)
+    message = f"Got all posts for {len(all_ig)} users, for a total of {len(saved)} posts. "
     if admin_run:
         message += "Admin requested getting posts for all users. "
         flash(message)
         response = redirect(url_for('admin'))
     elif cron_run:
         message += "Cron job completed. "
-        # TODO: URGENT Check expected response on success / completion.
-        response = json.dumps({'User_count': len(all_ig), 'message': message, 'status_code': 200})
+        response = json.dumps({'User_num': len(all_ig), 'Post_num': len(saved), 'message': message, 'status_code': 200})
     app.logger.info(message)
     return response
 

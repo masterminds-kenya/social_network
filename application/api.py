@@ -58,11 +58,8 @@ def capture_media(post_or_posts, get_story_only):
         answer = res.json()
         app.logger.debug(answer)
         if answer.get('success'):
-            # data = {'saved_media': answer.get('url')}
-            # db_update(data, post.id, Model=Post)
-            # post.saved_media = answer.get('url')  # If using single url for summary.txt file.
-            post.saved_media = answer.get('url_list')  # If using hybrid_property for saved_media.
-            db.session.add(post)  # TODO: Check if this is needed.
+            post.saved_media = answer.get('url_list')
+            db.session.add(post)
             answer['saved_media'] = True
         else:
             answer['saved_media'] = False
@@ -70,7 +67,6 @@ def capture_media(post_or_posts, get_story_only):
         results.append(answer)
     if results:
         db.session.commit()
-        # pass
     else:
         message = "Started with no Posts. " if not posts else "No story Posts. " if get_story_only else "Error. "
         answer = {'success': True, 'message': message, 'url': ''}
