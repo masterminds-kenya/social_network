@@ -204,27 +204,9 @@ def backup_save(mod, id):
 @admin_required()
 def encrypt():
     """ This is a temporary development function. Will be removed for production. """
-    from .model_db import db
-
-    message, count = '', 0
-    users = User.query.all()
-    try:
-        for user in users:
-            value = getattr(user, 'token')
-            app.logger.debug(value)
-            setattr(user, 'crypt', value)
-            count += 1
-        message += f"Adjusted for {count} users. "
-        db.session.commit()
-        message += "Commit Finished! "
-    except error as e:
-        temp = f"Encrypt method error. Count: {count}. "
-        app.logger.error(temp)
-        app.logger.exception(e)
-        message += temp
-        db.session.rollback()
-    flash(message)
+    message = developer_admin.encrypt()
     app.logger.info(message)
+    flash(message)
     return redirect(url_for('admin'))
 
 
