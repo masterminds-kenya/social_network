@@ -7,6 +7,10 @@ USER_FILE = 'env/user_save.txt'
 
 
 def load():
+    """ Deprecated function.
+        Function is only for use by dev admin.
+        Takes users saved in text file and puts that data in the database.
+    """
     new_users = []
     app.logger.info('------- Load users from File ------------')
     with open(USER_FILE, 'r') as file:
@@ -25,6 +29,10 @@ def load():
 
 
 def save(mod, id, Model):
+    """ Deprecated Function
+        Function is only for use by dev admin.
+        Takes users in the database and saves them in a text file to later be managed by the load function.
+    """
     app.logger.info('------- Save User to File -------')
     if mod in {'brand', 'influencer', 'user'}:
         filename = USER_FILE
@@ -41,3 +49,30 @@ def save(mod, id, Model):
         file.write('\n')
         count += 1
     return count
+
+
+def encrypt():
+    """ Takes value in token field and saves in encrypt field, triggering the encryption process.
+        Function is only for use by dev admin.
+    """
+    from .model_db import db, User
+
+    message, count = '', 0
+    # q = User.query.filter(User.token is not None)
+    users = User.query.all()
+    try:
+        for user in users:
+            value = getattr(user, 'token')
+            app.logger.debug(value)
+            setattr(user, 'crypt', value)
+            count += 1
+        message += f"Adjusted for {count} users. "
+        db.session.commit()
+        message += "Commit Finished! "
+    except Exception as e:
+        temp = f"Encrypt method error. Count: {count}. "
+        app.logger.error(temp)
+        app.logger.exception(e)
+        message += temp
+        db.session.rollback()
+    return message

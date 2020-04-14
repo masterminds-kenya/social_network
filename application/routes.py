@@ -204,27 +204,9 @@ def backup_save(mod, id):
 @admin_required()
 def encrypt():
     """ This is a temporary development function. Will be removed for production. """
-    from .model_db import db
-
-    message, count = '', 0
-    users = User.query.all()
-    try:
-        for user in users:
-            value = getattr(user, 'token')
-            app.logger.debug(value)
-            setattr(user, 'crypt', value)
-            count += 1
-        message += f"Adjusted for {count} users. "
-        db.session.commit()
-        message += "Commit Finished! "
-    except error as e:
-        temp = f"Encrypt method error. Count: {count}. "
-        app.logger.error(temp)
-        app.logger.exception(e)
-        message += temp
-        db.session.rollback()
-    flash(message)
+    message = developer_admin.encrypt()
     app.logger.info(message)
+    flash(message)
     return redirect(url_for('admin'))
 
 
@@ -238,7 +220,7 @@ def capture(id):
         app.logger.debug(message)
         flash(message)
         return redirect(url_for('admin'))
-    answer = capture_media(post, False)
+    answer = capture_media(post, False)  # TODO: ? add post to capture queue?
     message = "API gave success response. " if answer.get('success') else "API response failed. "
     message += "Saved url for saved_media on Post. " if answer.get('saved_media') else "Media NOT saved. "
     flash(message)
@@ -405,17 +387,15 @@ def all_posts():
         app.logger.error(message)
         return redirect(url_for('error'))
     all_ig = User.query.filter(User.instagram_id.isnot(None)).all()
-    for ea in all_ig:
-        get_posts(ea.id)
-    message = f"Got all posts for {len(all_ig)} accounts. "
+    saved = get_posts(all_ig)
+    message = f"Got all posts for {len(all_ig)} users, for a total of {len(saved)} posts. "
     if admin_run:
         message += "Admin requested getting posts for all users. "
         flash(message)
         response = redirect(url_for('admin'))
     elif cron_run:
         message += "Cron job completed. "
-        # TODO: URGENT Check expected response on success / completion.
-        response = json.dumps({'User_count': len(all_ig), 'message': message, 'status_code': 200})
+        response = json.dumps({'User_num': len(all_ig), 'Post_num': len(saved), 'message': message, 'status_code': 200})
     app.logger.info(message)
     return response
 
