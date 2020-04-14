@@ -58,6 +58,7 @@ def encrypt():
     from .model_db import db, User
 
     message, count = '', 0
+    # q = User.query.filter(User.token is not None)
     users = User.query.all()
     try:
         for user in users:

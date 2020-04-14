@@ -90,6 +90,8 @@ class User(UserMixin, db.Model):
     password = db.Column(db.String(191),            index=False, unique=False, nullable=True)
     instagram_id = db.Column(BIGINT(unsigned=True), index=True,  unique=True,  nullable=True)
     facebook_id = db.Column(BIGINT(unsigned=True),  index=False, unique=False, nullable=True)
+    # token = db.Column(db.String(255),               index=False, unique=False, nullable=True)
+    # crypt = db.Column(EncryptedType(db.String(255), SECRET_KEY, AesEngine, 'pkcs5'))  # encrypt
     token = db.Column(EncryptedType(db.String(255), SECRET_KEY, AesEngine, 'pkcs5'))  # encrypt
     token_expires = db.Column(db.DateTime,          index=False, unique=False, nullable=True)
     notes = db.Column(db.String(191),               index=False, unique=False, nullable=True)
@@ -219,7 +221,7 @@ class User(UserMixin, db.Model):
         return report
 
     def __str__(self):
-        return self.name
+        return f"{self.role} - {self.name}"
 
     def __repr__(self):
         return '<User - {}: {}>'.format(self.role, self.name)
