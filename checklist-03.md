@@ -46,16 +46,16 @@
 - [s] Stretch Goal. Not for current feature plan.
 
 Current Status:
-2020-04-09 14:07:34
+2020-04-14 23:55:16
 <!-- Ctrl-Shift-I to generate timestamp -->
 
 ### Story & Media Files Features
 
 - [ ] WebHook to get Stories data at completion
   - [ ] Once confirmed, remove story data update from daily cron job
-- [ ] ? What storage structure is needed for larger media files ?
-  - [ ] Probably need to setup a storage bucket
-  - [ ] ? Maybe saved to our App instance ?
+- [x] ? What storage structure is needed for larger media files ?
+  - [x] Probably need to setup a storage bucket
+  - [n] ? Maybe saved to our App instance ?
 - [ ] Capture Story Post media content files
   - [x] Do not require extra work from Influencers
   - [?] Capture before story is assigned to campaign, before it expires
@@ -196,6 +196,11 @@ Also see items in the [test-site-content checklist](https://github.com/SeattleCh
 - [x] Allow a user to delete their account on the platform
   - [x] Confirmation page before delete?
   - [ ] What about posts assigned to a campaign?
+    - [x] Keep all old posts
+    - [x] Campaign collected can still see posts from deleted users if already in campaign
+    - [x] Campaign results still works with posts from deleted users
+    - [ ] Campaign sheet report still works with posts from deleted users
+    - [ ] Keep posts only currently in a campaign, discard unattached posts.
 - [c] Revisit structure for ON DELETE, ON UPDATE (especially on User delete)
 - [c] Revisit structure for how related tables are loaded (lazy=?)
 - [s] Revisit method of reporting Campaign Results.
