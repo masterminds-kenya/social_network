@@ -37,6 +37,7 @@ def clean(obj):
     if isinstance(obj, dt):
         return obj.isoformat()
     elif isinstance(obj, (list, tuple)):
+        current_app.logger.info(f"================= Clean for obj: {obj} ====================")
         ' | '.join(obj)
     # elif isinstance(obj, (list, tuple, set)):
     #     temp = []
@@ -255,7 +256,7 @@ class OnlineFollowers(db.Model):
     user_id = db.Column(db.Integer, db.ForeignKey('users.id', ondelete='CASCADE'))
     recorded = db.Column(db.DateTime, index=False, unique=False, nullable=False)
     hour = db.Column(db.Integer,      index=False, unique=False, nullable=False)
-    value = db.Column(db.Integer,     index=False, unique=False, nullable=True)
+    value = db.Column(db.Integer,     index=False, unique=False, nullable=False, default=0)
     # # user = backref from User.aud_count
     metrics = ['online_followers']
     UNSAFE = {''}
@@ -281,7 +282,7 @@ class Insight(db.Model):
     user_id = db.Column(db.Integer, db.ForeignKey('users.id', ondelete='CASCADE'))
     recorded = db.Column(db.DateTime,          index=False, unique=False, nullable=False)
     name = db.Column(db.String(47),            index=False, unique=False, nullable=False)
-    value = db.Column(db.Integer,              index=False, unique=False, nullable=True)
+    value = db.Column(db.Integer,              index=False, unique=False, nullable=False, default=0)
     # # user = backref from User.insights
     influence_metrics = {'impressions', 'reach'}
     profile_metrics = {'phone_call_clicks', 'text_message_clicks', 'email_contacts',
@@ -343,25 +344,25 @@ class Post(db.Model):
     media_id = db.Column(BIGINT(unsigned=True), index=True,  unique=True,  nullable=False)
     media_type = db.Column(db.String(47),       index=False, unique=False, nullable=True)
     caption = db.Column(db.Text,                index=False, unique=False, nullable=True)
-    comments_count = db.Column(db.Integer,      index=False, unique=False, nullable=True, default=0)
-    like_count = db.Column(db.Integer,          index=False, unique=False, nullable=True, default=0)
+    comments_count = db.Column(db.Integer,      index=False, unique=False, nullable=False, default=0)
+    like_count = db.Column(db.Integer,          index=False, unique=False, nullable=False, default=0)
     permalink = db.Column(db.String(191),       index=False, unique=False, nullable=True)
     _saved_media = db.Column('saved_media', db.Text, index=False, unique=False, nullable=True)
     recorded = db.Column(db.DateTime,           index=False, unique=False, nullable=False)  # timestamp*
     modified = db.Column(db.DateTime,           index=False, unique=False, nullable=False, default=dt.utcnow, onupdate=dt.utcnow)
     created = db.Column(db.DateTime,            index=False, unique=False, nullable=False, default=dt.utcnow)
     # The following 9 are from insights, the first 2 for all kinds of media
-    impressions = db.Column(db.Integer,         index=False,  unique=False, nullable=True, default=0)
-    reach = db.Column(db.Integer,               index=False,  unique=False, nullable=True, default=0)
+    impressions = db.Column(db.Integer,         index=False,  unique=False, nullable=False, default=0)
+    reach = db.Column(db.Integer,               index=False,  unique=False, nullable=False, default=0)
     # The following 3 are for Album and Photo/Video media
-    engagement = db.Column(db.Integer,          index=False,  unique=False, nullable=True, default=0)
-    saved = db.Column(db.Integer,               index=False,  unique=False, nullable=True, default=0)
-    video_views = db.Column(db.Integer,         index=False,  unique=False, nullable=True, default=0)
+    engagement = db.Column(db.Integer,          index=False,  unique=False, nullable=False, default=0)
+    saved = db.Column(db.Integer,               index=False,  unique=False, nullable=False, default=0)
+    video_views = db.Column(db.Integer,         index=False,  unique=False, nullable=False, default=0)
     # The following 4 are only for stories media
-    exits = db.Column(db.Integer,               index=False,  unique=False, nullable=True, default=0)
-    replies = db.Column(db.Integer,             index=False,  unique=False, nullable=True, default=0)
-    taps_forward = db.Column(db.Integer,        index=False,  unique=False, nullable=True, default=0)
-    taps_back = db.Column(db.Integer,           index=False,  unique=False, nullable=True, default=0)
+    exits = db.Column(db.Integer,               index=False,  unique=False, nullable=False, default=0)
+    replies = db.Column(db.Integer,             index=False,  unique=False, nullable=False, default=0)
+    taps_forward = db.Column(db.Integer,        index=False,  unique=False, nullable=False, default=0)
+    taps_back = db.Column(db.Integer,           index=False,  unique=False, nullable=False, default=0)
     # # user = backref from User.posts
     # # processed = backref from Campaign.processed
     # # campaigns = backref from Campaign.posts

@@ -76,3 +76,46 @@ def encrypt():
         message += temp
         db.session.rollback()
     return message
+
+
+def fix_defaults():
+    """ Temporary route and function for developer to test components. """
+    from .model_db import Post, OnlineFollowers, Insight, db
+    # from pprint import pprint
+    # from .sheets import get_vals, get_insight_report
+
+    p_keys = ['impressions', 'reach', 'engagement', 'saved', 'video_views', 'exits', 'replies', 'taps_forward', 'taps_back']
+    # not_needed_keys = ['comments_count', 'like_count', ]
+    updates = [(OnlineFollowers, ['value']), (Insight, ['value']), (Post, p_keys)]
+    update_count = 0
+    for Model, fields in updates:
+        if Model == Post:
+            app.logger.debug(f"========== Test: {Model.__name__} many fields ==========")
+            models = Model.query.all()
+            for model in models:
+                model_updated = False
+                app.logger.debug(f"----- {update_count} | {model} -----")
+                for pkey in fields:
+                    if not getattr(model, pkey, None):
+                        setattr(model, pkey, 0)
+                        model_updated = True
+                if model_updated:
+                    update_count += 1
+                    db.session.add(model)
+        else:
+            for column in fields:
+                models = Model.query.filter(getattr(Model, column).is_(None)).all()
+                app.logger.debug(f"========== Test: {Model.__name__} {column} ==========")
+                for model in models:
+                    setattr(model, column, 0)
+                    update_count += 1
+                    db.session.add(model)
+    try:
+        db.session.commit()
+        success = True
+    except Exception as e:
+        app.logger.error('Had an exception in fix_defaults. ')
+        app.logger.error(e)
+        success = False
+        db.session.rollback()
+    return success

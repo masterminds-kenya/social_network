@@ -173,11 +173,18 @@ def admin(data=None, files=None):
 @admin_required()
 def test_method():
     """ Temporary route and function for developer to test components. """
-    from pprint import pprint
-    model = Campaign.query.get(14)
-    results = model.export_posts()
-    pprint(results[0])
-    return render_template('admin.html', dev=True, data=results[0], files=None)
+    success = developer_admin.fix_defaults()
+    info = "It worked! " if success else "Had an error. "
+    # from .sheets import get_vals, get_insight_report
+    # from pprint import pprint
+    # page1_only = True
+    # model = Campaign.query.get(4)
+    # vals = get_vals(model)
+    # insight_report = get_insight_report(model)
+    # results = vals if page1_only else insight_report
+    # pprint(results)
+    # return render_template('admin.html', dev=True, data=results[0], files=None)
+    return render_template('admin.html', dev=True, data=info, files=None)
 
 
 @app.route('/data/load/')
