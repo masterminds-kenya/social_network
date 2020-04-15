@@ -36,6 +36,8 @@ def clean(obj):
     """ Make sure this obj is serializable. Datetime objects should be turned to strings. """
     if isinstance(obj, dt):
         return obj.isoformat()
+    elif isinstance(obj, (list, tuple)):
+        ' | '.join(obj)
     # elif isinstance(obj, (list, tuple, set)):
     #     temp = []
     #     for ea in obj:
@@ -212,13 +214,29 @@ class User(UserMixin, db.Model):
             met_stat.update({metric: small_stat for metric in small_metrics})
             temp = {key: [] for key in met_stat}
             for insight in self.insights:
-                temp[insight.name].append(int(insight.value))
+                temp[insight.name].append(int(insight.value or 0))
             for metric in of_metrics:
                 met_stat[metric] = of_stat
-                temp[metric] = [int(ea.value) for ea in self.aud_count]
+                temp[metric] = [int(ea.value or 0) for ea in self.aud_count]
             insight_data = [stat[1](temp[metric]) for metric, stats in met_stat.items() for stat in stats]
         report = [self.name, self.notes, *insight_data, getattr(self, 'instagram_id', ''), clean(self.modified), clean(self.created)]
         return report
+
+    def __str__(self):
+        return f"{self.role} - {self.name}"
+
+    def __repr__(self):
+        return '<User - {}: {}>'.format(self.role, self.name)
+
+
+class DeletedUser:
+    """ Used as a placeholder for a user who has been deleted, but we still have data on their posts. """
+
+    def __init__(self):
+        self.id = 'na'
+        self.role = 'deleted'
+        self.name = 'Deleted User'
+        super().__init__()
 
     def __str__(self):
         return f"{self.role} - {self.name}"
@@ -247,7 +265,7 @@ class OnlineFollowers(db.Model):
         super().__init__(*args, **kwargs)
 
     def __str__(self):
-        return str(int(self.value))
+        return str(int(self.value or 0))
 
     def __repr__(self):
         return f"<OnlineFollowers {self.recorded} | Hour: {self.hour} | User {self.user_id} >"
@@ -325,25 +343,25 @@ class Post(db.Model):
     media_id = db.Column(BIGINT(unsigned=True), index=True,  unique=True,  nullable=False)
     media_type = db.Column(db.String(47),       index=False, unique=False, nullable=True)
     caption = db.Column(db.Text,                index=False, unique=False, nullable=True)
-    comments_count = db.Column(db.Integer,      index=False, unique=False, nullable=True)
-    like_count = db.Column(db.Integer,          index=False, unique=False, nullable=True)
+    comments_count = db.Column(db.Integer,      index=False, unique=False, nullable=True, default=0)
+    like_count = db.Column(db.Integer,          index=False, unique=False, nullable=True, default=0)
     permalink = db.Column(db.String(191),       index=False, unique=False, nullable=True)
     _saved_media = db.Column('saved_media', db.Text, index=False, unique=False, nullable=True)
     recorded = db.Column(db.DateTime,           index=False, unique=False, nullable=False)  # timestamp*
     modified = db.Column(db.DateTime,           index=False, unique=False, nullable=False, default=dt.utcnow, onupdate=dt.utcnow)
     created = db.Column(db.DateTime,            index=False, unique=False, nullable=False, default=dt.utcnow)
     # The following 9 are from insights, the first 2 for all kinds of media
-    impressions = db.Column(db.Integer,         index=False,  unique=False, nullable=True)
-    reach = db.Column(db.Integer,               index=False,  unique=False, nullable=True)
+    impressions = db.Column(db.Integer,         index=False,  unique=False, nullable=True, default=0)
+    reach = db.Column(db.Integer,               index=False,  unique=False, nullable=True, default=0)
     # The following 3 are for Album and Photo/Video media
-    engagement = db.Column(db.Integer,          index=False,  unique=False, nullable=True)
-    saved = db.Column(db.Integer,               index=False,  unique=False, nullable=True)
-    video_views = db.Column(db.Integer,         index=False,  unique=False, nullable=True)
+    engagement = db.Column(db.Integer,          index=False,  unique=False, nullable=True, default=0)
+    saved = db.Column(db.Integer,               index=False,  unique=False, nullable=True, default=0)
+    video_views = db.Column(db.Integer,         index=False,  unique=False, nullable=True, default=0)
     # The following 4 are only for stories media
-    exits = db.Column(db.Integer,               index=False,  unique=False, nullable=True)
-    replies = db.Column(db.Integer,             index=False,  unique=False, nullable=True)
-    taps_forward = db.Column(db.Integer,        index=False,  unique=False, nullable=True)
-    taps_back = db.Column(db.Integer,           index=False,  unique=False, nullable=True)
+    exits = db.Column(db.Integer,               index=False,  unique=False, nullable=True, default=0)
+    replies = db.Column(db.Integer,             index=False,  unique=False, nullable=True, default=0)
+    taps_forward = db.Column(db.Integer,        index=False,  unique=False, nullable=True, default=0)
+    taps_back = db.Column(db.Integer,           index=False,  unique=False, nullable=True, default=0)
     # # user = backref from User.posts
     # # processed = backref from Campaign.processed
     # # campaigns = backref from Campaign.posts
@@ -485,10 +503,10 @@ class Campaign(db.Model):
             media_type = post.media_type
             related[media_type]['posts'].append(post)
             for metric in related[media_type]['metrics']:
-                related[media_type]['metrics'][metric].append(int(getattr(post, metric)))
+                related[media_type]['metrics'][metric].append(int(getattr(post, metric) or 0))
                 related[media_type]['labels'][metric].append(int(getattr(post, 'id')))
                 if metric in related['common']['metrics']:
-                    related['common']['metrics'][metric].append(int(getattr(post, metric)))
+                    related['common']['metrics'][metric].append(int(getattr(post, metric) or 0))
                     related['common']['labels'][metric].append(int(getattr(post, 'id')))
         # compute stats we want for each media type and common metrics
         for group in related:
