@@ -254,7 +254,7 @@ def add_page(sheet_rows, range_, sheet_id, service):
         "range": range_,
         "values": sheet_rows
     }
-    add_sheet = {"addSheet": {}}
+    # add_sheet = {"addSheet": {}}
 
     app.logger.debug("==================== add page content ====================")
     request = service.spreadsheets().values().append(

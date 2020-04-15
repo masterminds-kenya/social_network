@@ -3,7 +3,7 @@ from flask import render_template, redirect, url_for, request, flash  # , abort
 from flask_login import current_user, login_user, logout_user, login_required
 from werkzeug.security import generate_password_hash, check_password_hash
 from .model_db import db_create, db_read, db_update, db_delete, db_all, from_sql
-from .model_db import User, OnlineFollowers, Insight, Audience, Post, Campaign  # , metric_clean
+from .model_db import User, DeletedUser, OnlineFollowers, Insight, Audience, Post, Campaign  # , metric_clean
 from . import developer_admin
 from functools import wraps
 from .manage import update_campaign, process_form
@@ -173,11 +173,18 @@ def admin(data=None, files=None):
 @admin_required()
 def test_method():
     """ Temporary route and function for developer to test components. """
-    from pprint import pprint
-    model = Campaign.query.get(14)
-    results = model.export_posts()
-    pprint(results[0])
-    return render_template('admin.html', dev=True, data=results[0], files=None)
+    success = developer_admin.fix_defaults()
+    info = "It worked! " if success else "Had an error. "
+    # from .sheets import get_vals, get_insight_report
+    # from pprint import pprint
+    # page1_only = True
+    # model = Campaign.query.get(4)
+    # vals = get_vals(model)
+    # insight_report = get_insight_report(model)
+    # results = vals if page1_only else insight_report
+    # pprint(results)
+    # return render_template('admin.html', dev=True, data=results[0], files=None)
+    return render_template('admin.html', dev=True, data=info, files=None)
 
 
 @app.route('/data/load/')
@@ -370,6 +377,10 @@ def campaign(id, view='management'):
             related[user] = user.campaign_rejected(campaign)
         else:
             related[user] = []  # This condition should not occur.
+    if view == 'collected':
+        deleted_user_posts = [post.display() for post in campaign.posts if post.user_id is None]
+        if deleted_user_posts:
+            related[DeletedUser()] = deleted_user_posts
     return render_template(template, mod=mod, view=view, data=campaign, related=related)
 
 # ########## End of Campaign Views ############

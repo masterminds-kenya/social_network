@@ -56,7 +56,7 @@
 
 {% block content %}
 <main>
-  {% for user in data.users %}
+  {% for user in related.keys() %}
   <div class="users" id="user_{{user.id}}">
     <h2>Media Post Assignment for - {{user.name|e}} ( {{related[user]|length}} )</h2>
     <form action="" method="POST">
