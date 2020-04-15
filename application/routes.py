@@ -156,6 +156,8 @@ def logout():
 def error():
     err = request.form.get('data')
     app.logger.error(err)
+    if not app.config.get('DEBUG'):
+        err = None
     return render_template('error.html', err=err)
 
 
