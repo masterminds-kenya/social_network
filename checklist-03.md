@@ -46,7 +46,7 @@
 - [s] Stretch Goal. Not for current feature plan.
 
 Current Status:
-2020-04-14 23:55:16
+2020-04-15 00:01:42
 <!-- Ctrl-Shift-I to generate timestamp -->
 
 ### Story & Media Files Features
@@ -258,8 +258,8 @@ Also see items in the [test-site-content checklist](https://github.com/SeattleCh
   - [x] extends "view.html" is safe
   - [x] extends "campaign.html" is safe
   - [x] All template files are extensions of base or other confirmed sources.
-- [ ] Error response using template vs app.errorhandler(500).
-- [ ] Turn off the extra info for an error 500 for deployed live site.
+- [?] Error response using template vs app.errorhandler(500).
+- [?] Turn off the extra info for an error 500 for deployed live site.
 - [x] Add robots.txt file so search engines are not getting errors.
 
 ### Other Site Functionality
