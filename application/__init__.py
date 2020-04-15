@@ -36,9 +36,11 @@ def create_app(config, debug=False, testing=False, config_overrides=None):
     def server_error(e):
         app.logger.error('================== Error Handler =====================')
         app.logger.error(e)
-        return """
-        An internal error occurred: <pre>{}</pre>
-        See logs for full stacktrace.
-        """.format(e), 500
-
+        if app.config.get('DEBUG'):
+            return """
+            An internal error occurred: <pre>{}</pre>
+            See logs for full stacktrace.
+            """.format(e), 500
+        else:
+            return "An internal error occured. Contact admin. ", 500
     return app
