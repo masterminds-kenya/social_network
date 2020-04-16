@@ -118,22 +118,6 @@ class User(UserMixin, db.Model):
             kwargs['token'] = kwargs['token'].get('access_token', None)
         super().__init__(*args, **kwargs)
 
-    def campaign_unprocessed(self, campaign):
-        """ Returns a Query of this User's Posts that need to be determined if they belong to the given Campaign """
-        posts = Post.query.filter(Post.user_id == self.id, ~Post.processed.contains(campaign))
-        return posts.order_by('recorded').all()
-
-    def campaign_posts(self, campaign):
-        """ Returns a Query of this User's Posts that are already assigned to the given Campaign """
-        posts = Post.query.filter(Post.user_id == self.id, Post.campaigns.contains(campaign)).order_by('recorded').all()
-        return [ea.display() for ea in posts]
-
-    def campaign_rejected(self, campaign):
-        """ Returns a Query of this User's Posts that have already been rejected for given Campaign """
-        posts = Post.query.filter(Post.user_id == self.id, Post.processed.contains(campaign))
-        posts = posts.filter(~Post.campaigns.contains(campaign)).order_by('recorded').all()
-        return [ea.display() for ea in posts]
-
     def recent_insight(self, metrics):
         """ What is the most recent date that we collected the given insight metrics """
         if metrics == 'influence' or metrics == Insight.influence_metrics:
@@ -159,6 +143,7 @@ class User(UserMixin, db.Model):
 
     def export_posts(self):
         """ Collect all posts for this user in a list of lists for populating a worksheet. """
+        # TODO: Use code similar to Campaign.export_posts() ?
         ignore = ['id', 'user_id']
         columns = [ea.name for ea in Post.__table__.columns if ea.name not in ignore]
         data = [[clean(getattr(post, ea, '')) for ea in columns] for post in self.posts]
@@ -194,7 +179,7 @@ class User(UserMixin, db.Model):
         return report
 
     def insight_summary(self, label_only=False):
-        """ Used for giving summary stats of insight metrics for a Brand (or other user) """
+        """ Used for Sheet report: giving summary stats of insight metrics for a Brand (or other user). """
         big_metrics = list(Insight.influence_metrics)
         big_stat = [('Median', median), ('Average', mean), ('StDev', stdev)]
         insight_labels = [f"{metric} {ea[0]}" for metric in big_metrics for ea in big_stat]
@@ -476,17 +461,70 @@ class Campaign(db.Model):
         """ Used for Sheets Report, a top label row followed by rows of Posts data. """
         ignore = {'id', 'user_id'}
         ignore.update(Post.UNSAFE)
-        ignore.update(Post.__mapper__.relationships.keys())
-        current_app.logger.debug('--------- export posts ----------')
+        ignore.update(Post.__mapper__.relationships.keys())  # TODO: Decide if we actually want to keep related models?
+        current_app.logger.debug('--------- export posts, but ignored fields: ----------')
         pprint(ignore)
-        # columns = [ea.name for ea in Post.__table__.columns if ea.name not in ignore]
-        # TODO: check on mapped non-column properties. See updated from_sql code for insights.
         properties = [k for k in dir(Post.__mapper__.all_orm_descriptors) if not k.startswith('_') and k not in ignore]
+        # Old version below does not capture the relationship or other non-column mapped fields.
+        # columns = [ea.name for ea in Post.__table__.columns if ea.name not in ignore]
         data = [[clean(getattr(post, ea, '')) for ea in properties] for post in self.posts]
+        current_app.logger.debug('----- Campaign.export_posts() return value -----')
+        pprint([properties, *data])
         return [properties, *data]
 
+    def related_posts(self, view):
+        """ Used for the different campaign management views. """
+        allowed_view_values = ('management', 'collected', 'rejected')
+        if view not in allowed_view_values:
+            raise ValueError(f"The passed parameter was {view} and did not match {allowed_view_values}. ")
+        related = {user: [] for user in self.users}
+        deleted_user = DeletedUser()
+        related[deleted_user] = []
+        if view == 'management':
+            for user in self.users:
+                # related[user] = [post for post in user.posts if post not in self.processed]
+                related[user] = [post for post in user.posts if not post.processed.contains(self)]
+        elif view == 'rejected':
+            for post in self.processed:
+                # if post not in self.posts:
+                if not post.campaigns.contains(self):
+                    user = deleted_user if post.user_id is None else post.user
+                    related[user].append(post.display())
+        elif view == 'collected':
+            for post in self.posts:
+                user = deleted_user if post.user_id is None else post.user
+                related[user].append(post.display())
+        if not len(related[deleted_user]):
+            del related[deleted_user]
+        return related
+
     def get_results(self):
-        """ We want the datasets and summary statistics """
+        """ We want the datasets and summary statistics. Used for results view as preview before creating sheet. """
+        # when finished, related is a dictionary with the following format:
+        # {media_type: {
+        #               'posts': [],
+        #               'metrics': {metric: []},
+        #               'labels':  {metric: []},
+        #               'results': {metric: {
+        #                                    'Total': 0,
+        #                                    'Median': 0,
+        #                                    'Mean': 0,
+        #                                    'StDev': 0
+        #                                    }
+        #                           }
+        #               }
+        #  'common':   {
+        #               'metrics' {metric: []},
+        #               'labels': {metric: []}
+        #               'results': {metric: {
+        #                                    'Total': 0,
+        #                                    'Median': 0,
+        #                                    'Mean': 0,
+        #                                    'StDev': 0
+        #                                    }
+        #                           }
+        #               }
+        # }
         rejected = {'insight', 'basic'}
         added = {'comments_count', 'like_count'}
         lookup = {k: v.union(added) for k, v in Post.metrics.items() if k not in rejected}

@@ -335,8 +335,8 @@ def callback(mod):
 @staff_required()
 def results(id):
     """ Campaign Results View (on GET) or generate Worksheet report (on POST) """
-    mod, view = 'campaign', 'results'
-    template, related = f"{view}_{mod}.html", {}
+    view, mod, related = 'results', 'campaign', {}
+    template = f"{view}_{mod}.html"
     campaign = Campaign.query.get(id)
     if request.method == 'POST':
         sheet = create_sheet(campaign)
@@ -377,19 +377,7 @@ def campaign(id, view='management'):
         success = update_campaign(campaign, request)
         if not success:
             app.logger.error("Update Campaign Failed. ")
-    for user in campaign.users:
-        if view == 'management':
-            related[user] = user.campaign_unprocessed(campaign)
-        elif view == 'collected':
-            related[user] = user.campaign_posts(campaign)
-        elif view == 'rejected':
-            related[user] = user.campaign_rejected(campaign)
-        else:
-            related[user] = []  # This condition should not occur.
-    if view == 'collected':
-        deleted_user_posts = [post.display() for post in campaign.posts if post.user_id is None]
-        if deleted_user_posts:
-            related[DeletedUser()] = deleted_user_posts
+    related = campaign.related_posts(view)
     return render_template(template, mod=mod, view=view, data=campaign, related=related)
 
 # ########## End of Campaign Views ############
