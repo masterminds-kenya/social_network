@@ -3,6 +3,14 @@
 **Author**: Chris L Chapman
 **Version**: 0.4.0
 
+This application is a social media analysis platform with "Influencer" users who are experts in social media that bring value to our "Brand" company users who are principally responsible for the investment in the reputation of their products, as well as "Marketing" users who further manage this brand reputation investment.
+
+Influencers benefit by the drastic reduction of campaign reporting required of them. As influencers, they initially give the platform permissions to view their social media content and metrics. Influencers can feel secure that they remain in control of their own social media accounts as the platform does not have access to post or modify content.
+
+Brands benefit from the in-depth metrics for measuring the effectiveness of their campaigns with Influencers. In contrast to common practice in this field, Brands can feel secure that metrics data are accurate and complete, as it comes from the authoritative social media platform and does not rely on the typical manually sent reports that can be incomplete or other risk of inaccurate reporting. Furthermore, this application platform collects and reports more in-depth metrics than many other systems, providing improved analysis.
+
+Marketing users benefit from the automation features of this platform, allowing them to focus on more value-added management and marketing analysis. Marketing user control which content is appropriate for any given campaign through the platforms clear management procedures, and then rely on the platform to appropriately track and report the desired metrics and insights. They can collect metrics and analysis of both the campaign efforts and the brands normal promotional efforts, providing a clearer analysis.
+
 ## Architecture
 
 Designed to be deployed on Google Cloud App Engine, using:
