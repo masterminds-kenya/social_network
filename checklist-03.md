@@ -46,7 +46,7 @@
 - [s] Stretch Goal. Not for current feature plan.
 
 Current Status:
-2020-04-15 00:01:42
+2020-04-15 18:54:24
 <!-- Ctrl-Shift-I to generate timestamp -->
 
 ### Story & Media Files Features
@@ -156,9 +156,15 @@ Also see items in the [test-site-content checklist](https://github.com/SeattleCh
     - [x] Post.campaign
     - [x] Campaign.posts
   - [x] Using new fields and methods:
-    - [x] Campaign.rejected, Campaign.posts
-    - [x] Post.rejections, Post.campaigns, User.campaign_unprocessed(campaign)
-    - [x] User.campaign_posts(campaign), User.campaign_rejected(campaign)
+    - [x] Refactored Campaign relationships. Now Campaign.processed and Campaign.posts
+      - [x] Previously was Campaign.rejected, Campaign.posts
+      - [x] Campaign.processed has both rejected and accepted posts
+    - [x] Post related models refactored.
+      - [x] Old fields and methods Post.rejections, Post.campaigns
+      - [x] backref from Campaigns gives Post.campaigns and Post.processed
+    - [x] User methods for campaign posts refactored as Campaign.related_posts(value)
+      - [x] valid value are Campaign views: 'management', 'collected', 'rejected'
+      - [x] Old User methods: campaign_posts(), campaign_rejected(), campaign_unprocessed()
   - [n] Assign & Remove from all Queue
   - [x] Assign & Keep in all Queue
   - [x] Reject & remove from only this Campaign Queue

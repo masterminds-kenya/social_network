@@ -238,12 +238,12 @@ def get_posts(data, ig_id=None, facebook=None):
     for ea in data:
         results.extend(_get_posts_data_of_user(ea, ig_id=ig_id, facebook=facebook))
     saved = db_create_or_update_many(results, Post)
-    # TODO: Add posts to capture queue.
-    capture_responses = capture_media(saved, True)
-    failed_capture = [ea.get('post') for ea in capture_responses if not ea.get('saved_media')]
-    message = f"Had {len(capture_responses)} story posts. "
-    message += f"Had {len(failed_capture)} failed media captures. " if failed_capture else "All media captured. "
-    app.logger.info(message)
+    # TODO: Add posts to capture queue now!
+    # capture_responses = capture_media(saved, True)
+    # failed_capture = [ea.get('post') for ea in capture_responses if not ea.get('saved_media')]
+    # message = f"Had {len(capture_responses)} story posts. "
+    # message += f"Had {len(failed_capture)} failed media captures. " if failed_capture else "All media captured. "
+    # app.logger.info(message)
     # flash(message)
     return saved
 

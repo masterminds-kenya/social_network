@@ -175,18 +175,17 @@ def admin(data=None, files=None):
 @admin_required()
 def test_method():
     """ Temporary route and function for developer to test components. """
-    success = developer_admin.fix_defaults()
-    info = "It worked! " if success else "Had an error. "
-    # from .sheets import get_vals, get_insight_report
-    # from pprint import pprint
-    # page1_only = True
-    # model = Campaign.query.get(4)
-    # vals = get_vals(model)
-    # insight_report = get_insight_report(model)
-    # results = vals if page1_only else insight_report
-    # pprint(results)
+    from .sheets import get_vals, get_insight_report
+    from pprint import pprint
+
+    page1_only = True
+    model = Campaign.query.get(4)
+    vals = get_vals(model)
+    insight_report = get_insight_report(model)
+    results = vals if page1_only else insight_report
+    pprint(results)
+    return admin(data=results[0])
     # return render_template('admin.html', dev=True, data=results[0], files=None)
-    return render_template('admin.html', dev=True, data=info, files=None)
 
 
 @app.route('/data/load/')
@@ -213,10 +212,18 @@ def backup_save(mod, id):
 @admin_required()
 def encrypt():
     """ This is a temporary development function. Will be removed for production. """
-    message = developer_admin.encrypt()
+    message, success = developer_admin.encrypt()
     app.logger.info(message)
+    if success:
+        success = developer_admin.fix_defaults()
+        temp = "Fix defaults worked! " if success else "Had an error in fix_defaults. "
+        app.logger.info(temp)
+        message += temp
+    else:
+        message += "Did not attempt fix_defaults. "
     flash(message)
-    return redirect(url_for('admin'))
+    return admin(data=message)
+    # return render_template('admin.html', dev=True, data=message, files=None)
 
 
 @app.route('/data/capture/<int:id>')
@@ -328,8 +335,8 @@ def callback(mod):
 @staff_required()
 def results(id):
     """ Campaign Results View (on GET) or generate Worksheet report (on POST) """
-    mod, view = 'campaign', 'results'
-    template, related = f"{view}_{mod}.html", {}
+    view, mod, related = 'results', 'campaign', {}
+    template = f"{view}_{mod}.html"
     campaign = Campaign.query.get(id)
     if request.method == 'POST':
         sheet = create_sheet(campaign)
@@ -370,19 +377,7 @@ def campaign(id, view='management'):
         success = update_campaign(campaign, request)
         if not success:
             app.logger.error("Update Campaign Failed. ")
-    for user in campaign.users:
-        if view == 'management':
-            related[user] = user.campaign_unprocessed(campaign)
-        elif view == 'collected':
-            related[user] = user.campaign_posts(campaign)
-        elif view == 'rejected':
-            related[user] = user.campaign_rejected(campaign)
-        else:
-            related[user] = []  # This condition should not occur.
-    if view == 'collected':
-        deleted_user_posts = [post.display() for post in campaign.posts if post.user_id is None]
-        if deleted_user_posts:
-            related[DeletedUser()] = deleted_user_posts
+    related = campaign.related_posts(view)
     return render_template(template, mod=mod, view=view, data=campaign, related=related)
 
 # ########## End of Campaign Views ############

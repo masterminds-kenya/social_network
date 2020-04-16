@@ -60,56 +60,52 @@ def encrypt():
     message, count = '', 0
     # q = User.query.filter(User.token is not None)
     users = User.query.all()
+    app.logger.debug(f"Attempting token encrypt for {len(users)} users. ")
+    for user in users:
+        value = getattr(user, 'token')
+        setattr(user, 'crypt', value)
+        count += 1
+    app.logger.debug(f"{count} done. ")
+    message += f"Adjusted for {count} users. "
     try:
-        for user in users:
-            value = getattr(user, 'token')
-            app.logger.debug(value)
-            setattr(user, 'crypt', value)
-            count += 1
-        message += f"Adjusted for {count} users. "
         db.session.commit()
         message += "Commit Finished! "
+        success = True
     except Exception as e:
+        success = False
         temp = f"Encrypt method error. Count: {count}. "
         app.logger.error(temp)
         app.logger.exception(e)
         message += temp
         db.session.rollback()
-    return message
+    return message, success
 
 
 def fix_defaults():
     """ Temporary route and function for developer to test components. """
     from .model_db import Post, OnlineFollowers, Insight, db
-    # from pprint import pprint
-    # from .sheets import get_vals, get_insight_report
 
     p_keys = ['impressions', 'reach', 'engagement', 'saved', 'video_views', 'exits', 'replies', 'taps_forward', 'taps_back']
     # not_needed_keys = ['comments_count', 'like_count', ]
-    updates = [(OnlineFollowers, ['value']), (Insight, ['value']), (Post, p_keys)]
     update_count = 0
+    Model = Post
+    app.logger.debug(f"========== Test: {Model.__name__} many fields ==========")
+    for pkey in p_keys:
+        q = Model.query.filter(getattr(Post, pkey).is_(None))
+        update_count += q.count()
+        q.update({pkey: 0}, synchronize_session=False)
+        app.logger.debug(f"----- {pkey} | {update_count} -----")
+    app.logger.debug(f"========== updating {update_count} records in Post ==========")
+    updates = [(OnlineFollowers, ['value']), (Insight, ['value'])]
     for Model, fields in updates:
-        if Model == Post:
-            app.logger.debug(f"========== Test: {Model.__name__} many fields ==========")
-            models = Model.query.all()
+        for column in fields:
+            models = Model.query.filter(getattr(Model, column).is_(None)).all()
+            app.logger.debug(f"--------- Test: {Model.__name__} {column} ----------")
             for model in models:
-                model_updated = False
-                app.logger.debug(f"----- {update_count} | {model} -----")
-                for pkey in fields:
-                    if not getattr(model, pkey, None):
-                        setattr(model, pkey, 0)
-                        model_updated = True
-                if model_updated:
-                    update_count += 1
-                    db.session.add(model)
-        else:
-            for column in fields:
-                models = Model.query.filter(getattr(Model, column).is_(None)).all()
-                app.logger.debug(f"========== Test: {Model.__name__} {column} ==========")
-                for model in models:
-                    setattr(model, column, 0)
-                    update_count += 1
-                    db.session.add(model)
+                setattr(model, column, 0)
+                update_count += 1
+                db.session.add(model)
+    app.logger.debug(f"========= Updating {update_count} total records =========")
     try:
         db.session.commit()
         success = True
