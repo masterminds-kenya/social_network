@@ -317,6 +317,17 @@ def get_posts(id_or_users, ig_id=None, facebook=None):
     return saved
 
 
+def get_page_for_ig():
+    """ For a known Instagram account, we can determine the related Facebook page. """
+    pass
+
+
+def install_app_on_user_to_get_story_updates(user_or_id, page=None, ig_id=None, facebook=None):
+    """ Accurate Story Post metrics can be pushed to the Platform only if the App is installed on the related Page. """
+
+    pass
+
+
 def get_ig_info(ig_id, token=None, facebook=None):
     """ We already have their InstaGram Business Account id, but we need their IG username """
     # Possible fields. Fields with asterisk (*) are public and can be returned by and edge using field expansion:
@@ -356,6 +367,7 @@ def find_instagram_id(accounts, facebook=None):
             ig_business = instagram_data.get('instagram_business_account', None)
             if ig_business:
                 ig_info = get_ig_info(ig_business.get('id', None), facebook=facebook)
+                ig_info['page_id'] = page
                 ig_list.append(ig_info)
     else:
         app.logger.error(f"No pages found from accounts data: {accounts}. ")
