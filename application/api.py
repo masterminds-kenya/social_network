@@ -23,81 +23,47 @@ FB_SCOPE = [
         ]
 
 
-def process_hook():
+def process_hook(req):
     """ We have a confirmed authoritative update on subscribed data of a Story Post. """
 
-        try:
-            res = request.json if request.is_json else request.data
-        except Exception as e:
-            fake_story_update = {'exits': 0,
-                                 'impressions': 0,
-                                 'media_id': 0,
-                                 'reach': 0,
-                                 'replies': 0,
-                                 'taps_back': 0,
-                                 'taps_forward': 0
-                                 }
-            one_fake_change = {'field': 'fake_field', 'value': fake_story_update}
-            res = {'object': 'fake', 'entry': [{'id': 0, 'time': 0, 'changes': [one_fake_change]}]}
-            app.logger.info(f"Got an exception in hook route. ")
-            app.logger.error(e)
+    change_list = [change for ea in req.get('entry', [{}]) for change in ea.get('changes', [{}])]
+    story_list = [change.get('value', {}) for change in change_list if change.get('field', '') == 'story_insights']
+    extra_changes_count = len(change_list) - len(story_list)
+    if extra_changes_count:
+        not_stories = [ea for ea in change_list if ea.get('field', '') != 'story_insights']
+        app.logger.info(f"Had {extra_changes_count} unexpected non-story changes. ")
+        pprint(not_stories)
+    # models = Post.query.filter(Post.media_id.in_([int(ea.get('media_id', 0)) for ea in story_list])).all()
+    count, new, modified = 0, [], []
+    for story in story_list:
+        media_id = story.pop('media_id', None)
+        if media_id:
+            count += 1
+            model = Post.query.filter_by(media_id=media_id).first()  # Returns none if not in DB
+            if model:
 
-        change_list = [change for ea in res.get('entry', [{}]) for change in ea.get('changes', [{}])]
-        story_list = [change.get('value', {}) for change in change_list if change.get('field', '') == 'story_insights']
-        extra_changes_count = len(change_list) - len(story_list)
-        if extra_changes_count:
-            not_stories = [ea for ea in change_list if ea.get('field', '') != 'story_insights']
-            app.logger.info(f"Had {extra_changes_count} unexpected non-story changes. ")
-            pprint(not_stories)
-        # models = Post.query.filter(Post.media_id.in_([int(ea.get('media_id', 0)) for ea in story_list])).all()
-        for story in story_list:
-            media_id = story.pop('media_id', None)
-            if media_id:
-                # TODO: Check that it is okay to assume that we already have this story post in our DB.
-                # Post.query.filter_by(media_id=media_id).update(story)
-                story = Post.query.filter_by(media_id=media_id).first()  # Returns none if not in DB
-                if story:
-                    # update
-                    pass
-                else:
-                    # create, but we need extra data about this story.
-                    pass
-        try:
-            db.session.commit()
-        except Exception as e:
-            message = "Unable to to commit updates to database. "
-            app.logger.debug(message)
-            app.logger.error(e)
-            db.session.rollback()
-            return message, 401
-
-
-        # for ea in res.get('entry', [{}]):
-        #     story_list = [c.get('value', {}) for c in ea.get('changes', [{}]) if c.get('field') == 'story_insights']
-        #     for change in ea.get('changes', [{}]):
-        #         if change.get('field') == 'story_insights':
-        #             story_list.append(change.get('value', {}))
-        #         else:
-        #             app.logger.debug("Unexpected change data. ")
-        #             pprint(change)
-
-        if res.get('field', '').lower() == 'story_insights':
-            data = res.get('value')
-            pprint(data)
-        else:
-            pprint(res)
-        # Docs first said:
-        # media_id = data.get('id')
-        # obj_type = data.get('object')
-        # app.logger.debug(f"{obj_type}: {media_id} ")
-        # app.logger.debug("------ changes ------")
-        # changes = data.get('changes')
-        # for ea in changes:
-        #     field = ea.get('field')
-        #     value = ea.get('value')
-        #     app.logger.debug(f"{field}: {value}")
-
-    pass
+                # update
+                modified.append(model)
+                db.session.add(model)
+            else:
+                # create, but we need extra data about this story Post.
+                res = get_basic_post_data(media_id)
+                story.update(res)
+                model = Post(**story)
+                new.append(model)
+                db.session.add(model)
+                pass
+    message = f"Updating {len(modified)} and creating {len(new)} Story Posts; Recording data for {count} Story Posts. "
+    try:
+        db.session.commit()
+        response_code = 200
+    except Exception as e:
+        response_code = 401
+        message += "Unable to to commit story hook updates to database. "
+        app.logger.debug(message)
+        app.logger.error(e)
+        db.session.rollback()
+    return message, response_code
 
 
 def capture_media(post_or_posts, get_story_only):
@@ -249,6 +215,33 @@ def get_audience(user_id, ig_id=None, facebook=None):
     return db_create_or_update_many(results, user_id=user_id, Model=Audience)
 
 
+def get_basic_post_data(media_id, metrics=None, user_id=None, facebook=None, token=None):
+    """ Typically called by _get_posts_data_of_user, but also if we have a new Story Post while processing hooks. """
+    if not metrics:
+        metrics = ','.join(Post.metrics.get('basic'))
+    if not user_id:
+        metrics += ',username'
+    url = f"https://graph.facebook.com/{media_id}?fields={metrics}"
+    url = f"{url}&access_token={token}" if token and not facebook else url
+    func = facebook.get or requests.get
+    try:
+        res = func(url).json()
+    except Exception as e:
+        auth = 'facebook' if facebook else 'token' if token else 'none'
+        app.logger.debug(f"API fail for Post with media_id {media_id} | Auth: {auth} ")
+        app.logger.error(e)
+        return {}
+    res['media_id'] = res.pop('id', media_id)
+    if user_id:
+        res['user_id'] = user_id
+    else:
+        name = res.pop('username', None)
+        user = User.query.filter_by(name=name).one_or_none() if name else None
+        if user:
+            res['user_id'] = user.id
+    return res
+
+
 def _get_posts_data_of_user(user_id, ig_id=None, facebook=None):
     """ Called by get_posts. Returns the API response data for posts on a single user. """
     user, token = None, None
@@ -260,13 +253,9 @@ def _get_posts_data_of_user(user_id, ig_id=None, facebook=None):
     else:
         raise TypeError(f"Expected an id or instance of User, but got {type({user_id})}: {user_id} ")
     if not facebook or not ig_id:
-        # model = db_read(user_id, safe=False)
-        # ig_id, token = model.get('instagram_id'), model.get('token')
         user = user or User.query.get(user_id)
         ig_id, token = getattr(user, 'instagram_id', None), getattr(user, 'token', None)
     app.logger.info(f"==================== Get Posts on User {user_id} ====================")
-    post_metrics = {key: ','.join(val) for (key, val) in Post.metrics.items()}
-    results, token = [], ''
     url = f"https://graph.facebook.com/{ig_id}/stories"
     story_res = facebook.get(url).json() if facebook else requests.get(f"{url}?access_token={token}").json()
     stories = story_res.get('data')
@@ -281,13 +270,12 @@ def _get_posts_data_of_user(user_id, ig_id=None, facebook=None):
         app.logger.error('Error: ', response.get('error', 'NA'))
         return []
     media.extend(stories)
-    app.logger.debug(f"------- Looking up a total of {len(media)} Media Posts, including {len(stories)} Stories -------")
+    app.logger.debug(f"------ Looking up a total of {len(media)} Media Posts, including {len(stories)} Stories ------")
+    post_metrics = {key: ','.join(val) for (key, val) in Post.metrics.items()}
+    results = []
     for post in media:
         media_id = post.get('id')
-        url = f"https://graph.facebook.com/{media_id}?fields={post_metrics['basic']}"
-        res = facebook.get(url).json() if facebook else requests.get(f"{url}&access_token={token}").json()
-        res['media_id'] = res.pop('id', media_id)
-        res['user_id'] = user_id
+        res = get_basic_post_data(media_id, metrics=post_metrics['basic'], user_id=user_id, facebook=facebook, token=token)  # New call
         media_type = 'STORY' if res['media_id'] in story_ids else res.get('media_type')
         res['media_type'] = media_type
         metrics = post_metrics.get(media_type, post_metrics['insight'])
@@ -307,12 +295,16 @@ def _get_posts_data_of_user(user_id, ig_id=None, facebook=None):
     return results
 
 
-def get_posts(data, ig_id=None, facebook=None):
-    """ Get media posts (including stories) for the (influencer or brand) user with given user_id """
-    if not isinstance(data, (list, tuple)):
-        data = [data]
+def get_posts(id_or_users, ig_id=None, facebook=None):
+    """ Input is a single entity or list of User instance(s), or User id(s).
+        Calls the API to get all of the Posts (with insights of Posts) of User(s).
+        Saves this data to the Database, creating or updating as needed.
+        Returns an array of the saved Post instances.
+    """
+    if not isinstance(id_or_users, (list, tuple)):
+        id_or_users = [id_or_users]
     results = []
-    for ea in data:
+    for ea in id_or_users:
         results.extend(_get_posts_data_of_user(ea, ig_id=ig_id, facebook=facebook))
     saved = db_create_or_update_many(results, Post)
     # TODO: Add posts to capture queue now!

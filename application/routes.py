@@ -669,7 +669,6 @@ def hook():
     # json_data = request.json
     # https://developers.facebook.com/docs/graph-api/webhooks/getting-started
     app.logger.debug(f"========== The hook route has a {request.method} request ==========")
-    challenge = request.args.get('hub.challenge', '')
     if request.method == 'POST':
         signed = request.headers.get('X-Hub-Signature', None)
         pprint(signed or request.headers)
@@ -679,16 +678,33 @@ def hook():
         # if signed != signature:
         #     message = f"Signature did not match. "
         #     return message, 401
-        result = process_hook(request)
+        try:
+            data = request.json if request.is_json else request.data
+        except Exception as e:
+            fake_story_update = {'exits': 0,
+                                 'impressions': 0,
+                                 'media_id': 0,
+                                 'reach': 0,
+                                 'replies': 0,
+                                 'taps_back': 0,
+                                 'taps_forward': 0
+                                 }
+            one_fake_change = {'field': 'fake_field', 'value': fake_story_update}
+            data = {'object': 'fake', 'entry': [{'id': 0, 'time': 0, 'changes': [one_fake_change]}]}
+            app.logger.info(f"Got an exception in hook route. ")
+            app.logger.error(e)
+        res, response_code = process_hook(data)
     elif request.method == 'GET':
         mode = request.args.get('hub.mode')
-        token = request.args.get('hub.verify_token')
-        token = 'matches!' if token == app.config.get('FB_HOOK_SECRET') else token
-        app.logger.debug(f"Mode: {mode} | Challenge: {challenge} | Token: {token} ")
+        token_match = request.args.get('hub.verify_token', '') if request.args.get('hub.mode') == 'subscribe' else ''
+        token_match = True if token_match == app.config.get('FB_HOOK_SECRET') else False
+        res = request.args.get('hub.challenge', '') if token_match else 'Error. '
+        response_code = 200 if token_match else 401
+        app.logger.debug(f"Mode: {mode} | Challenge: {res} | Token: {token_match} ")
     else:
         raise ValueError('Expected either a GET or POST request. ')
 
-    return challenge, 200
+    return res, response_code
 
 
 @app.route('/<string:mod>/<int:id>/delete', methods=['GET', 'POST'])
