@@ -46,12 +46,15 @@
 - [s] Stretch Goal. Not for current feature plan.
 
 Current Status:
-2020-04-15 18:54:24
+2020-04-16 18:06:09
 <!-- Ctrl-Shift-I to generate timestamp -->
 
 ### Story & Media Files Features
 
 - [ ] WebHook to get Stories data at completion
+  - [x] Must have FB permissions `instagram_manage_insights`
+  - [ ] Have a hook route on live site
+  - [ ] Configure hook route on FB App Dashboard
   - [ ] Once confirmed, remove story data update from daily cron job
 - [x] ? What storage structure is needed for larger media files ?
   - [x] Probably need to setup a storage bucket

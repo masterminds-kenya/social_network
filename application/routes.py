@@ -660,6 +660,35 @@ def edit(mod, id):
     return add_edit(mod, id=id)
 
 
+@app.route('/post/hook/', methods=['GET', 'POST'])
+def hook():
+    """ Endpoint receives all webhook updates from Instagram/Facebook for Story Posts. """
+    # headers = request.headers
+    # querystring = request.args
+    # json_data = request.json
+    # https://developers.facebook.com/docs/graph-api/webhooks/getting-started
+    app.logger.debug(f"========== The hook route has a {request.method} request ==========")
+    signed = request.headers.get('X-Hub-Signature')
+    signature = 'sha1='
+    # Generate a SHA1 with payload and App Secret
+    signature += ''
+    if signed != signature:
+        message = f"Signature did not match. "
+        return message, 401
+    data = request.json()
+    media_id = data.get('id')
+    obj_type = data.get('object')
+    app.logger.debug(f"{obj_type}: {media_id} ")
+    app.logger.debug("------ changes ------")
+    changes = data.get('changes')
+    for ea in changes:
+        field = ea.get('field')
+        value = ea.get('value')
+        app.logger.debug(f"{field}: {value}")
+
+    return {}, 200
+
+
 @app.route('/<string:mod>/<int:id>/delete', methods=['GET', 'POST'])
 @login_required
 def delete(mod, id):
