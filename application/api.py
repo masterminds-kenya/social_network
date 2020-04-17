@@ -23,6 +23,83 @@ FB_SCOPE = [
         ]
 
 
+def process_hook():
+    """ We have a confirmed authoritative update on subscribed data of a Story Post. """
+
+        try:
+            res = request.json if request.is_json else request.data
+        except Exception as e:
+            fake_story_update = {'exits': 0,
+                                 'impressions': 0,
+                                 'media_id': 0,
+                                 'reach': 0,
+                                 'replies': 0,
+                                 'taps_back': 0,
+                                 'taps_forward': 0
+                                 }
+            one_fake_change = {'field': 'fake_field', 'value': fake_story_update}
+            res = {'object': 'fake', 'entry': [{'id': 0, 'time': 0, 'changes': [one_fake_change]}]}
+            app.logger.info(f"Got an exception in hook route. ")
+            app.logger.error(e)
+
+        change_list = [change for ea in res.get('entry', [{}]) for change in ea.get('changes', [{}])]
+        story_list = [change.get('value', {}) for change in change_list if change.get('field', '') == 'story_insights']
+        extra_changes_count = len(change_list) - len(story_list)
+        if extra_changes_count:
+            not_stories = [ea for ea in change_list if ea.get('field', '') != 'story_insights']
+            app.logger.info(f"Had {extra_changes_count} unexpected non-story changes. ")
+            pprint(not_stories)
+        # models = Post.query.filter(Post.media_id.in_([int(ea.get('media_id', 0)) for ea in story_list])).all()
+        for story in story_list:
+            media_id = story.pop('media_id', None)
+            if media_id:
+                # TODO: Check that it is okay to assume that we already have this story post in our DB.
+                # Post.query.filter_by(media_id=media_id).update(story)
+                story = Post.query.filter_by(media_id=media_id).first()  # Returns none if not in DB
+                if story:
+                    # update
+                    pass
+                else:
+                    # create, but we need extra data about this story.
+                    pass
+        try:
+            db.session.commit()
+        except Exception as e:
+            message = "Unable to to commit updates to database. "
+            app.logger.debug(message)
+            app.logger.error(e)
+            db.session.rollback()
+            return message, 401
+
+
+        # for ea in res.get('entry', [{}]):
+        #     story_list = [c.get('value', {}) for c in ea.get('changes', [{}]) if c.get('field') == 'story_insights']
+        #     for change in ea.get('changes', [{}]):
+        #         if change.get('field') == 'story_insights':
+        #             story_list.append(change.get('value', {}))
+        #         else:
+        #             app.logger.debug("Unexpected change data. ")
+        #             pprint(change)
+
+        if res.get('field', '').lower() == 'story_insights':
+            data = res.get('value')
+            pprint(data)
+        else:
+            pprint(res)
+        # Docs first said:
+        # media_id = data.get('id')
+        # obj_type = data.get('object')
+        # app.logger.debug(f"{obj_type}: {media_id} ")
+        # app.logger.debug("------ changes ------")
+        # changes = data.get('changes')
+        # for ea in changes:
+        #     field = ea.get('field')
+        #     value = ea.get('value')
+        #     app.logger.debug(f"{field}: {value}")
+
+    pass
+
+
 def capture_media(post_or_posts, get_story_only):
     """ For a given Post or list of Post objects, call the API for capturing the images of that InstaGram page.
         If get_story_only is True, then only process the Posts that have media_type equal to 'STORY'.

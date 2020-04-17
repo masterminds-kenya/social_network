@@ -3,11 +3,12 @@ from flask import render_template, redirect, url_for, request, flash  # , abort
 from flask_login import current_user, login_user, logout_user, login_required
 from werkzeug.security import generate_password_hash, check_password_hash
 from .model_db import db_create, db_read, db_update, db_delete, db_all, from_sql
-from .model_db import User, DeletedUser, OnlineFollowers, Insight, Audience, Post, Campaign  # , metric_clean
+from .model_db import User, OnlineFollowers, Insight, Audience, Post, Campaign  # , metric_clean
 from . import developer_admin
 from functools import wraps
 from .manage import update_campaign, process_form
 from .api import onboard_login, onboarding, get_insight, get_audience, get_posts, get_online_followers, capture_media
+from .api import process_hook
 from .sheets import create_sheet, update_sheet, perm_add, perm_list, all_files
 import json
 # from pprint import pprint
@@ -664,8 +665,7 @@ def edit(mod, id):
 def hook():
     """ Endpoint receives all webhook updates from Instagram/Facebook for Story Posts. """
     from pprint import pprint
-    # headers = request.headers
-    # querystring = request.args
+    from .model_db import db
     # json_data = request.json
     # https://developers.facebook.com/docs/graph-api/webhooks/getting-started
     app.logger.debug(f"========== The hook route has a {request.method} request ==========")
@@ -679,25 +679,7 @@ def hook():
         # if signed != signature:
         #     message = f"Signature did not match. "
         #     return message, 401
-        try:
-            res = request.json if request.is_json else request.data
-        except Exception as e:
-            res = {'id': 1, 'object': 'fake', 'changes': [{'field': 'column', 'value': 'fake_value'}]}
-            app.logger.info(f"Got an exception in hook route. ")
-            app.logger.error(e)
-        if res.get('field', '').lower() == 'story_insights':
-            data = res.get('value')
-            pprint(data)
-        # Docs first said:
-        # media_id = data.get('id')
-        # obj_type = data.get('object')
-        # app.logger.debug(f"{obj_type}: {media_id} ")
-        # app.logger.debug("------ changes ------")
-        # changes = data.get('changes')
-        # for ea in changes:
-        #     field = ea.get('field')
-        #     value = ea.get('value')
-        #     app.logger.debug(f"{field}: {value}")
+        result = process_hook(request)
     elif request.method == 'GET':
         mode = request.args.get('hub.mode')
         token = request.args.get('hub.verify_token')
