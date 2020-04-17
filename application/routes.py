@@ -606,15 +606,19 @@ def add_edit(mod, id=None):
                             flash(message)
                             return redirect(url_for('home'))
                         login_user(found_user, force=True, remember=True)
-                        flash("You are logged in. ")
                         db_delete(id, Model=User)
+                        flash("You are logged in. ")
+                        # this case will follow the normal return for request.method == 'POST'
                     else:
                         message = "You do not seem to match the existing account. "
                         message += "A new account can not be created with those unique values. "
                         message += "If you own the existing account you can try to Login instead. "
+                        flash(message)
+                        return redirect(url_for('home'))
                 else:
                     flash("Please try again or contact an Admin. ")
-        else:  # action == 'Add'
+                    return redirect(url_for('home'))
+        else:  # action == 'Add' and request.method == 'POST'
             try:
                 model = db_create(data, Model=Model)
             except ValueError as e:
@@ -623,6 +627,7 @@ def add_edit(mod, id=None):
                 flash("Error. Please try again or contact an Admin. ")
                 return redirect(url_for('add', mod=mod, id=id))
         return redirect(url_for('view', mod=mod, id=model['id']))
+    # else: request.method == 'GET'
     template, related = 'form.html', {}
     model = db_read(id, Model=Model) if action == 'Edit' else {}
     if mod == 'campaign':
@@ -665,7 +670,6 @@ def edit(mod, id):
 def hook():
     """ Endpoint receives all webhook updates from Instagram/Facebook for Story Posts. """
     from pprint import pprint
-    from .model_db import db
     # json_data = request.json
     # https://developers.facebook.com/docs/graph-api/webhooks/getting-started
     app.logger.debug(f"========== The hook route has a {request.method} request ==========")
