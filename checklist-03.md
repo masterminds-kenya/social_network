@@ -46,12 +46,22 @@
 - [s] Stretch Goal. Not for current feature plan.
 
 Current Status:
-2020-04-15 18:54:24
+2020-04-17 20:21:09
 <!-- Ctrl-Shift-I to generate timestamp -->
 
 ### Story & Media Files Features
 
 - [ ] WebHook to get Stories data at completion
+  - [x] Must have FB permissions `instagram_manage_insights`
+  - [ ] App must be installed on the FB page associated with the IG business account.
+    - [ ] Can determine the page for users we already have.
+    - [x] Update User model, onboarding(), and decide_ig form to track the page_id.
+    - [x] Update User model to track if installing the app was successful.
+    - [x] Onboarding process records the page_id to the created User account.
+    - [ ] App is automatically installed when page_id is added or updated on User account.
+      - [ ] perhaps a signal and listener approach?
+  - [ ] Have a hook route on live site
+  - [ ] Configure hook route on FB App Dashboard
   - [ ] Once confirmed, remove story data update from daily cron job
 - [x] ? What storage structure is needed for larger media files ?
   - [x] Probably need to setup a storage bucket

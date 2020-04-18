@@ -63,6 +63,8 @@ The [Instagram (Facebook) Graph API](https://developers.facebook.com/docs/instag
   - audience_country (lifetime metric at time of request)
   - audience_gender_age (lifetime metric at time of request)
 - [IG User Stories](https://developers.facebook.com/docs/instagram-api/reference/user/stories) (list of 'stories' posted in last 24 hours)
+  - [FB Dashboard Webhook settings](https://developers.facebook.com/docs/graph-api/webhooks/getting-started#configure-webhooks-product)
+  - [Instagram Webhooks](https://developers.facebook.com/docs/graph-api/webhooks/getting-started/webhooks-for-instagram)
 - [IG User Media](https://developers.facebook.com/docs/instagram-api/reference/user/media) (list of what they have posted)
 - [IG Media](https://developers.facebook.com/docs/instagram-api/reference/media) (data on each Media or Stories post)
   - media_type (if not a Stories post)

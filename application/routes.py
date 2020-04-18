@@ -3,11 +3,12 @@ from flask import render_template, redirect, url_for, request, flash  # , abort
 from flask_login import current_user, login_user, logout_user, login_required
 from werkzeug.security import generate_password_hash, check_password_hash
 from .model_db import db_create, db_read, db_update, db_delete, db_all, from_sql
-from .model_db import User, DeletedUser, OnlineFollowers, Insight, Audience, Post, Campaign  # , metric_clean
+from .model_db import User, OnlineFollowers, Insight, Audience, Post, Campaign  # , metric_clean
 from . import developer_admin
 from functools import wraps
 from .manage import update_campaign, process_form
 from .api import onboard_login, onboarding, get_insight, get_audience, get_posts, get_online_followers, capture_media
+from .api import process_hook
 from .sheets import create_sheet, update_sheet, perm_add, perm_list, all_files
 import json
 # from pprint import pprint
@@ -605,15 +606,19 @@ def add_edit(mod, id=None):
                             flash(message)
                             return redirect(url_for('home'))
                         login_user(found_user, force=True, remember=True)
-                        flash("You are logged in. ")
                         db_delete(id, Model=User)
+                        flash("You are logged in. ")
+                        # this case will follow the normal return for request.method == 'POST'
                     else:
                         message = "You do not seem to match the existing account. "
                         message += "A new account can not be created with those unique values. "
                         message += "If you own the existing account you can try to Login instead. "
+                        flash(message)
+                        return redirect(url_for('home'))
                 else:
                     flash("Please try again or contact an Admin. ")
-        else:  # action == 'Add'
+                    return redirect(url_for('home'))
+        else:  # action == 'Add' and request.method == 'POST'
             try:
                 model = db_create(data, Model=Model)
             except ValueError as e:
@@ -622,6 +627,7 @@ def add_edit(mod, id=None):
                 flash("Error. Please try again or contact an Admin. ")
                 return redirect(url_for('add', mod=mod, id=id))
         return redirect(url_for('view', mod=mod, id=model['id']))
+    # else: request.method == 'GET'
     template, related = 'form.html', {}
     model = db_read(id, Model=Model) if action == 'Edit' else {}
     if mod == 'campaign':
@@ -658,6 +664,51 @@ def edit(mod, id):
         flash("Something went wrong. Contact an admin or manager. Redirecting to the home page. ")
         return redirect(url_for('home'))
     return add_edit(mod, id=id)
+
+
+@app.route('/post/hook/', methods=['GET', 'POST'])
+def hook():
+    """ Endpoint receives all webhook updates from Instagram/Facebook for Story Posts. """
+    from pprint import pprint
+    # json_data = request.json
+    # https://developers.facebook.com/docs/graph-api/webhooks/getting-started
+    app.logger.debug(f"========== The hook route has a {request.method} request ==========")
+    if request.method == 'POST':
+        signed = request.headers.get('X-Hub-Signature', None)
+        pprint(signed or request.headers)
+        signature = 'sha1='
+        # Generate a SHA1 with payload and App Secret
+        signature += ''
+        # if signed != signature:
+        #     message = f"Signature did not match. "
+        #     return message, 401
+        try:
+            data = request.json if request.is_json else request.data
+        except Exception as e:
+            fake_story_update = {'exits': 0,
+                                 'impressions': 0,
+                                 'media_id': 0,
+                                 'reach': 0,
+                                 'replies': 0,
+                                 'taps_back': 0,
+                                 'taps_forward': 0
+                                 }
+            one_fake_change = {'field': 'fake_field', 'value': fake_story_update}
+            data = {'object': 'fake', 'entry': [{'id': 0, 'time': 0, 'changes': [one_fake_change]}]}
+            app.logger.info(f"Got an exception in hook route. ")
+            app.logger.error(e)
+        res, response_code = process_hook(data)
+    elif request.method == 'GET':
+        mode = request.args.get('hub.mode')
+        token_match = request.args.get('hub.verify_token', '') if request.args.get('hub.mode') == 'subscribe' else ''
+        token_match = True if token_match == app.config.get('FB_HOOK_SECRET') else False
+        res = request.args.get('hub.challenge', '') if token_match else 'Error. '
+        response_code = 200 if token_match else 401
+        app.logger.debug(f"Mode: {mode} | Challenge: {res} | Token: {token_match} ")
+    else:
+        raise ValueError('Expected either a GET or POST request. ')
+
+    return res, response_code
 
 
 @app.route('/<string:mod>/<int:id>/delete', methods=['GET', 'POST'])

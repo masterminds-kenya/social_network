@@ -91,6 +91,9 @@ class User(UserMixin, db.Model):
     name = db.Column(db.String(47),                 index=False, unique=False, nullable=True)
     email = db.Column(db.String(191),               index=False, unique=True,  nullable=True)
     password = db.Column(db.String(191),            index=False, unique=False, nullable=True)
+    # 2 New fields!
+    story_subscribed = db.Column(db.Boolean, default=False)
+    page_id = db.Column(BIGINT(unsigned=True),      index=False, unique=True,  nullable=True)
     instagram_id = db.Column(BIGINT(unsigned=True), index=True,  unique=True,  nullable=True)
     facebook_id = db.Column(BIGINT(unsigned=True),  index=False, unique=False, nullable=True)
     # token = db.Column(db.String(255),               index=False, unique=False, nullable=True)
@@ -117,6 +120,19 @@ class User(UserMixin, db.Model):
             kwargs['token_expires'] = dt.fromtimestamp(token_expires) if token_expires else None
             kwargs['token'] = kwargs['token'].get('access_token', None)
         super().__init__(*args, **kwargs)
+
+    @property
+    def page_id(self):
+        return self._page_id
+
+    @page_id.setter
+    def page_id(self, page_id):
+        # TODO: install app on page, subscribe to story_posts
+        # emit a signal for the listener.
+        success = False
+        # ?? record if it was successful?
+        self.story_subscribed = success
+        self._page_id = page_id
 
     def recent_insight(self, metrics):
         """ What is the most recent date that we collected the given insight metrics """
