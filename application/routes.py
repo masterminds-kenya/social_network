@@ -187,15 +187,17 @@ def test_method():
     # pprint(results)
     # return admin(data=results[0])
     # # return render_template('admin.html', dev=True, data=results[0], files=None)
-    from .api import get_basic_post, get_fb_page_for_user
     from pprint import pprint
-
+    from .api import get_fb_page_for_user, install_app_on_user_for_story_updates, process_hook
+    # working .api functions: get_basic_post,
     user = User.query.get(84)   # Influencer - NOELLERENO
-    post = Post.query.get(102)  # an IMAGE post by Noelle
-    media_id = getattr(post, 'media_id', None)
-    res = get_basic_post(media_id, token=getattr(user, 'token', None))
-    app.logger.debug("========== Test: get_basic_post func, passing just token. ==========")
-    pprint(res)
+    # post = Post.query.get(102)  # an IMAGE post by Noelle
+    # media_id = getattr(post, 'media_id', None)
+    # res = get_basic_post(media_id, token=getattr(user, 'token', None))
+    # app.logger.debug("========== Test: get_basic_post func, passing just token. ==========")
+    # pprint(res)
+    res = get_fb_page_for_user(user)
+    app.logger.debug(f"The connected FB page id: {res} ! ")
     return admin(data=res)
 
 

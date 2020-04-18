@@ -334,7 +334,7 @@ def get_fb_page_for_user(user, ig_id=None, facebook=None, token=None):
     if not page_id:
         ig_id = int(ig_id or getattr(user, 'instagram_id', 0))
         fb_id = getattr(user, 'facebook_id', 0)
-        if not any(facebook, token):
+        if not facebook and not token:
             token = getattr(user, 'token', None)
         # TODO: Do stuff to find it!
         url = f"https://graph.facebook.com/{fb_id}"
@@ -342,14 +342,11 @@ def get_fb_page_for_user(user, ig_id=None, facebook=None, token=None):
         params = {'fields': 'accounts'}
         if not facebook:
             params['access_token'] = token
-        res = facebook.post(url, params=params) if facebook else requests.post(f"{url}", params=params)  # json=dict_send
-        # res = res.json()
-        pprint(res)
+        res = facebook.post(url, params=params).json() if facebook else requests.post(f"{url}", params=params).json()
         app.logger.debug('---------------------------------------')
-        res = res.json()
         pprint(res)
         accounts = res.pop('accounts', None)
-        ig_list = find_instagram_id(accounts, facebook=facebook)
+        ig_list = find_instagram_id(accounts, facebook=facebook, token=token)
         matching_ig = [ig_info for ig_info in ig_list if int(ig_info.get('id')) == ig_id]
         ig_info = matching_ig[0] if matching_ig else {}
         page_id = ig_info.get('page_id')
@@ -423,25 +420,30 @@ def find_instagram_id(accounts, facebook=None, token=None):
     """ For an influencer or brand, we can discover all of their instagram business accounts they have.
         This depends on them having their expected associated facebook page (for each).
     """
+    if not facebook and not token:
+        message = f"This function requires at least one value for either 'facebook' or 'token' keyword arguments. "
+        app.logger.error(message)
+        raise Exception(message)
+    if not accounts or 'data' not in accounts:
+        # message = f"Error in accounts input: {accounts} "
+        message = f"No pages found from accounts data: {accounts}. "
+        app.logger.debug(message)
+        return []
     ig_list = []
-    pages = [page.get('id') for page in accounts.get('data')] if accounts and 'data' in accounts else None
-    if not facebook:
-        app.logger.error("The parameter for facebook can not be None. ")
-    if pages:
-        app.logger.debug(f"============ Pages count: {len(pages)} ============")
-        for page in pages:
-            url = f"https://graph.facebook.com/v4.0/{page}?fields=instagram_business_account"
-            res_ig_data = facebook.get(url).json() if facebook else requests.get(f"{url}&access_token={token}").json()
-            if 'error' in res_ig_data:
-                app.logger.error(f"Error on getting info from {page} Page. ")
-                pprint(res_ig_data)
-            ig_business = res_ig_data.get('instagram_business_account', None)
-            if ig_business:
-                ig_info = get_ig_info(ig_business.get('id', None), facebook=facebook, token=token)
-                ig_info['page_id'] = page
-                ig_list.append(ig_info)
-    else:
-        app.logger.error(f"No pages found from accounts data: {accounts}. ")
+    pages = [{'id': page.get('id'), 'token': page.get('access_token')} for page in accounts.get('data')]
+    app.logger.debug(f"============ Pages count: {len(pages)} ============")
+    for page in pages:
+        url = f"https://graph.facebook.com/v4.0/{page['id']}?fields=instagram_business_account"
+        res = facebook.get(url).json() if facebook else requests.get(f"{url}&access_token={page['token']}").json()
+        if 'error' in res:
+            app.logger.error(f"Error on getting info from {page['id']} Page. ")
+            pprint(res)
+        ig_business = res.get('instagram_business_account', None)
+        if ig_business:
+            ig_info = get_ig_info(ig_business.get('id', None), facebook=facebook, token=token)
+            ig_info['page_id'] = page['id']
+            # ig_info['page_token'] = page['token']
+            ig_list.append(ig_info)
     return ig_list
 
 
