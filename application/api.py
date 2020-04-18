@@ -348,7 +348,7 @@ def get_fb_page_for_user(user, ig_id=None, facebook=None, token=None):
         accounts = res.pop('accounts', None)
         ig_list = find_instagram_id(accounts, facebook=facebook, token=token)
         matching_ig = [ig_info for ig_info in ig_list if int(ig_info.get('id')) == ig_id]
-        ig_info = matching_ig[0] if matching_ig else {}
+        ig_info = matching_ig[0] if len(matching_ig) == 1 else {}
         page_id = ig_info.get('page_id')
     return page_id
 
