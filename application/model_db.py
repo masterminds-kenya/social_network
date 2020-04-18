@@ -93,7 +93,7 @@ class User(UserMixin, db.Model):
     password = db.Column(db.String(191),            index=False, unique=False, nullable=True)
     # 2 New fields!
     story_subscribed = db.Column(db.Boolean, default=False)
-    page_id = db.Column(BIGINT(unsigned=True),      index=False, unique=True,  nullable=True)
+    _page_id = db.Column('page_id', BIGINT(unsigned=True),      index=False, unique=True,  nullable=True)
     instagram_id = db.Column(BIGINT(unsigned=True), index=True,  unique=True,  nullable=True)
     facebook_id = db.Column(BIGINT(unsigned=True),  index=False, unique=False, nullable=True)
     # token = db.Column(db.String(255),               index=False, unique=False, nullable=True)
@@ -129,6 +129,7 @@ class User(UserMixin, db.Model):
     def page_id(self, page_id):
         # TODO: install app on page, subscribe to story_posts
         # emit a signal for the listener.
+        current_app.logger.debug(f"Setting the page_id field! ")
         success = False
         # ?? record if it was successful?
         self.story_subscribed = success

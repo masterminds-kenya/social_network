@@ -176,17 +176,27 @@ def admin(data=None, files=None):
 @admin_required()
 def test_method():
     """ Temporary route and function for developer to test components. """
-    from .sheets import get_vals, get_insight_report
+    # from .sheets import get_vals, get_insight_report
+    # from pprint import pprint
+
+    # page1_only = True
+    # model = Campaign.query.get(4)
+    # vals = get_vals(model)
+    # insight_report = get_insight_report(model)
+    # results = vals if page1_only else insight_report
+    # pprint(results)
+    # return admin(data=results[0])
+    # # return render_template('admin.html', dev=True, data=results[0], files=None)
+    from .api import get_basic_post, get_fb_page_for_user
     from pprint import pprint
 
-    page1_only = True
-    model = Campaign.query.get(4)
-    vals = get_vals(model)
-    insight_report = get_insight_report(model)
-    results = vals if page1_only else insight_report
-    pprint(results)
-    return admin(data=results[0])
-    # return render_template('admin.html', dev=True, data=results[0], files=None)
+    # user = User.query.get(84)   # Influencer - NOELLERENO
+    post = Post.query.get(102)  # an IMAGE post by Noelle
+    media_id = getattr(post, 'media_id', None)
+    res = get_basic_post(media_id)
+    app.logger.debug("========== Test: get_basic_post func, not passing user info. ==========")
+    pprint(res)
+    return admin(data=res)
 
 
 @app.route('/data/load/')
@@ -685,6 +695,7 @@ def hook():
         try:
             data = request.json if request.is_json else request.data
         except Exception as e:
+            # TODO: Remove the fake response after testing.
             fake_story_update = {'exits': 0,
                                  'impressions': 0,
                                  'media_id': 0,
@@ -707,7 +718,7 @@ def hook():
         app.logger.debug(f"Mode: {mode} | Challenge: {res} | Token: {token_match} ")
     else:
         raise ValueError('Expected either a GET or POST request. ')
-
+    app.logger.debug(res)
     return res, response_code
 
 

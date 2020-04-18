@@ -25,18 +25,24 @@ FB_SCOPE = [
 
 def process_hook(req):
     """ We have a confirmed authoritative update on subscribed data of a Story Post. """
+    # data = {'object': 'instagram', 'entry': [{'id': <ig_id>, 'time': 0, 'changes': [one_fake_change]}]}
 
-    change_list = [change for ea in req.get('entry', [{}]) for change in ea.get('changes', [{}])]
-    story_list = [change.get('value', {}) for change in change_list if change.get('field', '') == 'story_insights']
-    extra_changes_count = len(change_list) - len(story_list)
+    records = [rec.update({'ig_id': ea['id']}) for ea in req.get('entry', [{}]) for rec in ea.get('changes', [{}])]
+    stories = [r.get('value', {}).update({'ig_id': r['id']}) for r in records if r.get('field', '') == 'story_insights']
+    extra_changes_count = len(records) - len(stories)
     if extra_changes_count:
-        not_stories = [ea for ea in change_list if ea.get('field', '') != 'story_insights']
+        extras = [r.get('value', {}).update({'ig_id': r['id'], 'field': r.get('field')})
+                  for r in records
+                  if r.get('field', '') != 'story_insights'
+                  ]
         app.logger.info(f"Had {extra_changes_count} unexpected non-story changes. ")
-        pprint(not_stories)
-    # models = Post.query.filter(Post.media_id.in_([int(ea.get('media_id', 0)) for ea in story_list])).all()
+        pprint(extras)
+    # models = Post.query.filter(Post.media_id.in_([int(ea.get('media_id', 0)) for ea in stories])).all()
     count, new, modified = 0, [], []
-    for story in story_list:
+    for story in stories:
         media_id = story.pop('media_id', None)
+        ig_id = story.pop('ig_id', None)
+
         if media_id:
             count += 1
             model = Post.query.filter_by(media_id=media_id).first()  # Returns none if not in DB
@@ -47,12 +53,12 @@ def process_hook(req):
                 db.session.add(model)
             else:
                 # create, but we need extra data about this story Post.
-                res = get_basic_post_data(media_id)
+                user = User.query.filter_by(instagram_id=ig_id).first() if ig_id else None
+                res = get_basic_post(media_id, user_id=user.id, token=getattr(user, 'token', None))
                 story.update(res)
                 model = Post(**story)
                 new.append(model)
                 db.session.add(model)
-                pass
     message = f"Updating {len(modified)} and creating {len(new)} Story Posts; Recording data for {count} Story Posts. "
     try:
         db.session.commit()
@@ -215,17 +221,23 @@ def get_audience(user_id, ig_id=None, facebook=None):
     return db_create_or_update_many(results, user_id=user_id, Model=Audience)
 
 
-def get_basic_post_data(media_id, metrics=None, user_id=None, facebook=None, token=None):
+def get_basic_post(media_id, metrics=None, user_id=None, facebook=None, token=None):
     """ Typically called by _get_posts_data_of_user, but also if we have a new Story Post while processing hooks. """
+    user = object()
+    if not facebook and not token:
+        if not user_id:
+            message = f"The get_basic_post must have at least one of 'user_id', 'facebook', or 'token' values. "
+            app.logger.debug(message)
+            raise Exception(message)
+        user = User.query.get(user_id)
+        token = getattr(user, 'token', None)
     if not metrics:
         metrics = ','.join(Post.metrics.get('basic'))
-    if not user_id:
-        metrics += ',username'
+    # if not user_id:  # Likely function was called for basic Story post data.
+    #     metrics += ',username'
     url = f"https://graph.facebook.com/{media_id}?fields={metrics}"
-    url = f"{url}&access_token={token}" if token and not facebook else url
-    func = facebook.get or requests.get
     try:
-        res = func(url).json()
+        res = facebook.get(url).json() if facebook else requests.get(f"{url}&access_token={token}").json()
     except Exception as e:
         auth = 'facebook' if facebook else 'token' if token else 'none'
         app.logger.debug(f"API fail for Post with media_id {media_id} | Auth: {auth} ")
@@ -234,11 +246,8 @@ def get_basic_post_data(media_id, metrics=None, user_id=None, facebook=None, tok
     res['media_id'] = res.pop('id', media_id)
     if user_id:
         res['user_id'] = user_id
-    else:
-        name = res.pop('username', None)
-        user = User.query.filter_by(name=name).one_or_none() if name else None
-        if user:
-            res['user_id'] = user.id
+    elif getattr(user, 'id', None):
+        res['user_id'] = user.id
     return res
 
 
@@ -275,7 +284,7 @@ def _get_posts_data_of_user(user_id, ig_id=None, facebook=None):
     results = []
     for post in media:
         media_id = post.get('id')
-        res = get_basic_post_data(media_id, metrics=post_metrics['basic'], user_id=user_id, facebook=facebook, token=token)  # New call
+        res = get_basic_post(media_id, metrics=post_metrics['basic'], user_id=user_id, facebook=facebook, token=token)
         media_type = 'STORY' if res['media_id'] in story_ids else res.get('media_type')
         res['media_type'] = media_type
         metrics = post_metrics.get(media_type, post_metrics['insight'])
