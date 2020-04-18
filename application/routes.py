@@ -188,17 +188,30 @@ def test_method():
     # return admin(data=results[0])
     # # return render_template('admin.html', dev=True, data=results[0], files=None)
     from pprint import pprint
-    from .api import install_app_on_user_for_story_updates, process_hook
-    # working .api functions: get_basic_post, get_fb_page_for_user,
-    user = User.query.get(84)   # Influencer - NOELLERENO
+    from .api import process_hook
+    # working .api functions: get_basic_post, get_fb_page_for_user, install_app_on_user_for_story_updates,
+    # user = User.query.get(84)   # Influencer - NOELLERENO
     # post = Post.query.get(102)  # an IMAGE post by Noelle
     # media_id = getattr(post, 'media_id', None)
     # res = get_basic_post(media_id, token=getattr(user, 'token', None))
     # app.logger.debug("========== Test: get_basic_post func, passing just token. ==========")
     # pprint(res)
-    app.logger.debug("========== Test: install_app_on_user_for_story_updates, passing just user. ==========")
-    res = install_app_on_user_for_story_updates(user)
-    app.logger.debug(f"Installing was successful: {res} ! ")
+    fake_story_update = {
+        'exits': 0,
+        'impressions': 0,
+        'media_id': 0,
+        'reach': 0,
+        'replies': 0,
+        'taps_back': 0,
+        'taps_forward': 0
+        }
+    one_fake_change = {'field': 'fake_field', 'value': fake_story_update}
+    data = {'object': 'fake', 'entry': [{'id': 0, 'time': 0, 'changes': [one_fake_change]}]}
+    app.logger.debug("========== Test: process_hook, passing fake data. ==========")
+    res = process_hook(data)
+    app.logger.debug('-------------------------------------------------------------')
+    pprint(res)
+    # app.logger.debug(f"Installing was successful: {res} ! ")
     return admin(data=res)
 
 
@@ -711,7 +724,7 @@ def hook():
             data = {'object': 'fake', 'entry': [{'id': 0, 'time': 0, 'changes': [one_fake_change]}]}
             app.logger.info(f"Got an exception in hook route. ")
             app.logger.error(e)
-        res, response_code = process_hook(data)
+        res, response_code = process_hook(data)  # Do something with the data!
     elif request.method == 'GET':
         mode = request.args.get('hub.mode')
         token_match = request.args.get('hub.verify_token', '') if request.args.get('hub.mode') == 'subscribe' else ''

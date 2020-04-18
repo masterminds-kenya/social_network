@@ -28,27 +28,33 @@ def process_hook(req):
     # data = {'object': 'instagram', 'entry': [{'id': <ig_id>, 'time': 0, 'changes': [one_fake_change]}]}
 
     records = [rec.update({'ig_id': ea['id']}) for ea in req.get('entry', [{}]) for rec in ea.get('changes', [{}])]
-    stories = [r.get('value', {}).update({'ig_id': r['id']}) for r in records if r.get('field', '') == 'story_insights']
+    stories = [rec.get('value', {}).update({'ig_id': rec['ig_id']})
+               for rec in records
+               if rec.get('field', '') == 'story_insights'
+               ]
     extra_changes_count = len(records) - len(stories)
     if extra_changes_count:
-        extras = [r.get('value', {}).update({'ig_id': r['id'], 'field': r.get('field')})
-                  for r in records
-                  if r.get('field', '') != 'story_insights'
+        extras = [rec.get('value', {}).update({'ig_id': rec['id'], 'field': rec.get('field')})
+                  for rec in records
+                  if rec.get('field', '') != 'story_insights'
                   ]
+        app.logger.info('----------------------------------------------------------------------')
         app.logger.info(f"Had {extra_changes_count} unexpected non-story changes. ")
+        app.logger.info('*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*')
         pprint(extras)
+        app.logger.info('----------------------------------------------------------------------')
     # models = Post.query.filter(Post.media_id.in_([int(ea.get('media_id', 0)) for ea in stories])).all()
     count, new, modified = 0, [], []
     for story in stories:
         media_id = story.pop('media_id', None)
         ig_id = story.pop('ig_id', None)
-
         if media_id:
             count += 1
             model = Post.query.filter_by(media_id=media_id).first()  # Returns none if not in DB
             if model:
-
                 # update
+                for k, v in story.items():
+                    setattr(model, k, v)
                 modified.append(model)
                 db.session.add(model)
             else:
@@ -231,10 +237,12 @@ def get_basic_post(media_id, metrics=None, user_id=None, facebook=None, token=No
             raise Exception(message)
         user = User.query.get(user_id)
         token = getattr(user, 'token', None)
+        if not token:
+            message = f"Unable to locate user token value. User should login with Facebook and authorize permissions. "
+            res = {'message': message, 'error': 403}
+            return res
     if not metrics:
         metrics = ','.join(Post.metrics.get('basic'))
-    # if not user_id:  # Likely function was called for basic Story post data.
-    #     metrics += ',username'
     url = f"https://graph.facebook.com/{media_id}?fields={metrics}"
     try:
         res = facebook.get(url).json() if facebook else requests.get(f"{url}&access_token={token}").json()
