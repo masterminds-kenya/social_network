@@ -326,34 +326,44 @@ def get_posts(id_or_users, ig_id=None, facebook=None):
     return saved
 
 
-def get_fb_page_for_user(user, ig_id=None, facebook=None, token=None):
+def get_fb_page_for_user(user, facebook=None, token=None):
     """ For a known Instagram account, we can determine the related Facebook page. """
     if not isinstance(user, User):
         raise Exception(f"get_fb_page_for_user requires a User model instance as the first parameter. ")
-    page_id = getattr(user, 'page_id', None)
-    if not page_id:
-        ig_id = int(ig_id or getattr(user, 'instagram_id', 0))
+    page = dict(zip(['id', 'token'], [getattr(user, 'page_id', None), getattr(user, 'page_token', None)]))
+    if not page.get('id') or not page.get('token'):
+        ig_id = int(getattr(user, 'instagram_id', 0))
         fb_id = getattr(user, 'facebook_id', 0)
+        if not ig_id or not fb_id:
+            message = f"We can only get a users page if we already know their accounts on Facebook and Instagram. "
+            app.logger.error(message)
+            raise Exception(message)
         if not facebook and not token:
             token = getattr(user, 'token', None)
-        # TODO: Do stuff to find it!
+            if not token:
+                message = f"We do not have the permission token for this user: {user} "
+                app.logger.error(message)
+                raise Exception(message)
         url = f"https://graph.facebook.com/{fb_id}"
         app.logger.debug(f"========== get_fb_page_for_user ==========")
         params = {'fields': 'accounts'}
         if not facebook:
             params['access_token'] = token
-        res = facebook.post(url, params=params).json() if facebook else requests.post(f"{url}", params=params).json()
+        # TODO: Test facebook.post will work as written below.
+        res = facebook.post(url, params=params).json() if facebook else requests.post(url, params=params).json()
         app.logger.debug('---------------------------------------')
         pprint(res)
         accounts = res.pop('accounts', None)
         ig_list = find_instagram_id(accounts, facebook=facebook, token=token)
-        matching_ig = [ig_info for ig_info in ig_list if int(ig_info.get('id')) == ig_id]
+        matching_ig = [ig_info for ig_info in ig_list if int(ig_info.get('id', 0)) == ig_id]
         ig_info = matching_ig[0] if len(matching_ig) == 1 else {}
-        page_id = ig_info.get('page_id')
-    return page_id
+        page = {'id': ig_info.get('page_id'), 'token': ig_info.get('page_token')}
+        # if not page['id'] or not page['token']:
+    success = True if page['id'] and page['token'] else False
+    return page if success else None
 
 
-def install_app_on_user_for_story_updates(user_or_id, page_id=None, ig_id=None, facebook=None, token=None):
+def install_app_on_user_for_story_updates(user_or_id, page=None, facebook=None, token=None):
     """ Accurate Story Post metrics can be pushed to the Platform only if the App is installed on the related Page. """
     installed = False
     if isinstance(user_or_id, User):
@@ -364,12 +374,19 @@ def install_app_on_user_for_story_updates(user_or_id, page_id=None, ig_id=None, 
         user = User.query.get(user_id)
     else:
         raise ValueError('Input must be either a User model or an id for a User. ')
-    if not facebook or not ig_id:
-        ig_id, token = getattr(user, 'instagram_id', None), getattr(user, 'token', None)
-    if not page_id:
-        page_id = get_fb_page_for_user(user, ig_id=ig_id, facebook=facebook, token=token)
-    url = f"https://graph.facebook.com/v3.1/{page_id}/subscribed_apps"
+    if not facebook and not token:
+        token = getattr(user, 'token', None)
+        if not token:
+            message = f"We do not have the permission token for this user: {user} "
+            app.logger.error(message)
+            return False
     app.logger.debug(f"========== install_app_on_user_for_story_updates ==========")
+    if not isinstance(page, dict) or not page.get('id') or not page.get('token'):
+        page = get_fb_page_for_user(user, facebook=facebook, token=token)
+        if not page:
+            app.logger.error(f"Unable to find the page for user: {user} ")
+            return False
+    url = f"https://graph.facebook.com/v3.1/{page['id']}/subscribed_apps"
     # https://developers.facebook.com/docs/graph-api/reference/page/subscribed_apps
     # read currently subscribed apps
     # GET on url, returns {'data': [], 'paging': {}}
@@ -383,12 +400,10 @@ def install_app_on_user_for_story_updates(user_or_id, page_id=None, ig_id=None, 
     # return data should be { success: True }
     # TODO: See if our saved token works, or if we need a separate page_access_token
     # Business Login and Page Access Token: https://developers.facebook.com/docs/facebook-login/business-login-direct
-    dict_send = {} if facebook or not token else {'access_token': token}
-    res = facebook.post(url) if facebook else requests.post(f"{url}", params=dict_send)  # json=dict_send
-    # res = res.json()
-    pprint(res)
-    app.logger.debug('---------------------------------------')
-    res = res.json()
+    params = {} if facebook else {'access_token': page['token']}
+    params['subscribed_fields'] = 'feed'
+    res = facebook.post(url, params=params).json() if facebook else requests.post(f"{url}", params=params).json()
+    app.logger.debug('----------------------------------------------------------------')
     pprint(res)
     installed = res.get('success', False)
     return installed
@@ -442,7 +457,7 @@ def find_instagram_id(accounts, facebook=None, token=None):
         if ig_business:
             ig_info = get_ig_info(ig_business.get('id', None), facebook=facebook, token=token)
             ig_info['page_id'] = page['id']
-            # ig_info['page_token'] = page['token']
+            ig_info['page_token'] = page['token']
             ig_list.append(ig_info)
     return ig_list
 
@@ -480,6 +495,8 @@ def onboarding(mod, request):
         data['name'] = ig_info.get('username', None)
         ig_id = int(ig_info.get('id'))
         data['instagram_id'] = ig_id
+        data['page_id'] = ig_info.get('page_id')
+        # data['page_token'] = ig_info.get('page_token')
         models = []
         for name in Audience.ig_data:  # {'media_count', 'followers_count'}
             value = ig_info.get(name, None)
