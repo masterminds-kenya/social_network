@@ -190,11 +190,11 @@ def test_method():
     from .api import get_basic_post, get_fb_page_for_user
     from pprint import pprint
 
-    # user = User.query.get(84)   # Influencer - NOELLERENO
+    user = User.query.get(84)   # Influencer - NOELLERENO
     post = Post.query.get(102)  # an IMAGE post by Noelle
     media_id = getattr(post, 'media_id', None)
-    res = get_basic_post(media_id)
-    app.logger.debug("========== Test: get_basic_post func, not passing user info. ==========")
+    res = get_basic_post(media_id, token=getattr(user, 'token', None))
+    app.logger.debug("========== Test: get_basic_post func, passing just token. ==========")
     pprint(res)
     return admin(data=res)
 
