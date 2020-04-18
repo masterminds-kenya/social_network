@@ -317,18 +317,78 @@ def get_posts(id_or_users, ig_id=None, facebook=None):
     return saved
 
 
-def get_page_for_ig():
+def get_fb_page_for_user(user, ig_id=None, facebook=None, token=None):
     """ For a known Instagram account, we can determine the related Facebook page. """
-    pass
+    if not isinstance(user, User):
+        raise Exception(f"get_fb_page_for_user requires a User model instance as the first parameter. ")
+    page_id = getattr(user, 'page_id', None)
+    if not page_id:
+        ig_id = int(ig_id or getattr(user, 'instagram_id', 0))
+        fb_id = getattr(user, 'facebook_id', 0)
+        if not any(facebook, token):
+            token = getattr(user, 'token', None)
+        # TODO: Do stuff to find it!
+        url = f"https://graph.facebook.com/{fb_id}"
+        app.logger.debug(f"========== get_fb_page_for_user ==========")
+        params = {'fields': 'accounts'}
+        if not facebook:
+            params['access_token'] = token
+        res = facebook.post(url, params=params) if facebook else requests.post(f"{url}", params=params)  # json=dict_send
+        # res = res.json()
+        pprint(res)
+        app.logger.debug('---------------------------------------')
+        res = res.json()
+        pprint(res)
+        accounts = res.pop('accounts', None)
+        ig_list = find_instagram_id(accounts, facebook=facebook)
+        matching_ig = [ig_info for ig_info in ig_list if int(ig_info.get('id')) == ig_id]
+        ig_info = matching_ig[0] if matching_ig else {}
+        page_id = ig_info.get('page_id')
+    return page_id
 
 
-def install_app_on_user_to_get_story_updates(user_or_id, page=None, ig_id=None, facebook=None):
+def install_app_on_user_for_story_updates(user_or_id, page_id=None, ig_id=None, facebook=None, token=None):
     """ Accurate Story Post metrics can be pushed to the Platform only if the App is installed on the related Page. """
+    installed = False
+    if isinstance(user_or_id, User):
+        user = user_or_id
+        user_id = user.id
+    elif isinstance(user_or_id, (int, str)):
+        user_id = int(user_or_id)
+        user = User.query.get(user_id)
+    else:
+        raise ValueError('Input must be either a User model or an id for a User. ')
+    if not facebook or not ig_id:
+        ig_id, token = getattr(user, 'instagram_id', None), getattr(user, 'token', None)
+    if not page_id:
+        page_id = get_fb_page_for_user(user, ig_id=ig_id, facebook=facebook, token=token)
+    url = f"https://graph.facebook.com/v3.1/{page_id}/subscribed_apps"
+    app.logger.debug(f"========== install_app_on_user_for_story_updates ==========")
+    # https://developers.facebook.com/docs/graph-api/reference/page/subscribed_apps
+    # read currently subscribed apps
+    # GET on url, returns {'data': [], 'paging': {}}
+    # where data is a list of apps.
+    # if version is greater than 3.1, then data also have a subscribed_fields value.
+    # add app to subscribed_apps
+    # POST on url
+    # if version is greater than 3.1, then subscribed_fields parameter is required.
+    # we want version 3.1 for installing our app just to allow subscribing to Instagram story posts
+    # unclear if the 'read-after-write' means we need a ?fields='success' on the url.
+    # return data should be { success: True }
+    # TODO: See if our saved token works, or if we need a separate page_access_token
+    # Business Login and Page Access Token: https://developers.facebook.com/docs/facebook-login/business-login-direct
+    dict_send = {} if facebook or not token else {'access_token': token}
+    res = facebook.post(url) if facebook else requests.post(f"{url}", params=dict_send)  # json=dict_send
+    # res = res.json()
+    pprint(res)
+    app.logger.debug('---------------------------------------')
+    res = res.json()
+    pprint(res)
+    installed = res.get('success', False)
+    return installed
 
-    pass
 
-
-def get_ig_info(ig_id, token=None, facebook=None):
+def get_ig_info(ig_id, facebook=None, token=None):
     """ We already have their InstaGram Business Account id, but we need their IG username """
     # Possible fields. Fields with asterisk (*) are public and can be returned by and edge using field expansion:
     # biography*, id*, ig_id, followers_count*, follows_count, media_count*, name,
@@ -339,8 +399,9 @@ def get_ig_info(ig_id, token=None, facebook=None):
     if not token and not facebook:
         logstring = "You must pass a 'token' or 'facebook' reference. "
         app.logger.error(logstring)
-        # TODO: Raise error and handle raised error where this function is called.
-        return logstring
+        raise ValueError(logstring)
+        # # TODO: Raise error and handle raised error where this function is called.
+        # return logstring
     url = f"https://graph.facebook.com/v4.0/{ig_id}?fields={fields}"
     res = facebook.get(url).json() if facebook else requests.get(f"{url}&access_token={token}").json()
     end_time = dt.utcnow().isoformat(timespec='seconds') + '+0000'
@@ -349,7 +410,7 @@ def get_ig_info(ig_id, token=None, facebook=None):
     return res
 
 
-def find_instagram_id(accounts, facebook=None):
+def find_instagram_id(accounts, facebook=None, token=None):
     """ For an influencer or brand, we can discover all of their instagram business accounts they have.
         This depends on them having their expected associated facebook page (for each).
     """
@@ -360,13 +421,14 @@ def find_instagram_id(accounts, facebook=None):
     if pages:
         app.logger.debug(f"============ Pages count: {len(pages)} ============")
         for page in pages:
-            instagram_data = facebook.get(f"https://graph.facebook.com/v4.0/{page}?fields=instagram_business_account").json()
-            if 'error' in instagram_data:
+            url = f"https://graph.facebook.com/v4.0/{page}?fields=instagram_business_account"
+            res_ig_data = facebook.get(url).json() if facebook else requests.get(f"{url}&access_token={token}").json()
+            if 'error' in res_ig_data:
                 app.logger.error(f"Error on getting info from {page} Page. ")
-                pprint(instagram_data)
-            ig_business = instagram_data.get('instagram_business_account', None)
+                pprint(res_ig_data)
+            ig_business = res_ig_data.get('instagram_business_account', None)
             if ig_business:
-                ig_info = get_ig_info(ig_business.get('id', None), facebook=facebook)
+                ig_info = get_ig_info(ig_business.get('id', None), facebook=facebook, token=token)
                 ig_info['page_id'] = page
                 ig_list.append(ig_info)
     else:
@@ -388,6 +450,7 @@ def onboarding(mod, request):
     callback = URL + '/callback/' + mod
     facebook = requests_oauthlib.OAuth2Session(FB_CLIENT_ID, scope=FB_SCOPE, redirect_uri=callback)
     facebook = facebook_compliance_fix(facebook)  # we need to apply a fix for Facebook here
+    # TODO: ? Modify input parameters to only pass the request.url value since that is all we use?
     token = facebook.fetch_token(FB_TOKEN_URL, client_secret=FB_CLIENT_SECRET, authorization_response=request.url)
     if 'error' in token:
         return ('error', token, None)
