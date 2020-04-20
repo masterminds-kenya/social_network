@@ -4,7 +4,7 @@ from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.hybrid import hybrid_property
 from sqlalchemy.dialects.mysql import BIGINT
-from sqlalchemy import or_, desc
+from sqlalchemy import or_, desc, event
 from sqlalchemy_utils import EncryptedType  # encrypt
 from sqlalchemy_utils.types.encrypted.encrypted_type import AesEngine  # encrypt
 from cryptography.fernet import Fernet  # encrypt
@@ -49,6 +49,87 @@ def clean(obj):
     return obj
 
 
+def filtered(start, under=False, dunder=False, sa=True, caps=False, special=True):
+    """ Limiting the visual display while testing ways to see all desired properties. """
+    if isinstance(start, dict):
+        start = list(start.keys())
+    result = [*start]
+    # result = [ea for ea in start if not callable(ea)]
+    # current_app.logger.debug('----- Had these callables -----')
+    # calls = [ea for ea in start if callable(ea)]
+    # pprint(calls)
+    if not dunder:
+        result = [ea for ea in result if not ea.startswith('__')]
+    if not under:
+        result = [ea for ea in result if not ea.startswith('_')]
+    if not sa:
+        result = [ea for ea in result if not ea.startswith('_sa_')]
+    if not caps:
+        result = [ea for ea in result if not ea.isupper()]
+    if not special:
+        spec_keys = ['get_id', 'is_active', 'is_anonymous', 'is_authenticated', 'query', 'query_class', 'metadata']
+        result = [ea for ea in result if ea not in spec_keys]
+
+    return set(result)
+
+
+def check_stuff(row):
+    """ Determining which properties and methods are tracked through various techniques. """
+    # We expect that all "properties" should be in the Mapper.attrs, or perhaps the Mapper.all_orm_descriptors
+    current_app.logger.debug(f"========== Called from_sql on {row.__class__.__name__} id: {row.id} | related: {related} | safe: {safe} ==========")
+    # both __dict__ and vars on row.__mapper__.all_orm_descriptors are empty.
+    # mapper_less_dunder = [ea for ea in dir_mapper if not ea.startswith('__')]
+    # orm_less_dunder = [ea for ea in dir_orm if not ea.startswith('__')]
+    # pprint(set(vars(row.__mapper__.all_orm_descriptors)))
+    record_type = [
+        # ('', ),
+        # ('data', filtered(data)),
+        # ('dir_mapper_c', filtered(dir(row.__mapper__.c))),
+        ('dir_row', filtered(dir(row))),
+        ('dir_orm', filtered(dir(row.__mapper__.all_orm_descriptors))),
+        ('dir_mapper', filtered(dir(row.__mapper__.attrs))),
+        ('dict_row', filtered(row.__dict__)),
+        ('vars_row', filtered(vars(row)))
+        ]
+    test_items = [('_page_id', 'page_id'), ('_saved_media', 'saved_media'), 'saved_media_options']
+    pprint(dir(row.__mapper__.columns))  #
+    # base_mapper, column_attrs, columns. c
+    current_app.logger.debug('---------------------------------------------------------------------')
+    for item in test_items:
+        current_app.logger.debug(f"*-*-*-*-*-*-*-*-*-*-*-*-* {item} *-*-*-*-*-*-*-*-*-*-*-*-*")
+        for report in record_type:
+            val = ', '.join([str(i in report[1]) for i in item]) if isinstance(item, tuple) else str(item in report[1])
+            current_app.logger.debug(f"{report[0]}: {val}")
+
+    current_app.logger.debug('---------------------------------------------------------------------')
+    for i, first in record_type[:2]:
+        # i = 0 if i == len(record_type) else i
+        for j, second in record_type:
+            # j = 0 if i == len(record_type) else j
+            if i == j:
+                continue
+            current_app.logger.debug(f'------------------------------ {i} without {j} ---------------------------------------')
+            unique_in_current = first - second
+            pprint(unique_in_current)
+            current_app.logger.debug(f'******************* {j} without {i} *******************')
+            unique_in_current = second - first
+            pprint(unique_in_current)
+
+    for name, rec in record_type:
+        current_app.logger.debug(f"================ {name} ================")
+        pprint(rec)
+    # current_app.logger.debug('--------------------------------- data ------------------------------------')
+    # pprint(data)
+    # current_app.logger.debug('--------------------------------- __dict__ ------------------------------------')
+    # pprint(row.__dict__)
+    # current_app.logger.debug('--------------------------------- dir ------------------------------------')
+    # pprint(dir(row))
+    # current_app.logger.debug('--------------------------------- vars ------------------------------------')
+    # pprint(vars(row))
+    # current_app.logger.debug('---------------------------------------------------------------------')
+    return True
+
+
 def from_sql(row, related=False, safe=True):
     """ Translates a SQLAlchemy model instance into a dictionary.
         Can return all properties, both column fields and properties declared by decorators.
@@ -56,6 +137,7 @@ def from_sql(row, related=False, safe=True):
         Will return only safe for viewing fields when 'safe' is True.
     """
     data = {k: getattr(row, k) for k in dir(row.__mapper__.all_orm_descriptors) if not k.startswith('_')}
+    check_stuff(row)  # TODO: Remove after resolved. 
     unwanted_keys = set()
     if not related:
         unwanted_keys.update(row.__mapper__.relationships)
@@ -83,11 +165,11 @@ class User(UserMixin, db.Model):
         Assumes only 1 Instagram per user, and it must be a business account.
         They must have a Facebook Page connected to their business Instagram account.
     """
-    roles = ('influencer', 'brand', 'manager', 'admin')
+    ROLES = ('influencer', 'brand', 'manager', 'admin')
     __tablename__ = 'users'
 
     id = db.Column(db.Integer, primary_key=True)
-    role = db.Column(db.Enum(*roles, name='user_roles'), default='influencer', nullable=False)
+    role = db.Column(db.Enum(*ROLES, name='user_roles'), default='influencer', nullable=False)
     name = db.Column(db.String(47),                 index=False, unique=False, nullable=True)
     email = db.Column(db.String(191),               index=False, unique=True,  nullable=True)
     password = db.Column(db.String(191),            index=False, unique=False, nullable=True)
@@ -135,17 +217,25 @@ class User(UserMixin, db.Model):
         self.story_subscribed = success
         self._page_id = page_id
 
+    def subscribe_story(self):
+        """ Called by even listener on page_id being set. """
+        current_app.logger.debug("User.subscribe_story was called! ")
+        success = False
+        # do stuff
+        self.story_subscribed = success
+        pass
+
     def recent_insight(self, metrics):
         """ What is the most recent date that we collected the given insight metrics """
-        if metrics == 'influence' or metrics == Insight.influence_metrics:
-            metrics = list(Insight.influence_metrics)
-        elif metrics == 'profile' or metrics == Insight.profile_metrics:
-            metrics = list(Insight.profile_metrics)
+        if metrics == 'influence' or metrics == Insight.INFLUENCE_METRICS:
+            metrics = list(Insight.INFLUENCE_METRICS)
+        elif metrics == 'profile' or metrics == Insight.PROFILE_METRICS:
+            metrics = list(Insight.PROFILE_METRICS)
         elif isinstance(metrics, (list, tuple)):
             for ea in metrics:
-                if ea not in Insight.metrics:
+                if ea not in Insight.METRICS:
                     raise ValueError(f"{ea} is not a valid Insight metric")
-        elif metrics in Insight.metrics:
+        elif metrics in Insight.METRICS:
             metrics = [metrics]
         else:
             raise ValueError(f"{metrics} is not a valid Insight metric")
@@ -197,14 +287,14 @@ class User(UserMixin, db.Model):
 
     def insight_summary(self, label_only=False):
         """ Used for Sheet report: giving summary stats of insight metrics for a Brand (or other user). """
-        big_metrics = list(Insight.influence_metrics)
+        big_metrics = list(Insight.INFLUENCE_METRICS)
         big_stat = [('Median', median), ('Average', mean), ('StDev', stdev)]
         insight_labels = [f"{metric} {ea[0]}" for metric in big_metrics for ea in big_stat]
-        small_metrics = list(Insight.profile_metrics)
+        small_metrics = list(Insight.PROFILE_METRICS)
         small_stat = [('Total', sum), ('Average', mean)]
         small_metric_labels = [f"{metric} {ea[0]}" for metric in small_metrics for ea in small_stat]
         insight_labels.extend(small_metric_labels)
-        of_metrics = list(OnlineFollowers.metrics)
+        of_metrics = list(OnlineFollowers.METRICS)
         of_stat = [('Median', median)]
         of_metric_lables = [f"{metric} {ea[0]}" for metric in of_metrics for ea in of_stat]
         insight_labels.extend(of_metric_lables)
@@ -232,6 +322,9 @@ class User(UserMixin, db.Model):
         return '<User - {}: {}>'.format(self.role, self.name)
 
 
+event.listen(User.page_id, 'set', User.subscribe_story, retval=False)
+
+
 class DeletedUser:
     """ Used as a placeholder for a user who has been deleted, but we still have data on their posts. """
 
@@ -250,9 +343,9 @@ class DeletedUser:
 
 class OnlineFollowers(db.Model):
     """ Data model for 'online_followers' for a user (influencer or brand) """
-    composite_unique = ('user_id', 'recorded', 'hour')
+    COMPOSITE_UNIQUE = ('user_id', 'recorded', 'hour')
     __tablename__ = 'onlinefollowers'
-    __table_args__ = (db.UniqueConstraint(*composite_unique, name='uq_onlinefollowers_recorded_hour'),)
+    __table_args__ = (db.UniqueConstraint(*COMPOSITE_UNIQUE, name='uq_onlinefollowers_recorded_hour'),)
 
     id = db.Column(db.Integer,      primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey('users.id', ondelete='CASCADE'))
@@ -260,7 +353,7 @@ class OnlineFollowers(db.Model):
     hour = db.Column(db.Integer,      index=False, unique=False, nullable=False)
     value = db.Column(db.Integer,     index=False, unique=False, nullable=False, default=0)
     # # user = backref from User.aud_count
-    metrics = ['online_followers']
+    METRICS = ['online_followers']
     UNSAFE = {''}
 
     def __init__(self, *args, **kwargs):
@@ -276,9 +369,9 @@ class OnlineFollowers(db.Model):
 
 class Insight(db.Model):
     """ Data model for insights data on a (influencer or brand) user's account """
-    composite_unique = ('user_id', 'recorded', 'name')
+    COMPOSITE_UNIQUE = ('user_id', 'recorded', 'name')
     __tablename__ = 'insights'
-    __table_args__ = (db.UniqueConstraint(*composite_unique, name='uq_insights_recorded_name'),)
+    __table_args__ = (db.UniqueConstraint(*COMPOSITE_UNIQUE, name='uq_insights_recorded_name'),)
 
     id = db.Column(db.Integer,      primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey('users.id', ondelete='CASCADE'))
@@ -286,10 +379,10 @@ class Insight(db.Model):
     name = db.Column(db.String(47),            index=False, unique=False, nullable=False)
     value = db.Column(db.Integer,              index=False, unique=False, nullable=False, default=0)
     # # user = backref from User.insights
-    influence_metrics = {'impressions', 'reach'}
-    profile_metrics = {'phone_call_clicks', 'text_message_clicks', 'email_contacts',
+    INFLUENCE_METRICS = {'impressions', 'reach'}
+    PROFILE_METRICS = {'phone_call_clicks', 'text_message_clicks', 'email_contacts',
                        'get_directions_clicks', 'website_clicks', 'profile_views', 'follower_count'}
-    metrics = influence_metrics.union(profile_metrics)
+    METRICS = INFLUENCE_METRICS.union(PROFILE_METRICS)
     UNSAFE = {''}
 
     def __init__(self, *args, **kwargs):
@@ -306,9 +399,9 @@ class Insight(db.Model):
 class Audience(db.Model):
     """ Data model for current information about the user's audience. """
     # TODO: If this data not taken over by Neo4j, then refactor to parse out the age groups and gender groups
-    composite_unique = ('user_id', 'recorded', 'name')
+    COMPOSITE_UNIQUE = ('user_id', 'recorded', 'name')
     __tablename__ = 'audiences'
-    __table_args__ = (db.UniqueConstraint(*composite_unique, name='uq_audiences_recorded_name'),)
+    __table_args__ = (db.UniqueConstraint(*COMPOSITE_UNIQUE, name='uq_audiences_recorded_name'),)
 
     id = db.Column(db.Integer,      primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey('users.id', ondelete='CASCADE'))
@@ -316,8 +409,8 @@ class Audience(db.Model):
     name = db.Column(db.String(47),            index=False, unique=False, nullable=False)
     value = db.Column(db.Text,                 index=False, unique=False, nullable=True)
     # # user = backref from User.audiences
-    metrics = {'audience_city', 'audience_country', 'audience_gender_age'}
-    ig_data = {'media_count', 'followers_count'}  # these are created when assigning an instagram_id to a User
+    METRICS = {'audience_city', 'audience_country', 'audience_gender_age'}
+    IG_DATA = {'media_count', 'followers_count'}  # these are created when assigning an instagram_id to a User
     UNSAFE = {''}
 
     def __init__(self, *args, **kwargs):
@@ -368,13 +461,13 @@ class Post(db.Model):
     # # user = backref from User.posts
     # # processed = backref from Campaign.processed
     # # campaigns = backref from Campaign.posts
-    metrics = {}
-    metrics['basic'] = {'media_type', 'caption', 'comments_count', 'like_count', 'permalink', 'timestamp'}
-    metrics['insight'] = {'impressions', 'reach'}
-    metrics['IMAGE'] = {'engagement', 'saved'}.union(metrics['insight'])
-    metrics['VIDEO'] = {'video_views'}.union(metrics['IMAGE'])
-    metrics['CAROUSEL_ALBUM'] = {f"carousel_album_{metric}" for metric in metrics['IMAGE']}  # ?in metrics['VIDEO']
-    metrics['STORY'] = {'exits', 'replies', 'taps_forward', 'taps_back'}.union(metrics['insight'])
+    METRICS = {}
+    METRICS['basic'] = {'media_type', 'caption', 'comments_count', 'like_count', 'permalink', 'timestamp'}
+    METRICS['insight'] = {'impressions', 'reach'}
+    METRICS['IMAGE'] = {'engagement', 'saved'}.union(METRICS['insight'])
+    METRICS['VIDEO'] = {'video_views'}.union(METRICS['IMAGE'])
+    METRICS['CAROUSEL_ALBUM'] = {f"carousel_album_{metric}" for metric in METRICS['IMAGE']}  # ?in METRICS['VIDEO']
+    METRICS['STORY'] = {'exits', 'replies', 'taps_forward', 'taps_back'}.union(METRICS['insight'])
     UNSAFE = {''}
 
     def __init__(self, *args, **kwargs):
@@ -410,9 +503,9 @@ class Post(db.Model):
         """ Since different media post types have different metrics, we only want to show the appropriate fields. """
         post = from_sql(self, related=True, safe=True)
         fields = {'id', 'user_id', 'saved_media', 'saved_media_options', 'campaigns', 'processed', 'recorded'}
-        fields.update(Post.metrics['basic'])
+        fields.update(Post.METRICS['basic'])
         fields.discard('timestamp')
-        fields.update(Post.metrics[post['media_type']])
+        fields.update(Post.METRICS[post['media_type']])
         # return {key: post[key] for key in post.keys() - fields}
         return {key: val for (key, val) in post.items() if key in fields}
 
@@ -544,7 +637,7 @@ class Campaign(db.Model):
         # }
         rejected = {'insight', 'basic'}
         added = {'comments_count', 'like_count'}
-        lookup = {k: v.union(added) for k, v in Post.metrics.items() if k not in rejected}
+        lookup = {k: v.union(added) for k, v in Post.METRICS.items() if k not in rejected}
         related, sets_list = {}, []
         for media_type, metric_set in lookup.items():
             temp = [metric_clean(ea) for ea in metric_set]
@@ -679,7 +772,7 @@ def db_create_or_update_many(dataset, user_id=None, Model=Post):
     allowed_models = {Post, Insight, Audience, OnlineFollowers}
     if Model not in allowed_models:
         return []
-    composite_unique = [ea for ea in getattr(Model, 'composite_unique', []) if ea != 'user_id']
+    composite_unique = [ea for ea in getattr(Model, 'COMPOSITE_UNIQUE', []) if ea != 'user_id']
     all_results, add_count, update_count, error_set = [], 0, 0, []
     if composite_unique and user_id:
         match = Model.query.filter(Model.user_id == user_id).all()
