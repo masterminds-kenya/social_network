@@ -4,7 +4,7 @@ from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.hybrid import hybrid_property
 from sqlalchemy.dialects.mysql import BIGINT
-from sqlalchemy import or_, desc, event
+from sqlalchemy import or_, desc
 from sqlalchemy_utils import EncryptedType  # encrypt
 from sqlalchemy_utils.types.encrypted.encrypted_type import AesEngine  # encrypt
 from cryptography.fernet import Fernet  # encrypt
@@ -15,6 +15,7 @@ import re
 from statistics import mean, median, stdev
 import json
 from pprint import pprint  # only for debugging
+# from .helper_functions import check_stuff
 
 db = SQLAlchemy()
 migrate = Migrate(current_app, db)
@@ -49,87 +50,6 @@ def clean(obj):
     return obj
 
 
-def filtered(start, under=False, dunder=False, sa=True, caps=False, special=True):
-    """ Limiting the visual display while testing ways to see all desired properties. """
-    if isinstance(start, dict):
-        start = list(start.keys())
-    result = [*start]
-    # result = [ea for ea in start if not callable(ea)]
-    # current_app.logger.debug('----- Had these callables -----')
-    # calls = [ea for ea in start if callable(ea)]
-    # pprint(calls)
-    if not dunder:
-        result = [ea for ea in result if not ea.startswith('__')]
-    if not under:
-        result = [ea for ea in result if not ea.startswith('_')]
-    if not sa:
-        result = [ea for ea in result if not ea.startswith('_sa_')]
-    if not caps:
-        result = [ea for ea in result if not ea.isupper()]
-    if not special:
-        spec_keys = ['get_id', 'is_active', 'is_anonymous', 'is_authenticated', 'query', 'query_class', 'metadata']
-        result = [ea for ea in result if ea not in spec_keys]
-
-    return set(result)
-
-
-def check_stuff(row):
-    """ Determining which properties and methods are tracked through various techniques. """
-    # We expect that all "properties" should be in the Mapper.attrs, or perhaps the Mapper.all_orm_descriptors
-    current_app.logger.debug(f"========== Called from_sql on {row.__class__.__name__} id: {row.id} | related: {related} | safe: {safe} ==========")
-    # both __dict__ and vars on row.__mapper__.all_orm_descriptors are empty.
-    # mapper_less_dunder = [ea for ea in dir_mapper if not ea.startswith('__')]
-    # orm_less_dunder = [ea for ea in dir_orm if not ea.startswith('__')]
-    # pprint(set(vars(row.__mapper__.all_orm_descriptors)))
-    record_type = [
-        # ('', ),
-        # ('data', filtered(data)),
-        # ('dir_mapper_c', filtered(dir(row.__mapper__.c))),
-        ('dir_row', filtered(dir(row))),
-        ('dir_orm', filtered(dir(row.__mapper__.all_orm_descriptors))),
-        ('dir_mapper', filtered(dir(row.__mapper__.attrs))),
-        ('dict_row', filtered(row.__dict__)),
-        ('vars_row', filtered(vars(row)))
-        ]
-    test_items = [('_page_id', 'page_id'), ('_saved_media', 'saved_media'), 'saved_media_options']
-    pprint(dir(row.__mapper__.columns))  #
-    # base_mapper, column_attrs, columns. c
-    current_app.logger.debug('---------------------------------------------------------------------')
-    for item in test_items:
-        current_app.logger.debug(f"*-*-*-*-*-*-*-*-*-*-*-*-* {item} *-*-*-*-*-*-*-*-*-*-*-*-*")
-        for report in record_type:
-            val = ', '.join([str(i in report[1]) for i in item]) if isinstance(item, tuple) else str(item in report[1])
-            current_app.logger.debug(f"{report[0]}: {val}")
-
-    current_app.logger.debug('---------------------------------------------------------------------')
-    for i, first in record_type[:2]:
-        # i = 0 if i == len(record_type) else i
-        for j, second in record_type:
-            # j = 0 if i == len(record_type) else j
-            if i == j:
-                continue
-            current_app.logger.debug(f'------------------------------ {i} without {j} ---------------------------------------')
-            unique_in_current = first - second
-            pprint(unique_in_current)
-            current_app.logger.debug(f'******************* {j} without {i} *******************')
-            unique_in_current = second - first
-            pprint(unique_in_current)
-
-    for name, rec in record_type:
-        current_app.logger.debug(f"================ {name} ================")
-        pprint(rec)
-    # current_app.logger.debug('--------------------------------- data ------------------------------------')
-    # pprint(data)
-    # current_app.logger.debug('--------------------------------- __dict__ ------------------------------------')
-    # pprint(row.__dict__)
-    # current_app.logger.debug('--------------------------------- dir ------------------------------------')
-    # pprint(dir(row))
-    # current_app.logger.debug('--------------------------------- vars ------------------------------------')
-    # pprint(vars(row))
-    # current_app.logger.debug('---------------------------------------------------------------------')
-    return True
-
-
 def from_sql(row, related=False, safe=True):
     """ Translates a SQLAlchemy model instance into a dictionary.
         Can return all properties, both column fields and properties declared by decorators.
@@ -137,7 +57,7 @@ def from_sql(row, related=False, safe=True):
         Will return only safe for viewing fields when 'safe' is True.
     """
     data = {k: getattr(row, k) for k in dir(row.__mapper__.all_orm_descriptors) if not k.startswith('_')}
-    check_stuff(row)  # TODO: Remove after resolved.
+    # check_stuff(row, related, safe)  # TODO: Remove after resolved.
     unwanted_keys = set()
     if not related:
         unwanted_keys.update(row.__mapper__.relationships)
@@ -192,7 +112,7 @@ class User(UserMixin, db.Model):
     posts = db.relationship('Post',                order_by='Post.recorded', backref='user', passive_deletes=True)
     # # campaigns = backref from Campaign.users has lazy='joined' on other side
     # # brand_campaigns = backref from Campaign.brands has lazy='joined' on other side
-    UNSAFE = {'password', 'token', 'token_expires', 'modified', 'created'}
+    UNSAFE = {'password', 'token', 'token_expires', 'page_token', 'modified', 'created'}
 
     def __init__(self, *args, **kwargs):
         kwargs['facebook_id'] = kwargs.pop('id') if 'facebook_id' not in kwargs and 'id' in kwargs else None
@@ -218,13 +138,13 @@ class User(UserMixin, db.Model):
     #     self.story_subscribed = success
     #     self._page_id = page_id
 
-    def subscribe_story(self):
-        """ Called by even listener on page_id being set. """
-        current_app.logger.debug("User.subscribe_story was called! ")
-        success = False
-        # do stuff
-        self.story_subscribed = success
-        pass
+    # def subscribe_story(self):
+    #     """ Called by even listener on page_id being set. """
+    #     current_app.logger.debug("User.subscribe_story was called! ")
+    #     success = False
+    #     # do stuff
+    #     self.story_subscribed = success
+    #     pass
 
     def recent_insight(self, metrics):
         """ What is the most recent date that we collected the given insight metrics """
@@ -323,7 +243,7 @@ class User(UserMixin, db.Model):
         return '<User - {}: {}>'.format(self.role, self.name)
 
 
-event.listen(User.page_id, 'set', User.subscribe_story, retval=False)  # TODO: Refactor Event Listener!
+# event.listen(User.page_id, 'set', User.subscribe_story, retval=False)  # TODO: Refactor Event Listener!
 
 
 class DeletedUser:
