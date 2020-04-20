@@ -137,7 +137,7 @@ def from_sql(row, related=False, safe=True):
         Will return only safe for viewing fields when 'safe' is True.
     """
     data = {k: getattr(row, k) for k in dir(row.__mapper__.all_orm_descriptors) if not k.startswith('_')}
-    check_stuff(row)  # TODO: Remove after resolved. 
+    check_stuff(row)  # TODO: Remove after resolved.
     unwanted_keys = set()
     if not related:
         unwanted_keys.update(row.__mapper__.relationships)
@@ -173,9 +173,10 @@ class User(UserMixin, db.Model):
     name = db.Column(db.String(47),                 index=False, unique=False, nullable=True)
     email = db.Column(db.String(191),               index=False, unique=True,  nullable=True)
     password = db.Column(db.String(191),            index=False, unique=False, nullable=True)
-    # 2 New fields!
+    # 2 (or 3?) New fields!
     story_subscribed = db.Column(db.Boolean, default=False)
-    _page_id = db.Column('page_id', BIGINT(unsigned=True),      index=False, unique=True,  nullable=True)
+    # page_token = db.Column(EncryptedType(db.String(255), SECRET_KEY, AesEngine, 'pkcs5'))  # encrypt
+    page_id = db.Column(BIGINT(unsigned=True),      index=False, unique=True,  nullable=True)
     instagram_id = db.Column(BIGINT(unsigned=True), index=True,  unique=True,  nullable=True)
     facebook_id = db.Column(BIGINT(unsigned=True),  index=False, unique=False, nullable=True)
     # token = db.Column(db.String(255),               index=False, unique=False, nullable=True)
@@ -203,19 +204,19 @@ class User(UserMixin, db.Model):
             kwargs['token'] = kwargs['token'].get('access_token', None)
         super().__init__(*args, **kwargs)
 
-    @property
-    def page_id(self):
-        return self._page_id
+    # @property
+    # def page_id(self):
+    #     return self._page_id
 
-    @page_id.setter
-    def page_id(self, page_id):
-        # TODO: install app on page, subscribe to story_posts
-        # emit a signal for the listener.
-        current_app.logger.debug(f"Setting the page_id field! ")
-        success = False
-        # ?? record if it was successful?
-        self.story_subscribed = success
-        self._page_id = page_id
+    # @page_id.setter
+    # def page_id(self, page_id):
+    #     # TODO: install app on page, subscribe to story_posts
+    #     # emit a signal for the listener.
+    #     current_app.logger.debug(f"Setting the page_id field! ")
+    #     success = False
+    #     # ?? record if it was successful?
+    #     self.story_subscribed = success
+    #     self._page_id = page_id
 
     def subscribe_story(self):
         """ Called by even listener on page_id being set. """
@@ -322,7 +323,7 @@ class User(UserMixin, db.Model):
         return '<User - {}: {}>'.format(self.role, self.name)
 
 
-event.listen(User.page_id, 'set', User.subscribe_story, retval=False)
+event.listen(User.page_id, 'set', User.subscribe_story, retval=False)  # TODO: Refactor Event Listener!
 
 
 class DeletedUser:
@@ -486,7 +487,7 @@ class Post(db.Model):
             raise TypeError("The display keyword must be set to an integer. ")
         elif saved_urls and display > len(saved_urls) - 1:
             raise ValueError("The display keyword was out of bounds for the input list. ")
-        if display != 0 and saved_urls:
+        elif display != 0 and saved_urls:
             saved_urls[display], saved_urls[0] = saved_urls[0], saved_urls[display]
         self._saved_media = json.dumps(saved_urls) if saved_urls else None
 
