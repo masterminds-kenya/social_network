@@ -93,9 +93,9 @@ class User(UserMixin, db.Model):
     name = db.Column(db.String(47),                 index=False, unique=False, nullable=True)
     email = db.Column(db.String(191),               index=False, unique=True,  nullable=True)
     password = db.Column(db.String(191),            index=False, unique=False, nullable=True)
-    # 2 (or 3?) New fields!
+    # 3 New fields!
     story_subscribed = db.Column(db.Boolean, default=False)
-    # page_token = db.Column(EncryptedType(db.String(255), SECRET_KEY, AesEngine, 'pkcs5'))  # encrypt
+    page_token = db.Column(EncryptedType(db.String(255), SECRET_KEY, AesEngine, 'pkcs5'))  # encrypt
     page_id = db.Column(BIGINT(unsigned=True),      index=False, unique=True,  nullable=True)
     instagram_id = db.Column(BIGINT(unsigned=True), index=True,  unique=True,  nullable=True)
     facebook_id = db.Column(BIGINT(unsigned=True),  index=False, unique=False, nullable=True)
