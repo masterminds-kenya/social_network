@@ -177,7 +177,7 @@ def admin(data=None, files=None):
 def test_method():
     """ Temporary route and function for developer to test components. """
     # from .sheets import get_vals, get_insight_report
-    # from pprint import pprint
+    from pprint import pprint
 
     # page1_only = True
     # model = Campaign.query.get(4)
@@ -187,41 +187,33 @@ def test_method():
     # pprint(results)
     # return admin(data=results[0])
     # # return render_template('admin.html', dev=True, data=results[0], files=None)
-    from pprint import pprint
-    from .api import process_hook, get_fb_page_for_user
-    from .model_db import db
+    # from .api import process_hook, get_fb_page_for_user
     # working .api functions: get_basic_post, get_fb_page_for_user, install_app_on_user_for_story_updates,
-    user = User.query.get(84)   # Influencer - NOELLERENO
+    # user = User.query.get(84)   # Influencer - NOELLERENO
     # post = Post.query.get(102)  # an IMAGE post by Noelle
     # media_id = getattr(post, 'media_id', None)
     # res = get_basic_post(media_id, token=getattr(user, 'token', None))
     # app.logger.debug("========== Test: get_basic_post func, passing just token. ==========")
     # pprint(res)
-    fake_story_update = {
-        'exits': 0,
-        'impressions': 0,
-        'media_id': 0,
-        'reach': 0,
-        'replies': 0,
-        'taps_back': 0,
-        'taps_forward': 0
-        }
-    one_fake_change = {'field': 'fake_field', 'value': fake_story_update}
-    data = {'object': 'fake', 'entry': [{'id': 0, 'time': 0, 'changes': [one_fake_change]}]}
+    # fake_story_update = {
+    #     'exits': 0,
+    #     'impressions': 0,
+    #     'media_id': 0,
+    #     'reach': 0,
+    #     'replies': 0,
+    #     'taps_back': 0,
+    #     'taps_forward': 0
+    #     }
+    # one_fake_change = {'field': 'fake_field', 'value': fake_story_update}
+    # data = {'object': 'fake', 'entry': [{'id': 0, 'time': 0, 'changes': [one_fake_change]}]}
     # app.logger.debug("========== Test: process_hook, passing fake data. ==========")
     # res = process_hook(data)
-    app.logger.debug(f"========== Test: get_fb_page_for_user, passing User {user} ==========")
-    page = get_fb_page_for_user(user)
-    pprint(page)
-    app.logger.debug('-------------------------------------------------------------')
-    if page:
-        user.page_id = page.get('id')
-        db.session.add(user)
-        db.session.commit()
-    pprint(user)
-    app.logger.debug('-------------------------------------------------------------')
+    app.logger.debug(f"========== Test: get_page_for_all_users ==========")
+    all_response = developer_admin.get_page_for_all_users()
     # app.logger.debug(f"Installing was successful: {page} ! ")
-    return admin(data=page)
+    pprint(all_response)
+    app.logger.debug('-------------------------------------------------------------')
+    return admin(data=all_response)
 
 
 @app.route('/data/load/')
@@ -305,22 +297,21 @@ def story_subscribe(mod, id):
 @event.listens_for(User.page_id, 'set', propagate=True)
 def handle_page_id(user, value, oldvalue, initiator):
     """ Triggered when a value is being set for User.page_id """
-    from pprint import pprint
+    # from pprint import pprint
     app.logger.debug("================ The page_id listener function is running! ===============")
-    app.logger.debug("user, value, oldvalue, initiator")
-    app.logger.debug('--------------------------------------------------------------------------')
-    pprint(user)
-    app.logger.debug('--------------------------------------------------------------------------')
-    pprint(value)
-    app.logger.debug('--------------------------------------------------------------------------')
-    pprint(oldvalue)
-    app.logger.debug('--------------------------------------------------------------------------')
-    pprint(initiator)
-    app.logger.debug('--------------------------------------------------------------------------')
-    success = False
+    # app.logger.debug("user, value, oldvalue, initiator")
+    # app.logger.debug('--------------------------------------------------------------------------')
+    # pprint(user)
+    # app.logger.debug('--------------------------------------------------------------------------')
+    # pprint(value)
+    # app.logger.debug('--------------------------------------------------------------------------')
+    # pprint(oldvalue)
+    # app.logger.debug('--------------------------------------------------------------------------')
+    # pprint(initiator)
+    # app.logger.debug('--------------------------------------------------------------------------')
     if value in (None, ''):
         user.story_subscribed = False
-        success = True
+        app.logger.debug(f"Empty page for {user} user. Set story_subscribed to False. ")
     else:
         success = install_app_on_user_for_story_updates(user)
         user.story_subscribed = success

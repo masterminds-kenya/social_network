@@ -93,7 +93,6 @@ class User(UserMixin, db.Model):
     name = db.Column(db.String(47),                 index=False, unique=False, nullable=True)
     email = db.Column(db.String(191),               index=False, unique=True,  nullable=True)
     password = db.Column(db.String(191),            index=False, unique=False, nullable=True)
-    # 3 New fields!
     story_subscribed = db.Column(db.Boolean, default=False)
     page_token = db.Column(EncryptedType(db.String(255), SECRET_KEY, AesEngine, 'pkcs5'))  # encrypt
     page_id = db.Column(BIGINT(unsigned=True),      index=False, unique=True,  nullable=True)
@@ -123,28 +122,6 @@ class User(UserMixin, db.Model):
             kwargs['token_expires'] = dt.fromtimestamp(token_expires) if token_expires else None
             kwargs['token'] = kwargs['token'].get('access_token', None)
         super().__init__(*args, **kwargs)
-
-    # @property
-    # def page_id(self):
-    #     return self._page_id
-
-    # @page_id.setter
-    # def page_id(self, page_id):
-    #     # TODO: install app on page, subscribe to story_posts
-    #     # emit a signal for the listener.
-    #     current_app.logger.debug(f"Setting the page_id field! ")
-    #     success = False
-    #     # ?? record if it was successful?
-    #     self.story_subscribed = success
-    #     self._page_id = page_id
-
-    # def subscribe_story(self):
-    #     """ Called by even listener on page_id being set. """
-    #     current_app.logger.debug("User.subscribe_story was called! ")
-    #     success = False
-    #     # do stuff
-    #     self.story_subscribed = success
-    #     pass
 
     def recent_insight(self, metrics):
         """ What is the most recent date that we collected the given insight metrics """
@@ -241,9 +218,6 @@ class User(UserMixin, db.Model):
 
     def __repr__(self):
         return '<User - {}: {}>'.format(self.role, self.name)
-
-
-# event.listen(User.page_id, 'set', User.subscribe_story, retval=False)  # TODO: Refactor Event Listener!
 
 
 class DeletedUser:
