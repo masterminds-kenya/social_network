@@ -179,7 +179,7 @@ def get_online_followers(user_id, ig_id=None, facebook=None):
     """ Just want to get Facebook API response for online_followers for the maximum of the previous 30 days """
     app.logger.info('================= Get Online Followers data ==============')
     ig_period, token = 'lifetime', ''
-    metric = ','.join(OnlineFollowers.metrics)
+    metric = ','.join(OnlineFollowers.METRICS)
     if not facebook or not ig_id:
         model = db_read(user_id, safe=False)
         ig_id, token = model.get('instagram_id'), model.get('token')
@@ -202,7 +202,7 @@ def get_online_followers(user_id, ig_id=None, facebook=None):
 def get_audience(user_id, ig_id=None, facebook=None):
     """ Get the audience data for the (influencer or brand) user with given user_id """
     app.logger.info('=========================== Get Audience Data ======================')
-    audience_metric = ','.join(Audience.metrics)
+    audience_metric = ','.join(Audience.METRICS)
     ig_period = 'lifetime'
     results, token = [], ''
     if not facebook or not ig_id:
@@ -217,7 +217,7 @@ def get_audience(user_id, ig_id=None, facebook=None):
         ea['user_id'] = user_id
         results.append(ea)
     ig_info = get_ig_info(ig_id, token=token, facebook=facebook)
-    for name in Audience.ig_data:  # {'media_count', 'followers_count'}
+    for name in Audience.IG_DATA:  # {'media_count', 'followers_count'}
         temp = {}
         value = ig_info.get(name, None)
         if value:
@@ -242,7 +242,7 @@ def get_basic_post(media_id, metrics=None, user_id=None, facebook=None, token=No
             res = {'message': message, 'error': 403}
             return res
     if not metrics:
-        metrics = ','.join(Post.metrics.get('basic'))
+        metrics = ','.join(Post.METRICS.get('basic'))
     url = f"https://graph.facebook.com/{media_id}?fields={metrics}"
     try:
         res = facebook.get(url).json() if facebook else requests.get(f"{url}&access_token={token}").json()
@@ -288,7 +288,7 @@ def _get_posts_data_of_user(user_id, ig_id=None, facebook=None):
         return []
     media.extend(stories)
     app.logger.debug(f"------ Looking up a total of {len(media)} Media Posts, including {len(stories)} Stories ------")
-    post_metrics = {key: ','.join(val) for (key, val) in Post.metrics.items()}
+    post_metrics = {key: ','.join(val) for (key, val) in Post.METRICS.items()}
     results = []
     for post in media:
         media_id = post.get('id')
@@ -422,7 +422,7 @@ def get_ig_info(ig_id, facebook=None, token=None):
     # Possible fields. Fields with asterisk (*) are public and can be returned by and edge using field expansion:
     # biography*, id*, ig_id, followers_count*, follows_count, media_count*, name,
     # profile_picture_url, username*, website*
-    fields = ['username', *Audience.ig_data]
+    fields = ['username', *Audience.IG_DATA]
     fields = ','.join(fields)
     app.logger.info('============ Get IG Info ===================')
     if not token and not facebook:
@@ -434,7 +434,7 @@ def get_ig_info(ig_id, facebook=None, token=None):
     url = f"https://graph.facebook.com/v4.0/{ig_id}?fields={fields}"
     res = facebook.get(url).json() if facebook else requests.get(f"{url}&access_token={token}").json()
     end_time = dt.utcnow().isoformat(timespec='seconds') + '+0000'
-    for name in Audience.ig_data:
+    for name in Audience.IG_DATA:
         res[name] = {'end_time': end_time, 'value': res.get(name)}
     return res
 
@@ -506,7 +506,7 @@ def onboarding(mod, request):
         data['page_id'] = ig_info.get('page_id')
         # data['page_token'] = ig_info.get('page_token')
         models = []
-        for name in Audience.ig_data:  # {'media_count', 'followers_count'}
+        for name in Audience.IG_DATA:  # {'media_count', 'followers_count'}
             value = ig_info.get(name, None)
             if value:
                 models.append(Audience(name=name, values=[value]))

@@ -20,7 +20,7 @@ def mod_lookup(mod):
         raise TypeError("Expected a string input. ")
     lookup = {'insight': Insight, 'audience': Audience, 'post': Post, 'campaign': Campaign}
     # 'onlinefollowers': OnlineFollowers,
-    lookup.update({role: User for role in User.roles})
+    lookup.update({role: User for role in User.ROLES})
     Model = lookup.get(mod, None)
     if not Model:
         raise ValueError("That is not a valid url path. ")
@@ -90,7 +90,7 @@ def signup():
     """ Using Flask-Login to create a new user (manager or admin) account """
     app.logger.info(f'--------- Sign Up User ------------')
     ignore = ['influencer', 'brand']
-    signup_roles = [role for role in User.roles if role not in ignore]
+    signup_roles = [role for role in User.ROLES if role not in ignore]
     if request.method == 'POST':
         mod = request.form.get('role')
         if mod not in signup_roles:
@@ -343,7 +343,7 @@ def callback(mod):
         for ig_info in data:
             cleaned = {}
             for key, value in ig_info.items():
-                cleaned[key] = json.dumps(value) if key in Audience.ig_data else value
+                cleaned[key] = json.dumps(value) if key in Audience.IG_DATA else value
             ig_list.append(cleaned)
         app.logger.debug(f"Amongst these IG options: {ig_list}. ")
         return render_template('decide_ig.html', mod=mod, id=account_id, ig_list=ig_list)
@@ -441,15 +441,14 @@ def view(mod, id):
     """ Used primarily for specific User or Brand views, but also any data model view except Campaign. """
     # if mod == 'campaign':
     #     return campaign(id)
-    Model, model = None, None
+    Model, model = mod_lookup(mod), None
     if current_user.role not in ['manager', 'admin']:
-        if mod in User.roles:
+        if mod in User.ROLES:
             if current_user.role == mod and current_user.id != id:
                 flash("Incorrect location. You are being redirected to your own profile page. ")
                 return redirect(url_for('view', mod=current_user.role, id=current_user.id))
         elif mod in ['post', 'audience']:
             # The user can only view this detail view if they are associated to the data
-            Model = mod_lookup(mod)
             model = Model.query.get(id)
             if model.user != current_user:
                 flash("Incorrect location. You are being redirected to the home page. ")
@@ -457,15 +456,14 @@ def view(mod, id):
         else:
             flash("This was not a correct location. You are redirected to the home page. ")
             return redirect(url_for('home'))
-    Model = Model or mod_lookup(mod)
     model = model or Model.query.get(id)
-    related_user = from_sql(model.user, related=False, safe=True) if getattr(model, 'user', None) else None
     template = 'view.html'
     if mod == 'post':
         template = f"{mod}_{template}"
         model = model.display()
     else:
         model = from_sql(model, related=True, safe=True)
+        related_user = from_sql(model.user, related=False, safe=True) if getattr(model, 'user', None) else None
         if mod == 'insight':
             template = f"{mod}_{template}"
             model['user'] = related_user
@@ -491,11 +489,11 @@ def insights(mod, id):
     dataset, i = {}, 0
     max_val, min_val = 4, float('inf')
 
-    for metrics in (Insight.influence_metrics, Insight.profile_metrics, OnlineFollowers.metrics):
+    for metrics in (Insight.influence_metrics, Insight.profile_metrics, OnlineFollowers.METRICS):
         for metric in metrics:
             # TODO: Undo the following temporary ignore a lot of the metrics
             if metric in ('impressions', 'reach', 'profile_views'):
-                if metrics == OnlineFollowers.metrics:
+                if metrics == OnlineFollowers.METRICS:
                     query = OnlineFollowers.query.filter_by(user_id=id).order_by('recorded', 'hour').all()
                     if len(query):
                         temp_data = {(ea.recorded.strftime("%d %b, %Y"), int(ea.hour)): int(ea.value) for ea in query}
@@ -597,7 +595,7 @@ def add_edit(mod, id=None):
     if request.method == 'POST':
         data = process_form(mod, request)
         if mod == 'brand' and data.get('instagram_id', '') in ('None', ''):
-            # TODO: Decide - Should it work for all User.roles, or only 'brand'?
+            # TODO: Decide - Should it work for all User.ROLES, or only 'brand'?
             data['instagram_id'] = None  # Do not overwrite 'instagram_id' if it was left blank.
         # TODO: ?Check for failing unique column fields, or failing composite unique requirements?
         if action == 'Edit':
@@ -681,7 +679,7 @@ def add(mod):
 @login_required
 def edit(mod, id):
     """ Modify the existing DB entry. Model indicated by mod, and provided record id. """
-    valid_mod = {'campaign'}.union(set(User.roles))
+    valid_mod = {'campaign'}.union(set(User.ROLES))
     if mod not in valid_mod:
         app.logger.error(f"Unable to edit {mod}. ")
         flash(f"Editing a {mod} is not working right now. Contact an Admin. ")
@@ -776,7 +774,7 @@ def all(mod):
         All other list views can only be seen by admin users.
     """
     if current_user.role not in ['admin', 'manager']:
-        if mod in User.roles:
+        if mod in User.ROLES:
             if current_user.role == mod:
                 return redirect(url_for('view', mod=mod, id=current_user.id))
             elif mod in ['influencer', 'brand']:
@@ -785,7 +783,7 @@ def all(mod):
                 return redirect(url_for('signup'))
         flash("It seems that is not a correct route. You are redirected to the home page. ")
         return redirect(url_for('home'))
-    # if mod not in ['campaign', *User.roles] and current_user.role != 'admin':
+    # if mod not in ['campaign', *User.ROLES] and current_user.role != 'admin':
     #     flash('It seems that is not a correct route. You are redirected to the home page.')
     #     return redirect(url_for('home'))
     if mod == 'file':
