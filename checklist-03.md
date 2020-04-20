@@ -46,7 +46,7 @@
 - [s] Stretch Goal. Not for current feature plan.
 
 Current Status:
-2020-04-17 20:21:09
+2020-04-19 22:57:52
 <!-- Ctrl-Shift-I to generate timestamp -->
 
 ### Story & Media Files Features
@@ -54,14 +54,15 @@ Current Status:
 - [ ] WebHook to get Stories data at completion
   - [x] Must have FB permissions `instagram_manage_insights`
   - [ ] App must be installed on the FB page associated with the IG business account.
-    - [ ] Can determine the page for users we already have.
+    - [x] Can determine the page for users we already have.
     - [x] Update User model, onboarding(), and decide_ig form to track the page_id.
-    - [x] Update User model to track if installing the app was successful.
+    - [x] User model has field to track if installing the app was successful.
     - [x] Onboarding process records the page_id to the created User account.
     - [ ] App is automatically installed when page_id is added or updated on User account.
       - [ ] perhaps a signal and listener approach?
-  - [ ] Have a hook route on live site
-  - [ ] Configure hook route on FB App Dashboard
+      - [ ] Record success state of installing app for User
+  - [x] Have a hook route on live site
+  - [?] Configure hook route on FB App Dashboard
   - [ ] Once confirmed, remove story data update from daily cron job
 - [x] ? What storage structure is needed for larger media files ?
   - [x] Probably need to setup a storage bucket
@@ -216,10 +217,13 @@ Also see items in the [test-site-content checklist](https://github.com/SeattleCh
     - [x] Campaign collected can still see posts from deleted users if already in campaign
     - [x] Campaign results still works with posts from deleted users
     - [ ] Campaign sheet report still works with posts from deleted users
-    - [ ] Keep posts only currently in a campaign, discard unattached posts.
+    - [ ] Keep posts only currently in a campaign, discard unattached posts
+  - [ ] What about unassigned posts for this User?
+    - [ ] Each post should be deleted
+    - [ ] Any reference to this post (Campaign.processed) should be handled ON DELETE
 - [c] Revisit structure for ON DELETE, ON UPDATE (especially on User delete)
 - [c] Revisit structure for how related tables are loaded (lazy=?)
-- [s] Revisit method of reporting Campaign Results.
+- [s] Revisit method of reporting Campaign Results
 
 ### Google Drive & Sheets Functionality
 

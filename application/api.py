@@ -30,16 +30,17 @@ def process_hook(req):
     records = [rec.update({'ig_id': ea['id']}) for ea in req.get('entry', [{}]) for rec in ea.get('changes', [{}])]
     stories = [rec.get('value', {}).update({'ig_id': rec['ig_id']})
                for rec in records
-               if rec.get('field', '') == 'story_insights'
+               if rec.get('field', '').lower() == 'story_insights'
                ]
     extra_changes_count = len(records) - len(stories)
     if extra_changes_count:
         extras = [rec.get('value', {}).update({'ig_id': rec['id'], 'field': rec.get('field')})
                   for rec in records
-                  if rec.get('field', '') != 'story_insights'
+                  if rec.get('field', '').lower() != 'story_insights'
                   ]
         app.logger.info('----------------------------------------------------------------------')
         app.logger.info(f"Had {extra_changes_count} unexpected non-story changes. ")
+        pprint(', '.join([ea.field for ea in extras]))
         app.logger.info('*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*')
         pprint(extras)
         app.logger.info('----------------------------------------------------------------------')
@@ -59,8 +60,8 @@ def process_hook(req):
                 db.session.add(model)
             else:
                 # create, but we need extra data about this story Post.
-                user = User.query.filter_by(instagram_id=ig_id).first() if ig_id else None
-                res = get_basic_post(media_id, user_id=user.id, token=getattr(user, 'token', None))
+                user = User.query.filter_by(instagram_id=ig_id).first() if ig_id else object()
+                res = get_basic_post(media_id, user_id=getattr(user, 'id', None), token=getattr(user, 'token', None))
                 story.update(res)
                 model = Post(**story)
                 new.append(model)
@@ -406,11 +407,11 @@ def install_app_on_user_for_story_updates(user_or_id, page=None, facebook=None, 
     # we want version 3.1 for installing our app just to allow subscribing to Instagram story posts
     # unclear if the 'read-after-write' means we need a ?fields='success' on the url.
     # return data should be { success: True }
-    # TODO: See if our saved token works, or if we need a separate page_access_token
     # Business Login and Page Access Token: https://developers.facebook.com/docs/facebook-login/business-login-direct
     params = {} if facebook else {'access_token': page['token']}
     params['subscribed_fields'] = 'feed'
-    res = facebook.post(url, params=params).json() if facebook else requests.post(f"{url}", params=params).json()
+    res = facebook.post(url, params=params).json() if facebook else requests.post(url, params=params).json()
+    # TODO: See if facebook with params above works.
     app.logger.debug('----------------------------------------------------------------')
     pprint(res)
     installed = res.get('success', False)
@@ -422,15 +423,12 @@ def get_ig_info(ig_id, facebook=None, token=None):
     # Possible fields. Fields with asterisk (*) are public and can be returned by and edge using field expansion:
     # biography*, id*, ig_id, followers_count*, follows_count, media_count*, name,
     # profile_picture_url, username*, website*
-    fields = ['username', *Audience.IG_DATA]
-    fields = ','.join(fields)
+    fields = ','.join(['username', *Audience.IG_DATA])
     app.logger.info('============ Get IG Info ===================')
     if not token and not facebook:
         logstring = "You must pass a 'token' or 'facebook' reference. "
         app.logger.error(logstring)
         raise ValueError(logstring)
-        # # TODO: Raise error and handle raised error where this function is called.
-        # return logstring
     url = f"https://graph.facebook.com/v4.0/{ig_id}?fields={fields}"
     res = facebook.get(url).json() if facebook else requests.get(f"{url}&access_token={token}").json()
     end_time = dt.utcnow().isoformat(timespec='seconds') + '+0000'
@@ -505,6 +503,7 @@ def onboarding(mod, request):
         data['instagram_id'] = ig_id
         data['page_id'] = ig_info.get('page_id')
         # data['page_token'] = ig_info.get('page_token')
+        # TODO: Decide if we pass page_token to User model constructor.
         models = []
         for name in Audience.IG_DATA:  # {'media_count', 'followers_count'}
             value = ig_info.get(name, None)
