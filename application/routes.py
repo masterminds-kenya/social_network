@@ -1,16 +1,15 @@
-from flask import current_app as app
-from flask import render_template, redirect, url_for, request, flash  # , abort
+from flask import render_template, redirect, url_for, request, flash, current_app as app  # , abort
 from flask_login import current_user, login_user, logout_user, login_required
 from werkzeug.security import generate_password_hash, check_password_hash
+from functools import wraps
+import json
 from .model_db import db_create, db_read, db_update, db_delete, db_all, from_sql
 from .model_db import User, OnlineFollowers, Insight, Audience, Post, Campaign  # , metric_clean
 from . import developer_admin
-from functools import wraps
 from .manage import update_campaign, process_form
-from .api import onboard_login, onboarding, get_insight, get_audience, get_posts, get_online_followers, capture_media
-from .api import process_hook
+from .api import onboard_login, onboarding, get_insight, get_audience, get_posts, get_online_followers
+from .api import process_hook, capture_media, install_app_on_user_for_story_updates
 from .sheets import create_sheet, update_sheet, perm_add, perm_list, all_files
-import json
 # from pprint import pprint
 
 
@@ -134,7 +133,7 @@ def login():
         data = process_form('login', request)
         password = data.get('password', None)
         if not password:
-            flash("A password is required. ")
+            flash("Password required. If you don't have one, you can try Facebook login, otherwise contact an admin. ")
             return redirect(url_for('login'))
         user = User.query.filter_by(email=data['email']).first()
         if not user or not check_password_hash(user.password, data['password']):
@@ -142,7 +141,7 @@ def login():
             return redirect(url_for('login'))
         login_user(user, remember=data['remember'])
         return redirect(url_for('view', mod=user.role, id=user.id))
-    return render_template('signup.html', signup_roles=[], mods=['influencer', 'brand'])
+    return render_template('signup.html', signup_roles=None, mods=['influencer', 'brand'])
 
 
 @app.route('/logout')
@@ -269,6 +268,26 @@ def capture(id):
     flash(message)
     return admin(data=answer)
 
+
+@app.route('/<string:mod>/<int:id>/subscribe/', methods=['GET', 'POST'])
+def story_subscribe(mod, id):
+    """ Need to install app on this user's page. Subscribe to instagram stories. """
+    subscribed, message = False, ''
+    Model = mod_lookup(mod)
+    if Model != User:
+        raise ValueError(f"Expected a User mod but got: {mod} . ")
+    if request.method == 'GET':
+        user = Model.query.get(id)
+        subscribed = getattr(user, 'story_subscribed', False)
+        message += f"User {user} "
+        message += "stories were already subscribed. " if subscribed else "stories are NOT subscribed. "
+    else:  # request.method == 'POST'
+        installed = install_app_on_user_for_story_updates(id)
+        subscribed = installed  # TODO: ? Are we done if we succeeded with installing the app?
+        message += f"Subscribing to Stories worked: {subscribed} "
+    app.logger.debug(message)
+    flash(message)
+    return redirect(request.referrer)
 
 # ########## The following are for worksheets ############
 
