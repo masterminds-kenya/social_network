@@ -367,7 +367,6 @@ def get_fb_page_for_user(user, facebook=None, token=None):
         matching_ig = [ig_info for ig_info in ig_list if int(ig_info.get('id', 0)) == ig_id]
         ig_info = matching_ig[0] if len(matching_ig) == 1 else {}
         page = {'id': ig_info.get('page_id'), 'token': ig_info.get('page_token')}
-        # if not page['id'] or not page['token']:
     success = True if page['id'] and page['token'] else False
     return page if success else None
 

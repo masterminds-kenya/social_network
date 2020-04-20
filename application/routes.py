@@ -1,6 +1,7 @@
 from flask import render_template, redirect, url_for, request, flash, current_app as app  # , abort
 from flask_login import current_user, login_user, logout_user, login_required
 from werkzeug.security import generate_password_hash, check_password_hash
+from sqlalchemy import event
 from functools import wraps
 import json
 from .model_db import db_create, db_read, db_update, db_delete, db_all, from_sql
@@ -187,9 +188,10 @@ def test_method():
     # return admin(data=results[0])
     # # return render_template('admin.html', dev=True, data=results[0], files=None)
     from pprint import pprint
-    from .api import process_hook
+    from .api import process_hook, get_fb_page_for_user
+    from .model_db import db
     # working .api functions: get_basic_post, get_fb_page_for_user, install_app_on_user_for_story_updates,
-    # user = User.query.get(84)   # Influencer - NOELLERENO
+    user = User.query.get(84)   # Influencer - NOELLERENO
     # post = Post.query.get(102)  # an IMAGE post by Noelle
     # media_id = getattr(post, 'media_id', None)
     # res = get_basic_post(media_id, token=getattr(user, 'token', None))
@@ -206,12 +208,20 @@ def test_method():
         }
     one_fake_change = {'field': 'fake_field', 'value': fake_story_update}
     data = {'object': 'fake', 'entry': [{'id': 0, 'time': 0, 'changes': [one_fake_change]}]}
-    app.logger.debug("========== Test: process_hook, passing fake data. ==========")
-    res = process_hook(data)
+    # app.logger.debug("========== Test: process_hook, passing fake data. ==========")
+    # res = process_hook(data)
+    app.logger.debug(f"========== Test: get_fb_page_for_user, passing User {user} ==========")
+    page = get_fb_page_for_user(user)
+    pprint(page)
     app.logger.debug('-------------------------------------------------------------')
-    pprint(res)
-    # app.logger.debug(f"Installing was successful: {res} ! ")
-    return admin(data=res)
+    if page:
+        user.page_id = page.get('id')
+        db.session.add(user)
+        db.session.commit()
+    pprint(user)
+    app.logger.debug('-------------------------------------------------------------')
+    # app.logger.debug(f"Installing was successful: {page} ! ")
+    return admin(data=page)
 
 
 @app.route('/data/load/')
@@ -269,25 +279,53 @@ def capture(id):
     return admin(data=answer)
 
 
-@app.route('/<string:mod>/<int:id>/subscribe/', methods=['GET', 'POST'])
+@app.route('/<string:mod>/<int:id>/subscribe/')
 def story_subscribe(mod, id):
     """ Need to install app on this user's page. Subscribe to instagram stories. """
-    subscribed, message = False, ''
     Model = mod_lookup(mod)
     if Model != User:
         raise ValueError(f"Expected a User mod but got: {mod} . ")
-    if request.method == 'GET':
-        user = Model.query.get(id)
-        subscribed = getattr(user, 'story_subscribed', False)
-        message += f"User {user} "
-        message += "stories were already subscribed. " if subscribed else "stories are NOT subscribed. "
-    else:  # request.method == 'POST'
+
+    subscribed, message = False, ''
+    # if request.method == 'GET':
+    user = Model.query.get(id)
+    subscribed = getattr(user, 'story_subscribed', False)
+    message += f"User {user} "
+    message += "stories were already subscribed. " if subscribed else "stories were NOT subscribed. "
+    # else:  # request.method == 'POST'
+    if not subscribed:
         installed = install_app_on_user_for_story_updates(id)
         subscribed = installed  # TODO: ? Are we done if we succeeded with installing the app?
         message += f"Subscribing to Stories worked: {subscribed} "
     app.logger.debug(message)
     flash(message)
     return redirect(request.referrer)
+
+
+@event.listens_for(User.page_id, 'set', propagate=True)
+def handle_page_id(user, value, oldvalue, initiator):
+    """ Triggered when a value is being set for User.page_id """
+    from pprint import pprint
+    app.logger.debug("================ The page_id listener function is running! ===============")
+    app.logger.debug("user, value, oldvalue, initiator")
+    app.logger.debug('--------------------------------------------------------------------------')
+    pprint(user)
+    app.logger.debug('--------------------------------------------------------------------------')
+    pprint(value)
+    app.logger.debug('--------------------------------------------------------------------------')
+    pprint(oldvalue)
+    app.logger.debug('--------------------------------------------------------------------------')
+    pprint(initiator)
+    app.logger.debug('--------------------------------------------------------------------------')
+    success = False
+    if value in (None, ''):
+        user.story_subscribed = False
+        success = True
+    else:
+        success = install_app_on_user_for_story_updates(user)
+        user.story_subscribed = success
+        app.logger.debug(f"Subscribe {value} page for {user} worked: {success} ")
+    # end handle_page_id. has no return.
 
 # ########## The following are for worksheets ############
 
