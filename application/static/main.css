@@ -95,22 +95,22 @@ h4, h5, h6{
 strong {
   font-style: italic;
 }
-.posts {
+.campaign_posts {
   display: flex;
   /* flex-direction: row-reverse; */
   justify-content: flex-end;
 }
-/* .posts article {
+/* .campaign_posts article {
   width: 80%;
 } */
-.posts .form-group {
+.campaign_posts .form-group {
   display: flex;
   flex-direction: column;
   justify-content: flex-end;
   order: 1;
   padding: 1rem;
 }
-.posts .form-group label {
+.campaign_posts .form-group label {
   white-space: nowrap;
   width: -webkit-max-content;
   width: -moz-max-content;
@@ -118,15 +118,20 @@ strong {
   padding: .2rem 0;
 }
 
-.posts article {
+.campaign_posts article {
   flex-basis: 100%;
   order: 2;
 }
-.posts .metrics {
+.campaign_posts .metrics {
   padding: 0 1rem;
   white-space: nowrap;
   order: 3;
 }
+
+li button { all: inherit; }
+li button:focus svg { outline: 2px solid; }
+[aria-expanded] rect { fill: currentColor; }
+[aria-expanded="true"] .vert { display: none; }
 
 button {
   border-top: 1px solid #939fef;

@@ -22,18 +22,25 @@
     audience count: {% for ea in data[key] %}{{ea}}, {% else %}EMPTY NONE{% endfor %}
   </li>
   {% elif key == 'posts' and data[key]|length %}
-  <li> {{ key }}
-    <ul>
+  <li>
+    <button aria-expanded="false">
+      {{ key }}
+      <svg viewBox="0 0 10 10" aria-hidden="true" focusable="false">
+        <rect class="vert" height="8" width="2" y="1" x="4" />
+        <rect height="2" width="8" y="4" x="1" />
+      </svg>
+    </button>
+    <ul class="{{ key }}">
     {% for ea in data[key] %}
       <li>
-        <a href="{{ url_for('view', mod='post', id=ea.id) }}"># {{ea.id}} posted on {{ea.recorded}}</a>
+        <a href="{{ url_for('view', mod='post', id=ea.id) }}"># {{ea.id}} {{ea.media_type}} posted on {{ea.recorded}}</a>
       </li>
     {% endfor %}
     </ul>
   </li>
   {% elif key == 'audiences' and data[key]|length %}
   <li> {{ key }}
-    <ul>
+    <ul class="{{ key }}">
     {% for ea in data[key] %}
       <li>
         <a href="{{ url_for('view', mod='audience', id=ea.id) }}">
@@ -49,7 +56,7 @@
     {{key}}:
     {% if data[key] is iterable and data[key] is not string %}
       {% if data[key]|length %}
-      <ul>{% for ea in data[key] %}<li>{{ ea }}</li>{% endfor %}</ul>
+      <ul class="{{ key }}">{% for ea in data[key] %}<li>{{ ea }}</li>{% endfor %}</ul>
       {% else %}
       EMPTY NONE
       {% endif %}
@@ -84,5 +91,21 @@
 </ul>
 {% endif %}
 {% endblock modify %}
+<script>
+  (function() {
+    const headings = document.querySelectorAll('h2');
 
+    Array.prototype.forEach.call(headings, h => {
+      let btn = h.querySelector('button');
+      let target = h.nextElementSibling;
+
+      btn.onclick = () => {
+        let expanded = btn.getAttribute('aria-expanded') === 'true';
+
+        btn.setAttribute('aria-expanded', !expanded);
+        target.hidden = expanded;
+      }
+    });
+  })()
+</script>
 {% endblock content %}

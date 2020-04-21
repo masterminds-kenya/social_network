@@ -61,7 +61,7 @@
     <h2>Media Post Assignment for - {{user.name|e}} ( {{related[user]|length}} )</h2>
     <form action="" method="POST">
       {% for post in related[user] %}
-      <section class="posts" id="post_{{post.id}}">
+      <section class="campaign_posts" id="post_{{post.id}}">
         <article>
           {% if post.media_type == 'STORY' %}
           <p>
@@ -116,7 +116,7 @@
         <hr />
       </section>
       {% else %}
-      <section class="posts">
+      <section class="campaign_posts">
         <p>No Posts Found. You may need to retrieve new posts. </p>
       </section>
       {% endfor %}
