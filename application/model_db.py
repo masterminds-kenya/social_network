@@ -15,6 +15,7 @@ import re
 from statistics import mean, median, stdev
 import json
 from pprint import pprint  # only for debugging
+# from .helper_functions import check_stuff
 
 db = SQLAlchemy()
 migrate = Migrate(current_app, db)
@@ -56,6 +57,7 @@ def from_sql(row, related=False, safe=True):
         Will return only safe for viewing fields when 'safe' is True.
     """
     data = {k: getattr(row, k) for k in dir(row.__mapper__.all_orm_descriptors) if not k.startswith('_')}
+    # check_stuff(row, related, safe)  # TODO: Remove after resolved.
     unwanted_keys = set()
     if not related:
         unwanted_keys.update(row.__mapper__.relationships)
@@ -83,16 +85,16 @@ class User(UserMixin, db.Model):
         Assumes only 1 Instagram per user, and it must be a business account.
         They must have a Facebook Page connected to their business Instagram account.
     """
-    roles = ('influencer', 'brand', 'manager', 'admin')
+    ROLES = ('influencer', 'brand', 'manager', 'admin')
     __tablename__ = 'users'
 
     id = db.Column(db.Integer, primary_key=True)
-    role = db.Column(db.Enum(*roles, name='user_roles'), default='influencer', nullable=False)
+    role = db.Column(db.Enum(*ROLES, name='user_roles'), default='influencer', nullable=False)
     name = db.Column(db.String(47),                 index=False, unique=False, nullable=True)
     email = db.Column(db.String(191),               index=False, unique=True,  nullable=True)
     password = db.Column(db.String(191),            index=False, unique=False, nullable=True)
-    # 2 New fields!
     story_subscribed = db.Column(db.Boolean, default=False)
+    page_token = db.Column(EncryptedType(db.String(255), SECRET_KEY, AesEngine, 'pkcs5'))  # encrypt
     page_id = db.Column(BIGINT(unsigned=True),      index=False, unique=True,  nullable=True)
     instagram_id = db.Column(BIGINT(unsigned=True), index=True,  unique=True,  nullable=True)
     facebook_id = db.Column(BIGINT(unsigned=True),  index=False, unique=False, nullable=True)
@@ -109,7 +111,7 @@ class User(UserMixin, db.Model):
     posts = db.relationship('Post',                order_by='Post.recorded', backref='user', passive_deletes=True)
     # # campaigns = backref from Campaign.users has lazy='joined' on other side
     # # brand_campaigns = backref from Campaign.brands has lazy='joined' on other side
-    UNSAFE = {'password', 'token', 'token_expires', 'modified', 'created'}
+    UNSAFE = {'password', 'token', 'token_expires', 'page_token', 'modified', 'created'}
 
     def __init__(self, *args, **kwargs):
         kwargs['facebook_id'] = kwargs.pop('id') if 'facebook_id' not in kwargs and 'id' in kwargs else None
@@ -121,30 +123,17 @@ class User(UserMixin, db.Model):
             kwargs['token'] = kwargs['token'].get('access_token', None)
         super().__init__(*args, **kwargs)
 
-    @property
-    def page_id(self):
-        return self._page_id
-
-    @page_id.setter
-    def page_id(self, page_id):
-        # TODO: install app on page, subscribe to story_posts
-        # emit a signal for the listener.
-        success = False
-        # ?? record if it was successful?
-        self.story_subscribed = success
-        self._page_id = page_id
-
     def recent_insight(self, metrics):
         """ What is the most recent date that we collected the given insight metrics """
-        if metrics == 'influence' or metrics == Insight.influence_metrics:
-            metrics = list(Insight.influence_metrics)
-        elif metrics == 'profile' or metrics == Insight.profile_metrics:
-            metrics = list(Insight.profile_metrics)
+        if metrics == 'influence' or metrics == Insight.INFLUENCE_METRICS:
+            metrics = list(Insight.INFLUENCE_METRICS)
+        elif metrics == 'profile' or metrics == Insight.PROFILE_METRICS:
+            metrics = list(Insight.PROFILE_METRICS)
         elif isinstance(metrics, (list, tuple)):
             for ea in metrics:
-                if ea not in Insight.metrics:
+                if ea not in Insight.METRICS:
                     raise ValueError(f"{ea} is not a valid Insight metric")
-        elif metrics in Insight.metrics:
+        elif metrics in Insight.METRICS:
             metrics = [metrics]
         else:
             raise ValueError(f"{metrics} is not a valid Insight metric")
@@ -196,14 +185,14 @@ class User(UserMixin, db.Model):
 
     def insight_summary(self, label_only=False):
         """ Used for Sheet report: giving summary stats of insight metrics for a Brand (or other user). """
-        big_metrics = list(Insight.influence_metrics)
+        big_metrics = list(Insight.INFLUENCE_METRICS)
         big_stat = [('Median', median), ('Average', mean), ('StDev', stdev)]
         insight_labels = [f"{metric} {ea[0]}" for metric in big_metrics for ea in big_stat]
-        small_metrics = list(Insight.profile_metrics)
+        small_metrics = list(Insight.PROFILE_METRICS)
         small_stat = [('Total', sum), ('Average', mean)]
         small_metric_labels = [f"{metric} {ea[0]}" for metric in small_metrics for ea in small_stat]
         insight_labels.extend(small_metric_labels)
-        of_metrics = list(OnlineFollowers.metrics)
+        of_metrics = list(OnlineFollowers.METRICS)
         of_stat = [('Median', median)]
         of_metric_lables = [f"{metric} {ea[0]}" for metric in of_metrics for ea in of_stat]
         insight_labels.extend(of_metric_lables)
@@ -249,9 +238,9 @@ class DeletedUser:
 
 class OnlineFollowers(db.Model):
     """ Data model for 'online_followers' for a user (influencer or brand) """
-    composite_unique = ('user_id', 'recorded', 'hour')
+    COMPOSITE_UNIQUE = ('user_id', 'recorded', 'hour')
     __tablename__ = 'onlinefollowers'
-    __table_args__ = (db.UniqueConstraint(*composite_unique, name='uq_onlinefollowers_recorded_hour'),)
+    __table_args__ = (db.UniqueConstraint(*COMPOSITE_UNIQUE, name='uq_onlinefollowers_recorded_hour'),)
 
     id = db.Column(db.Integer,      primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey('users.id', ondelete='CASCADE'))
@@ -259,7 +248,7 @@ class OnlineFollowers(db.Model):
     hour = db.Column(db.Integer,      index=False, unique=False, nullable=False)
     value = db.Column(db.Integer,     index=False, unique=False, nullable=False, default=0)
     # # user = backref from User.aud_count
-    metrics = ['online_followers']
+    METRICS = ['online_followers']
     UNSAFE = {''}
 
     def __init__(self, *args, **kwargs):
@@ -275,9 +264,9 @@ class OnlineFollowers(db.Model):
 
 class Insight(db.Model):
     """ Data model for insights data on a (influencer or brand) user's account """
-    composite_unique = ('user_id', 'recorded', 'name')
+    COMPOSITE_UNIQUE = ('user_id', 'recorded', 'name')
     __tablename__ = 'insights'
-    __table_args__ = (db.UniqueConstraint(*composite_unique, name='uq_insights_recorded_name'),)
+    __table_args__ = (db.UniqueConstraint(*COMPOSITE_UNIQUE, name='uq_insights_recorded_name'),)
 
     id = db.Column(db.Integer,      primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey('users.id', ondelete='CASCADE'))
@@ -285,10 +274,10 @@ class Insight(db.Model):
     name = db.Column(db.String(47),            index=False, unique=False, nullable=False)
     value = db.Column(db.Integer,              index=False, unique=False, nullable=False, default=0)
     # # user = backref from User.insights
-    influence_metrics = {'impressions', 'reach'}
-    profile_metrics = {'phone_call_clicks', 'text_message_clicks', 'email_contacts',
+    INFLUENCE_METRICS = {'impressions', 'reach'}
+    PROFILE_METRICS = {'phone_call_clicks', 'text_message_clicks', 'email_contacts',
                        'get_directions_clicks', 'website_clicks', 'profile_views', 'follower_count'}
-    metrics = influence_metrics.union(profile_metrics)
+    METRICS = INFLUENCE_METRICS.union(PROFILE_METRICS)
     UNSAFE = {''}
 
     def __init__(self, *args, **kwargs):
@@ -305,9 +294,9 @@ class Insight(db.Model):
 class Audience(db.Model):
     """ Data model for current information about the user's audience. """
     # TODO: If this data not taken over by Neo4j, then refactor to parse out the age groups and gender groups
-    composite_unique = ('user_id', 'recorded', 'name')
+    COMPOSITE_UNIQUE = ('user_id', 'recorded', 'name')
     __tablename__ = 'audiences'
-    __table_args__ = (db.UniqueConstraint(*composite_unique, name='uq_audiences_recorded_name'),)
+    __table_args__ = (db.UniqueConstraint(*COMPOSITE_UNIQUE, name='uq_audiences_recorded_name'),)
 
     id = db.Column(db.Integer,      primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey('users.id', ondelete='CASCADE'))
@@ -315,8 +304,8 @@ class Audience(db.Model):
     name = db.Column(db.String(47),            index=False, unique=False, nullable=False)
     value = db.Column(db.Text,                 index=False, unique=False, nullable=True)
     # # user = backref from User.audiences
-    metrics = {'audience_city', 'audience_country', 'audience_gender_age'}
-    ig_data = {'media_count', 'followers_count'}  # these are created when assigning an instagram_id to a User
+    METRICS = {'audience_city', 'audience_country', 'audience_gender_age'}
+    IG_DATA = {'media_count', 'followers_count'}  # these are created when assigning an instagram_id to a User
     UNSAFE = {''}
 
     def __init__(self, *args, **kwargs):
@@ -367,13 +356,13 @@ class Post(db.Model):
     # # user = backref from User.posts
     # # processed = backref from Campaign.processed
     # # campaigns = backref from Campaign.posts
-    metrics = {}
-    metrics['basic'] = {'media_type', 'caption', 'comments_count', 'like_count', 'permalink', 'timestamp'}
-    metrics['insight'] = {'impressions', 'reach'}
-    metrics['IMAGE'] = {'engagement', 'saved'}.union(metrics['insight'])
-    metrics['VIDEO'] = {'video_views'}.union(metrics['IMAGE'])
-    metrics['CAROUSEL_ALBUM'] = {f"carousel_album_{metric}" for metric in metrics['IMAGE']}  # ?in metrics['VIDEO']
-    metrics['STORY'] = {'exits', 'replies', 'taps_forward', 'taps_back'}.union(metrics['insight'])
+    METRICS = {}
+    METRICS['basic'] = {'media_type', 'caption', 'comments_count', 'like_count', 'permalink', 'timestamp'}
+    METRICS['insight'] = {'impressions', 'reach'}
+    METRICS['IMAGE'] = {'engagement', 'saved'}.union(METRICS['insight'])
+    METRICS['VIDEO'] = {'video_views'}.union(METRICS['IMAGE'])
+    METRICS['CAROUSEL_ALBUM'] = {f"carousel_album_{metric}" for metric in METRICS['IMAGE']}  # ?in METRICS['VIDEO']
+    METRICS['STORY'] = {'exits', 'replies', 'taps_forward', 'taps_back'}.union(METRICS['insight'])
     UNSAFE = {''}
 
     def __init__(self, *args, **kwargs):
@@ -392,7 +381,7 @@ class Post(db.Model):
             raise TypeError("The display keyword must be set to an integer. ")
         elif saved_urls and display > len(saved_urls) - 1:
             raise ValueError("The display keyword was out of bounds for the input list. ")
-        if display != 0 and saved_urls:
+        elif display != 0 and saved_urls:
             saved_urls[display], saved_urls[0] = saved_urls[0], saved_urls[display]
         self._saved_media = json.dumps(saved_urls) if saved_urls else None
 
@@ -409,9 +398,9 @@ class Post(db.Model):
         """ Since different media post types have different metrics, we only want to show the appropriate fields. """
         post = from_sql(self, related=True, safe=True)
         fields = {'id', 'user_id', 'saved_media', 'saved_media_options', 'campaigns', 'processed', 'recorded'}
-        fields.update(Post.metrics['basic'])
+        fields.update(Post.METRICS['basic'])
         fields.discard('timestamp')
-        fields.update(Post.metrics[post['media_type']])
+        fields.update(Post.METRICS[post['media_type']])
         # return {key: post[key] for key in post.keys() - fields}
         return {key: val for (key, val) in post.items() if key in fields}
 
@@ -543,7 +532,7 @@ class Campaign(db.Model):
         # }
         rejected = {'insight', 'basic'}
         added = {'comments_count', 'like_count'}
-        lookup = {k: v.union(added) for k, v in Post.metrics.items() if k not in rejected}
+        lookup = {k: v.union(added) for k, v in Post.METRICS.items() if k not in rejected}
         related, sets_list = {}, []
         for media_type, metric_set in lookup.items():
             temp = [metric_clean(ea) for ea in metric_set]
@@ -678,7 +667,7 @@ def db_create_or_update_many(dataset, user_id=None, Model=Post):
     allowed_models = {Post, Insight, Audience, OnlineFollowers}
     if Model not in allowed_models:
         return []
-    composite_unique = [ea for ea in getattr(Model, 'composite_unique', []) if ea != 'user_id']
+    composite_unique = [ea for ea in getattr(Model, 'COMPOSITE_UNIQUE', []) if ea != 'user_id']
     all_results, add_count, update_count, error_set = [], 0, 0, []
     if composite_unique and user_id:
         match = Model.query.filter(Model.user_id == user_id).all()

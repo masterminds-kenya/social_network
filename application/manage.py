@@ -63,7 +63,7 @@ def process_form(mod, request):
                 models = Model.query.filter(Model.id.in_(model_ids)).all()
                 save[rel] = models
     data = request.form.to_dict(flat=True)
-    if mod in ['login', *User.roles]:
+    if mod in ['login', *User.ROLES]:
         data['role'] = data.get('role', mod)
         # checking, or creating, password hash is handled outside of this function.
         # On User edit, keep the current password if they left the input box blank.
@@ -71,7 +71,7 @@ def process_form(mod, request):
             data.pop('password', None)
         # Create IG media_count & followers_count here, then they are associated on User create or update.
         models = []
-        for name in Audience.ig_data:  # {'media_count', 'followers_count'}
+        for name in Audience.IG_DATA:  # {'media_count', 'followers_count'}
             value = data.pop(name, None)
             if value:
                 models.append(Audience(name=name, values=[json.loads(value)]))

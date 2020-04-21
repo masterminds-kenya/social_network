@@ -1,16 +1,16 @@
-from flask import current_app as app
-from flask import render_template, redirect, url_for, request, flash  # , abort
+from flask import render_template, redirect, url_for, request, flash, current_app as app  # , abort
 from flask_login import current_user, login_user, logout_user, login_required
 from werkzeug.security import generate_password_hash, check_password_hash
+from sqlalchemy import event
+from functools import wraps
+import json
 from .model_db import db_create, db_read, db_update, db_delete, db_all, from_sql
 from .model_db import User, OnlineFollowers, Insight, Audience, Post, Campaign  # , metric_clean
 from . import developer_admin
-from functools import wraps
 from .manage import update_campaign, process_form
-from .api import onboard_login, onboarding, get_insight, get_audience, get_posts, get_online_followers, capture_media
-from .api import process_hook
+from .api import onboard_login, onboarding, get_insight, get_audience, get_posts, get_online_followers
+from .api import process_hook, capture_media, install_app_on_user_for_story_updates
 from .sheets import create_sheet, update_sheet, perm_add, perm_list, all_files
-import json
 # from pprint import pprint
 
 
@@ -20,7 +20,7 @@ def mod_lookup(mod):
         raise TypeError("Expected a string input. ")
     lookup = {'insight': Insight, 'audience': Audience, 'post': Post, 'campaign': Campaign}
     # 'onlinefollowers': OnlineFollowers,
-    lookup.update({role: User for role in User.roles})
+    lookup.update({role: User for role in User.ROLES})
     Model = lookup.get(mod, None)
     if not Model:
         raise ValueError("That is not a valid url path. ")
@@ -90,7 +90,7 @@ def signup():
     """ Using Flask-Login to create a new user (manager or admin) account """
     app.logger.info(f'--------- Sign Up User ------------')
     ignore = ['influencer', 'brand']
-    signup_roles = [role for role in User.roles if role not in ignore]
+    signup_roles = [role for role in User.ROLES if role not in ignore]
     if request.method == 'POST':
         mod = request.form.get('role')
         if mod not in signup_roles:
@@ -134,7 +134,7 @@ def login():
         data = process_form('login', request)
         password = data.get('password', None)
         if not password:
-            flash("A password is required. ")
+            flash("Password required. If you don't have one, you can try Facebook login, otherwise contact an admin. ")
             return redirect(url_for('login'))
         user = User.query.filter_by(email=data['email']).first()
         if not user or not check_password_hash(user.password, data['password']):
@@ -142,7 +142,7 @@ def login():
             return redirect(url_for('login'))
         login_user(user, remember=data['remember'])
         return redirect(url_for('view', mod=user.role, id=user.id))
-    return render_template('signup.html', signup_roles=[], mods=['influencer', 'brand'])
+    return render_template('signup.html', signup_roles=None, mods=['influencer', 'brand'])
 
 
 @app.route('/logout')
@@ -176,17 +176,44 @@ def admin(data=None, files=None):
 @admin_required()
 def test_method():
     """ Temporary route and function for developer to test components. """
-    from .sheets import get_vals, get_insight_report
+    # from .sheets import get_vals, get_insight_report
     from pprint import pprint
 
-    page1_only = True
-    model = Campaign.query.get(4)
-    vals = get_vals(model)
-    insight_report = get_insight_report(model)
-    results = vals if page1_only else insight_report
-    pprint(results)
-    return admin(data=results[0])
-    # return render_template('admin.html', dev=True, data=results[0], files=None)
+    # page1_only = True
+    # model = Campaign.query.get(4)
+    # vals = get_vals(model)
+    # insight_report = get_insight_report(model)
+    # results = vals if page1_only else insight_report
+    # pprint(results)
+    # return admin(data=results[0])
+    # # return render_template('admin.html', dev=True, data=results[0], files=None)
+    # from .api import process_hook, get_fb_page_for_user
+    # working .api functions: get_basic_post, get_fb_page_for_user, install_app_on_user_for_story_updates,
+    # user = User.query.get(84)   # Influencer - NOELLERENO
+    # post = Post.query.get(102)  # an IMAGE post by Noelle
+    # media_id = getattr(post, 'media_id', None)
+    # res = get_basic_post(media_id, token=getattr(user, 'token', None))
+    # app.logger.debug("========== Test: get_basic_post func, passing just token. ==========")
+    # pprint(res)
+    # fake_story_update = {
+    #     'exits': 0,
+    #     'impressions': 0,
+    #     'media_id': 0,
+    #     'reach': 0,
+    #     'replies': 0,
+    #     'taps_back': 0,
+    #     'taps_forward': 0
+    #     }
+    # one_fake_change = {'field': 'fake_field', 'value': fake_story_update}
+    # data = {'object': 'fake', 'entry': [{'id': 0, 'time': 0, 'changes': [one_fake_change]}]}
+    # app.logger.debug("========== Test: process_hook, passing fake data. ==========")
+    # res = process_hook(data)
+    app.logger.debug(f"========== Test: get_page_for_all_users ==========")
+    all_response = developer_admin.get_page_for_all_users()
+    # app.logger.debug(f"Installing was successful: {page} ! ")
+    pprint(all_response)
+    app.logger.debug('-------------------------------------------------------------')
+    return admin(data=all_response)
 
 
 @app.route('/data/load/')
@@ -243,6 +270,53 @@ def capture(id):
     flash(message)
     return admin(data=answer)
 
+
+@app.route('/<string:mod>/<int:id>/subscribe/')
+def story_subscribe(mod, id):
+    """ Need to install app on this user's page. Subscribe to instagram stories. """
+    Model = mod_lookup(mod)
+    if Model != User:
+        raise ValueError(f"Expected a User mod but got: {mod} . ")
+
+    subscribed, message = False, ''
+    # if request.method == 'GET':
+    user = Model.query.get(id)
+    subscribed = getattr(user, 'story_subscribed', False)
+    message += f"User {user} "
+    message += "stories were already subscribed. " if subscribed else "stories were NOT subscribed. "
+    # else:  # request.method == 'POST'
+    if not subscribed:
+        installed = install_app_on_user_for_story_updates(id)
+        subscribed = installed  # TODO: ? Are we done if we succeeded with installing the app?
+        message += f"Subscribing to Stories worked: {subscribed} "
+    app.logger.debug(message)
+    flash(message)
+    return redirect(request.referrer)
+
+
+@event.listens_for(User.page_id, 'set', propagate=True)
+def handle_page_id(user, value, oldvalue, initiator):
+    """ Triggered when a value is being set for User.page_id """
+    # from pprint import pprint
+    app.logger.debug("================ The page_id listener function is running! ===============")
+    # app.logger.debug("user, value, oldvalue, initiator")
+    # app.logger.debug('--------------------------------------------------------------------------')
+    # pprint(user)
+    # app.logger.debug('--------------------------------------------------------------------------')
+    # pprint(value)
+    # app.logger.debug('--------------------------------------------------------------------------')
+    # pprint(oldvalue)
+    # app.logger.debug('--------------------------------------------------------------------------')
+    # pprint(initiator)
+    # app.logger.debug('--------------------------------------------------------------------------')
+    if value in (None, ''):
+        user.story_subscribed = False
+        app.logger.debug(f"Empty page for {user} user. Set story_subscribed to False. ")
+    else:
+        success = install_app_on_user_for_story_updates(user)
+        user.story_subscribed = success
+        app.logger.debug(f"Subscribe {value} page for {user} worked: {success} ")
+    # end handle_page_id. has no return.
 
 # ########## The following are for worksheets ############
 
@@ -317,7 +391,7 @@ def callback(mod):
         for ig_info in data:
             cleaned = {}
             for key, value in ig_info.items():
-                cleaned[key] = json.dumps(value) if key in Audience.ig_data else value
+                cleaned[key] = json.dumps(value) if key in Audience.IG_DATA else value
             ig_list.append(cleaned)
         app.logger.debug(f"Amongst these IG options: {ig_list}. ")
         return render_template('decide_ig.html', mod=mod, id=account_id, ig_list=ig_list)
@@ -415,15 +489,14 @@ def view(mod, id):
     """ Used primarily for specific User or Brand views, but also any data model view except Campaign. """
     # if mod == 'campaign':
     #     return campaign(id)
-    Model, model = None, None
+    Model, model = mod_lookup(mod), None
     if current_user.role not in ['manager', 'admin']:
-        if mod in User.roles:
+        if mod in User.ROLES:
             if current_user.role == mod and current_user.id != id:
                 flash("Incorrect location. You are being redirected to your own profile page. ")
                 return redirect(url_for('view', mod=current_user.role, id=current_user.id))
         elif mod in ['post', 'audience']:
             # The user can only view this detail view if they are associated to the data
-            Model = mod_lookup(mod)
             model = Model.query.get(id)
             if model.user != current_user:
                 flash("Incorrect location. You are being redirected to the home page. ")
@@ -431,15 +504,14 @@ def view(mod, id):
         else:
             flash("This was not a correct location. You are redirected to the home page. ")
             return redirect(url_for('home'))
-    Model = Model or mod_lookup(mod)
     model = model or Model.query.get(id)
-    related_user = from_sql(model.user, related=False, safe=True) if getattr(model, 'user', None) else None
     template = 'view.html'
     if mod == 'post':
         template = f"{mod}_{template}"
         model = model.display()
     else:
         model = from_sql(model, related=True, safe=True)
+        related_user = from_sql(model.user, related=False, safe=True) if getattr(model, 'user', None) else None
         if mod == 'insight':
             template = f"{mod}_{template}"
             model['user'] = related_user
@@ -465,11 +537,11 @@ def insights(mod, id):
     dataset, i = {}, 0
     max_val, min_val = 4, float('inf')
 
-    for metrics in (Insight.influence_metrics, Insight.profile_metrics, OnlineFollowers.metrics):
+    for metrics in (Insight.influence_metrics, Insight.profile_metrics, OnlineFollowers.METRICS):
         for metric in metrics:
             # TODO: Undo the following temporary ignore a lot of the metrics
             if metric in ('impressions', 'reach', 'profile_views'):
-                if metrics == OnlineFollowers.metrics:
+                if metrics == OnlineFollowers.METRICS:
                     query = OnlineFollowers.query.filter_by(user_id=id).order_by('recorded', 'hour').all()
                     if len(query):
                         temp_data = {(ea.recorded.strftime("%d %b, %Y"), int(ea.hour)): int(ea.value) for ea in query}
@@ -571,7 +643,7 @@ def add_edit(mod, id=None):
     if request.method == 'POST':
         data = process_form(mod, request)
         if mod == 'brand' and data.get('instagram_id', '') in ('None', ''):
-            # TODO: Decide - Should it work for all User.roles, or only 'brand'?
+            # TODO: Decide - Should it work for all User.ROLES, or only 'brand'?
             data['instagram_id'] = None  # Do not overwrite 'instagram_id' if it was left blank.
         # TODO: ?Check for failing unique column fields, or failing composite unique requirements?
         if action == 'Edit':
@@ -655,7 +727,7 @@ def add(mod):
 @login_required
 def edit(mod, id):
     """ Modify the existing DB entry. Model indicated by mod, and provided record id. """
-    valid_mod = {'campaign'}.union(set(User.roles))
+    valid_mod = {'campaign'}.union(set(User.ROLES))
     if mod not in valid_mod:
         app.logger.error(f"Unable to edit {mod}. ")
         flash(f"Editing a {mod} is not working right now. Contact an Admin. ")
@@ -685,6 +757,7 @@ def hook():
         try:
             data = request.json if request.is_json else request.data
         except Exception as e:
+            # TODO: Remove the fake response after testing.
             fake_story_update = {'exits': 0,
                                  'impressions': 0,
                                  'media_id': 0,
@@ -697,7 +770,7 @@ def hook():
             data = {'object': 'fake', 'entry': [{'id': 0, 'time': 0, 'changes': [one_fake_change]}]}
             app.logger.info(f"Got an exception in hook route. ")
             app.logger.error(e)
-        res, response_code = process_hook(data)
+        res, response_code = process_hook(data)  # Do something with the data!
     elif request.method == 'GET':
         mode = request.args.get('hub.mode')
         token_match = request.args.get('hub.verify_token', '') if request.args.get('hub.mode') == 'subscribe' else ''
@@ -707,7 +780,7 @@ def hook():
         app.logger.debug(f"Mode: {mode} | Challenge: {res} | Token: {token_match} ")
     else:
         raise ValueError('Expected either a GET or POST request. ')
-
+    app.logger.debug(res)
     return res, response_code
 
 
@@ -749,7 +822,7 @@ def all(mod):
         All other list views can only be seen by admin users.
     """
     if current_user.role not in ['admin', 'manager']:
-        if mod in User.roles:
+        if mod in User.ROLES:
             if current_user.role == mod:
                 return redirect(url_for('view', mod=mod, id=current_user.id))
             elif mod in ['influencer', 'brand']:
@@ -758,7 +831,7 @@ def all(mod):
                 return redirect(url_for('signup'))
         flash("It seems that is not a correct route. You are redirected to the home page. ")
         return redirect(url_for('home'))
-    # if mod not in ['campaign', *User.roles] and current_user.role != 'admin':
+    # if mod not in ['campaign', *User.ROLES] and current_user.role != 'admin':
     #     flash('It seems that is not a correct route. You are redirected to the home page.')
     #     return redirect(url_for('home'))
     if mod == 'file':

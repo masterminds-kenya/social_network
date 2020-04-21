@@ -115,3 +115,21 @@ def fix_defaults():
         success = False
         db.session.rollback()
     return success
+
+
+def get_page_for_all_users():
+    """ We need the page number and token in order to setup webhooks for story insights. """
+    from .api import get_fb_page_for_user
+    from .model_db import User, db
+
+    updates = {}
+    users = User.query.filter(User.instagram_id.isnot(None)).all()
+    for user in users:
+        page = get_fb_page_for_user(user)
+        if page:
+            user.page_id = page.get('id')
+            user.page_token = page.get('token')
+            db.session.add(user)
+            updates[user.id] = str(user)
+    db.session.commit()
+    return updates
