@@ -23,20 +23,17 @@
   </li>
   {% elif key == 'posts' and data[key]|length %}
   <li>
-    <button aria-expanded="false">
+    <input id="collapsible_{{key}}" class="toggle" type="checkbox" />
+    <label for="collapsible_{{key}}" class="lbl-toggle">
       {{ key }}
-      <svg viewBox="0 0 10 10" aria-hidden="true" focusable="false">
-        <rect class="vert" height="8" width="2" y="1" x="4" />
-        <rect height="2" width="8" y="4" x="1" />
-      </svg>
-    </button>
-    <ul class="{{ key }}">
-    {% for ea in data[key] %}
-      <li>
-        <a href="{{ url_for('view', mod='post', id=ea.id) }}"># {{ea.id}} {{ea.media_type}} posted on {{ea.recorded}}</a>
-      </li>
-    {% endfor %}
-    </ul>
+    </label>
+      <ul class="collapsible-content {{key}}">
+        {% for ea in data[key] %}
+        <li>
+          <a href="{{ url_for('view', mod='post', id=ea.id) }}"># {{ea.id}} {{ea.media_type}} posted on {{ea.recorded}}</a>
+        </li>
+        {% endfor %}
+      </ul>
   </li>
   {% elif key == 'audiences' and data[key]|length %}
   <li> {{ key }}
@@ -91,21 +88,5 @@
 </ul>
 {% endif %}
 {% endblock modify %}
-<script>
-  (function() {
-    const headings = document.querySelectorAll('h2');
 
-    Array.prototype.forEach.call(headings, h => {
-      let btn = h.querySelector('button');
-      let target = h.nextElementSibling;
-
-      btn.onclick = () => {
-        let expanded = btn.getAttribute('aria-expanded') === 'true';
-
-        btn.setAttribute('aria-expanded', !expanded);
-        target.hidden = expanded;
-      }
-    });
-  })()
-</script>
 {% endblock content %}

@@ -128,10 +128,59 @@ strong {
   order: 3;
 }
 
-li button { all: inherit; }
-li button:focus svg { outline: 2px solid; }
-[aria-expanded] rect { fill: currentColor; }
-[aria-expanded="true"] .vert { display: none; }
+/* .wrap-collapsible { margin-bottom: 1.2rem 0; } */
+input.toggle[type='checkbox'] { display: none; }
+.lbl-toggle {
+  display: block;
+  max-width: 26rem;
+  /* font-family: monospace; */
+  /* font-size: 110%; */
+  /* text-transform: uppercase; */
+  /* text-align: center; */
+  font-weight: bold;
+  padding: 0.5rem;
+  color: #A77B0E;
+  background: #FAE042;
+  cursor: pointer;
+  border-radius: 7px;
+  transition: all 0.25s ease-out;
+}
+.lbl-toggle:hover { color: #7C5A0B; }
+.lbl-toggle::before {
+  content: ' ';
+  display: inline-block;
+  border-top: 5px solid transparent;
+  border-bottom: 5px solid transparent;
+  border-left: 5px solid currentColor;
+  vertical-align: middle;
+  margin-right: .7rem;
+  transform: translateY(-2px);
+  transition: transform .2s ease-out;
+}
+.toggle:checked + .lbl-toggle::before {
+  transform: rotate(90deg) translateX(-3px);
+}
+.collapsible-content {
+  max-height: 0px;
+  max-width: 26rem;
+  overflow: hidden;
+  transition: max-height .25s ease-in-out;
+  background: rgba(250, 224, 66, .2);
+}
+.toggle:checked + .lbl-toggle + .collapsible-content {
+  max-height: 100%;
+  border-bottom: 1px solid rgba(250, 224, 66, .45);
+  border-bottom-left-radius: 7px;
+  border-bottom-right-radius: 7px;
+  padding: .5rem 1rem;
+}
+.toggle:checked + .lbl-toggle {
+  border-bottom-right-radius: 0;
+  border-bottom-left-radius: 0;
+}
+
+/* End of expanding box of content  */
+
 
 button {
   border-top: 1px solid #939fef;
