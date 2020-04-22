@@ -19,7 +19,17 @@
   <li><a href="{{ url_for('insights', mod=mod, id=data.id) }}">See Insights</a> </li>
   {% elif key == 'aud_count' %}
   <li>
-    audience count: {% for ea in data[key] %}{{ea}}, {% else %}EMPTY NONE{% endfor %}
+    <input id="collapsible_{{key}}" class="toggle" type="checkbox" />
+    <label for="collapsible_{{key}}" class="lbl-toggle">
+      audience count: {{ data[key]|length }} records, or approximately {{ data[key]|length // 4 }} days.
+    </label>
+    <ul class="collapsible-content {{key}}">
+      {% for ea in data[key] %}
+      <li>{{ ea }}</li>
+      {% else %}
+      <li>EMPTY NONE</li>
+      {% endfor %}
+    </ul>
   </li>
   {% elif key == 'posts' and data[key]|length %}
   <li>
