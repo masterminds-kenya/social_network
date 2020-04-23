@@ -741,16 +741,13 @@ def edit(mod, id):
 @app.route('/post/hook/', methods=['GET', 'POST'])
 def hook():
     """ Endpoint receives all webhook updates from Instagram/Facebook for Story Posts. """
-    from pprint import pprint
-    # json_data = request.json
-    # https://developers.facebook.com/docs/graph-api/webhooks/getting-started
     app.logger.debug(f"========== The hook route has a {request.method} request ==========")
     if request.method == 'POST':
         signed = request.headers.get('X-Hub-Signature', None)
-        pprint(signed or request.headers)
         signature = 'sha1='
-        # Generate a SHA1 with payload and App Secret
+        # TODO: Generate a SHA1 with payload and App Secret, confirm it is a match.
         signature += ''
+        app.logger.debug(f"Signature match worked: {signed == signature} ")
         # if signed != signature:
         #     message = f"Signature did not match. "
         #     return message, 401
@@ -770,7 +767,6 @@ def hook():
             data = {'object': 'fake', 'entry': [{'id': 42, 'time': 0, 'changes': [one_fake_change]}]}
             app.logger.info(f"Got an exception in hook route. ")
             app.logger.error(e)
-        pprint(data)
         res, response_code = process_hook(data)  # Do something with the data!
     elif request.method == 'GET':
         mode = request.args.get('hub.mode')

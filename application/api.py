@@ -25,43 +25,35 @@ FB_SCOPE = [
 
 def process_hook(req):
     """ We have a confirmed authoritative update on subscribed data of a Story Post. """
-    # data = {'object': 'instagram', 'entry': [{'id': <ig_id>, 'time': 0, 'changes': [one_fake_change]}]}
-
-    # records = [rec.update({'ig_id': ea['id']}) for ea in req.get('entry', [{}]) for rec in ea.get('changes', [{}])]
-    records, stories, feeds, extras = [], [], [], []
+    # req = {'object': 'instagram', 'entry': [{'id': <ig_id>, 'time': 0, 'changes': [one_fake_change]}]}
+    stories, feeds, extras = [], [], []
     for ea in req.get('entry', [{}]):
         for rec in ea.get('changes', [{}]):
             val = rec.get('value', {})
             val.update({'ig_id': ea['id'], 'field': rec.get('field')})
-            records.update(val)
             if rec.get('field', '').lower() == 'story_insights':
-                stories.update(val)
+                stories.append(val)
             elif rec.get('field', '').lower() == 'feed':
-                feeds.update(val)
+                feeds.append(val)
             else:
                 extras.update(val)
-    app.logger.debug(f"====== process_hook: records: {len(records)} stories: {len(stories)} feeds: {len(feeds)} ======")
+    app.logger.debug(f"====== process_hook: stories: {len(stories)} feeds: {len(feeds)} ======")
     pprint(feeds)
-    app.logger.debug("-------------------- Categorized all --------------------")
-    missed_count = len(records) - len(stories) - len(feeds) - len(extras)
-    app.logger.debug("True" if not missed_count else f"Missed: {missed_count} ")
-    # app.logger.info('----------------------------------------------------------------------')
     app.logger.info('*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*')
     pprint(extras)
     app.logger.info('----------------------------------------------------------------------')
-    # models = Post.query.filter(Post.media_id.in_([int(ea.get('media_id', 0)) for ea in stories])).all()
-    count, new, modified = 0, [], []
+    total, new, modified = 0, 0, 0
     for story in stories:
         media_id = story.pop('media_id', None)
         ig_id = story.pop('ig_id', None)
         if media_id:
-            count += 1
+            total += 1
             model = Post.query.filter_by(media_id=media_id).first()  # Returns none if not in DB
             if model:
                 # update
                 for k, v in story.items():
                     setattr(model, k, v)
-                modified.append(model)
+                modified += 1
                 db.session.add(model)
             else:
                 # create, but we need extra data about this story Post.
@@ -69,9 +61,9 @@ def process_hook(req):
                 res = get_basic_post(media_id, user_id=getattr(user, 'id', None), token=getattr(user, 'token', None))
                 story.update(res)
                 model = Post(**story)
-                new.append(model)
+                new += 1
                 db.session.add(model)
-    message = f"Updating {len(modified)} and creating {len(new)} Story Posts; Recording data for {count} Story Posts. "
+    message = f"Updating {modified} and creating {new} Story Posts; Recording data for {total} Story Posts. "
     try:
         db.session.commit()
         response_code = 200
