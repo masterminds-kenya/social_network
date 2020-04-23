@@ -363,7 +363,7 @@ def get_fb_page_for_user(user, facebook=None, token=None):
         ig_list = find_instagram_id(accounts, facebook=facebook, token=token)
         matching_ig = [ig_info for ig_info in ig_list if int(ig_info.get('id', 0)) == ig_id]
         ig_info = matching_ig[0] if len(matching_ig) == 1 else {}
-        page = {'id': ig_info.get('page_id'), 'token': ig_info.get('page_token')}
+        page = {'id': ig_info.get('page_id'), 'token': ig_info.get('page_token'), 'new_page': True}
     success = True if page['id'] and page['token'] else False
     return page if success else None
 
@@ -411,6 +411,18 @@ def install_app_on_user_for_story_updates(user_or_id, page=None, facebook=None, 
     app.logger.debug('----------------------------------------------------------------')
     pprint(res)
     installed = res.get('success', False)
+    # Update user: page details if they are new. story_subscribe if install was successful.
+    updated_user = False
+    if page.get('new_page'):
+        user.page_id = page['id']
+        user.page_token = page['token']
+        updated_user = True
+    if installed:
+        user.story_subscribe = True
+        updated_user = True
+    if updated_user:
+        db.session.add(user)
+        db.session.commit()
     return installed
 
 

@@ -126,7 +126,7 @@ def get_page_for_all_users():
     users = User.query.filter(User.instagram_id.isnot(None)).all()
     for user in users:
         page = get_fb_page_for_user(user)
-        if page:
+        if page and page.get('new_page'):
             user.page_id = page.get('id')
             user.page_token = page.get('token')
             db.session.add(user)
