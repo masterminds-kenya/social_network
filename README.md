@@ -87,6 +87,8 @@ The [Instagram (Facebook) Graph API](https://developers.facebook.com/docs/instag
 
 Through our [manually built Facebook Login flow](https://developers.facebook.com/docs/facebook-login/manually-build-a-login-flow), we collect the 'facebook_id', which allows us to locate their [Instagram Professional Account(s)](https://help.instagram.com/502981923235522?fbclid=IwAR1pmzAotXJ4X_-XFKNP4Ft2A9F4BuAyMbuFtCZ7ayb3FtLoM7kO6nWQFV4) via [Graph API Page](https://developers.facebook.com/docs/instagram-api/reference/page) route (their Instagram account must be connected to a Facebook Page). If the Influencer or Brand partner has multiple of Instagram Professional accounts, they are given an option of which they want to use for the platform.
 
+For Instagram professional accounts, the expectation is that it is attached to a professional page on Facebook, as is customary. In order for our platform to get the most accurate metrics on that user's Stories, their Facebook page needs to have the App platform enabled in their [App Settings](https://www.facebook.com/settings?tab=applications). 
+
 ## Deployment
 
 [Deployed Site](https://www.bacchusinfluencerplatform.com)
