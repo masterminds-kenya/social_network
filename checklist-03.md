@@ -59,7 +59,7 @@ Current Status:
     - [x] User model has field to track if installing the app was successful.
     - [x] Onboarding process records the page_id to the created User account.
     - [ ] App is automatically installed when page_id is added or updated on User account.
-      - [ ] perhaps a signal and listener approach?
+      - [x] triggered by a signal and listener on the page_id field for all users.
       - [ ] Record success state of installing app for User
   - [x] Have a hook route on live site
   - [?] Configure hook route on FB App Dashboard
