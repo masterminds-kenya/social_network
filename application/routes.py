@@ -767,9 +767,10 @@ def hook():
                                  'taps_forward': 0
                                  }
             one_fake_change = {'field': 'fake_field', 'value': fake_story_update}
-            data = {'object': 'fake', 'entry': [{'id': 0, 'time': 0, 'changes': [one_fake_change]}]}
+            data = {'object': 'fake', 'entry': [{'id': 42, 'time': 0, 'changes': [one_fake_change]}]}
             app.logger.info(f"Got an exception in hook route. ")
             app.logger.error(e)
+        pprint(data)
         res, response_code = process_hook(data)  # Do something with the data!
     elif request.method == 'GET':
         mode = request.args.get('hub.mode')

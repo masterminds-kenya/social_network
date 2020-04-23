@@ -27,23 +27,28 @@ def process_hook(req):
     """ We have a confirmed authoritative update on subscribed data of a Story Post. """
     # data = {'object': 'instagram', 'entry': [{'id': <ig_id>, 'time': 0, 'changes': [one_fake_change]}]}
 
-    records = [rec.update({'ig_id': ea['id']}) for ea in req.get('entry', [{}]) for rec in ea.get('changes', [{}])]
-    stories = [rec.get('value', {}).update({'ig_id': rec['ig_id']})
-               for rec in records
-               if rec.get('field', '').lower() == 'story_insights'
-               ]
-    extra_changes_count = len(records) - len(stories)
-    if extra_changes_count:
-        extras = [rec.get('value', {}).update({'ig_id': rec['id'], 'field': rec.get('field')})
-                  for rec in records
-                  if rec.get('field', '').lower() != 'story_insights'
-                  ]
-        app.logger.info('----------------------------------------------------------------------')
-        app.logger.info(f"Had {extra_changes_count} unexpected non-story changes. ")
-        pprint(', '.join([ea.field for ea in extras]))
-        app.logger.info('*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*')
-        pprint(extras)
-        app.logger.info('----------------------------------------------------------------------')
+    # records = [rec.update({'ig_id': ea['id']}) for ea in req.get('entry', [{}]) for rec in ea.get('changes', [{}])]
+    records, stories, feeds, extras = [], [], [], []
+    for ea in req.get('entry', [{}]):
+        for rec in ea.get('changes', [{}]):
+            val = rec.get('value', {})
+            val.update({'ig_id': ea['id'], 'field': rec.get('field')})
+            records.update(val)
+            if rec.get('field', '').lower() == 'story_insights':
+                stories.update(val)
+            elif rec.get('field', '').lower() == 'feed':
+                feeds.update(val)
+            else:
+                extras.update(val)
+    app.logger.debug(f"====== process_hook: records: {len(records)} stories: {len(stories)} feeds: {len(feeds)} ======")
+    pprint(feeds)
+    app.logger.debug("-------------------- Categorized all --------------------")
+    missed_count = len(records) - len(stories) - len(feeds) - len(extras)
+    app.logger.debug("True" if not missed_count else f"Missed: {missed_count} ")
+    # app.logger.info('----------------------------------------------------------------------')
+    app.logger.info('*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*')
+    pprint(extras)
+    app.logger.info('----------------------------------------------------------------------')
     # models = Post.query.filter(Post.media_id.in_([int(ea.get('media_id', 0)) for ea in stories])).all()
     count, new, modified = 0, [], []
     for story in stories:
