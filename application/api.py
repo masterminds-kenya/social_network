@@ -343,13 +343,13 @@ def get_fb_page_for_user(user, facebook=None, token=None):
         if not ig_id or not fb_id:
             message = f"We can only get a users page if we already know their accounts on Facebook and Instagram. "
             app.logger.error(message)
-            raise Exception(message)
+            return None
         if not facebook and not token:
             token = getattr(user, 'token', None)
             if not token:
                 message = f"We do not have the permission token for this user: {user} "
                 app.logger.error(message)
-                raise Exception(message)
+                return None
         url = f"https://graph.facebook.com/{fb_id}"
         app.logger.debug(f"========== get_fb_page_for_user ==========")
         params = {'fields': 'accounts'}
@@ -357,8 +357,8 @@ def get_fb_page_for_user(user, facebook=None, token=None):
             params['access_token'] = token
         # TODO: Test facebook.post will work as written below.
         res = facebook.post(url, params=params).json() if facebook else requests.post(url, params=params).json()
-        app.logger.debug('---------------------------------------')
-        pprint(res)
+        # app.logger.debug('---------------------------------------')
+        # pprint(res)
         accounts = res.pop('accounts', None)
         ig_list = find_instagram_id(accounts, facebook=facebook, token=token)
         matching_ig = [ig_info for ig_info in ig_list if int(ig_info.get('id', 0)) == ig_id]
@@ -379,12 +379,6 @@ def install_app_on_user_for_story_updates(user_or_id, page=None, facebook=None, 
         user = User.query.get(user_id)
     else:
         raise ValueError('Input must be either a User model or an id for a User. ')
-    if not facebook and not token:
-        token = getattr(user, 'token', None)
-        if not token:
-            message = f"We do not have the permission token for this user: {user} "
-            app.logger.error(message)
-            return False
     app.logger.debug(f"========== install_app_on_user_for_story_updates ==========")
     if not isinstance(page, dict) or not page.get('id') or not page.get('token'):
         page = get_fb_page_for_user(user, facebook=facebook, token=token)
@@ -412,17 +406,17 @@ def install_app_on_user_for_story_updates(user_or_id, page=None, facebook=None, 
     pprint(res)
     installed = res.get('success', False)
     # Update user: page details if they are new. story_subscribe if install was successful.
-    updated_user = False
-    if page.get('new_page'):
-        user.page_id = page['id']
-        user.page_token = page['token']
-        updated_user = True
-    if installed:
-        user.story_subscribe = True
-        updated_user = True
-    if updated_user:
-        db.session.add(user)
-        db.session.commit()
+    # updated_user = False
+    # if page.get('new_page'):
+    #     user.page_id = page['id']
+    #     user.page_token = page['token']
+    #     updated_user = True
+    # if installed:
+    #     user.story_subscribe = True
+    #     updated_user = True
+    # if updated_user:
+    #     db.session.add(user)
+    #     db.session.commit()
     return installed
 
 

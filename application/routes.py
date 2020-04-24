@@ -294,7 +294,10 @@ def story_subscribe(mod, id):
     return redirect(request.referrer)
 
 
-@event.listens_for(User.page_id, 'set', propagate=True)
+# @event.listens_for(db.session, 'after_attach')
+# def handle_page_id(session, model):
+
+@event.listens_for(User.page_token, 'set', retval=True)
 def handle_page_id(user, value, oldvalue, initiator):
     """ Triggered when a value is being set for User.page_id """
     # from pprint import pprint
@@ -313,10 +316,15 @@ def handle_page_id(user, value, oldvalue, initiator):
         user.story_subscribed = False
         app.logger.debug(f"Empty page for {user} user. Set story_subscribed to False. ")
     else:
-        success = install_app_on_user_for_story_updates(user)
+        page_id = getattr(user, 'page_id', None)
+        if not page_id:
+            app.logger.debug(f"Invalid page_id: {str(page_id)} for user: {user} ")
+            return value
+        page = {'id': page_id, 'token': value}
+        success = install_app_on_user_for_story_updates(user, page=page)
         user.story_subscribed = success
         app.logger.debug(f"Subscribe {value} page for {user} worked: {success} ")
-    # end handle_page_id. has no return.
+    return value
 
 # ########## The following are for worksheets ############
 
