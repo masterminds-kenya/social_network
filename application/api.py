@@ -30,14 +30,17 @@ def process_hook(req):
     for ea in req.get('entry', [{}]):
         for rec in ea.get('changes', [{}]):
             val = rec.get('value', {})
-            val.update({'ig_id': ea['id'], 'field': rec.get('field')})
+            val.update({'ig_id': ea['id']})
             if rec.get('field', '').lower() == 'story_insights':
                 stories.append(val)
             elif rec.get('field', '').lower() == 'feed':
                 feeds.append(val)
             else:
+                val.update({'field': rec.get('field')})
                 extras.update(val)
     app.logger.debug(f"====== process_hook: stories: {len(stories)} feeds: {len(feeds)} ======")
+    pprint(stories)
+    app.logger.info('*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*')
     pprint(feeds)
     app.logger.info('*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*')
     pprint(extras)
@@ -58,7 +61,11 @@ def process_hook(req):
             else:
                 # create, but we need extra data about this story Post.
                 user = User.query.filter_by(instagram_id=ig_id).first() if ig_id else object()
-                res = get_basic_post(media_id, user_id=getattr(user, 'id', None), token=getattr(user, 'token', None))
+                if media_id == '17887498072083520':
+                    res = {'user_id': 190, 'media_id': media_id, 'media_type': 'STORY'}
+                    res['timestamp'] = "2020-04-23T18:10:00+0000"
+                else:
+                    res = get_basic_post(media_id, user_id=getattr(user, 'id', None), token=getattr(user, 'token'))
                 story.update(res)
                 model = Post(**story)
                 new += 1
