@@ -26,27 +26,28 @@ FB_SCOPE = [
 def process_hook(req):
     """ We have a confirmed authoritative update on subscribed data of a Story Post. """
     # req = {'object': 'instagram', 'entry': [{'id': <ig_id>, 'time': 0, 'changes': [one_fake_change]}]}
-    stories, feeds, extras = [], [], []
+    from collections import defaultdict
+
+    # stories, feeds, extras = [], [], []
+    hook_data, data_count = defaultdict(list), 0
     for ea in req.get('entry', [{}]):
         for rec in ea.get('changes', [{}]):
             val = rec.get('value', {})
             val.update({'ig_id': ea['id']})
-            if rec.get('field', '').lower() == 'story_insights':
-                stories.append(val)
-            elif rec.get('field', '').lower() == 'feed':
-                feeds.append(val)
-            else:
-                val.update({'field': rec.get('field')})
-                extras.update(val)
-    app.logger.debug(f"====== process_hook: stories: {len(stories)} feeds: {len(feeds)} ======")
-    pprint(stories)
-    app.logger.info('*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*')
-    pprint(feeds)
-    app.logger.info('*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*')
-    pprint(extras)
-    app.logger.info('----------------------------------------------------------------------')
+            hook_data[rec.get('field', '')].append(val)
+            data_count += 1
+            # if rec.get('field', '').lower() == 'story_insights':
+            #     stories.append(val)
+            # elif rec.get('field', '').lower() == 'feed':
+            #     feeds.append(val)
+            # else:
+            #     val.update({'field': rec.get('field')})
+            #     extras.update(val)
+    # app.logger.debug(f"====== process_hook: stories: {len(stories)} feeds: {len(feeds)} extras: {len(extras)} ======")
+    app.logger.debug(f"====== process_hook: stories: {len(hook_data['story_insights'])} total: {data_count} ======")
+
     total, new, modified = 0, 0, 0
-    for story in stories:
+    for story in hook_data['story_insights']:
         media_id = story.pop('media_id', None)
         ig_id = story.pop('ig_id', None)
         if media_id:
@@ -74,6 +75,7 @@ def process_hook(req):
     try:
         db.session.commit()
         response_code = 200
+        message += "Database updated. "
     except Exception as e:
         response_code = 401
         message += "Unable to to commit story hook updates to database. "
@@ -163,7 +165,8 @@ def get_insight(user_id, first=1, influence_last=30*12, profile_last=30*3, ig_id
         for i in range(first, last + 2 - 30, 30):
             until = dt.utcnow() - timedelta(days=i)
             since = until - timedelta(days=30)
-            url = f"https://graph.facebook.com/{ig_id}/insights?metric={metric}&period={ig_period}&since={since}&until={until}"
+            url = "https://graph.facebook.com"
+            url += f"/{ig_id}/insights?metric={metric}&period={ig_period}&since={since}&until={until}"
             response = facebook.get(url).json() if facebook else requests.get(f"{url}&access_token={token}").json()
             insights = response.get('data')
             if not insights:
