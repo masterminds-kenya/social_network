@@ -1,12 +1,12 @@
 from flask import current_app as app
 from flask_login import login_user
-from .model_db import db_create, db_read, db_create_or_update_many, db
-from .model_db import metric_clean, Insight, Audience, Post, OnlineFollowers, User  # , Campaign
+from collections import defaultdict
+from datetime import timedelta, datetime as dt
 import requests
 import requests_oauthlib
 from requests_oauthlib.compliance_fixes import facebook_compliance_fix
-from datetime import datetime as dt
-from datetime import timedelta
+from .model_db import db_create, db_read, db_create_or_update_many, db
+from .model_db import metric_clean, Insight, Audience, Post, OnlineFollowers, User  # , Campaign
 from pprint import pprint
 
 URL = app.config.get('URL')
@@ -26,9 +26,6 @@ FB_SCOPE = [
 def process_hook(req):
     """ We have a confirmed authoritative update on subscribed data of a Story Post. """
     # req = {'object': 'instagram', 'entry': [{'id': <ig_id>, 'time': 0, 'changes': [one_fake_change]}]}
-    from collections import defaultdict
-
-    # stories, feeds, extras = [], [], []
     hook_data, data_count = defaultdict(list), 0
     for ea in req.get('entry', [{}]):
         for rec in ea.get('changes', [{}]):
@@ -36,16 +33,7 @@ def process_hook(req):
             val.update({'ig_id': ea['id']})
             hook_data[rec.get('field', '')].append(val)
             data_count += 1
-            # if rec.get('field', '').lower() == 'story_insights':
-            #     stories.append(val)
-            # elif rec.get('field', '').lower() == 'feed':
-            #     feeds.append(val)
-            # else:
-            #     val.update({'field': rec.get('field')})
-            #     extras.update(val)
-    # app.logger.debug(f"====== process_hook: stories: {len(stories)} feeds: {len(feeds)} extras: {len(extras)} ======")
     app.logger.debug(f"====== process_hook: stories: {len(hook_data['story_insights'])} total: {data_count} ======")
-
     total, new, modified = 0, 0, 0
     for story in hook_data['story_insights']:
         media_id = story.pop('media_id', None)
@@ -66,7 +54,7 @@ def process_hook(req):
                     res = {'user_id': 190, 'media_id': media_id, 'media_type': 'STORY'}
                     res['timestamp'] = "2020-04-23T18:10:00+0000"
                 else:
-                    res = get_basic_post(media_id, user_id=getattr(user, 'id', None), token=getattr(user, 'token'))
+                    res = get_basic_post(media_id, user_id=getattr(user, 'id'), token=getattr(user, 'token'))
                 story.update(res)
                 model = Post(**story)
                 new += 1
