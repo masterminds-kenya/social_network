@@ -84,8 +84,7 @@ def encrypt():
 def fix_defaults():
     """ Temporary route and function for developer to test components. """
     from .model_db import Post, OnlineFollowers, Insight, db
-
-    p_keys = ['impressions', 'reach', 'engagement', 'saved', 'video_views', 'exits', 'replies', 'taps_forward', 'taps_back']
+    p_keys = [*Post.METRICS['STORY'].union(Post.METRICS['VIDEO'])]  # All the integer Metrics requested from API.
     # not_needed_keys = ['comments_count', 'like_count', ]
     update_count = 0
     Model = Post

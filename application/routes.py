@@ -534,11 +534,14 @@ def insights(mod, id):
                 temp = {'chart': chart, 'data_dict': temp_data, 'max': max_curr, 'min': min_curr}
                 dataset[metric] = temp
                 i += 1
-    labels = [ea for ea in dataset['reach']['data_dict'].keys()]
-    max_val = int(1.2 * max_val)
-    min_val = int(0.8 * min_val)
-    steps = len(labels) // 25  # TODO: Update steps as appropriate for the metric / chart.
-    return render_template('chart.html', user=user['name'], dataset=dataset, labels=labels, max=max_val, min=min_val, steps=steps)
+    kwargs = {'dataset': dataset}
+    kwargs['user'] = user['name']
+    kwargs['labels'] = [ea for ea in dataset['reach']['data_dict'].keys()]
+    kwargs['max_val'] = int(1.2 * max_val)
+    kwargs['min_val'] = int(0.8 * min_val)
+    kwargs['steps'] = len(kwargs['labels']) // 25  # TODO: Update steps as appropriate for the metric / chart.
+    # return render_template('chart.html', user=user['name'], dataset=, labels=, max=max_val, min=min_val, steps=steps)
+    return render_template('chart.html', **kwargs)
 
 
 @app.route('/<string:mod>/<int:id>/audience')
@@ -638,7 +641,7 @@ def add_edit(mod, id=None):
                 found_user = User.query.filter_by(instagram_id=ig_id).first() if ig_id and Model == User else None
                 if found_user:
                     found_user_id = getattr(found_user, 'id', None)
-                    # TODO: Is the following check sufficient to block the security hole if Updating the 'instagram_id' field on a form
+                    # TODO: Are we safe from updating the 'instagram_id' on a form?
                     if current_user.facebook_id == found_user.facebook_id:
                         try:
                             model = db_update(data, found_user_id, Model=Model)
@@ -748,6 +751,7 @@ def hook():
         app.logger.debug(f"Mode: {mode} | Challenge: {res} | Token: {token_match} ")
     else:
         raise ValueError('Expected either a GET or POST request. ')
+    app.logger.debug(f"==================== The hook route returns status code: {response_code} ====================")
     app.logger.debug(res)
     return res, response_code
 
