@@ -227,7 +227,7 @@ def get_audience(user_id, ig_id=None, facebook=None):
 
 def get_basic_post(media_id, metrics=None, user_id=None, facebook=None, token=None):
     """ Typically called by _get_posts_data_of_user, but also if we have a new Story Post while processing hooks. """
-    empty_res = {'media_id': media_id, 'user_id': user_id}
+    empty_res = {'media_id': media_id, 'user_id': user_id, 'timestamp': str(dt.utcnow())}
     if not facebook and not token:
         if not user_id:
             message = f"The get_basic_post must have at least one of 'user_id', 'facebook', or 'token' values. "
