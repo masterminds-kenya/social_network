@@ -26,6 +26,7 @@ FB_SCOPE = [
 def process_hook(req):
     """ We have a confirmed authoritative update on subscribed data of a Story Post. """
     # req = {'object': 'instagram', 'entry': [{'id': <ig_id>, 'time': 0, 'changes': [one_fake_change]}]}
+    pprint(req)
     hook_data, data_count = defaultdict(list), 0
     for ea in req.get('entry', [{}]):
         for rec in ea.get('changes', [{}]):
@@ -34,6 +35,7 @@ def process_hook(req):
             hook_data[rec.get('field', '')].append(val)
             data_count += 1
     app.logger.debug(f"====== process_hook: stories: {len(hook_data['story_insights'])} total: {data_count} ======")
+    pprint(hook_data)
     total, new, modified = 0, 0, 0
     for story in hook_data['story_insights']:
         media_id = story.pop('media_id', None)
@@ -225,7 +227,7 @@ def get_audience(user_id, ig_id=None, facebook=None):
 
 def get_basic_post(media_id, metrics=None, user_id=None, facebook=None, token=None):
     """ Typically called by _get_posts_data_of_user, but also if we have a new Story Post while processing hooks. """
-    user = object()
+    empty_res = {'media_id': media_id, 'user_id': user_id}
     if not facebook and not token:
         if not user_id:
             message = f"The get_basic_post must have at least one of 'user_id', 'facebook', or 'token' values. "
@@ -235,8 +237,8 @@ def get_basic_post(media_id, metrics=None, user_id=None, facebook=None, token=No
         token = getattr(user, 'token', None)
         if not token:
             message = f"Unable to locate user token value. User should login with Facebook and authorize permissions. "
-            res = {'message': message, 'error': 403}
-            return res
+            # res = {'message': message, 'error': 403}
+            return empty_res
     if not metrics:
         metrics = ','.join(Post.METRICS.get('basic'))
     url = f"https://graph.facebook.com/{media_id}?fields={metrics}"
@@ -246,12 +248,15 @@ def get_basic_post(media_id, metrics=None, user_id=None, facebook=None, token=No
         auth = 'facebook' if facebook else 'token' if token else 'none'
         app.logger.debug(f"API fail for Post with media_id {media_id} | Auth: {auth} ")
         app.logger.error(e)
-        return {}
+        return empty_res
+    if 'error' in res:
+        app.logger.error(f"Error: {res.get('error', 'Empty Error')} ")
+        app.logger.error('--------------------- Error in get_basic_post FB API response ---------------------')
+        pprint(res)
+        return empty_res
     res['media_id'] = res.pop('id', media_id)
     if user_id:
         res['user_id'] = user_id
-    elif getattr(user, 'id', None):
-        res['user_id'] = user.id
     return res
 
 

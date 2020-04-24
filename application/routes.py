@@ -286,7 +286,7 @@ def handle_page_id(user, value, oldvalue, initiator):
         page = {'id': page_id, 'token': value}
         success = install_app_on_user_for_story_updates(user, page=page)
         user.story_subscribed = success
-        app.logger.debug(f"Subscribe {value} page for {user} worked: {success} ")
+        app.logger.debug(f"Subscribe {page_id} page for {user} worked: {success} ")
     return value
 
 # ########## The following are for worksheets ############
