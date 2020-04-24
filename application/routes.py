@@ -271,47 +271,10 @@ def capture(id):
     return admin(data=answer)
 
 
-@app.route('/<string:mod>/<int:id>/subscribe/')
-def story_subscribe(mod, id):
-    """ Need to install app on this user's page. Subscribe to instagram stories. """
-    Model = mod_lookup(mod)
-    if Model != User:
-        raise ValueError(f"Expected a User mod but got: {mod} . ")
-
-    subscribed, message = False, ''
-    # if request.method == 'GET':
-    user = Model.query.get(id)
-    subscribed = getattr(user, 'story_subscribed', False)
-    message += f"User {user} "
-    message += "stories were already subscribed. " if subscribed else "stories were NOT subscribed. "
-    # else:  # request.method == 'POST'
-    if not subscribed:
-        installed = install_app_on_user_for_story_updates(id)
-        subscribed = installed  # TODO: ? Are we done if we succeeded with installing the app?
-        message += f"Subscribing to Stories worked: {subscribed} "
-    app.logger.debug(message)
-    flash(message)
-    return redirect(request.referrer)
-
-
-# @event.listens_for(db.session, 'after_attach')
-# def handle_page_id(session, model):
-
 @event.listens_for(User.page_token, 'set', retval=True)
 def handle_page_id(user, value, oldvalue, initiator):
     """ Triggered when a value is being set for User.page_id """
-    # from pprint import pprint
-    app.logger.debug("================ The page_id listener function is running! ===============")
-    # app.logger.debug("user, value, oldvalue, initiator")
-    # app.logger.debug('--------------------------------------------------------------------------')
-    # pprint(user)
-    # app.logger.debug('--------------------------------------------------------------------------')
-    # pprint(value)
-    # app.logger.debug('--------------------------------------------------------------------------')
-    # pprint(oldvalue)
-    # app.logger.debug('--------------------------------------------------------------------------')
-    # pprint(initiator)
-    # app.logger.debug('--------------------------------------------------------------------------')
+    app.logger.debug("================ The page_token listener function is running! ===============")
     if value in (None, ''):
         user.story_subscribed = False
         app.logger.debug(f"Empty page for {user} user. Set story_subscribed to False. ")
