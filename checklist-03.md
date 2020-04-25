@@ -40,11 +40,11 @@
 |                    | Capture application turned off when not needed |
 |                    | New manager/admin account password set on first login |
 |                    | Sheet permission given to user creating it   |
-|                    |         |
-|                    |         |
-|                    |         |
+|                    | Handle a User delete request from Facebook   |
 |                    | **March 2020 Features Completed**            |
 |                    | Migrate live DB (and deploy all of above)    |
+|                    | Run functions needed for migrate steps       |
+|                    | Confirm Onboarding, including page subscribe |
 
 ## Checklist
 

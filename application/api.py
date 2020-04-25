@@ -55,11 +55,12 @@ def process_hook(req):
                 db.session.add(model)
             else:
                 # create, but we need extra data about this story Post.
-                user = User.query.filter_by(instagram_id=ig_id).first() if ig_id else object()
                 if media_id == '17887498072083520':
                     res = {'user_id': 190, 'media_id': media_id, 'media_type': 'STORY'}
                     res['timestamp'] = "2020-04-23T18:10:00+0000"
                 else:
+                    user = User.query.filter_by(instagram_id=ig_id).first() if ig_id else None
+                    user = user or object()
                     res = get_basic_post(media_id, user_id=getattr(user, 'id'), token=getattr(user, 'token'))
                 story.update(res)
                 model = Post(**story)

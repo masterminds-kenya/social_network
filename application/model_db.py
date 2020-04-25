@@ -469,8 +469,8 @@ class Campaign(db.Model):
         ignore = {'id', 'user_id'}
         ignore.update(Post.UNSAFE)
         ignore.update(Post.__mapper__.relationships.keys())  # TODO: Decide if we actually want to keep related models?
-        current_app.logger.debug('--------- export posts, but ignored fields: ----------')
-        pprint(ignore)
+        # current_app.logger.debug('--------- export posts, but ignored fields: ----------')
+        # pprint(ignore)
         properties = [k for k in dir(Post.__mapper__.all_orm_descriptors) if not k.startswith('_') and k not in ignore]
         data = [[clean(getattr(post, ea, '')) for ea in properties] for post in self.posts]
         # current_app.logger.debug('----- Campaign.export_posts() return value -----')
