@@ -25,12 +25,16 @@ FB_SCOPE = [
 
 def process_hook(req):
     """ We have a confirmed authoritative update on subscribed data of a Story Post. """
-    # req = {'object': 'instagram', 'entry': [{'id': <ig_id>, 'time': 0, 'changes': [one_fake_change]}]}
+    # req = {'object': 'instagram', 'entry': [{'id': <ig_id>, 'time': 0, 'changes': [{one_fake_change}]}]}
+    # req = {'object': 'page', 'entry': [{'id': <ig_id>, 'time': 0, 'changes': [{'field': 'name', 'value': 'newnam'}]}]}
     pprint(req)
     hook_data, data_count = defaultdict(list), 0
     for ea in req.get('entry', [{}]):
         for rec in ea.get('changes', [{}]):
+            # obj_type = req.get('object', '')  # likely: page, instagram, user, ...
             val = rec.get('value', {})
+            if isinstance(val, (str, int)):
+                val = {'value': val}
             val.update({'ig_id': ea['id']})
             hook_data[rec.get('field', '')].append(val)
             data_count += 1
@@ -61,17 +65,25 @@ def process_hook(req):
                 model = Post(**story)
                 new += 1
                 db.session.add(model)
-    message = f"Updating {modified} and creating {new} Story Posts; Recording data for {total} Story Posts. "
-    try:
-        db.session.commit()
+    # message = f"Updates - "
+    message = ', '.join([f"{key}: {len(value)}" for key, value in hook_data.items()])
+    message += ' \n'
+    app.logger.debug(message)
+    if modified + new > 0:
+        message += f"Updating {modified} and creating {new} Story Posts; Recording data for {total} Story Posts. "
+        try:
+            db.session.commit()
+            response_code = 200
+            message += "Database updated. "
+        except Exception as e:
+            response_code = 401
+            message += "Unable to to commit story hook updates to database. "
+            app.logger.debug(message)
+            app.logger.error(e)
+            db.session.rollback()
+    else:
+        message += "No records needed updates. "
         response_code = 200
-        message += "Database updated. "
-    except Exception as e:
-        response_code = 401
-        message += "Unable to to commit story hook updates to database. "
-        app.logger.debug(message)
-        app.logger.error(e)
-        db.session.rollback()
     return message, response_code
 
 
