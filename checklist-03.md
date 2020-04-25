@@ -43,6 +43,10 @@
 |                    | Handle a User delete request from Facebook   |
 |                    | Post model track is_story separate from media_type |
 |                    | Refactor for Post.is_story & Post.media_type |
+|                    | Creating batches for daily API call          |
+|                    | Default user who always gets Sheet access    |
+|                    | Sheet management: Delete, Modify access, etc |
+|                    | Tests: ensure future dev doesn't break existing functions |
 |                    | **March 2020 Features Completed**            |
 |                    | Migrate live DB (and deploy all of above)    |
 |                    | Run functions needed for migrate steps       |
