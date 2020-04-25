@@ -291,10 +291,10 @@ def _get_posts_data_of_user(user_id, ig_id=None, facebook=None):
     url = f"https://graph.facebook.com/{ig_id}/stories"
     story_res = facebook.get(url).json() if facebook else requests.get(f"{url}?access_token={token}").json()
     stories = story_res.get('data')
-    if not isinstance(stories, list) and 'error' in story_res:
+    if not isinstance(stories, list) or 'error' in story_res:
         app.logger.error('Error: ', story_res.get('error', 'NA'))
         return []
-    story_ids = [ea.get('id') for ea in stories]
+    story_ids = set([ea.get('id') for ea in stories])
     url = f"https://graph.facebook.com/{ig_id}/media"
     response = facebook.get(url).json() if facebook else requests.get(f"{url}?access_token={token}").json()
     media = response.get('data')
@@ -308,7 +308,7 @@ def _get_posts_data_of_user(user_id, ig_id=None, facebook=None):
     for post in media:
         media_id = post.get('id')
         res = get_basic_post(media_id, metrics=post_metrics['basic'], user_id=user_id, facebook=facebook, token=token)
-        media_type = 'STORY' if res['media_id'] in story_ids else res.get('media_type')
+        media_type = 'STORY' if media_id in story_ids else res.get('media_type')
         res['media_type'] = media_type
         metrics = post_metrics.get(media_type, post_metrics['insight'])
         if metrics == post_metrics['insight']:
