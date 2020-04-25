@@ -33,7 +33,7 @@ def process_hook(req):
         for rec in ea.get('changes', [{}]):
             # obj_type = req.get('object', '')  # likely: page, instagram, user, ...
             val = rec.get('value', {})
-            if isinstance(val, (str, int)):
+            if not isinstance(val, dict):
                 val = {'value': val}
             val.update({'ig_id': ea['id']})
             hook_data[rec.get('field', '')].append(val)
@@ -414,7 +414,7 @@ def install_app_on_user_for_story_updates(user_or_id, page=None, facebook=None, 
     # return data should be { success: True }
     # Business Login and Page Access Token: https://developers.facebook.com/docs/facebook-login/business-login-direct
     params = {} if facebook else {'access_token': page['token']}
-    params['subscribed_fields'] = 'feed'
+    params['subscribed_fields'] = 'name'
     res = facebook.post(url, params=params).json() if facebook else requests.post(url, params=params).json()
     # TODO: See if facebook with params above works.
     app.logger.debug('----------------------------------------------------------------')
