@@ -292,9 +292,19 @@ def handle_page_id(user, value, oldvalue, initiator):
 
 @event.listens_for(Post.media_type, 'set', retval=True)
 def enqueue_capture(model, value, oldvalue, initiator):
-    """ Triggered when a value is being set for User.page_id """
-    app.logger.debug("================ The enqueue_capture listener function is running! ===============")
+    """ Triggered when a value is being set for Post.media_type.
+        Unfortunately our hope to access Post.media_id does not work. It may be present, or not yet set.
+        Perhaps we can add this model to the capture queue, and it will have the values when needed.
+        Otherwise, we may need a different approach.
+    """
+    app.logger.debug("================ The enqueue_capture function is running! ===============")
     message, target, requested = '', None, None
+    if str(type(initiator)) != "<class 'sqlalchemy.orm.attributes.Event'>":
+        message += "Manually requested capture. "
+        requested = getattr(model, 'media_id', None)
+    else:
+        message += "Triggered by Event. "
+
     if value == 'STORY':
         message += "We have a STORY post! "
         if oldvalue != 'STORY':
@@ -308,9 +318,6 @@ def enqueue_capture(model, value, oldvalue, initiator):
             message += "Apparently we already have saved_media captured? "
     else:
         message += f"The Post.media_type value is: {value}, with old value: {oldvalue} . "
-    if not isinstance(initiator, 'sqlalchemy.orm.attributes.Event'):
-        message += "Manually requested capture. "
-        requested = getattr(model, 'media_id', None)
     app.logger.debug(message)
     app.logger.debug(str(target))
     app.logger.debug(str(requested))
