@@ -616,7 +616,7 @@ def add_edit(mod, id=None):
     app.logger.info(f'------- {action} {mod} ----------')
     if request.method == 'POST':
         data = process_form(mod, request)
-        if mod == 'brand' and data.get('instagram_id', '') in ('None', ''):
+        if mod == 'brand' and data.get('instagram_id', '') in ('None', None, ''):
             # TODO: Decide - Should it work for all User.ROLES, or only 'brand'?
             data['instagram_id'] = None  # Do not overwrite 'instagram_id' if it was left blank.
         # TODO: ?Check for failing unique column fields, or failing composite unique requirements?

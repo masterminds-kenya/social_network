@@ -19,20 +19,32 @@
 | :heavy_check_mark: | Rejecting & accepting Posts only affects current Campaign |
 | :heavy_check_mark: | View & re-evaluate rejected Campaign Posts [stretch goal] |
 | :heavy_check_mark: | Remove dev only logging, code clean-up       |
-| :heavy_check_mark: | Security updates [stretch goal?]             |
-| :white_check_mark: | On User delete, remove metrics & keep Posts  |
 |                    | Migrate live DB (and deploy all of above)    |
 |                    | **Milestone 3 Completion**                   |
 | :heavy_check_mark: | Saving Story Post media files                |
 | :heavy_check_mark: | Can view saved media in Campaign processing  |
 |                    | **Milestone 4 Completion**                   |
-|                    | Story Webhook for full data at expiration    |
+| :white_check_mark: | Story Webhook for full data at expiration    |
 | :heavy_check_mark: | Sheet Report layout update, multi-worksheets |
-|                    | Update documentation to capture all updates  |
-|                    | **Stretch Goals**                            |
-|                    | Saving Post files (only if in a Campaign)    |
+| :white_check_mark: | Update documentation to capture all updates  |
+|                    | **Completed Stretch Goals**                  |
+| :heavy_check_mark: | Security: encrypting stored tokens           |
 | :heavy_check_mark: | Campaign sheet reports include saved media   |
+| :heavy_check_mark: | Separate Capture application & resources.    |
+| :heavy_check_mark: | Capture app self-updates OS and Browser      |
+|                    | Task Queue managing calling Capture app      |
+| :heavy_check_mark: | On User delete, remove metrics & keep Posts  |
+|                    | **Suggested Stretch Goals**                  |
+|                    | On User delete, delete orphaned Posts        |
+|                    | Saving Post images (only if in a Campaign)   |
+|                    | Capture application turned off when not needed |
+|                    | New manager/admin account password set on first login |
+|                    | Sheet permission given to user creating it   |
+|                    |         |
+|                    |         |
+|                    |         |
 |                    | **March 2020 Features Completed**            |
+|                    | Migrate live DB (and deploy all of above)    |
 
 ## Checklist
 
@@ -46,7 +58,7 @@
 - [s] Stretch Goal. Not for current feature plan.
 
 Current Status:
-2020-04-19 22:57:52
+2020-04-24 20:24:25
 <!-- Ctrl-Shift-I to generate timestamp -->
 
 ### Story & Media Files Features
@@ -62,7 +74,9 @@ Current Status:
       - [x] triggered by a signal and listener on the page_id field for all users.
       - [x] Record success state of installing app for User
   - [x] Have a hook route on live site
-  - [?] Configure hook route on FB App Dashboard
+  - [x] Configure hook route on FB App Dashboard
+  - [ ] Security: confirm signature with SHA1 generated with payload and App Secret
+    - [x] FB_HOOK_SECRET for Graph to send in query to our hook route.
   - [ ] Once confirmed, remove story data update from daily cron job
 - [x] ? What storage structure is needed for larger media files ?
   - [x] Probably need to setup a storage bucket
@@ -216,11 +230,11 @@ Also see items in the [test-site-content checklist](https://github.com/SeattleCh
     - [x] Keep all old posts
     - [x] Campaign collected can still see posts from deleted users if already in campaign
     - [x] Campaign results still works with posts from deleted users
-    - [ ] Campaign sheet report still works with posts from deleted users
-    - [ ] Keep posts only currently in a campaign, discard unattached posts
+    - [?] Campaign sheet report still works with posts from deleted users
+    - [s] Keep posts only currently in a campaign, discard unattached posts
   - [ ] What about unassigned posts for this User?
-    - [ ] Each post should be deleted
-    - [ ] Any reference to this post (Campaign.processed) should be handled ON DELETE
+    - [s] Each post should be deleted
+    - [?] Any reference to this post (Campaign.processed) should be handled ON DELETE
 - [c] Revisit structure for ON DELETE, ON UPDATE (especially on User delete)
 - [c] Revisit structure for how related tables are loaded (lazy=?)
 - [s] Revisit method of reporting Campaign Results

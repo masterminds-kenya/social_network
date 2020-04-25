@@ -520,7 +520,6 @@ def onboarding(mod, request):
         data['instagram_id'] = ig_id
         data['page_id'] = ig_info.get('page_id')
         data['page_token'] = ig_info.get('page_token')
-        # TODO: Decide if we pass page_token to User model constructor.
         models = []
         for name in Audience.IG_DATA:  # {'media_count', 'followers_count'}
             value = ig_info.get(name, None)

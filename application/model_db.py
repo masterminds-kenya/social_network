@@ -472,11 +472,9 @@ class Campaign(db.Model):
         current_app.logger.debug('--------- export posts, but ignored fields: ----------')
         pprint(ignore)
         properties = [k for k in dir(Post.__mapper__.all_orm_descriptors) if not k.startswith('_') and k not in ignore]
-        # Old version below does not capture the relationship or other non-column mapped fields.
-        # columns = [ea.name for ea in Post.__table__.columns if ea.name not in ignore]
         data = [[clean(getattr(post, ea, '')) for ea in properties] for post in self.posts]
-        current_app.logger.debug('----- Campaign.export_posts() return value -----')
-        pprint([properties, *data])
+        # current_app.logger.debug('----- Campaign.export_posts() return value -----')
+        # pprint([properties, *data])
         return [properties, *data]
 
     def related_posts(self, view):
