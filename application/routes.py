@@ -289,6 +289,38 @@ def handle_page_id(user, value, oldvalue, initiator):
         app.logger.debug(f"Subscribe {page_id} page for {user} worked: {success} ")
     return value
 
+
+@event.listens_for(Post.media_type, 'set', retval=True)
+def enqueue_capture(model, value, oldvalue, initiator):
+    """ Triggered when a value is being set for User.page_id """
+    app.logger.debug("================ The enqueue_capture listener function is running! ===============")
+    message, target, requested = '', None, None
+    if value == 'STORY':
+        message += "We have a STORY post! "
+        if oldvalue != 'STORY':
+            message += "It is new! "
+        else:
+            message += f"Old Value: {oldvalue} . "
+        if not getattr(model, 'saved_media', None):
+            message += "We need to send it for CAPTURE! "
+            target = getattr(model, 'media_id', None)
+        else:
+            message += "Apparently we already have saved_media captured? "
+    else:
+        message += f"The Post.media_type value is: {value}, with old value: {oldvalue} . "
+    if not isinstance(initiator, 'sqlalchemy.orm.attributes.Event'):
+        message += "Manually requested capture. "
+        requested = getattr(model, 'media_id', None)
+    app.logger.debug(message)
+    app.logger.debug(str(target))
+    app.logger.debug(str(requested))
+    app.logger.debug('---------------------------------------------------')
+    # app.logger.debug(type(model))
+    # app.logger.debug(model)
+    # app.logger.debug(type(initiator))
+    # app.logger.debug(initiator)
+    return value
+
 # ########## The following are for worksheets ############
 
 
