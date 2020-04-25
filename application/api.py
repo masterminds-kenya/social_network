@@ -42,6 +42,7 @@ def process_hook(req):
     pprint(hook_data)
     total, new, modified = 0, 0, 0
     for story in hook_data['story_insights']:
+        story['media_type'] = 'STORY'
         media_id = story.pop('media_id', None)
         ig_id = story.pop('ig_id', None)
         if media_id:

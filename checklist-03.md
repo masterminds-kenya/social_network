@@ -41,6 +41,8 @@
 |                    | New manager/admin account password set on first login |
 |                    | Sheet permission given to user creating it   |
 |                    | Handle a User delete request from Facebook   |
+|                    | Post model track is_story separate from media_type |
+|                    | Refactor for Post.is_story & Post.media_type |
 |                    | **March 2020 Features Completed**            |
 |                    | Migrate live DB (and deploy all of above)    |
 |                    | Run functions needed for migrate steps       |
