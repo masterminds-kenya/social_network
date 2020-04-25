@@ -35,10 +35,10 @@ def process_hook(req):
             val = rec.get('value', {})
             if not isinstance(val, dict):
                 val = {'value': val}
-            val.update({'ig_id': ea['id']})
+            val.update({'ig_id': ea.get('id')})
             hook_data[rec.get('field', '')].append(val)
             data_count += 1
-    app.logger.debug(f"====== process_hook: stories: {len(hook_data['story_insights'])} total: {data_count} ======")
+    app.logger.debug(f"====== process_hook - stories: {len(hook_data['story_insights'])} total: {data_count} ======")
     pprint(hook_data)
     total, new, modified = 0, 0, 0
     for story in hook_data['story_insights']:
@@ -82,7 +82,7 @@ def process_hook(req):
             app.logger.error(e)
             db.session.rollback()
     else:
-        message += "No records needed updates. "
+        message += "No needed record updates. "
         response_code = 200
     return message, response_code
 
