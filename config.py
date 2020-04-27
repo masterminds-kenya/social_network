@@ -7,6 +7,8 @@ FB_HOOK_SECRET = environ.get('FB_HOOK_SECRET')
 FLASK_APP = environ.get('FLASK_APP')
 FLASK_ENV = environ.get('FLASK_ENV')
 CAPTURE_BASE_URL = environ.get('CAPTURE_BASE_URL')
+CAPTURE_QUEUE = environ.get('CAPTURE_QUEUE')
+CAPTURE_SERVICE = environ.get('CAPTURE_SERVICE')
 FB_CLIENT_ID = environ.get('FB_CLIENT_ID')
 FB_CLIENT_SECRET = environ.get('FB_CLIENT_SECRET')
 DEV_RUN = True if environ.get('DEV_RUN') == 'True' else False
