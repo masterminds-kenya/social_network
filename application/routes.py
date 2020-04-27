@@ -271,52 +271,62 @@ def capture(id):
     return admin(data=answer)
 
 
-@app.route('/<string:mod>/<int:id>/subscribe/')
-def story_subscribe(mod, id):
-    """ Need to install app on this user's page. Subscribe to instagram stories. """
-    Model = mod_lookup(mod)
-    if Model != User:
-        raise ValueError(f"Expected a User mod but got: {mod} . ")
-
-    subscribed, message = False, ''
-    # if request.method == 'GET':
-    user = Model.query.get(id)
-    subscribed = getattr(user, 'story_subscribed', False)
-    message += f"User {user} "
-    message += "stories were already subscribed. " if subscribed else "stories were NOT subscribed. "
-    # else:  # request.method == 'POST'
-    if not subscribed:
-        installed = install_app_on_user_for_story_updates(id)
-        subscribed = installed  # TODO: ? Are we done if we succeeded with installing the app?
-        message += f"Subscribing to Stories worked: {subscribed} "
-    app.logger.debug(message)
-    flash(message)
-    return redirect(request.referrer)
-
-
-@event.listens_for(User.page_id, 'set', propagate=True)
+@event.listens_for(User.page_token, 'set', retval=True)
 def handle_page_id(user, value, oldvalue, initiator):
     """ Triggered when a value is being set for User.page_id """
-    # from pprint import pprint
-    app.logger.debug("================ The page_id listener function is running! ===============")
-    # app.logger.debug("user, value, oldvalue, initiator")
-    # app.logger.debug('--------------------------------------------------------------------------')
-    # pprint(user)
-    # app.logger.debug('--------------------------------------------------------------------------')
-    # pprint(value)
-    # app.logger.debug('--------------------------------------------------------------------------')
-    # pprint(oldvalue)
-    # app.logger.debug('--------------------------------------------------------------------------')
-    # pprint(initiator)
-    # app.logger.debug('--------------------------------------------------------------------------')
+    app.logger.debug("================ The page_token listener function is running! ===============")
     if value in (None, ''):
         user.story_subscribed = False
         app.logger.debug(f"Empty page for {user} user. Set story_subscribed to False. ")
     else:
-        success = install_app_on_user_for_story_updates(user)
+        page_id = getattr(user, 'page_id', None)
+        if not page_id:
+            app.logger.debug(f"Invalid page_id: {str(page_id)} for user: {user} ")
+            return value
+        page = {'id': page_id, 'token': value}
+        success = install_app_on_user_for_story_updates(user, page=page)
         user.story_subscribed = success
-        app.logger.debug(f"Subscribe {value} page for {user} worked: {success} ")
-    # end handle_page_id. has no return.
+        app.logger.debug(f"Subscribe {page_id} page for {user} worked: {success} ")
+    return value
+
+
+@event.listens_for(Post.media_type, 'set', retval=True)
+def enqueue_capture(model, value, oldvalue, initiator):
+    """ Triggered when a value is being set for Post.media_type.
+        Unfortunately our hope to access Post.media_id does not work. It may be present, or not yet set.
+        Perhaps we can add this model to the capture queue, and it will have the values when needed.
+        Otherwise, we may need a different approach.
+    """
+    app.logger.debug("================ The enqueue_capture function is running! ===============")
+    message, target, requested = '', None, None
+    if str(type(initiator)) != "<class 'sqlalchemy.orm.attributes.Event'>":
+        message += "Manually requested capture. "
+        requested = getattr(model, 'media_id', None)
+    else:
+        message += "Triggered by Event. "
+
+    if value == 'STORY':
+        message += "We have a STORY post! "
+        if oldvalue != 'STORY':
+            message += "It is new! "
+        else:
+            message += f"Old Value: {oldvalue} . "
+        if not getattr(model, 'saved_media', None):
+            message += "We need to send it for CAPTURE! "
+            target = getattr(model, 'media_id', None)
+        else:
+            message += "Apparently we already have saved_media captured? "
+    else:
+        message += f"The Post.media_type value is: {value}, with old value: {oldvalue} . "
+    app.logger.debug(message)
+    app.logger.debug(str(target))
+    app.logger.debug(str(requested))
+    app.logger.debug('---------------------------------------------------')
+    # app.logger.debug(type(model))
+    # app.logger.debug(model)
+    # app.logger.debug(type(initiator))
+    # app.logger.debug(initiator)
+    return value
 
 # ########## The following are for worksheets ############
 
@@ -563,11 +573,14 @@ def insights(mod, id):
                 temp = {'chart': chart, 'data_dict': temp_data, 'max': max_curr, 'min': min_curr}
                 dataset[metric] = temp
                 i += 1
-    labels = [ea for ea in dataset['reach']['data_dict'].keys()]
-    max_val = int(1.2 * max_val)
-    min_val = int(0.8 * min_val)
-    steps = len(labels) // 25  # TODO: Update steps as appropriate for the metric / chart.
-    return render_template('chart.html', user=user['name'], dataset=dataset, labels=labels, max=max_val, min=min_val, steps=steps)
+    kwargs = {'dataset': dataset}
+    kwargs['user'] = user['name']
+    kwargs['labels'] = [ea for ea in dataset['reach']['data_dict'].keys()]
+    kwargs['max_val'] = int(1.2 * max_val)
+    kwargs['min_val'] = int(0.8 * min_val)
+    kwargs['steps'] = len(kwargs['labels']) // 25  # TODO: Update steps as appropriate for the metric / chart.
+    # return render_template('chart.html', user=user['name'], dataset=, labels=, max=max_val, min=min_val, steps=steps)
+    return render_template('chart.html', **kwargs)
 
 
 @app.route('/<string:mod>/<int:id>/audience')
@@ -642,7 +655,7 @@ def add_edit(mod, id=None):
     app.logger.info(f'------- {action} {mod} ----------')
     if request.method == 'POST':
         data = process_form(mod, request)
-        if mod == 'brand' and data.get('instagram_id', '') in ('None', ''):
+        if mod == 'brand' and data.get('instagram_id', '') in ('None', None, ''):
             # TODO: Decide - Should it work for all User.ROLES, or only 'brand'?
             data['instagram_id'] = None  # Do not overwrite 'instagram_id' if it was left blank.
         # TODO: ?Check for failing unique column fields, or failing composite unique requirements?
@@ -667,7 +680,7 @@ def add_edit(mod, id=None):
                 found_user = User.query.filter_by(instagram_id=ig_id).first() if ig_id and Model == User else None
                 if found_user:
                     found_user_id = getattr(found_user, 'id', None)
-                    # TODO: Is the following check sufficient to block the security hole if Updating the 'instagram_id' field on a form
+                    # TODO: Are we safe from updating the 'instagram_id' on a form?
                     if current_user.facebook_id == found_user.facebook_id:
                         try:
                             model = db_update(data, found_user_id, Model=Model)
@@ -741,16 +754,13 @@ def edit(mod, id):
 @app.route('/post/hook/', methods=['GET', 'POST'])
 def hook():
     """ Endpoint receives all webhook updates from Instagram/Facebook for Story Posts. """
-    from pprint import pprint
-    # json_data = request.json
-    # https://developers.facebook.com/docs/graph-api/webhooks/getting-started
     app.logger.debug(f"========== The hook route has a {request.method} request ==========")
     if request.method == 'POST':
         signed = request.headers.get('X-Hub-Signature', None)
-        pprint(signed or request.headers)
         signature = 'sha1='
-        # Generate a SHA1 with payload and App Secret
+        # TODO: Generate a SHA1 with payload and App Secret, confirm it is a match.
         signature += ''
+        app.logger.debug(f"Signature match worked: {signed == signature} ")
         # if signed != signature:
         #     message = f"Signature did not match. "
         #     return message, 401
@@ -767,7 +777,7 @@ def hook():
                                  'taps_forward': 0
                                  }
             one_fake_change = {'field': 'fake_field', 'value': fake_story_update}
-            data = {'object': 'fake', 'entry': [{'id': 0, 'time': 0, 'changes': [one_fake_change]}]}
+            data = {'object': 'fake', 'entry': [{'id': 42, 'time': 0, 'changes': [one_fake_change]}]}
             app.logger.info(f"Got an exception in hook route. ")
             app.logger.error(e)
         res, response_code = process_hook(data)  # Do something with the data!
@@ -780,6 +790,7 @@ def hook():
         app.logger.debug(f"Mode: {mode} | Challenge: {res} | Token: {token_match} ")
     else:
         raise ValueError('Expected either a GET or POST request. ')
+    app.logger.debug(f"==================== The hook route returns status code: {response_code} ====================")
     app.logger.debug(res)
     return res, response_code
 

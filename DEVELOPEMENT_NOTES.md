@@ -36,7 +36,15 @@ To view logs of a service:
 | NODE_ENV             | Set to production when your service is deployed.
 | PORT                 | The port that receives HTTP requests.
 
-## Gcloud Docs and Links
+## Webhook Updates and Instagram Story Media Metrics
+
+We are using Webhooks to allow Instagram/Facebook to send JSON formatted data to a route on our platform application with updated data. There is a [variety of data we can get with webhooks](https://developers.facebook.com/docs/graph-api/webhooks/reference), and the [process to set this up](https://developers.facebook.com/docs/graph-api/webhooks/getting-started) is fairly similar for each, but the [setup for Instagram](https://developers.facebook.com/docs/instagram-api/guides/webhooks) is a little different.
+
+All influencer users, and most brand users, should have a professional instagram account that is connected to a Facebook business page. In order for our platform to get the most accurate Story metrics, this page needs to have *App* platform enabled (the default setting), and continue to grant `manage_pages` permissions for our platform application (set during our onboarding process using Facebook login). The platform application will [subscribe to the page](https://developers.facebook.com/docs/graph-api/webhooks/getting-started/webhooks-for-pages) associated with the instagram account they are using for our platform (subscribing to the page's [name](https://developers.facebook.com/docs/graph-api/webhooks/reference/page/#name) field). There are some additional options for [Page Subscribed Apps](https://developers.facebook.com/docs/graph-api/reference/page/subscribed_apps) should we need it for later development goals.
+
+The function to send a request to the Graph API to subscribe to the page is called whenever the `page_token` property is set for a user (triggered by using [SQAlchemy Events](https://docs.sqlalchemy.org/en/13/orm/events.html)). If page subscription is successful, as expected in most cases,  this will set `story_subscribed` as true for a User. When the page is subscribed, our platform will also be subscribed to receive all `story_metrics` for the associated Instagram account. The Instagram Story Media posts, and the API data about them and their metrics, are only available for about 24 hours from when they are published by the user. This `story_metrics` subscription ensures that our platform will be updated with the final metrics data of the Story when it expires.
+
+## Other Gcloud Docs and Links
 
 - [Dispatch: url routing](https://cloud.google.com/appengine/docs/standard/python3/reference/dispatch-yaml)
 - [Service to Service](https://cloud.google.com/appengine/docs/standard/python3/communicating-between-services)

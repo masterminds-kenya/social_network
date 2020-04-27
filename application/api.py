@@ -1,12 +1,12 @@
 from flask import current_app as app
 from flask_login import login_user
-from .model_db import db_create, db_read, db_create_or_update_many, db
-from .model_db import metric_clean, Insight, Audience, Post, OnlineFollowers, User  # , Campaign
+from collections import defaultdict
+from datetime import timedelta, datetime as dt
 import requests
 import requests_oauthlib
 from requests_oauthlib.compliance_fixes import facebook_compliance_fix
-from datetime import datetime as dt
-from datetime import timedelta
+from .model_db import db_create, db_read, db_create_or_update_many, db
+from .model_db import metric_clean, Insight, Audience, Post, OnlineFollowers, User  # , Campaign
 from pprint import pprint
 
 URL = app.config.get('URL')
@@ -25,57 +25,67 @@ FB_SCOPE = [
 
 def process_hook(req):
     """ We have a confirmed authoritative update on subscribed data of a Story Post. """
-    # data = {'object': 'instagram', 'entry': [{'id': <ig_id>, 'time': 0, 'changes': [one_fake_change]}]}
-
-    records = [rec.update({'ig_id': ea['id']}) for ea in req.get('entry', [{}]) for rec in ea.get('changes', [{}])]
-    stories = [rec.get('value', {}).update({'ig_id': rec['ig_id']})
-               for rec in records
-               if rec.get('field', '').lower() == 'story_insights'
-               ]
-    extra_changes_count = len(records) - len(stories)
-    if extra_changes_count:
-        extras = [rec.get('value', {}).update({'ig_id': rec['id'], 'field': rec.get('field')})
-                  for rec in records
-                  if rec.get('field', '').lower() != 'story_insights'
-                  ]
-        app.logger.info('----------------------------------------------------------------------')
-        app.logger.info(f"Had {extra_changes_count} unexpected non-story changes. ")
-        pprint(', '.join([ea.field for ea in extras]))
-        app.logger.info('*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*')
-        pprint(extras)
-        app.logger.info('----------------------------------------------------------------------')
-    # models = Post.query.filter(Post.media_id.in_([int(ea.get('media_id', 0)) for ea in stories])).all()
-    count, new, modified = 0, [], []
-    for story in stories:
+    # req = {'object': 'instagram', 'entry': [{'id': <ig_id>, 'time': 0, 'changes': [{one_fake_change}]}]}
+    # req = {'object': 'page', 'entry': [{'id': <ig_id>, 'time': 0, 'changes': [{'field': 'name', 'value': 'newnam'}]}]}
+    pprint(req)
+    hook_data, data_count = defaultdict(list), 0
+    for ea in req.get('entry', [{}]):
+        for rec in ea.get('changes', [{}]):
+            # obj_type = req.get('object', '')  # likely: page, instagram, user, ...
+            val = rec.get('value', {})
+            if not isinstance(val, dict):
+                val = {'value': val}
+            val.update({'ig_id': ea.get('id')})
+            hook_data[rec.get('field', '')].append(val)
+            data_count += 1
+    app.logger.debug(f"====== process_hook - stories: {len(hook_data['story_insights'])} total: {data_count} ======")
+    pprint(hook_data)
+    total, new, modified = 0, 0, 0
+    for story in hook_data['story_insights']:
+        story['media_type'] = 'STORY'
         media_id = story.pop('media_id', None)
         ig_id = story.pop('ig_id', None)
         if media_id:
-            count += 1
+            total += 1
             model = Post.query.filter_by(media_id=media_id).first()  # Returns none if not in DB
             if model:
                 # update
                 for k, v in story.items():
                     setattr(model, k, v)
-                modified.append(model)
+                modified += 1
                 db.session.add(model)
             else:
                 # create, but we need extra data about this story Post.
-                user = User.query.filter_by(instagram_id=ig_id).first() if ig_id else object()
-                res = get_basic_post(media_id, user_id=getattr(user, 'id', None), token=getattr(user, 'token', None))
+                if media_id == '17887498072083520':
+                    res = {'user_id': 190, 'media_id': media_id, 'media_type': 'STORY'}
+                    res['timestamp'] = "2020-04-23T18:10:00+0000"
+                else:
+                    user = User.query.filter_by(instagram_id=ig_id).first() if ig_id else None
+                    user = user or object()
+                    res = get_basic_post(media_id, user_id=getattr(user, 'id'), token=getattr(user, 'token'))
                 story.update(res)
                 model = Post(**story)
-                new.append(model)
+                new += 1
                 db.session.add(model)
-    message = f"Updating {len(modified)} and creating {len(new)} Story Posts; Recording data for {count} Story Posts. "
-    try:
-        db.session.commit()
+    # message = f"Updates - "
+    message = ', '.join([f"{key}: {len(value)}" for key, value in hook_data.items()])
+    message += ' \n'
+    app.logger.debug(message)
+    if modified + new > 0:
+        message += f"Updating {modified} and creating {new} Story Posts; Recording data for {total} Story Posts. "
+        try:
+            db.session.commit()
+            response_code = 200
+            message += "Database updated. "
+        except Exception as e:
+            response_code = 401
+            message += "Unable to to commit story hook updates to database. "
+            app.logger.debug(message)
+            app.logger.error(e)
+            db.session.rollback()
+    else:
+        message += "No needed record updates. "
         response_code = 200
-    except Exception as e:
-        response_code = 401
-        message += "Unable to to commit story hook updates to database. "
-        app.logger.debug(message)
-        app.logger.error(e)
-        db.session.rollback()
     return message, response_code
 
 
@@ -159,7 +169,8 @@ def get_insight(user_id, first=1, influence_last=30*12, profile_last=30*3, ig_id
         for i in range(first, last + 2 - 30, 30):
             until = dt.utcnow() - timedelta(days=i)
             since = until - timedelta(days=30)
-            url = f"https://graph.facebook.com/{ig_id}/insights?metric={metric}&period={ig_period}&since={since}&until={until}"
+            url = "https://graph.facebook.com"
+            url += f"/{ig_id}/insights?metric={metric}&period={ig_period}&since={since}&until={until}"
             response = facebook.get(url).json() if facebook else requests.get(f"{url}&access_token={token}").json()
             insights = response.get('data')
             if not insights:
@@ -230,7 +241,7 @@ def get_audience(user_id, ig_id=None, facebook=None):
 
 def get_basic_post(media_id, metrics=None, user_id=None, facebook=None, token=None):
     """ Typically called by _get_posts_data_of_user, but also if we have a new Story Post while processing hooks. """
-    user = object()
+    empty_res = {'media_id': media_id, 'user_id': user_id, 'timestamp': str(dt.utcnow())}
     if not facebook and not token:
         if not user_id:
             message = f"The get_basic_post must have at least one of 'user_id', 'facebook', or 'token' values. "
@@ -240,8 +251,8 @@ def get_basic_post(media_id, metrics=None, user_id=None, facebook=None, token=No
         token = getattr(user, 'token', None)
         if not token:
             message = f"Unable to locate user token value. User should login with Facebook and authorize permissions. "
-            res = {'message': message, 'error': 403}
-            return res
+            # res = {'message': message, 'error': 403}
+            return empty_res
     if not metrics:
         metrics = ','.join(Post.METRICS.get('basic'))
     url = f"https://graph.facebook.com/{media_id}?fields={metrics}"
@@ -251,12 +262,15 @@ def get_basic_post(media_id, metrics=None, user_id=None, facebook=None, token=No
         auth = 'facebook' if facebook else 'token' if token else 'none'
         app.logger.debug(f"API fail for Post with media_id {media_id} | Auth: {auth} ")
         app.logger.error(e)
-        return {}
+        return empty_res
+    if 'error' in res:
+        app.logger.error(f"Error: {res.get('error', 'Empty Error')} ")
+        app.logger.error('--------------------- Error in get_basic_post FB API response ---------------------')
+        pprint(res)
+        return empty_res
     res['media_id'] = res.pop('id', media_id)
     if user_id:
         res['user_id'] = user_id
-    elif getattr(user, 'id', None):
-        res['user_id'] = user.id
     return res
 
 
@@ -277,10 +291,10 @@ def _get_posts_data_of_user(user_id, ig_id=None, facebook=None):
     url = f"https://graph.facebook.com/{ig_id}/stories"
     story_res = facebook.get(url).json() if facebook else requests.get(f"{url}?access_token={token}").json()
     stories = story_res.get('data')
-    if not isinstance(stories, list) and 'error' in story_res:
+    if not isinstance(stories, list) or 'error' in story_res:
         app.logger.error('Error: ', story_res.get('error', 'NA'))
         return []
-    story_ids = [ea.get('id') for ea in stories]
+    story_ids = set([ea.get('id') for ea in stories])
     url = f"https://graph.facebook.com/{ig_id}/media"
     response = facebook.get(url).json() if facebook else requests.get(f"{url}?access_token={token}").json()
     media = response.get('data')
@@ -294,7 +308,7 @@ def _get_posts_data_of_user(user_id, ig_id=None, facebook=None):
     for post in media:
         media_id = post.get('id')
         res = get_basic_post(media_id, metrics=post_metrics['basic'], user_id=user_id, facebook=facebook, token=token)
-        media_type = 'STORY' if res['media_id'] in story_ids else res.get('media_type')
+        media_type = 'STORY' if media_id in story_ids else res.get('media_type')
         res['media_type'] = media_type
         metrics = post_metrics.get(media_type, post_metrics['insight'])
         if metrics == post_metrics['insight']:
@@ -346,13 +360,13 @@ def get_fb_page_for_user(user, facebook=None, token=None):
         if not ig_id or not fb_id:
             message = f"We can only get a users page if we already know their accounts on Facebook and Instagram. "
             app.logger.error(message)
-            raise Exception(message)
+            return None
         if not facebook and not token:
             token = getattr(user, 'token', None)
             if not token:
                 message = f"We do not have the permission token for this user: {user} "
                 app.logger.error(message)
-                raise Exception(message)
+                return None
         url = f"https://graph.facebook.com/{fb_id}"
         app.logger.debug(f"========== get_fb_page_for_user ==========")
         params = {'fields': 'accounts'}
@@ -360,13 +374,13 @@ def get_fb_page_for_user(user, facebook=None, token=None):
             params['access_token'] = token
         # TODO: Test facebook.post will work as written below.
         res = facebook.post(url, params=params).json() if facebook else requests.post(url, params=params).json()
-        app.logger.debug('---------------------------------------')
-        pprint(res)
+        # app.logger.debug('---------------------------------------')
+        # pprint(res)
         accounts = res.pop('accounts', None)
         ig_list = find_instagram_id(accounts, facebook=facebook, token=token)
         matching_ig = [ig_info for ig_info in ig_list if int(ig_info.get('id', 0)) == ig_id]
         ig_info = matching_ig[0] if len(matching_ig) == 1 else {}
-        page = {'id': ig_info.get('page_id'), 'token': ig_info.get('page_token')}
+        page = {'id': ig_info.get('page_id'), 'token': ig_info.get('page_token'), 'new_page': True}
     success = True if page['id'] and page['token'] else False
     return page if success else None
 
@@ -382,12 +396,6 @@ def install_app_on_user_for_story_updates(user_or_id, page=None, facebook=None, 
         user = User.query.get(user_id)
     else:
         raise ValueError('Input must be either a User model or an id for a User. ')
-    if not facebook and not token:
-        token = getattr(user, 'token', None)
-        if not token:
-            message = f"We do not have the permission token for this user: {user} "
-            app.logger.error(message)
-            return False
     app.logger.debug(f"========== install_app_on_user_for_story_updates ==========")
     if not isinstance(page, dict) or not page.get('id') or not page.get('token'):
         page = get_fb_page_for_user(user, facebook=facebook, token=token)
@@ -408,12 +416,24 @@ def install_app_on_user_for_story_updates(user_or_id, page=None, facebook=None, 
     # return data should be { success: True }
     # Business Login and Page Access Token: https://developers.facebook.com/docs/facebook-login/business-login-direct
     params = {} if facebook else {'access_token': page['token']}
-    params['subscribed_fields'] = 'feed'
+    params['subscribed_fields'] = 'name'
     res = facebook.post(url, params=params).json() if facebook else requests.post(url, params=params).json()
     # TODO: See if facebook with params above works.
     app.logger.debug('----------------------------------------------------------------')
     pprint(res)
     installed = res.get('success', False)
+    # Update user: page details if they are new. story_subscribe if install was successful.
+    # updated_user = False
+    # if page.get('new_page'):
+    #     user.page_id = page['id']
+    #     user.page_token = page['token']
+    #     updated_user = True
+    # if installed:
+    #     user.story_subscribe = True
+    #     updated_user = True
+    # if updated_user:
+    #     db.session.add(user)
+    #     db.session.commit()
     return installed
 
 
@@ -501,8 +521,7 @@ def onboarding(mod, request):
         ig_id = int(ig_info.get('id'))
         data['instagram_id'] = ig_id
         data['page_id'] = ig_info.get('page_id')
-        # data['page_token'] = ig_info.get('page_token')
-        # TODO: Decide if we pass page_token to User model constructor.
+        data['page_token'] = ig_info.get('page_token')
         models = []
         for name in Audience.IG_DATA:  # {'media_count', 'followers_count'}
             value = ig_info.get(name, None)

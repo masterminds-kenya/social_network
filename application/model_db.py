@@ -103,8 +103,8 @@ class User(UserMixin, db.Model):
     token = db.Column(EncryptedType(db.String(255), SECRET_KEY, AesEngine, 'pkcs5'))  # encrypt
     token_expires = db.Column(db.DateTime,          index=False, unique=False, nullable=True)
     notes = db.Column(db.String(191),               index=False, unique=False, nullable=True)
-    modified = db.Column(db.DateTime,               index=False, unique=False, nullable=False, default=dt.utcnow, onupdate=dt.utcnow)
-    created = db.Column(db.DateTime,                index=False, unique=False, nullable=False, default=dt.utcnow)
+    modified = db.Column(db.DateTime,               unique=False, nullable=False, default=dt.utcnow, onupdate=dt.utcnow)
+    created = db.Column(db.DateTime,                unique=False, nullable=False, default=dt.utcnow)
     insights = db.relationship('Insight',          order_by='Insight.recorded', backref='user', passive_deletes=True)
     audiences = db.relationship('Audience',        order_by='Audience.recorded', backref='user', passive_deletes=True)
     aud_count = db.relationship('OnlineFollowers', order_by='OnlineFollowers.recorded', backref='user', passive_deletes=True)
@@ -198,6 +198,7 @@ class User(UserMixin, db.Model):
         insight_labels.extend(of_metric_lables)
         if label_only:
             return ['Brand Name', 'Notes', *insight_labels, 'instagram_id', 'modified', 'created']
+        ig_id = getattr(self, 'instagram_id', '')
         if self.instagram_id is None or not self.insights:
             insight_data = [0 for ea in insight_labels]
         else:
@@ -210,7 +211,7 @@ class User(UserMixin, db.Model):
                 met_stat[metric] = of_stat
                 temp[metric] = [int(ea.value or 0) for ea in self.aud_count]
             insight_data = [stat[1](temp[metric]) for metric, stats in met_stat.items() for stat in stats]
-        report = [self.name, self.notes, *insight_data, getattr(self, 'instagram_id', ''), clean(self.modified), clean(self.created)]
+        report = [self.name, self.notes, *insight_data, ig_id, clean(self.modified), clean(self.created)]
         return report
 
     def __str__(self):
@@ -256,7 +257,8 @@ class OnlineFollowers(db.Model):
         super().__init__(*args, **kwargs)
 
     def __str__(self):
-        return str(int(self.value or 0))
+        return f"{self.recorded} - {self.hour}: {str(int(self.value or 0))} "
+        # return str(int(self.value or 0))
 
     def __repr__(self):
         return f"<OnlineFollowers {self.recorded} | Hour: {self.hour} | User {self.user_id} >"
@@ -339,8 +341,8 @@ class Post(db.Model):
     permalink = db.Column(db.String(191),       index=False, unique=False, nullable=True)
     _saved_media = db.Column('saved_media', db.Text, index=False, unique=False, nullable=True)
     recorded = db.Column(db.DateTime,           index=False, unique=False, nullable=False)  # timestamp*
-    modified = db.Column(db.DateTime,           index=False, unique=False, nullable=False, default=dt.utcnow, onupdate=dt.utcnow)
-    created = db.Column(db.DateTime,            index=False, unique=False, nullable=False, default=dt.utcnow)
+    modified = db.Column(db.DateTime,           unique=False, nullable=False, default=dt.utcnow, onupdate=dt.utcnow)
+    created = db.Column(db.DateTime,            unique=False, nullable=False, default=dt.utcnow)
     # The following 9 are from insights, the first 2 for all kinds of media
     impressions = db.Column(db.Integer,         index=False,  unique=False, nullable=False, default=0)
     reach = db.Column(db.Integer,               index=False,  unique=False, nullable=False, default=0)
@@ -467,14 +469,12 @@ class Campaign(db.Model):
         ignore = {'id', 'user_id'}
         ignore.update(Post.UNSAFE)
         ignore.update(Post.__mapper__.relationships.keys())  # TODO: Decide if we actually want to keep related models?
-        current_app.logger.debug('--------- export posts, but ignored fields: ----------')
-        pprint(ignore)
+        # current_app.logger.debug('--------- export posts, but ignored fields: ----------')
+        # pprint(ignore)
         properties = [k for k in dir(Post.__mapper__.all_orm_descriptors) if not k.startswith('_') and k not in ignore]
-        # Old version below does not capture the relationship or other non-column mapped fields.
-        # columns = [ea.name for ea in Post.__table__.columns if ea.name not in ignore]
         data = [[clean(getattr(post, ea, '')) for ea in properties] for post in self.posts]
-        current_app.logger.debug('----- Campaign.export_posts() return value -----')
-        pprint([properties, *data])
+        # current_app.logger.debug('----- Campaign.export_posts() return value -----')
+        # pprint([properties, *data])
         return [properties, *data]
 
     def related_posts(self, view):
@@ -671,7 +671,7 @@ def db_create_or_update_many(dataset, user_id=None, Model=Post):
     all_results, add_count, update_count, error_set = [], 0, 0, []
     if composite_unique and user_id:
         match = Model.query.filter(Model.user_id == user_id).all()
-        current_app.logger.debug(f'------- Composite Unique for {Model.__name__}: {len(match)} possible matches -------')
+        current_app.logger.debug(f'------ Composite Unique for {Model.__name__}: {len(match)} possible matches ------')
         lookup = {tuple([getattr(ea, key) for key in composite_unique]): ea for ea in match}
         # pprint(lookup)
         for data in dataset:
@@ -706,7 +706,7 @@ def db_create_or_update_many(dataset, user_id=None, Model=Post):
         unique = {c.name: [] for c in columns if c.unique}
         [unique[key].append(val) for ea in dataset for (key, val) in ea.items() if key in unique]
         # pprint(unique)
-        # unique now has a key for each unique field, and a list of all the values that we want to assign those fields from the dataset
+        # unique now has a key & list of values from the dataset for unique model fields.
         q_to_update = Model.query.filter(or_(*[getattr(Model, key).in_(arr) for key, arr in unique.items()]))
         match = q_to_update.all()
         # match is a list of current DB records that have a unique field with a value matching the incoming dataset
@@ -717,11 +717,11 @@ def db_create_or_update_many(dataset, user_id=None, Model=Post):
             match_dict[key] = lookup_record_by_val
         for data in dataset:
             # find all records in match that would collide with the values of this data
-            updates = [lookup[int(data[unikey])] for unikey, lookup in match_dict.items() if int(data[unikey]) in lookup]
+            updates = [lookup[int(data[u_key])] for u_key, lookup in match_dict.items() if int(data[u_key]) in lookup]
             if len(updates):
                 if len(updates) == 1:
                     model = updates[0]
-                    associated = {name: data.pop(name) for name in model.__mapper__.relationships.keys() if data.get(name)}
+                    associated = {name: data.pop(name) for name in model.__mapper__.relationships if data.get(name)}
                     for k, v in data.items():
                         setattr(model, k, v)
                     for k, v in associated.items():

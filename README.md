@@ -87,6 +87,10 @@ The [Instagram (Facebook) Graph API](https://developers.facebook.com/docs/instag
 
 Through our [manually built Facebook Login flow](https://developers.facebook.com/docs/facebook-login/manually-build-a-login-flow), we collect the 'facebook_id', which allows us to locate their [Instagram Professional Account(s)](https://help.instagram.com/502981923235522?fbclid=IwAR1pmzAotXJ4X_-XFKNP4Ft2A9F4BuAyMbuFtCZ7ayb3FtLoM7kO6nWQFV4) via [Graph API Page](https://developers.facebook.com/docs/instagram-api/reference/page) route (their Instagram account must be connected to a Facebook Page). If the Influencer or Brand partner has multiple of Instagram Professional accounts, they are given an option of which they want to use for the platform.
 
+The Instagram features of this platform require that Influencer users, and is strongly recommended for Brand users, to have [Instagram Professional Accounts(s)](https://help.instagram.com/502981923235522?fbclid=IwAR1pmzAotXJ4X_-XFKNP4Ft2A9F4BuAyMbuFtCZ7ayb3FtLoM7kO6nWQFV4). The platform is also depending on this account being [connected to a business Facebook page](https://www.facebook.com/business/help/898752960195806), as is customary for professional Instagram accounts. During the platform onboarding process, influencer and brand users use Facebook login to grant the platform various permissions for their Instagram account and connected Facebook page. The platform aims to only request the permissions needed. The platform's automation features will be unreliable for a user or behave in unexpected ways if the user changes and removes these requested permissions.
+
+In order for our platform to get the most accurate Story metrics, the user's connected business Facebook page needs to have *App* platform enabled (the default setting) in their [App Settings](https://www.facebook.com/settings?tab=applications) for the page. This feature depends on the user continuing to grant `manage_pages` permissions for our platform application, which is set during our platform's onboarding process.
+
 ## Deployment
 
 [Deployed Site](https://www.bacchusinfluencerplatform.com)

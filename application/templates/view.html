@@ -19,21 +19,35 @@
   <li><a href="{{ url_for('insights', mod=mod, id=data.id) }}">See Insights</a> </li>
   {% elif key == 'aud_count' %}
   <li>
-    audience count: {% for ea in data[key] %}{{ea}}, {% else %}EMPTY NONE{% endfor %}
+    <input id="collapsible_{{key}}" class="toggle" type="checkbox" />
+    <label for="collapsible_{{key}}" class="lbl-toggle">
+      audience count: {{ data[key]|length }} records, or approximately {{ data[key]|length // 4 }} days.
+    </label>
+    <ul class="collapsible-content {{key}}">
+      {% for ea in data[key] %}
+      <li>{{ ea }}</li>
+      {% else %}
+      <li>EMPTY NONE</li>
+      {% endfor %}
+    </ul>
   </li>
   {% elif key == 'posts' and data[key]|length %}
-  <li> {{ key }}
-    <ul>
-    {% for ea in data[key] %}
-      <li>
-        <a href="{{ url_for('view', mod='post', id=ea.id) }}"># {{ea.id}} posted on {{ea.recorded}}</a>
-      </li>
-    {% endfor %}
-    </ul>
+  <li>
+    <input id="collapsible_{{key}}" class="toggle" type="checkbox" />
+    <label for="collapsible_{{key}}" class="lbl-toggle">
+      {{ key }}
+    </label>
+      <ul class="collapsible-content {{key}}">
+        {% for ea in data[key] %}
+        <li>
+          <a href="{{ url_for('view', mod='post', id=ea.id) }}"># {{ea.id}} {{ea.media_type}} posted on {{ea.recorded}}</a>
+        </li>
+        {% endfor %}
+      </ul>
   </li>
   {% elif key == 'audiences' and data[key]|length %}
   <li> {{ key }}
-    <ul>
+    <ul class="{{ key }}">
     {% for ea in data[key] %}
       <li>
         <a href="{{ url_for('view', mod='audience', id=ea.id) }}">
@@ -49,7 +63,7 @@
     {{key}}:
     {% if data[key] is iterable and data[key] is not string %}
       {% if data[key]|length %}
-      <ul>{% for ea in data[key] %}<li>{{ ea }}</li>{% endfor %}</ul>
+      <ul class="{{ key }}">{% for ea in data[key] %}<li>{{ ea }}</li>{% endfor %}</ul>
       {% else %}
       EMPTY NONE
       {% endif %}
