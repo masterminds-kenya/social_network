@@ -10,38 +10,27 @@ from .model_db import Post
 # TODO(developer): Uncomment these lines and replace with your values.
 PROJECT_ID = app.config.get('PROJECT_ID')
 PROJECT_ZONE = app.config.get('PROJECT_ZONE')
-CAPTURE_SERVICE = app.config.get('CAPTURE_SERVICE', '')
+CAPTURE_SERVICE = app.config.get('CAPTURE_SERVICE')
 CAPTURE_QUEUE = app.config.get('CAPTURE_QUEUE', 'test')
 # Create a client & construct the fully qualified queue name.
 client = tasks_v2.CloudTasksClient()
 
 
 def get_capture_queue(queue_name):
-    """ """
+    """ Creates or Updates a queue for managing calls to the capture API to get the live images of a web page. """
     if not queue_name:
-        queue_name = 'story'
-    queue_name = f"{CAPTURE_QUEUE}_{queue_name}".lower()
+        queue_name = 'test'
+    queue_name = f"{CAPTURE_QUEUE}-{queue_name}".lower()
+    routing_override = {'service': CAPTURE_SERVICE}
+    rate_limits = {'max_concurrent_dispatches': 2, 'max_dispatches_per_second': 1}
+    queue_settings = {'name': queue_name, 'app_engine_routing_override': routing_override, 'rate_limits': rate_limits}
+    # retry_config ={'max_attempts': 25, 'max_retry_duration': '24h', 'min_backoff': '10', 'max_backoff': '5100', 'max_doublings': 9}
     capture_retry = Retry(initial=10.0, maximum=5100.0, multiplier=9.0, deadline=86100.0)
-    # https://VERSION_ID-dot-SERVICE_ID-dot-PROJECT_ID.REGION_ID.r.appspot.com
-    # parent = client.location_path(PROJECT_ID, PROJECT_ZONE)  # CAPTURE_SERVICE ?
-    parent = f"projects/{PROJECT_ID}/locations/{PROJECT_ZONE}"  # CAPTURE_SERVICE ?
-    # class google.cloud.tasks_v2.types.Queue
-    # app_engine_routing_override
-    # rate_limits
-    # retry_config
-    # class google.cloud.tasks_v2.types.RateLimits
-    # max_dispatches_per_second  # same as rate in queue.yaml
-    # max_concurrent_dispatches  # same meaning as in queue.yaml
-    # class google.cloud.tasks_v2.types.RetryConfig
-    # max_attempts  # same as task_retry_limit in queue.yaml
-    # max_retry_duration  # same as task_age_limit in queue.yaml
-    # min_backoff  # same as min_backoff_seconds in queue.yaml
-    # max_backoff  # same as max_back0ff_seconds in queue.yaml
-    # max_doublings  # same meaning as in queue.yaml
-
+    parent = client.location_path(PROJECT_ID, PROJECT_ZONE)  # CAPTURE_SERVICE ?
+    # parent = f"projects/{PROJECT_ID}/locations/{PROJECT_ZONE}"  # CAPTURE_SERVICE ?
     try:
         # q = client.create_queue(parent, queue_name, retry=capture_retry)
-        q = client.update_queue(parent, queue_name, retry=capture_retry)
+        q = client.update_queue(parent, queue_settings, retry=capture_retry)
     except AlreadyExists as exists:
         # return the existing queue.
         app.logger.debug(f"Already Exists on get/create/update {queue_name} ")
@@ -59,7 +48,7 @@ def get_capture_queue(queue_name):
     return queue_path
 
 
-def add_to_capture(post, queue_name='test', task_name=None, payload=None, in_seconds=None):
+def add_to_capture(post, queue_name='test', task_name=None, payload=None, in_seconds=60):
     """ Will add a task with the given payload to the Capture Queue. """
     if isinstance(post, (int, str)):
         pass

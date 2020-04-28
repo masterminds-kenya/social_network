@@ -44,6 +44,52 @@ All influencer users, and most brand users, should have a professional instagram
 
 The function to send a request to the Graph API to subscribe to the page is called whenever the `page_token` property is set for a user (triggered by using [SQAlchemy Events](https://docs.sqlalchemy.org/en/13/orm/events.html)). If page subscription is successful, as expected in most cases,  this will set `story_subscribed` as true for a User. When the page is subscribed, our platform will also be subscribed to receive all `story_metrics` for the associated Instagram account. The Instagram Story Media posts, and the API data about them and their metrics, are only available for about 24 hours from when they are published by the user. This `story_metrics` subscription ensures that our platform will be updated with the final metrics data of the Story when it expires.
 
+## Task Queue on Google Cloud Platform
+
+google.api_core.gapic_v1.method.wrap_method
+google.api_core.path_template.expand
+cloud_tasks_grpc_transport.CloudTasksGrpcTransport
+from google.cloud.tasks_v2.gapic.transports import cloud_tasks_grpc_transport
+
+
+[Client for Clouds Task API](https://googleapis.dev/python/cloudtasks/latest/gapic/v2/api.html)
+
+- class google.cloud.tasks_v2.CloudTasksClient(transport=None, credentials=None, client_info=None, client_options=None)
+  - create_queue(parent, queue, retry={object object}, timeout={object object}, metadata=None)
+  - create_task(parent, task, response_view=None, retry={object object}, timeout={object object}, metadata=None)
+  - list_queues(parent, filter_=None, page_size=None, retry={object object}, timeout={object object}, metadata=None)
+  - list_tasks(parent, response_view=None, page_size=None, retry={object object}, timeout={object object}, metadata=None)
+  - update_queue(queue, update_mask=None, retry={object object}, timeout={object object}, metadata=None)
+
+The following is from [Cloud Task Types](https://googleapis.dev/python/cloudtasks/latest/gapic/v2/types.html)
+
+- class google.cloud.tasks_v2.types.Queue
+  - name  # must have following format: projects/PROJECT_ID/locations/LOCATION_ID/queues/QUEUE_ID
+  - app_engine_routing_override  # dictionary: service: string, version: string, instance: string
+  - rate_limits  # dictionary: max_concurrent_dispatches: integer, max_dispatches_per_second: integer
+  - retry_config  # dictionary: max_attempts: integer, max_backoff: string, max_doublings: integer, max_retry_duration: string, min_backoff: string
+- class google.cloud.tasks_v2.types.RateLimits
+  - max_dispatches_per_second  # same as rate in queue.yaml
+  - max_concurrent_dispatches  # same meaning as in queue.yaml
+- class google.cloud.tasks_v2.types.RetryConfig
+  - max_attempts  # same as task_retry_limit in queue.yaml
+  - max_retry_duration  # same as task_age_limit in queue.yaml
+  - min_backoff  # same as min_backoff_seconds in queue.yaml
+  - max_backoff  # same as max_back0ff_seconds in queue.yaml
+  - max_doublings  # same meaning as in queue.yaml
+- class google.cloud.tasks_v2.types.AppEngineHttpRequest
+  - http_method
+  - app_engine_routing  # If app_engine_override is set on the queue, this value is used for all tasks in the queue.
+  - relative_uri
+  - headers  # some set by GCP, we can add others
+  - body  # used for POST or PUT requests
+- class google.cloud.tasks_v2.types.AppEngineRouting
+  - service
+  - version
+  - instance
+  - host  # Output only. Constructed from the domain name of the app, service, version, instance.
+
+
 ## Other Gcloud Docs and Links
 
 - [Dispatch: url routing](https://cloud.google.com/appengine/docs/standard/python3/reference/dispatch-yaml)

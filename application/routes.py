@@ -8,6 +8,7 @@ from .model_db import db_create, db_read, db_update, db_delete, db_all, from_sql
 from .model_db import User, OnlineFollowers, Insight, Audience, Post, Campaign  # , metric_clean
 from . import developer_admin
 from .manage import update_campaign, process_form
+from .create_queue_task import add_to_capture
 from .api import onboard_login, onboarding, get_insight, get_audience, get_posts, get_online_followers
 from .api import process_hook, capture_media, install_app_on_user_for_story_updates
 from .sheets import create_sheet, update_sheet, perm_add, perm_list, all_files
@@ -298,10 +299,11 @@ def enqueue_capture(model, value, oldvalue, initiator):
         Otherwise, we may need a different approach.
     """
     app.logger.debug("================ The enqueue_capture function is running! ===============")
-    message, target, requested = '', None, None
+    message = ''
     if str(type(initiator)) != "<class 'sqlalchemy.orm.attributes.Event'>":
         message += "Manually requested capture. "
-        requested = getattr(model, 'media_id', None)
+        # capture_response = add_to_capture(model)
+        # model.capture_name = getattr(capture_response, 'name', '')
     else:
         message += "Triggered by Event. "
 
@@ -313,14 +315,16 @@ def enqueue_capture(model, value, oldvalue, initiator):
             message += f"Old Value: {oldvalue} . "
         if not getattr(model, 'saved_media', None):
             message += "We need to send it for CAPTURE! "
-            target = getattr(model, 'media_id', None)
+            capture_response = add_to_capture(model)
+            app.logger.debug(capture_response)
+            model.capture_name = getattr(capture_response, 'name', None)
         else:
             message += "Apparently we already have saved_media captured? "
     else:
         message += f"The Post.media_type value is: {value}, with old value: {oldvalue} . "
     app.logger.debug(message)
-    app.logger.debug(str(target))
-    app.logger.debug(str(requested))
+    # app.logger.debug(str(target))
+    # app.logger.debug(str(requested))
     app.logger.debug('---------------------------------------------------')
     # app.logger.debug(type(model))
     # app.logger.debug(model)
