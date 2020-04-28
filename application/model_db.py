@@ -340,6 +340,7 @@ class Post(db.Model):
     like_count = db.Column(db.Integer,          index=False, unique=False, nullable=False, default=0)
     permalink = db.Column(db.String(191),       index=False, unique=False, nullable=True)
     _saved_media = db.Column('saved_media', db.Text, index=False, unique=False, nullable=True)
+    capture_name = db.Column(db.String(191),    index=False, unique=False, nullable=True)
     recorded = db.Column(db.DateTime,           index=False, unique=False, nullable=False)  # timestamp*
     modified = db.Column(db.DateTime,           unique=False, nullable=False, default=dt.utcnow, onupdate=dt.utcnow)
     created = db.Column(db.DateTime,            unique=False, nullable=False, default=dt.utcnow)
