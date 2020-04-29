@@ -44,18 +44,19 @@ def get_capture_queue(queue_name):
         app.logger.debug(f"Google API Call Error on get/create/update {queue_name} ")
         app.logger.error(error)
         q = None
-    queue_path = f"{parent}/queues/{queue_name}" if q else None
+    # queue_path = f"{parent}/queues/{queue_name}" if q else None
+    queue_path = client.queue_path(PROJECT_ID, PROJECT_ZONE, queue_name) if q else None
     return queue_path
 
 
-def add_to_capture(post, queue_name='test', task_name=None, payload=None, in_seconds=60):
-    """ Will add a task with the given payload to the Capture Queue. """
+def add_to_capture(post, queue_name='test', task_name=None, payload=None, in_seconds=90):
+    """ Will add a task to the Capture Queue with a POST request if given a payload, else with GET request. """
     if not isinstance(task_name, (str, type(None))):
         raise TypeError("The task_name for add_to_capture should be a string, or None. ")
     if isinstance(post, (int, str)):
         post = Post.query.get(post)
     if not isinstance(post, Post):
-        raise TypeError("Expected a Post object or a Post id for add_to_capture. ")
+        raise TypeError("Expected a valid Post object or a Post id for add_to_capture. ")
     app.logger.debug(f"id: {post.id} media_type: {post.media_type} media_id: {post.media_id} ")
     #  API URL format:
     #  /api/v1/post/[id]/[media_type]/[media_id]/?url=[url-to-test-for-images]
@@ -63,7 +64,6 @@ def add_to_capture(post, queue_name='test', task_name=None, payload=None, in_sec
     #  'success', 'message', 'file_list', url_list', 'error_files', 'deleted'
     capture_api_path = f"/api/v1/post/{str(post.id)}/{str(post.media_type).lower()}/{str(post.media_id)}/"
     capture_api_path += f"?url={str(post.permalink)}"
-    # task_parent = client.queue_path(PROJECT_ID, PROJECT_ZONE, CAPTURE_QUEUE)
     parent = get_capture_queue(queue_name)
     # Construct the request body.
     http_method = 'POST' if payload else 'GET'
@@ -76,7 +76,7 @@ def add_to_capture(post, queue_name='test', task_name=None, payload=None, in_sec
     if payload is not None:
         task['app_engine_http_request']['body'] = payload.encode()  # Add payload to request as required type bytes.
     if task_name:
-        task['name'] = task_name.lower()
+        task['name'] = task_name.lower()  # The Task API will generate one if it is not set.
     if in_seconds:
         # Convert "seconds from now" into an rfc3339 datetime string.
         d = dt.utcnow() + timedelta(seconds=in_seconds)
