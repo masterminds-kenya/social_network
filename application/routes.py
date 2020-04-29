@@ -1,16 +1,15 @@
 from flask import render_template, redirect, url_for, request, flash, current_app as app  # , abort
 from flask_login import current_user, login_user, logout_user, login_required
 from werkzeug.security import generate_password_hash, check_password_hash
-from sqlalchemy import event
+# from sqlalchemy import event
 from functools import wraps
 import json
 from .model_db import db_create, db_read, db_update, db_delete, db_all, from_sql
 from .model_db import User, OnlineFollowers, Insight, Audience, Post, Campaign  # , metric_clean
 from . import developer_admin
 from .manage import update_campaign, process_form
-from .create_queue_task import add_to_capture
 from .api import onboard_login, onboarding, get_insight, get_audience, get_posts, get_online_followers
-from .api import process_hook, capture_media, install_app_on_user_for_story_updates
+from .api import process_hook, capture_media
 from .sheets import create_sheet, update_sheet, perm_add, perm_list, all_files
 # from pprint import pprint
 
@@ -272,65 +271,69 @@ def capture(id):
     return admin(data=answer)
 
 
-@event.listens_for(User.page_token, 'set', retval=True)
-def handle_page_id(user, value, oldvalue, initiator):
-    """ Triggered when a value is being set for User.page_id """
-    app.logger.debug("================ The page_token listener function is running! ===============")
-    if value in (None, ''):
-        user.story_subscribed = False
-        app.logger.debug(f"Empty page for {user} user. Set story_subscribed to False. ")
-    else:
-        page_id = getattr(user, 'page_id', None)
-        if not page_id:
-            app.logger.debug(f"Invalid page_id: {str(page_id)} for user: {user} ")
-            return value
-        page = {'id': page_id, 'token': value}
-        success = install_app_on_user_for_story_updates(user, page=page)
-        user.story_subscribed = success
-        app.logger.debug(f"Subscribe {page_id} page for {user} worked: {success} ")
-    return value
+# @event.listens_for(User.page_token, 'set', retval=True)
+# def handle_user_page(user, value, oldvalue, initiator):
+#     """ Triggered when a value is being set for User.page_token """
+#     app.logger.debug("================ The page_token listener function is running! ===============")
+#     if value in (None, ''):
+#         user.story_subscribed = False
+#         app.logger.debug(f"Empty page for {user} user. Set story_subscribed to False. ")
+#     else:
+#         page_id = getattr(user, 'page_id', None)
+#         if not page_id:
+#             app.logger.debug(f"Invalid page_id: {str(page_id)} for user: {user} ")
+#             if 'subscribe_page' in db.session.info:
+#                 db.session.info['subscribe_page'].add(user)
+#             else:
+#                 db.session.info['subscribe_page'] = {user}
+#             return value
+#         page = {'id': page_id, 'token': value}
+#         success = install_app_on_user_for_story_updates(user, page=page)
+#         user.story_subscribed = success
+#         app.logger.debug(f"Subscribe {page_id} page for {user} worked: {success} ")
+#     return value
 
 
-@event.listens_for(Post.media_type, 'set', retval=True)
-def enqueue_capture(model, value, oldvalue, initiator):
-    """ Triggered when a value is being set for Post.media_type.
-        Unfortunately our hope to access Post.media_id does not work. It may be present, or not yet set.
-        Perhaps we can add this model to the capture queue, and it will have the values when needed.
-        Otherwise, we may need a different approach.
-    """
-    app.logger.debug("================ The enqueue_capture function is running! ===============")
-    message = ''
-    if str(type(initiator)) != "<class 'sqlalchemy.orm.attributes.Event'>":
-        message += "Manually requested capture. "
-        # capture_response = add_to_capture(model)
-        # model.capture_name = getattr(capture_response, 'name', '')
-    else:
-        message += "Triggered by Event. "
+# @event.listens_for(Post.media_type, 'set', retval=True)
+# def enqueue_capture(model, value, oldvalue, initiator):
+#     """ Triggered when a value is being set for Post.media_type.
+#         Unfortunately our hope to access Post.media_id does not work. It may be present, or not yet set.
+#         Perhaps we can add this model to the capture queue, and it will have the values when needed.
+#         Otherwise, we may need a different approach.
+#     """
+#     app.logger.debug("================ The enqueue_capture function is running! ===============")
+#     message = ''
+#     if str(type(initiator)) != "<class 'sqlalchemy.orm.attributes.Event'>":
+#         message += "Manually requested capture. "
+#         # capture_response = add_to_capture(model)
+#         # model.capture_name = getattr(capture_response, 'name', '')
+#     else:
+#         message += "Triggered by Event. "
 
-    if value == 'STORY':
-        message += "We have a STORY post! "
-        if oldvalue != 'STORY':
-            message += "It is new! "
-        else:
-            message += f"Old Value: {oldvalue} . "
-        if not getattr(model, 'saved_media', None):
-            message += "We need to send it for CAPTURE! "
-            capture_response = add_to_capture(model)
-            app.logger.debug(capture_response)
-            model.capture_name = getattr(capture_response, 'name', None)
-        else:
-            message += "Apparently we already have saved_media captured? "
-    else:
-        message += f"The Post.media_type value is: {value}, with old value: {oldvalue} . "
-    app.logger.debug(message)
-    # app.logger.debug(str(target))
-    # app.logger.debug(str(requested))
-    app.logger.debug('---------------------------------------------------')
-    # app.logger.debug(type(model))
-    # app.logger.debug(model)
-    # app.logger.debug(type(initiator))
-    # app.logger.debug(initiator)
-    return value
+#     if value == 'STORY':
+#         message += "We have a STORY post! "
+#         if oldvalue != 'STORY':
+#             message += "It is new! "
+#         else:
+#             message += f"Old Value: {oldvalue} . "
+#         if not getattr(model, 'saved_media', None):
+#             message += "We need to send it for CAPTURE! "
+#             capture_response = add_to_capture(model)
+#             app.logger.debug(capture_response)
+#             model.capture_name = getattr(capture_response, 'name', None)
+#         else:
+#             message += "Apparently we already have saved_media captured? "
+#     else:
+#         message += f"The Post.media_type value is: {value}, with old value: {oldvalue} . "
+#     app.logger.debug(message)
+#     # app.logger.debug(str(target))
+#     # app.logger.debug(str(requested))
+#     app.logger.debug('---------------------------------------------------')
+#     # app.logger.debug(type(model))
+#     # app.logger.debug(model)
+#     # app.logger.debug(type(initiator))
+#     # app.logger.debug(initiator)
+#     return value
 
 # ########## The following are for worksheets ############
 
