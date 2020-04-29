@@ -26,22 +26,24 @@
 |                    | **Milestone 4 Completion**                   |
 | :white_check_mark: | Story Webhook for full data at expiration    |
 | :heavy_check_mark: | Sheet Report layout update, multi-worksheets |
-| :white_check_mark: | Update documentation to capture all updates  |
+| :heavy_check_mark: | Update documentation to capture all updates  |
 |                    | **Completed Stretch Goals**                  |
 | :heavy_check_mark: | Security: encrypting stored tokens           |
 | :heavy_check_mark: | Campaign sheet reports include saved media   |
 | :heavy_check_mark: | Separate Capture application & resources.    |
 | :heavy_check_mark: | Capture app self-updates OS and Browser      |
-|                    | Task Queue managing calling Capture app      |
+| :heavy_check_mark: | Task Queue managing calling Capture app      |
+|                    | Secure Queue on gRPC protocol, save response |
 | :heavy_check_mark: | On User delete, remove metrics & keep Posts  |
+| :white_check_mark: | Update documentation to capture all updates  |
 |                    | **Suggested Stretch Goals**                  |
-|                    | On User delete, delete orphaned Posts        |
-|                    | Saving Post images (only if in a Campaign)   |
-|                    | Capture application turned off when not needed |
+|                    | On User delete, delete Posts not in Campaign |
+|                    | Saving Post images if in a Campaign          |
+|                    | Capture app API turned off when not needed   |
 |                    | New manager/admin account password set on first login |
 |                    | Sheet permission given to user creating it   |
 |                    | Handle a User delete request from Facebook   |
-|                    | Post model track is_story separate from media_type |
+|                    | Post model can track is_story separate from media_type |
 |                    | Refactor for Post.is_story & Post.media_type |
 |                    | Creating batches for daily API call          |
 |                    | Default user who always gets Sheet access    |
@@ -64,10 +66,10 @@
 - [s] Stretch Goal. Not for current feature plan.
 
 Current Status:
-2020-04-24 20:24:25
+2020-04-29 13:41:07
 <!-- Ctrl-Shift-I to generate timestamp -->
 
-### Story & Media Files Features
+### Story Metrics Update
 
 - [ ] WebHook to get Stories data at completion
   - [x] Must have FB permissions `instagram_manage_insights`
@@ -87,45 +89,43 @@ Current Status:
 - [x] ? What storage structure is needed for larger media files ?
   - [x] Probably need to setup a storage bucket
   - [n] ? Maybe saved to our App instance ?
-- [ ] Capture Story Post media content files
-  - [x] Do not require extra work from Influencers
-  - [?] Capture before story is assigned to campaign, before it expires
-    - [x] Temp solution: attempt capture when created or updated.
-    - [ ] Manage missed captures (capture API slow) and make non-blocking process.
-      - [ ] Use tasks or some kind of queue to manage this process.
-  - [n] Ver A: Investigate if any possible API technique
-  - [n] Ver B: Web Scrapper the obscured media files
-  - [n] Ver C: Web Scrapper and screen capture, see Capture Media Files
-  - [x] Ver D: Create a separate media capture service and API
-    - [n] Google Cloud Functions can run code, but not resources for browser.
-    - [n] GCP App Engine - Standard can not install browser and run on its resources.
-    - [x] GCP App Engine - Flex environment can install via Docker, custom runtime.
-      - [x] Create Dockerfile that builds on python3.7, installs Chrome and & Chromedriver
-        - [x] Dockerfile is self-maintaining for Chrome, installs up-to-date stable version.
-        - [x] Dockerfile can determine correct chromedriver, install and configure as needed.
-        - [x] Dockerfile is self-maintaining for linux, python3.7, chrome, chromedriver.
-      - [x] Captured media storage
-        - [x] Proof-of-life: save to the filesystem of the instance.
-        - [x] Connect to a Storage bucket.
-        - [x] Save files to Storage bucket instead of filesystem.
-    - [n] Setup GCP Compute Engine w/ Chrome and Flask app to capture.
-      - [?] Compute Engine Flask App can continue running: see `screen` .
-      - [?] Make startup script for Compute Engine to launch Flask App and keep it running.
-      - [?] Compute Engine Flask App can save to a bucket.
-      - [s] Compute Engine Code and Resources can be easily maintained and updated.
-        - [s] Create Docker Container of the code.
-        - [s] Technique to install and/or update Chrome.
-        - [s] Technique to determine the correct chromedriver version, then install and/or update it.
-        - [s] Refactor the startup script for starting the Flask App.
-        - [s] Technique to stage update dependencies in our Docker to be tested.
-        - [s] Tests of functionality for our API and Docker to confirm updates can go live.
+
+### Capture Media Image Files for Stories
+
+- [x] Do not require extra work from Influencers
+- [n] Ver A: Investigate if any possible API technique
+- [n] Ver B: Web Scrapper the obscured media files
+- [n] Ver C: Web Scrapper and screen capture, see Capture Media Files
+- [x] Ver D: Create a separate media capture service and API
+  - [n] Google Cloud Functions can run code, but not resources for browser.
+  - [n] GCP App Engine - Standard can not install browser and run on its resources.
+  - [x] GCP App Engine - Flex environment can install via Docker, custom runtime.
+    - [x] Create Dockerfile that builds on python3.7, installs Chrome and & Chromedriver
+      - [x] Dockerfile is self-maintaining for Chrome, installs up-to-date stable version.
+      - [x] Dockerfile can determine correct chromedriver, install and configure as needed.
+      - [x] Dockerfile is self-maintaining for linux, python3.7, chrome, chromedriver.
+    - [x] Captured media storage
+      - [x] Proof-of-life: save to the filesystem of the instance.
+      - [x] Connect to a Storage bucket.
+      - [x] Save files to Storage bucket instead of filesystem.
+  - [n] Setup GCP Compute Engine w/ Chrome and Flask app to capture.
+    - [?] Compute Engine Flask App can continue running: see `screen` .
+    - [?] Make startup script for Compute Engine to launch Flask App and keep it running.
+    - [?] Compute Engine Flask App can save to a bucket.
+    - [s] Compute Engine Code and Resources can be easily maintained and updated.
+      - [s] Create Docker Container of the code.
+      - [s] Technique to install and/or update Chrome.
+      - [s] Technique to determine the correct chromedriver version, then install and/or update it.
+      - [s] Refactor the startup script for starting the Flask App.
+      - [s] Technique to stage update dependencies in our Docker to be tested.
+      - [s] Tests of functionality for our API and Docker to confirm updates can go live.
 - [x] Associate captured Story media content if it is later assigned to a campaign.
-  - [x] API associates captured media files to a Post, creating a directory matching Post id.
-  - [x] Update Post model to have a `saved_media` field for a url string of the media files location.
-    - [x] update code.
-    - [x] migrate Dev DB.
-  - [x] API returns a `url_list` whose value represents where the captured media files can be accessed.
-  - [c] Campaign sheet report includes a column for this captured and saved media content.
+- [x] API associates captured media files to a Post, creating a directory matching Post id.
+- [x] Update Post model to have a `saved_media` field for a url string of the media files location.
+  - [x] update code.
+  - [x] migrate Dev DB.
+- [x] API returns a `url_list` whose value represents where the captured media files can be accessed.
+- [c] Campaign sheet report includes a column for this captured and saved media content.
 - [s] Non-Story Post media files.
   - [x] Current: permalink given. Require manager to screen capture and crop.
   - [s] Capture media file only if associated to a campaign.
@@ -133,9 +133,23 @@ Current Status:
 - [s] Process for releasing and deleting saved media files.
   - [s] At what point is a Story old enough, and still not in a Campaign, it should be deleted?
   - [s] Should we delete or put into some other long-term storage for old Campaign media files?
-  - [x] Document in API that 'saved_media' and 'post_model' are reserved keys in response.
+- [x] Document in API that 'saved_media' and 'post_model' are reserved keys in response.
+- [?] Capture before story is assigned to campaign, before it expires
+  - [x] Temp solution: attempt capture when created or updated.
+  - [ ] Task Queue to manage calling the Capture API.
+    - [x] Able to create a task queue to capture stories.
+    - [?] Able to create a task queue to capture other posts.
+    - [x] Able to use existing task queue (story or post captures).
+    - [ ] ? Need to call update_queue when adding a task to keep extending the queue expiration.
+    - [x] Determine and set appropriate retry settings, especially for Story captures.
+    - [x] Able to add a task to a capture queue.
+    - [x] Update Post model to store the task name once it is assigned.
+    - [x] Post model has field(s) for tracking and reporting captured media image links.
+    - [ ] Update Post instances with links to the captured media images.
+      - [ ] Another queue to read completed capture queue tasks?
+      - [ ] ? Refactor capture queue to route on current app service (default for prod, dev for dev)?
 
-### Capture Media Files
+### Capture Media Image Files Process for Posts including stories
 
 - [n] If we know the file, or can traverse web page to it.
   - [x] from bs4 import BeautifulSoup, also use requests, urllib.request, time.
