@@ -5,7 +5,10 @@ service: default or dev
 
 env_variables:
   SECRET_KEY: 'Replace-with-secret'
+  CAPTURE_QUEUE: ''  # No underscore allowed. Hyphen, letters, and numbers only.
+  CAPTURE_SERVICE: 'capture'
   CAPTURE_BASE_URL: 'url-to-capture-api'
+  FB_HOOK_SECRET: 'value-set-for-webhooks-in-Facebook-dashboard'
   FB_CLIENT_ID: 'from-fb-dashboard'
   FB_CLIENT_SECRET: 'from-fb-dashboard'
   PROJECT_NAME: 'from-GCP-dashboard'
@@ -13,7 +16,6 @@ env_variables:
   PROJECT_NUMBER: 'from-GCP-dashboard'
   PROJECT_REGION: 'from-GCP-usually-ends-in-number'
   PROJECT_ZONE: 'from-GCP-usually-ends-in-letter'
-  PROJECT_CONNECTOR_NAME: 'from-GCP-Serverless-VPC-access'
   DB_INSTANCE: 'from-GCP-SQL'
   DB_USER: 'from-GCP-SQL'
   DB_PASSWORD: 'from-GCP-SQL'
@@ -24,7 +26,4 @@ env_variables:
   GCLOUD_URL: 'https://[PROJECT_ID].[REGION_ID].r.appspot.com'
   DEV_URL: 'https://[VERSION_ID]-dot-[SERVICE_ID]-dot-[PROJECT_ID].[REGION_ID].r.appspot.com'
   DEV_RUN: 'True'
-
-vpc_access_connector:
-  name: "projects/[PROJECT_ID]/locations/[PROJECT_REGION]/connectors/[PROJECT_CONNECTOR_NAME]"
 #
