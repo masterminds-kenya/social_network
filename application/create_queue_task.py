@@ -24,15 +24,15 @@ def get_capture_queue(queue_name):
     routing_override = {'service': CAPTURE_SERVICE}
     rate_limits = {'max_concurrent_dispatches': 2, 'max_dispatches_per_second': 1}
     queue_settings = {'name': queue_name, 'app_engine_routing_override': routing_override, 'rate_limits': rate_limits}
-    # retry_config ={'max_attempts': 25, 'max_retry_duration': '24h', 'min_backoff': '10', 'max_backoff': '5100', 'max_doublings': 9}
+    # retry_config ={'max_attempts': 25, 'min_backoff': '10', 'max_backoff': '5100', 'max_doublings': 9}
+    # retry_config['max_retry_duration'] = '24h'
     capture_retry = Retry(initial=10.0, maximum=5100.0, multiplier=9.0, deadline=86100.0)
-    parent = client.location_path(PROJECT_ID, PROJECT_ZONE)  # CAPTURE_SERVICE ?
-    # parent = f"projects/{PROJECT_ID}/locations/{PROJECT_ZONE}"  # CAPTURE_SERVICE ?
+    parent = client.location_path(PROJECT_ID, PROJECT_ZONE)  # f"projects/{PROJECT_ID}/locations/{PROJECT_ZONE}"
     try:
-        # q = client.create_queue(parent, queue_name, retry=capture_retry)
-        q = client.update_queue(parent, queue_settings, retry=capture_retry)
+        q = client.create_queue(parent, queue_settings, retry=capture_retry)
+        # q = client.update_queue(parent, queue_settings, retry=capture_retry)
     except AlreadyExists as exists:
-        # return the existing queue.
+        # TODO: return the existing queue.
         app.logger.debug(f"Already Exists on get/create/update {queue_name} ")
         app.logger.debug(exists)
         q = None
@@ -50,28 +50,32 @@ def get_capture_queue(queue_name):
 
 def add_to_capture(post, queue_name='test', task_name=None, payload=None, in_seconds=60):
     """ Will add a task with the given payload to the Capture Queue. """
+    if not isinstance(task_name, (str, type(None))):
+        raise TypeError("The task_name for add_to_capture should be a string, or None. ")
     if isinstance(post, (int, str)):
-        pass
+        post = Post.query.get(post)
     if not isinstance(post, Post):
-        raise TypeError("Expected a Post object or a Post id. ")
-    capture_api_path = f"/api/v1/post/{str(post.id)}/{post.media_type.lower()}/{str(post.media_id)}/"
+        raise TypeError("Expected a Post object or a Post id for add_to_capture. ")
+    app.logger.debug(f"id: {post.id} media_type: {post.media_type} media_id: {post.media_id} ")
+    #  API URL format:
+    #  /api/v1/post/[id]/[media_type]/[media_id]/?url=[url-to-test-for-images]
+    #  Expected JSON response has the following properties:
+    #  'success', 'message', 'file_list', url_list', 'error_files', 'deleted'
+    capture_api_path = f"/api/v1/post/{str(post.id)}/{str(post.media_type).lower()}/{str(post.media_id)}/"
+    capture_api_path += f"?url={str(post.permalink)}"
     # task_parent = client.queue_path(PROJECT_ID, PROJECT_ZONE, CAPTURE_QUEUE)
     parent = get_capture_queue(queue_name)
     # Construct the request body.
+    http_method = 'POST' if payload else 'GET'
     task = {
             'app_engine_http_request': {  # Specify the type of request.
-                'http_method': 'POST',
+                'http_method': http_method,
                 'relative_uri': capture_api_path
             }
     }
     if payload is not None:
-        # The API expects a payload of type bytes, and add the payload to the request.
-        task['app_engine_http_request']['body'] = payload.encode()
+        task['app_engine_http_request']['body'] = payload.encode()  # Add payload to request as required type bytes.
     if task_name:
-        # if isinstance(task_name, int):
-        #     task_name = str(task_name)
-        if not isinstance(task_name, str):
-            raise TypeError("The task_name should be a string, or None. ")
         task['name'] = task_name.lower()
     if in_seconds:
         # Convert "seconds from now" into an rfc3339 datetime string.
