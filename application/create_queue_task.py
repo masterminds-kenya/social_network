@@ -31,14 +31,19 @@ def _get_capture_queue(queue_name):
     capture_retry = Retry(initial=10.0, maximum=5100.0, multiplier=9.0, deadline=86100.0)
     queue_settings = {'name': queue_path, 'app_engine_routing_override': routing_override, 'rate_limits': rate_limits}
     # queue_settings['retry_config'] = retry_config
-    app.logger.debug("================= _get_capture_queue: queue_settings ===========================")
-    pprint(queue_settings)
-    search = (getattr(queue, 'name', None) for queue in client.list_queues(parent))
+    # app.logger.debug("================= _get_capture_queue: queue_settings ===========================")
+    # pprint(queue_settings)
+    # search = (getattr(queue, 'name', None) for queue in client.list_queues(parent))
+    for queue in client.list_queues(parent):  # TODO: Improve efficiency since queues list is in lexicographical order
+        if queue_settings['name'] == queue.name:
+            # TODO: update queue
+            return queue.name
     try:
-        if queue_settings['name'] in search:
-            q = client.update_queue(queue_settings, retry=capture_retry)
-        else:
-            q = client.create_queue(parent, queue_settings, retry=capture_retry)
+        # if queue_settings['name'] in search:
+        #     q = client.update_queue(queue_settings, retry=capture_retry)
+        # else:
+        #     q = client.create_queue(parent, queue_settings, retry=capture_retry)
+        q = client.create_queue(parent, queue_settings, retry=capture_retry)
     except AlreadyExists as exists:
         # TODO: return the existing queue.
         app.logger.debug(f"Already Exists on get/create/update {queue_name} ")

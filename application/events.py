@@ -113,7 +113,7 @@ def process_session_after_db_response(session, flush_context):
             session.info['story_capture'].discard(story)
         else:
             app.logger.debug(message)
-            message += f"Capture did not work for {story} Post. "
+            message += f"Capture Story did not work for {story} Post. "
             raise Exception(message)
     app.logger.debug(message)
     for post in list(other_posts_to_capture):
