@@ -3,6 +3,7 @@ from sqlalchemy import event
 from .model_db import User, Post, db
 from .api import install_app_on_user_for_story_updates
 from .create_queue_task import add_to_capture
+from pprint import pprint  # Temporary for Debug
 
 
 @event.listens_for(User.page_token, 'set', retval=True)
@@ -35,7 +36,6 @@ def enqueue_capture(model, value, oldvalue, initiator):
         To make sure this Post gets placed in the appropriate Task queue, it is stored with a key in the session.info.
         Another listener will see all Post models prepared for a Capture queue, and will assign them accordingly.
     """
-    app.logger.debug("================ The enqueue_capture function is running! ===============")
     message = ''
     if str(type(initiator)) != "<class 'sqlalchemy.orm.attributes.Event'>":
         message += "Manually requested capture. "
@@ -47,6 +47,7 @@ def enqueue_capture(model, value, oldvalue, initiator):
         message += "Triggered by Event. "
 
     if value == 'STORY':
+        app.logger.debug("================ The enqueue_capture function is running! ===============")
         message += "We have a STORY post! "
         if oldvalue != 'STORY':
             message += "It is new! "
@@ -60,17 +61,45 @@ def enqueue_capture(model, value, oldvalue, initiator):
                 db.session.info['story_capture'] = {model}
         else:
             message += "Apparently we already have saved_media captured? "
-    else:
-        message += f"The Post.media_type value is: {value}, with old value: {oldvalue} . "
-    app.logger.debug(message)
-    app.logger.debug('---------------------------------------------------')
+    # else:
+    #     message += f"The Post.media_type value is: {value}, with old value: {oldvalue} . "
+        app.logger.debug(message)
+        app.logger.debug('---------------------------------------------------')
     return value
 
 
-@event.listens_for(db.session, 'before_flush')
-def process_session_info(session, flush_context, instances):
+@event.listens_for(db.session, 'before_flush')  # after_flush, after_flush_postexec
+def process_session_subscribes(session, flush_context, instances):
+    """ During creation or modification of Post models, some may be marked for adding to a Capture queue. """
+    app.logger.debug("================ The process session subscribes is running! ===============")
+    # app.logger.debug('session')
+    # pprint(dir(session))
+    app.logger.debug('flush_context')
+    pprint(dir(flush_context))
+    app.logger.debug('instances')
+    pprint(instances)
+    subscribe_pages = session.info.get('subscribe_page', [])
+    report = f"Subscribe Pages: {len(subscribe_pages)} "
+    app.logger.debug(report)
+    for user in subscribe_pages:
+        success = install_app_on_user_for_story_updates(user)
+        app.logger.debug(f"Subscribe {getattr(user, 'page_id', 'NA')} page for {user} worked: {success} ")
+        user.story_subscribed = success
+        if success:
+            session.info['subscribe_page'].discard(user)
+    # TODO: Handle deletion of Posts not assigned to a Campaign when deleting a User.
+    # session.deleted  # The set of all instances marked as 'deleted' within this Session
+    app.logger.debug('---------------------------------------------------')
+
+
+@event.listens_for(db.session, 'after_flush_postexec')  # before_flush, after_flush,
+def process_session_info(session, flush_context):
     """ During creation or modification of Post models, some may be marked for adding to a Capture queue. """
     app.logger.debug("================ The process session info is running! ===============")
+    # app.logger.debug('session')
+    # pprint(dir(session))
+    app.logger.debug('flush_context')
+    pprint(dir(flush_context))
     message = ''
     stories_to_capture = session.info.get('story_capture', [])
     other_posts_to_capture = session.info.get('post_capture', [])
@@ -95,11 +124,13 @@ def process_session_info(session, flush_context, instances):
             post.capture_name = getattr(capture_response, 'name', None)
             session.info['post_capture'].discard(post)
         else:
-            app.logger.error(f"Capture Post did not work for {post} Post. ")
-    for user in subscribe_pages:
-        success = install_app_on_user_for_story_updates(user)
-        app.logger.debug(f"Subscribe {getattr(user, 'page_id', 'NA')} page for {user} worked: {success} ")
-        user.story_subscribed = success
-        if success:
-            session.info['subscribe_page'].discard(user)
+            app.logger.error(f"Capture Post did not work for {str(post)} Post. ")
+    # for user in subscribe_pages:
+    #     success = install_app_on_user_for_story_updates(user)
+    #     app.logger.debug(f"Subscribe {getattr(user, 'page_id', 'NA')} page for {user} worked: {success} ")
+    #     user.story_subscribed = success
+    #     if success:
+    #         session.info['subscribe_page'].discard(user)
+    # TODO: Handle deletion of Posts not assigned to a Campaign when deleting a User.
+    # session.deleted  # The set of all instances marked as 'deleted' within this Session
     app.logger.debug('---------------------------------------------------')
