@@ -8,7 +8,7 @@ env_variables:
   CAPTURE_QUEUE: ''  # No underscore allowed. Hyphen, letters, and numbers only.
   CAPTURE_SERVICE: 'capture'
   CAPTURE_BASE_URL: 'url-to-capture-api'
-  FB_HOOK_SECRET: 'Value-set-for-webhooks-in-Facebook-dashboard'
+  FB_HOOK_SECRET: 'value-set-for-webhooks-in-Facebook-dashboard'
   FB_CLIENT_ID: 'from-fb-dashboard'
   FB_CLIENT_SECRET: 'from-fb-dashboard'
   PROJECT_NAME: 'from-GCP-dashboard'
