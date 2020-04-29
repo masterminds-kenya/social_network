@@ -1,24 +1,22 @@
 from flask import current_app as app
-from google.api_core.retry import Retry
-# from google.api_core import RetryError
+# from google.api_core.retry import Retry
 from google.api_core.exceptions import RetryError, AlreadyExists, GoogleAPICallError
 from google.cloud import tasks_v2
 from google.protobuf import timestamp_pb2
 from datetime import timedelta, datetime as dt
 from .model_db import Post
-from pprint import pprint
 
-# TODO(developer): Uncomment these lines and replace with your values.
 PROJECT_ID = app.config.get('PROJECT_ID')
 PROJECT_REGION = app.config.get('PROJECT_REGION')  # Google Docs said PROJECT_ZONE ?
 CAPTURE_SERVICE = app.config.get('CAPTURE_SERVICE')
 CAPTURE_QUEUE = app.config.get('CAPTURE_QUEUE')
-# Create a client & construct the fully qualified queue name.
 client = tasks_v2.CloudTasksClient()
 
 
 def _get_capture_queue(queue_name):
-    """ Creates or Updates a queue for managing calls to the capture API to get the live images of a web page. """
+    """ Creates or gets a queue for managing calls to the capture API to get the live images of a web page.
+        May need to refactor to Create or Update a queue.
+    """
     if not queue_name:
         queue_name = 'test'
     queue_name = f"{CAPTURE_QUEUE}-{queue_name}".lower()
@@ -26,24 +24,17 @@ def _get_capture_queue(queue_name):
     queue_path = client.queue_path(PROJECT_ID, PROJECT_REGION, queue_name)
     routing_override = {'service': CAPTURE_SERVICE}
     rate_limits = {'max_concurrent_dispatches': 2, 'max_dispatches_per_second': 1}
-    # retry_config ={'max_attempts': 25, 'min_backoff': '10', 'max_backoff': '5100', 'max_doublings': 9}
-    # retry_config['max_retry_duration'] = '24h'
-    capture_retry = Retry(initial=10.0, maximum=5100.0, multiplier=9.0, deadline=86100.0)
+    retry_config = {'max_attempts': 25, 'min_backoff': '10', 'max_backoff': '5100', 'max_doublings': 9}
+    retry_config['max_retry_duration'] = '24h'
+    # capture_retry = Retry(initial=10.0, maximum=5100.0, multiplier=9.0, deadline=86100.0)
     queue_settings = {'name': queue_path, 'app_engine_routing_override': routing_override, 'rate_limits': rate_limits}
-    # queue_settings['retry_config'] = retry_config
-    # app.logger.debug("================= _get_capture_queue: queue_settings ===========================")
-    # pprint(queue_settings)
-    # search = (getattr(queue, 'name', None) for queue in client.list_queues(parent))
+    queue_settings['retry_config'] = retry_config
     for queue in client.list_queues(parent):  # TODO: Improve efficiency since queues list is in lexicographical order
         if queue_settings['name'] == queue.name:
-            # TODO: update queue
+            # TODO: Fix q = client.update_queue(queue_settings, retry=capture_retry)
             return queue.name
     try:
-        # if queue_settings['name'] in search:
-        #     q = client.update_queue(queue_settings, retry=capture_retry)
-        # else:
-        #     q = client.create_queue(parent, queue_settings, retry=capture_retry)
-        q = client.create_queue(parent, queue_settings, retry=capture_retry)
+        q = client.create_queue(parent, queue_settings)
     except AlreadyExists as exists:
         # TODO: return the existing queue.
         app.logger.debug(f"Already Exists on get/create/update {queue_name} ")
@@ -57,8 +48,6 @@ def _get_capture_queue(queue_name):
         app.logger.debug(f"Google API Call Error on get/create/update {queue_name} ")
         app.logger.error(error)
         q = None
-    if q:
-        app.logger.debug(q.name)
     return queue_path if q else None
 
 
@@ -70,7 +59,7 @@ def add_to_capture(post, queue_name='testing', task_name=None, payload=None, in_
         post = Post.query.get(post)
     if not isinstance(post, Post):
         raise TypeError("Expected a valid Post object or an id for an existing Post for add_to_capture. ")
-    app.logger.debug(f"id: {post.id} media_type: {post.media_type} media_id: {post.media_id} ")
+    # app.logger.debug(f"id: {post.id} media_type: {post.media_type} media_id: {post.media_id} ")
     parent = _get_capture_queue(queue_name)
     #  Capture API url format:
     #  /api/v1/post/[id]/[media_type]/[media_id]/?url=[url-to-test-for-images]
@@ -78,7 +67,6 @@ def add_to_capture(post, queue_name='testing', task_name=None, payload=None, in_
     #  'success', 'message', 'file_list', url_list', 'error_files', 'deleted'
     capture_api_path = f"/api/v1/post/{str(post.id)}/{str(post.media_type).lower()}/{str(post.media_id)}/"
     capture_api_path += f"?url={str(post.permalink)}"
-    # Construct the request body.
     http_method = 'POST' if payload else 'GET'
     task = {
             'app_engine_http_request': {  # Specify the type of request.
@@ -91,13 +79,11 @@ def add_to_capture(post, queue_name='testing', task_name=None, payload=None, in_
     if task_name:
         task['name'] = task_name.lower()  # The Task API will generate one if it is not set.
     if in_seconds:
-        # Convert "seconds from now" into an rfc3339 datetime string.
+        # Convert "seconds from now" into an rfc3339 datetime string, format as timestamp protobuf, add to tasks.
         d = dt.utcnow() + timedelta(seconds=in_seconds)
-        # Create Timestamp protobuf and add to the tasks.
         timestamp = timestamp_pb2.Timestamp()
         timestamp.FromDatetime(d)
         task['schedule_time'] = timestamp
-    # Use the client to build and send the task.
     try:
         response = client.create_task(parent, task)
     except ValueError as e:
