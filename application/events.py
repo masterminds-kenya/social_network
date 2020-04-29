@@ -49,11 +49,8 @@ def enqueue_capture(model, value, oldvalue, initiator):
     if value == 'STORY':
         app.logger.debug("================ The enqueue_capture function is running! ===============")
         message += "We have a STORY post! "
-        if oldvalue != 'STORY':
-            message += "It is new! "
-        else:
-            message += f"Old Value: {oldvalue} . "
-        if not getattr(model, 'saved_media', None):
+        message += "It is new! " if oldvalue != 'STORY' else f"Old Value: {oldvalue} . "
+        if not getattr(model, 'saved_media', None) and not getattr(model, 'capture_name', None):
             message += "We need to send it for CAPTURE! "
             if 'story_capture' in db.session.info:
                 db.session.info['story_capture'].add(model)
@@ -69,19 +66,19 @@ def enqueue_capture(model, value, oldvalue, initiator):
 
 
 @event.listens_for(db.session, 'before_flush')  # after_flush, after_flush_postexec
-def process_session_subscribes(session, flush_context, instances):
+def process_session_before_flush(session, flush_context, instances):
     """ During creation or modification of Post models, some may be marked for adding to a Capture queue. """
     app.logger.debug("================ The process session subscribes is running! ===============")
     # app.logger.debug('session')
     # pprint(dir(session))
-    app.logger.debug('flush_context')
-    pprint(dir(flush_context))
-    app.logger.debug('instances')
-    pprint(instances)
+    # app.logger.debug('flush_context')
+    # pprint(dir(flush_context))
+    # app.logger.debug('instances')
+    # pprint(instances)
     subscribe_pages = session.info.get('subscribe_page', [])
     report = f"Subscribe Pages: {len(subscribe_pages)} "
     app.logger.debug(report)
-    for user in subscribe_pages:
+    for user in list(subscribe_pages):
         success = install_app_on_user_for_story_updates(user)
         app.logger.debug(f"Subscribe {getattr(user, 'page_id', 'NA')} page for {user} worked: {success} ")
         user.story_subscribed = success
@@ -93,13 +90,14 @@ def process_session_subscribes(session, flush_context, instances):
 
 
 @event.listens_for(db.session, 'after_flush_postexec')  # before_flush, after_flush,
-def process_session_info(session, flush_context):
+def process_session_after_db_response(session, flush_context):
     """ During creation or modification of Post models, some may be marked for adding to a Capture queue. """
     app.logger.debug("================ The process session info is running! ===============")
+    pprint(session.info)
     # app.logger.debug('session')
     # pprint(dir(session))
-    app.logger.debug('flush_context')
-    pprint(dir(flush_context))
+    # app.logger.debug('flush_context')
+    # pprint(dir(flush_context))
     message = ''
     stories_to_capture = session.info.get('story_capture', [])
     other_posts_to_capture = session.info.get('post_capture', [])
@@ -107,7 +105,7 @@ def process_session_info(session, flush_context):
     report = f"Story Captures: {len(stories_to_capture)} Other Captures: {len(other_posts_to_capture)} "
     report += f"Pages: {len(subscribe_pages)} "
     app.logger.debug(report)
-    for story in stories_to_capture:
+    for story in list(stories_to_capture):
         message += f"Adding to story capture queue: {story} \n"
         capture_response = add_to_capture(story)
         if capture_response:
@@ -118,7 +116,7 @@ def process_session_info(session, flush_context):
             message += f"Capture did not work for {story} Post. "
             raise Exception(message)
     app.logger.debug(message)
-    for post in other_posts_to_capture:
+    for post in list(other_posts_to_capture):
         capture_response = add_to_capture(post, queue_name='post')
         if capture_response:
             post.capture_name = getattr(capture_response, 'name', None)
@@ -134,3 +132,4 @@ def process_session_info(session, flush_context):
     # TODO: Handle deletion of Posts not assigned to a Campaign when deleting a User.
     # session.deleted  # The set of all instances marked as 'deleted' within this Session
     app.logger.debug('---------------------------------------------------')
+    pprint(session.info)
