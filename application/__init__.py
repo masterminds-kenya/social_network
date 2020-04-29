@@ -28,8 +28,8 @@ def create_app(config, debug=False, testing=False, config_overrides=None):
     with app.app_context():
         from . import model_db
         from . import routes  # noqa: F401
-        model = model_db
-        model.init_app(app)
+        model_db.init_app(app)
+        from . import events  # noqa: F401
 
     # TODO: For production, the output of the error should be disabled.
     @app.errorhandler(500)
