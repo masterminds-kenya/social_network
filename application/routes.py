@@ -758,6 +758,41 @@ def edit(mod, id):
     return add_edit(mod, id=id)
 
 
+@app.route('/capture/report/<string:media_id>/', methods=['GET', 'POST'])
+def capture_report(media_id):
+    """ After the capture work is processed, the results are sent here to update the models. """
+    app.logger.debug("======================== capture report route =============================")
+    post = Post.query.filter_by(media_id=media_id).first()
+    message = ''
+    if not post:
+        message += f"Unable to find a Post with matching media_id: {media_id} "
+        app.logger.error(message)
+        return message, 422
+    data = request.get_json()
+    # # data now has key for 'success', 'message', and 'changes'
+    # # data['changes'] is a list of dict formatted as follows:
+    # # {'media_id': str(media_id), 'media_type': media_type.lower(), 'saved_media': ['url_1', 'url_2', ... ]}
+    # # request.method == 'POST'
+    if data.get('success') is False:
+        message += data.get('message')
+        app.logger.debug(message)
+        # handle the fact that the capture process did not work.
+    else:
+        updates = data.get('changes', [])
+        for report in updates:
+            report_media_id = report.pop('media_id', '')
+            report_media_type = report.pop('media_type', '')
+            saved_media = report.pop('saved_media', [])
+            if report_media_id == post.media_id and report_media_type == post.media_type:
+                post.saved_media = saved_media
+                message += f"Updated the Post with the saved_media value sent in the report: {str(post)} \n"
+            else:
+                message += f"Report did not have matching values for media_id and media_type on Post: {str(post)} \n"
+                return message, 409
+    app.logger.debug(message)
+    return message, 200
+
+
 @app.route('/post/hook/', methods=['GET', 'POST'])
 def hook():
     """ Endpoint receives all webhook updates from Instagram/Facebook for Story Posts. """
