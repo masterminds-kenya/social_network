@@ -65,8 +65,11 @@ def add_to_capture(post, queue_name='testing', task_name=None, payload=None, in_
     #  /api/v1/post/[id]/[media_type]/[media_id]/?url=[url-to-test-for-images]
     #  Expected JSON response has the following properties:
     #  'success', 'message', 'file_list', url_list', 'error_files', 'deleted'
-    capture_api_path = f"/api/v1/post/{str(post.id)}/{str(post.media_type).lower()}/{str(post.media_id)}/"
+    # capture_api_path = f"/api/v1/post/{str(post.id)}/{str(post.media_type).lower()}/{str(post.media_id)}/"
+    # capture_api_path += f"?url={str(post.permalink)}"
+    capture_api_path = f"/api/v1/post/{str(post.media_type).lower()}/{str(post.media_id)}/"
     capture_api_path += f"?url={str(post.permalink)}"
+
     http_method = 'POST' if payload else 'GET'
     task = {
             'app_engine_http_request': {  # Specify the type of request.
