@@ -64,8 +64,27 @@ def enqueue_capture(model, value, oldvalue, initiator):
 def process_session_before_flush(session, flush_context, instances):
     """ During creation or modification of Post models, some may be marked for adding to a Capture queue. """
     app.logger.debug("================ Process Session Before Flush ===============")
+    stories_to_capture = session.info.get('story_capture', [])
+    other_posts_to_capture = session.info.get('post_capture', [])
     subscribe_pages = session.info.get('subscribe_page', [])
-    message = f"Subscribe Pages: {len(subscribe_pages)} "
+    message = f"Story Captures: {len(stories_to_capture)} Other Captures: {len(other_posts_to_capture)} "
+    message += f"Subscribe Pages: {len(subscribe_pages)} \n"
+    for story in list(stories_to_capture):
+        capture_response = add_to_capture(story)
+        if capture_response:
+            message += f"Adding to Story capture queue: {str(story)} \n"
+            story.capture_name = getattr(capture_response, 'name', None)
+            session.info['story_capture'].discard(story)
+        else:
+            message += f"Failed to add {str(story)} To Capture Story queue. \n"
+    for post in list(other_posts_to_capture):
+        capture_response = add_to_capture(post, queue_name='post')
+        if capture_response:
+            message += f"Adding to Post capture queue: {str(post)} \n"
+            post.capture_name = getattr(capture_response, 'name', None)
+            session.info['post_capture'].discard(post)
+        else:
+            message += f"Failed to add {str(post)} to Capture Post queue. \n"
     for user in list(subscribe_pages):
         success = install_app_on_user_for_story_updates(user)
         message += f"Subscribe {getattr(user, 'page_id', 'NA')} page for {user} worked: {success} \n"
@@ -74,33 +93,6 @@ def process_session_before_flush(session, flush_context, instances):
             session.info['subscribe_page'].discard(user)
     # TODO: Handle deletion of Posts not assigned to a Campaign when deleting a User.
     # session.deleted  # The set of all instances marked as 'deleted' within this Session
-    app.logger.debug(message)
-    app.logger.debug('---------------------------------------------------')
-
-
-@event.listens_for(db.session, 'after_flush_postexec')
-def process_session_after_db_response(session, flush_context):
-    """ During creation or modification of Post models, some may be marked for adding to a Capture queue. """
-    app.logger.debug("================ Process Session After Database Response ===============")
-    stories_to_capture = session.info.get('story_capture', [])
-    other_posts_to_capture = session.info.get('post_capture', [])
-    message = f"Story Captures: {len(stories_to_capture)} Other Captures: {len(other_posts_to_capture)} \n"
-    for story in list(stories_to_capture):
-        capture_response = add_to_capture(story)
-        if capture_response:
-            message += f"Adding to Story capture queue: {str(story)} \n"
-            story.capture_name = getattr(capture_response, 'name', None)
-            session.info['story_capture'].discard(story)
-        else:
-            message += f"Failed to add {str(story)} To Capture Story. \n"
-    for post in list(other_posts_to_capture):
-        capture_response = add_to_capture(post, queue_name='post')
-        if capture_response:
-            message += f"Adding to Post capture queue: {str(post)} \n"
-            post.capture_name = getattr(capture_response, 'name', None)
-            session.info['post_capture'].discard(post)
-        else:
-            message += f"Failed to add {str(post)} to Capture Post. \n"
     app.logger.debug(message)
     app.logger.debug(session.info)
     app.logger.debug('---------------------------------------------------')

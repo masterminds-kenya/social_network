@@ -69,7 +69,7 @@ def add_to_capture(post, queue_name='testing', task_name=None, payload=None, in_
     # capture_api_path += f"?url={str(post.permalink)}"
     capture_api_path = f"/api/v1/post/{str(post.media_type).lower()}/{str(post.media_id)}/"
     capture_api_path += f"?url={str(post.permalink)}"
-
+    # TODO: Create a payload with the permalink url info, the report should go to what service & media_type?
     http_method = 'POST' if payload else 'GET'
     task = {
             'app_engine_http_request': {  # Specify the type of request.
