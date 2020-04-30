@@ -14,7 +14,7 @@ from dateutil import parser
 import re
 from statistics import mean, median, stdev
 import json
-from pprint import pprint  # only for debugging
+# from pprint import pprint  # only for debugging
 # from .helper_functions import check_stuff
 
 db = SQLAlchemy()
@@ -107,7 +107,8 @@ class User(UserMixin, db.Model):
     created = db.Column(db.DateTime,                unique=False, nullable=False, default=dt.utcnow)
     insights = db.relationship('Insight',          order_by='Insight.recorded', backref='user', passive_deletes=True)
     audiences = db.relationship('Audience',        order_by='Audience.recorded', backref='user', passive_deletes=True)
-    aud_count = db.relationship('OnlineFollowers', order_by='OnlineFollowers.recorded', backref='user', passive_deletes=True)
+    aud_count = db.relationship('OnlineFollowers', order_by='OnlineFollowers.recorded', backref='user',
+                                passive_deletes=True)
     posts = db.relationship('Post',                order_by='Post.recorded', backref='user', passive_deletes=True)
     # # campaigns = backref from Campaign.users has lazy='joined' on other side
     # # brand_campaigns = backref from Campaign.brands has lazy='joined' on other side
@@ -400,10 +401,9 @@ class Post(db.Model):
     def display(self):
         """ Since different media post types have different metrics, we only want to show the appropriate fields. """
         post = from_sql(self, related=True, safe=True)
-        fields = {'id', 'user_id', 'saved_media', 'saved_media_options', 'campaigns', 'processed', 'recorded'}
-        fields.update(Post.METRICS['basic'])
+        fields = {'id', 'user_id', 'saved_media', 'saved_media_options', 'capture_name', 'campaigns', 'processed'}
+        fields.update(('recorded', 'modified'), Post.METRICS['basic'], Post.METRICS[post['media_type']])
         fields.discard('timestamp')
-        fields.update(Post.METRICS[post['media_type']])
         # return {key: post[key] for key in post.keys() - fields}
         return {key: val for (key, val) in post.items() if key in fields}
 
@@ -590,7 +590,8 @@ def db_create(data, Model=User):
         db.session.rollback()
         columns = Model.__table__.columns
         unique = {c.name: data.get(c.name) for c in columns if c.unique}
-        pprint(unique)
+        # pprint(unique)
+        current_app.logger.debug(unique)
         model = Model.query.filter(*[getattr(Model, key) == val for key, val in unique.items()]).one_or_none()
         if model:
             message = f"A {model.__class__.__name__} already exists with id: {model.id} . Using existing. "

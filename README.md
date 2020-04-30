@@ -1,7 +1,7 @@
 # social_network
 
 **Author**: Chris L Chapman
-**Version**: 0.4.0
+**Version**: 0.5.0
 
 This application is a social media analysis platform with "Influencer" users who are experts in social media that bring value to our "Brand" company users who are principally responsible for the investment in the reputation of their products, as well as "Marketing" users who further manage this brand reputation investment.
 
@@ -17,6 +17,10 @@ Designed to be deployed on Google Cloud App Engine, using:
 
 - MySQL 5.7
 - Python 3.7
+- Google Cloud Tasks
+- An API for Capture of webpages and images of limited lifespan
+  - Our own Capture API service called with secure gRPC protocol
+  - [Capture API code](https://github.com/SeattleChris/test-site-content)
 - Google Worksheet API v4
 - Google Drive API v3
 - Facebook Graph API v4.0, with the following scope:
@@ -29,12 +33,15 @@ Core packages required for this application:
 - flask
 - gunicorn
 - flask-sqlalchemy
+- cryptography
 - Flask-Migrate
 - flask-login
 - pymysql
 - google-api-python-client
 - google-auth-httplib2
 - google-auth
+- google-cloud-tasks
+- googleapis-common-protos
 - requests-oauthlib
 - python-dateutil
 
@@ -97,7 +104,7 @@ In order for our platform to get the most accurate Story metrics, the user's con
 
 We are currently deploying on google cloud (gcloud), with the Google App Engine standard environment. Some packages and code would need to be modified if we switched to App Engine flex, or other gcloud deploy services. Google Cloud (GCloud) is expecting a pip requirements file (`requirements.txt`), a `app.yaml` file (indicating what python version to use, and environment variables), and a `main.py` file as a point of entry for the application server to run. Gcloud also allows an ignore file - `.gcloudignore` which follows the same concepts from `.gitignore` files, as well as additional techniques for allowing files otherwise ignored in the `.gitignore` file.
 
-This platform application also depends on the [test-site-content](https://github.com/SeattleChris/test-site-content) application running. This platform calls this API as a service to record confirmation of content. This service API is also hosted on Google Cloud Platform, and is a part of the same project that our platform application belongs to.
+This platform application also depends on the [Capture API](https://github.com/SeattleChris/test-site-content) application running. This platform calls the Capture API as a service to record confirmation of content. This service API is also hosted on Google Cloud Platform, and is a part of the same project that our platform application belongs to.
 
 ## Development Notes
 
@@ -109,14 +116,14 @@ We are using pipenv, for local development, to help us track both dependencies a
 
 We are keeping a checklist for features and tasks that are both completed and are upcoming. This is intended as brief overview and to capture ongoing thoughts on how we are proceeding in developing this application. As a living document, it loosely indicates what we plan on working soon, with various degrees of specificity in planning. The current status of this file can be found in the following link:
 
-- [Features & Tasks ver 0.3.0](./checklist-03.md)
-- [Original Features & Tasks](./checklist.md)
+- [Features & Tasks - Round 2](./checklist-03.md) for up to version 0.5.0.
+- [Original Features & Tasks](./checklist.md) for up to version 0.2.0.
 
 ## Core Features
 
 ### Influencer and Brand user Onboarding
 
-From the home page, an influencer or brand partner can join the platform by following the link/button from the home page. This will lead them to verify with Facebook that they grant permission to the platform to look into the metrics and activity on their business Instagram account. This is required for influencers, but there is an option for brand partners to join without their own instagram account (but limiting some of the platform features they gain from that connection). The granting of these permissions requires that the influencer (or brand using this process) has a business Instagram account that is connected to a Facebook page, as is the typical expectation for these professional accounts.
+An influencer or brand partner can join the platform by following the link/button from the home page. This will lead them to verify with Facebook that they grant permission to the platform to look into the metrics and activity on their business Instagram account. This is required for influencers, enabling the platform to take care reporting metrics. It is optional, but highly recommended, for brand partners to also join with their business Instagram account. If brand users choose this option, they will receive additional metrics and analysis in their campaign reports. The granting of these permissions requires that the influencer (or brand using this process) has a business Instagram account that is connected to a Facebook page, as is the typical expectation for these professional accounts.
 
 Joining the platform does not grant access to other non-partnered influencers or brands. Joining the platform does grant other influencers or brands to their own account information outside of the platform admin & managers and the partnerships that influencer and brand partners enter in together.
 

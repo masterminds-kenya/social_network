@@ -4,7 +4,7 @@ The following, non-exhaustive references, where discovered and influenced choice
 
 ## Deploying to Production, Development or Service
 
-The default service, set with the `app.yaml` file, is our deployed production site. The development site and code is being deployed to the `dev` service. To create or update a service named `service_name`, we create a `service_name.yaml` file that has a line to set `service: service_name`. Then we run the command below.
+The default service, set with the `app.yaml` file, is our deployed production site. The development site and code is being deployed to the `dev` service with the `dev.yaml` file. To create or update a service named `service_name`, we create a `service_name.yaml` file that has a line to set `service: service_name`. Then we run the command below.
 
 ``` Bash
     gcloud app deploy [service_name.yaml]
@@ -42,14 +42,17 @@ We are using Webhooks to allow Instagram/Facebook to send JSON formatted data to
 
 All influencer users, and most brand users, should have a professional instagram account that is connected to a Facebook business page. In order for our platform to get the most accurate Story metrics, this page needs to have *App* platform enabled (the default setting), and continue to grant `manage_pages` permissions for our platform application (set during our onboarding process using Facebook login). The platform application will [subscribe to the page](https://developers.facebook.com/docs/graph-api/webhooks/getting-started/webhooks-for-pages) associated with the instagram account they are using for our platform (subscribing to the page's [name](https://developers.facebook.com/docs/graph-api/webhooks/reference/page/#name) field). There are some additional options for [Page Subscribed Apps](https://developers.facebook.com/docs/graph-api/reference/page/subscribed_apps) should we need it for later development goals.
 
-The function to send a request to the Graph API to subscribe to the page is called whenever the `page_token` property is set for a user (triggered by using [SQAlchemy Events](https://docs.sqlalchemy.org/en/13/orm/events.html)). If page subscription is successful, as expected in most cases,  this will set `story_subscribed` as true for a User. When the page is subscribed, our platform will also be subscribed to receive all `story_metrics` for the associated Instagram account. The Instagram Story Media posts, and the API data about them and their metrics, are only available for about 24 hours from when they are published by the user. This `story_metrics` subscription ensures that our platform will be updated with the final metrics data of the Story when it expires.
+During a given sqlalchemy database session, we are using `session.info` to track which of the current User objects in the session are in need of page and story_metrics subscription. Whenever the `page_token` property is set for a user (triggered by using [SQAlchemy Events](https://docs.sqlalchemy.org/en/13/orm/events.html)), this User object is added to the `session.info` dictionary under the appropriate key indicating it is ready for this process. By waiting to process them until triggered by a `before_flush` session event, we can be certain to have both the `page_token` and `page_id` field values we need. So, just before all these records are saved in the database, the function to send a request to the Graph API to subscribe to the page is called for each of these Users. If page subscription is successful, as expected in most cases, this will set `story_subscribed` as true for a User. When the page is subscribed, our platform will also be subscribed to receive all `story_metrics` for the associated Instagram account. The Instagram Story Media posts, and the API data about them and their metrics, are only available for about 24 hours from when they are published by the user. This `story_metrics` subscription ensures that our platform will be updated with the final metrics data of the Story when it expires.
 
 ## Task Queue on Google Cloud Platform
 
-google.api_core.gapic_v1.method.wrap_method
-google.api_core.path_template.expand
-cloud_tasks_grpc_transport.CloudTasksGrpcTransport
-from google.cloud.tasks_v2.gapic.transports import cloud_tasks_grpc_transport
+During a given sqlalchemy database session, we are using `session.info` to track which of the current Post objects in the session should be added to a capture task queue. We are using [SQAlchemy Events](https://docs.sqlalchemy.org/en/13/orm/events.html) to notice when a media post is being saved to the database. This Post will be added to the capture queue for stories if the Post is a 'STORY' media post, it does not already have a value for `saved_media` field (indication if we have already captured media image files), and it does not have a value for `capture_name` field (indication if it has already been added to a capture queue). When the Event listener first identifies a targeted STORY post, the Post object is added to an appropriate key in the `session.info` dictionary to be processed later. This slight delay is required since we can not be certain that the Post has set all the values that we need for crafting our Capture API call.
+
+Currently the Capture API requires we know the id in the database for this Post. Therefore, the posts targeted for capture in the `session.info` are added to the appropriate Task queue after writing to the database (triggered by a `after_flush_postexec` session event), which also requires an extra round of writing to the database for these objects.
+
+If the Capture API did not require the id in the database for each Post, this process could be made more efficient. We could move the process of populating the Capture Task queue(s) to be triggered by a `before_flush` session event. This would eliminate the extra round of writing to the database since we would be able to make all our needed field updates just before the objects were about to be written.
+
+### Security and Saving Capture Results
 
 
 [Client for Clouds Task API](https://googleapis.dev/python/cloudtasks/latest/gapic/v2/api.html)
