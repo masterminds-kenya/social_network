@@ -5,6 +5,7 @@ from google.cloud import tasks_v2
 from google.protobuf import timestamp_pb2
 from datetime import timedelta, datetime as dt
 from .model_db import Post
+from os import environ
 
 PROJECT_ID = app.config.get('PROJECT_ID')
 PROJECT_REGION = app.config.get('PROJECT_REGION')  # Google Docs said PROJECT_ZONE ?
@@ -51,8 +52,9 @@ def _get_capture_queue(queue_name):
     return queue_path if q else None
 
 
-def add_to_capture(post, queue_name='testing', task_name=None, payload=None, in_seconds=90):
-    """ Will add a task to a Capture Queue with a POST request if given a payload, else with GET request. """
+def add_to_capture(post, queue_name='testing', task_name=None, in_seconds=90):
+    """ Adds a task to a Capture Queue to send a POST request to the Capture API. Sets where the report is sent back """
+    mod = 'post'
     if not isinstance(task_name, (str, type(None))):
         raise TypeError("Usually the task_name for add_to_capture should be None, but should be a string if set. ")
     if isinstance(post, (int, str)):
@@ -61,24 +63,18 @@ def add_to_capture(post, queue_name='testing', task_name=None, payload=None, in_
         raise TypeError("Expected a valid Post object or an id for an existing Post for add_to_capture. ")
     # app.logger.debug(f"id: {post.id} media_type: {post.media_type} media_id: {post.media_id} ")
     parent = _get_capture_queue(queue_name)
-    #  Capture API url format:
-    #  /api/v1/post/[id]/[media_type]/[media_id]/?url=[url-to-test-for-images]
-    #  Expected JSON response has the following properties:
-    #  'success', 'message', 'file_list', url_list', 'error_files', 'deleted'
-    # capture_api_path = f"/api/v1/post/{str(post.id)}/{str(post.media_type).lower()}/{str(post.media_id)}/"
-    # capture_api_path += f"?url={str(post.permalink)}"
-    capture_api_path = f"/api/v1/post/{str(post.media_type).lower()}/{str(post.media_id)}/"
-    capture_api_path += f"?url={str(post.permalink)}"
-    # TODO: Create a payload with the permalink url info, the report should go to what service & media_type?
-    http_method = 'POST' if payload else 'GET'
+    capture_api_path = f"/api/v1/{mod}/{str(post.media_type).lower()}/{str(post.media_id)}/"
+    report_back = {'service': environ.get('GAE_SERVICE', 'dev'), 'relative_uri': '/capture/report/'}
+    source = {'queue_type': queue_name, 'queue_name': parent, 'object_type': mod}
+    data = {'target_url': post.permalink, 'media_type': post.media_type, 'media_id': post.media_id}
+    payload = {'report_settings': report_back, 'source': source, 'dataset': [data]}
     task = {
             'app_engine_http_request': {  # Specify the type of request.
-                'http_method': http_method,
-                'relative_uri': capture_api_path
+                'http_method': 'POST',
+                'relative_uri': capture_api_path,
+                'body': payload.encode()  # Task API requires type bytes.
             }
     }
-    if payload is not None:
-        task['app_engine_http_request']['body'] = payload.encode()  # Add payload to request as required type bytes.
     if task_name:
         task['name'] = task_name.lower()  # The Task API will generate one if it is not set.
     if in_seconds:
