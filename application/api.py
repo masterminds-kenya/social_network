@@ -27,7 +27,7 @@ def process_hook(req):
     """ We have a confirmed authoritative update on subscribed data of a Story Post. """
     # req = {'object': 'instagram', 'entry': [{'id': <ig_id>, 'time': 0, 'changes': [{one_fake_change}]}]}
     # req = {'object': 'page', 'entry': [{'id': <ig_id>, 'time': 0, 'changes': [{'field': 'name', 'value': 'newnam'}]}]}
-    pprint(req)
+    # pprint(req)
     hook_data, data_count = defaultdict(list), 0
     for ea in req.get('entry', [{}]):
         for rec in ea.get('changes', [{}]):
@@ -38,12 +38,12 @@ def process_hook(req):
             val.update({'ig_id': ea.get('id')})
             hook_data[rec.get('field', '')].append(val)
             data_count += 1
-    app.logger.debug(f"====== process_hook - stories: {len(hook_data['story_insights'])} total: {data_count} ======")
-    pprint(hook_data)
+    # app.logger.debug(f"====== process_hook - stories: {len(hook_data['story_insights'])} total: {data_count} ======")
+    # pprint(hook_data)
     total, new, modified = 0, 0, 0
     for story in hook_data['story_insights']:
         story['media_type'] = 'STORY'
-        media_id = story.pop('media_id', None)
+        media_id = story.get('media_id', None)
         ig_id = story.pop('ig_id', None)
         if media_id:
             total += 1
@@ -54,7 +54,7 @@ def process_hook(req):
                     setattr(model, k, v)
                 modified += 1
                 db.session.add(model)
-            else:
+            else:  
                 # create, but we need extra data about this story Post.
                 if media_id == '17887498072083520':
                     res = {'user_id': 190, 'media_id': media_id, 'media_type': 'STORY'}

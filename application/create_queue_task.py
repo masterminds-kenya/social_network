@@ -99,6 +99,6 @@ def add_to_capture(post, queue_name='testing', task_name=None, in_seconds=90):
         app.logger.error(e)
         response = None
     if response is not None:
-        app.logger.debug(f"Created task: {response.name} ")
+        app.logger.debug("Created task!")
         app.logger.debug(response)
     return response  # .name if response else None

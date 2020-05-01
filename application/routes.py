@@ -765,8 +765,8 @@ def capture_report():
 
     app.logger.debug("======================== capture report route =============================")
     message = ''
-    pprint(request.header)
-    data = request.get_json()
+    pprint(request.headers)
+    data = request.json if request.is_json else request.data
     # # data = {'success': Bool, 'message': '', 'source': {}, 'error': <answer remains>, 'changes':[change_vals, ...]}
     # # data['changes'] is a list of dict to be used as update content.
     if data.get('success', False) is False:
