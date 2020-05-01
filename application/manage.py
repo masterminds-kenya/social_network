@@ -84,3 +84,34 @@ def process_form(mod, request):
     if mod in bool_fields:
         data[bool_fields[mod]] = True if data.get(bool_fields[mod]) in {'on', True} else False
     return data
+
+
+def report_update(reports, Model):
+    """ Input is a list of dictionaries, with each being the update values to apply to the 'mod' Model. """
+    message, results, had_error = '', [], False
+    if Model != Post:
+        message += "The Report process is not available for that data. "
+        app.logger.debug(message)
+        return message, 500
+    for report in reports:
+        media_id = report.get('media_id', '')
+        model = Model.query.filter_by(media_id=media_id).first()
+        if not model:
+            message += f"Unable to find a Model with matching media_id: {media_id} \n"
+            app.logger.error(message)
+            had_error = True
+            continue
+        # Update model
+        for k, v in report.items():
+            setattr(model, k, v)
+        results.append(model)
+        message += f"Updated Model in capture_report: {str(model)} \n"
+    else:
+        message += "The report_update function received no reports. "
+    app.logger.debug("===================== report update - do the work =====================")
+    if len(results):
+        db.session.commit()
+        message += "Updates committed. "
+    app.logger.debug(message)
+    status_code = 422 if had_error else 200
+    return message, status_code
