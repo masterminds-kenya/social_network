@@ -35,28 +35,29 @@ def enqueue_capture(model, value, oldvalue, initiator):
         To make sure this Post gets placed in the appropriate Task queue, it is stored with a key in the session.info.
         Another listener will see all Post models prepared for a Capture queue, and will assign them accordingly.
     """
-    message = ''
+    value = value.upper()
+    is_manual, is_new_story, message = False, False, ''
     if str(type(initiator)) != "<class 'sqlalchemy.orm.attributes.Event'>":
         message += "Manually requested capture. "
-        if 'post_capture' in db.session.info:
-            db.session.info['post_capture'].add(model)
-        else:
-            db.session.info['post_capture'] = {model}
+        is_manual = True
     else:
         message += "Triggered by Event. "
-    if value == 'STORY':
-        app.logger.debug("================ Running enqueue_capture for a STORY post ===============")
-        message += "We have a new STORY post. " if oldvalue != 'STORY' else f"Update media_type {oldvalue} to STORY. "
-        if not getattr(model, 'saved_media', None) and not getattr(model, 'capture_name', None):
-            message += "Sending to Story Capture Queue. "
-            if 'story_capture' in db.session.info:
-                db.session.info['story_capture'].add(model)
-            else:
-                db.session.info['story_capture'] = {model}
+        if value == 'STORY' and not any(getattr(model, 'saved_media', None), getattr(model, 'capture_name', None)):
+            is_new_story = True
+    if is_manual or is_new_story:
+        capture_type = 'story_capture' if value == 'STORY' else 'post_capture'
+        app.logger.debug(f"========== Adding a {capture_type} with enqueue_capture function. {message} ==========")
+        # TODO: Fix the next line with the oldvalue we get on new Model instances.
+        message += f"We have a new {value} post. " if oldvalue != '' else f"Update media_type {oldvalue} to {value}. "
+        message += f"Will send to {capture_type} Queue when session committed. "
+        if capture_type in db.session.info:
+            db.session.info[capture_type].add(model)
         else:
-            message += "It has already been captured or queued for capture. "
-        app.logger.debug(message)
-        app.logger.debug('---------------------------------------------------')
+            db.session.info[capture_type] = {model}
+    else:
+        message += "It has already been captured or queued for capture. "
+    app.logger.debug(message)
+    app.logger.debug('---------------------------------------------------')
     return value
 
 
