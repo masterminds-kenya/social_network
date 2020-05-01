@@ -6,6 +6,7 @@ from google.protobuf import timestamp_pb2
 from datetime import timedelta, datetime as dt
 from .model_db import Post
 from os import environ
+import json
 
 PROJECT_ID = app.config.get('PROJECT_ID')
 PROJECT_REGION = app.config.get('PROJECT_REGION')  # Google Docs said PROJECT_ZONE ?
@@ -63,7 +64,7 @@ def add_to_capture(post, queue_name='testing', task_name=None, in_seconds=90):
         raise TypeError("Expected a valid Post object or an id for an existing Post for add_to_capture. ")
     # app.logger.debug(f"id: {post.id} media_type: {post.media_type} media_id: {post.media_id} ")
     parent = _get_capture_queue(queue_name)
-    capture_api_path = f"/api/v1/{mod}/{str(post.media_type).lower()}/{str(post.media_id)}/"
+    capture_api_path = f"/api/v1/{mod}/"
     report_back = {'service': environ.get('GAE_SERVICE', 'dev'), 'relative_uri': '/capture/report/'}
     source = {'queue_type': queue_name, 'queue_name': parent, 'object_type': mod}
     data = {'target_url': post.permalink, 'media_type': post.media_type, 'media_id': post.media_id}
@@ -72,7 +73,7 @@ def add_to_capture(post, queue_name='testing', task_name=None, in_seconds=90):
             'app_engine_http_request': {  # Specify the type of request.
                 'http_method': 'POST',
                 'relative_uri': capture_api_path,
-                'body': payload.encode()  # Task API requires type bytes.
+                'body': json.dumps(payload).encode()  # Task API requires type bytes.
             }
     }
     if task_name:

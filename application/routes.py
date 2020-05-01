@@ -761,8 +761,11 @@ def edit(mod, id):
 @app.route('/capture/report/', methods=['GET', 'POST'])
 def capture_report():
     """ After the capture work is processed, the results are sent here to update the models. """
+    from pprint import pprint
+
     app.logger.debug("======================== capture report route =============================")
     message = ''
+    pprint(request.header)
     data = request.get_json()
     # # data = {'success': Bool, 'message': '', 'source': {}, 'error': <answer remains>, 'changes':[change_vals, ...]}
     # # data['changes'] is a list of dict to be used as update content.
@@ -770,9 +773,9 @@ def capture_report():
         message += data.get('message')
         app.logger.debug(message)
         app.logger.debug('-------------------------------------------------------')
-        app.logger.debug(data.get('source'))
+        pprint(data.get('source'))
         app.logger.debug('-------------------------------------------------------')
-        app.logger.debug(data.get('error'))
+        pprint(data.get('error'))
         app.logger.debug('-------------------------------------------------------')
         return message, 500
     mod = data.get('source', {}).get('mod')
