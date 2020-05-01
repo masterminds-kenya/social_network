@@ -770,7 +770,10 @@ def capture_report():
         message += data.get('message')
         app.logger.debug(message)
         app.logger.debug('-------------------------------------------------------')
-        app.logger.debug(data)
+        app.logger.debug(data.get('source'))
+        app.logger.debug('-------------------------------------------------------')
+        app.logger.debug(data.get('error'))
+        app.logger.debug('-------------------------------------------------------')
         return message, 500
     mod = data.get('source', {}).get('mod')
     Model = mod_lookup(mod)
