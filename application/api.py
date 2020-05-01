@@ -43,7 +43,7 @@ def process_hook(req):
     total, new, modified = 0, 0, 0
     for story in hook_data['story_insights']:
         story['media_type'] = 'STORY'
-        media_id = story.get('media_id', None)
+        media_id = story.pop('media_id', None)  # Exists on found, or put back during get_basic_post (even if failed).
         ig_id = story.pop('ig_id', None)
         if media_id:
             total += 1
@@ -53,10 +53,9 @@ def process_hook(req):
                 for k, v in story.items():
                     setattr(model, k, v)
                 modified += 1
-                db.session.add(model)
-            else:  
+            else:
                 # create, but we need extra data about this story Post.
-                if media_id == '17887498072083520':
+                if media_id == '17887498072083520':  # This the test data sent by FB console
                     res = {'user_id': 190, 'media_id': media_id, 'media_type': 'STORY'}
                     res['timestamp'] = "2020-04-23T18:10:00+0000"
                 else:
@@ -66,11 +65,9 @@ def process_hook(req):
                 story.update(res)
                 model = Post(**story)
                 new += 1
-                db.session.add(model)
-    # message = f"Updates - "
+            db.session.add(model)
     message = ', '.join([f"{key}: {len(value)}" for key, value in hook_data.items()])
     message += ' \n'
-    app.logger.debug(message)
     if modified + new > 0:
         message += f"Updating {modified} and creating {new} Story Posts; Recording data for {total} Story Posts. "
         try:
@@ -80,7 +77,6 @@ def process_hook(req):
         except Exception as e:
             response_code = 401
             message += "Unable to to commit story hook updates to database. "
-            app.logger.debug(message)
             app.logger.error(e)
             db.session.rollback()
     else:
@@ -90,13 +86,12 @@ def process_hook(req):
 
 
 def capture_media(post_or_posts, get_story_only):
-    """ For a given Post or list of Post objects, call the API for capturing the images of that InstaGram page.
+    """ DEPRECATED.
+        For a given Post or list of Post objects, call the API for capturing the images of that InstaGram page.
         If get_story_only is True, then only process the Posts that have media_type equal to 'STORY'.
     """
     #  API URL format:
-    #  /api/v1/post/[id]/[media_type]/[media_id]/?url=[url-to-test-for-images]
-    #  Expected JSON response has the following properties:
-    #  'success', 'message', 'file_list', url_list', 'error_files', 'deleted'
+    #  /api/v1/post/
     if isinstance(post_or_posts, Post):
         posts = [post_or_posts]
         started_with_many = False
@@ -111,10 +106,9 @@ def capture_media(post_or_posts, get_story_only):
             raise TypeError("Every element must be a Post object. ")
         if get_story_only and post.media_type != 'STORY':
             continue  # Skip this one if we are skipping non-story posts.
+        # TODO: The following is out of date with the Capture API. Updated code needed if this function is maintained.
         payload = {'url': post.permalink}
         url = f"{CAPTURE_BASE_URL}/api/v1/post/{str(post.id)}/{post.media_type.lower()}/{str(post.media_id)}/"
-        # app.logger.debug('--------- Capture Media Url -------------')
-        # app.logger.debug(url)
         try:
             res = requests.get(url, params=payload)
         except Exception as e:
@@ -251,7 +245,6 @@ def get_basic_post(media_id, metrics=None, user_id=None, facebook=None, token=No
         token = getattr(user, 'token', None)
         if not token:
             message = f"Unable to locate user token value. User should login with Facebook and authorize permissions. "
-            # res = {'message': message, 'error': 403}
             return empty_res
     if not metrics:
         metrics = ','.join(Post.METRICS.get('basic'))
@@ -266,7 +259,7 @@ def get_basic_post(media_id, metrics=None, user_id=None, facebook=None, token=No
     if 'error' in res:
         app.logger.error(f"Error: {res.get('error', 'Empty Error')} ")
         app.logger.error('--------------------- Error in get_basic_post FB API response ---------------------')
-        pprint(res)
+        # pprint(res)
         return empty_res
     res['media_id'] = res.pop('id', media_id)
     if user_id:
@@ -339,13 +332,7 @@ def get_posts(id_or_users, ig_id=None, facebook=None):
     for ea in id_or_users:
         results.extend(_get_posts_data_of_user(ea, ig_id=ig_id, facebook=facebook))
     saved = db_create_or_update_many(results, Post)
-    # TODO: Add posts to capture queue now!
-    # capture_responses = capture_media(saved, True)
-    # failed_capture = [ea.get('post') for ea in capture_responses if not ea.get('saved_media')]
-    # message = f"Had {len(capture_responses)} story posts. "
-    # message += f"Had {len(failed_capture)} failed media captures. " if failed_capture else "All media captured. "
-    # app.logger.info(message)
-    # flash(message)
+    # If any STORY posts were found, the SQLAlchemy Event Listener will add it to the Task queue for the Capture API.
     return saved
 
 

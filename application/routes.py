@@ -1,15 +1,13 @@
 from flask import render_template, redirect, url_for, request, flash, current_app as app  # , abort
 from flask_login import current_user, login_user, logout_user, login_required
 from werkzeug.security import generate_password_hash, check_password_hash
-# from sqlalchemy import event
 from functools import wraps
 import json
 from .model_db import db_create, db_read, db_update, db_delete, db_all, from_sql
 from .model_db import User, OnlineFollowers, Insight, Audience, Post, Campaign  # , metric_clean
 from . import developer_admin
 from .manage import update_campaign, process_form, report_update
-from .api import onboard_login, onboarding, get_insight, get_audience, get_posts, get_online_followers
-from .api import process_hook, capture_media
+from .api import onboard_login, onboarding, get_insight, get_audience, get_posts, get_online_followers, process_hook
 from .sheets import create_sheet, update_sheet, perm_add, perm_list, all_files
 # from pprint import pprint
 
@@ -258,82 +256,20 @@ def encrypt():
 @admin_required()
 def capture(id):
     """ Capture the media files. Currently on an Admin function, to be updated later. """
+    from .events import enqueue_capture
+
     post = Post.query.get(id)
     if not post:
         message = f"Post not found. "
         app.logger.debug(message)
         flash(message)
         return redirect(url_for('admin'))
-    answer = capture_media(post, False)  # TODO: ? add post to capture queue?
-    message = "API gave success response. " if answer.get('success') else "API response failed. "
-    message += "Saved url for saved_media on Post. " if answer.get('saved_media') else "Media NOT saved. "
+    value = post.media_type
+    ret_value = enqueue_capture(post, value, value, 'Admin Capture Route')
+    message = f"Added {post} to capture queue. " if value == ret_value else f"Unable to add {post} to capture queue. "
     flash(message)
-    return admin(data=answer)
+    return redirect(url_for('admin'))
 
-
-# @event.listens_for(User.page_token, 'set', retval=True)
-# def handle_user_page(user, value, oldvalue, initiator):
-#     """ Triggered when a value is being set for User.page_token """
-#     app.logger.debug("================ The page_token listener function is running! ===============")
-#     if value in (None, ''):
-#         user.story_subscribed = False
-#         app.logger.debug(f"Empty page for {user} user. Set story_subscribed to False. ")
-#     else:
-#         page_id = getattr(user, 'page_id', None)
-#         if not page_id:
-#             app.logger.debug(f"Invalid page_id: {str(page_id)} for user: {user} ")
-#             if 'subscribe_page' in db.session.info:
-#                 db.session.info['subscribe_page'].add(user)
-#             else:
-#                 db.session.info['subscribe_page'] = {user}
-#             return value
-#         page = {'id': page_id, 'token': value}
-#         success = install_app_on_user_for_story_updates(user, page=page)
-#         user.story_subscribed = success
-#         app.logger.debug(f"Subscribe {page_id} page for {user} worked: {success} ")
-#     return value
-
-
-# @event.listens_for(Post.media_type, 'set', retval=True)
-# def enqueue_capture(model, value, oldvalue, initiator):
-#     """ Triggered when a value is being set for Post.media_type.
-#         Unfortunately our hope to access Post.media_id does not work. It may be present, or not yet set.
-#         Perhaps we can add this model to the capture queue, and it will have the values when needed.
-#         Otherwise, we may need a different approach.
-#     """
-#     app.logger.debug("================ The enqueue_capture function is running! ===============")
-#     message = ''
-#     if str(type(initiator)) != "<class 'sqlalchemy.orm.attributes.Event'>":
-#         message += "Manually requested capture. "
-#         # capture_response = add_to_capture(model)
-#         # model.capture_name = getattr(capture_response, 'name', '')
-#     else:
-#         message += "Triggered by Event. "
-
-#     if value == 'STORY':
-#         message += "We have a STORY post! "
-#         if oldvalue != 'STORY':
-#             message += "It is new! "
-#         else:
-#             message += f"Old Value: {oldvalue} . "
-#         if not getattr(model, 'saved_media', None):
-#             message += "We need to send it for CAPTURE! "
-#             capture_response = add_to_capture(model)
-#             app.logger.debug(capture_response)
-#             model.capture_name = getattr(capture_response, 'name', None)
-#         else:
-#             message += "Apparently we already have saved_media captured? "
-#     else:
-#         message += f"The Post.media_type value is: {value}, with old value: {oldvalue} . "
-#     app.logger.debug(message)
-#     # app.logger.debug(str(target))
-#     # app.logger.debug(str(requested))
-#     app.logger.debug('---------------------------------------------------')
-#     # app.logger.debug(type(model))
-#     # app.logger.debug(model)
-#     # app.logger.debug(type(initiator))
-#     # app.logger.debug(initiator)
-#     return value
 
 # ########## The following are for worksheets ############
 
@@ -770,14 +706,14 @@ def capture_report():
     data = json.loads(data.decode())
     # # data = {'success': Bool, 'message': '', 'source': {}, 'error': <answer remains>, 'changes':[change_vals, ...]}
     # # data['changes'] is a list of dict to be used as update content.
+    app.logger.debug('------------------  Source  -------------------------------------')
+    pprint(data.get('source'))
+    app.logger.debug('------------------ Message  -------------------------------------')
+    message += data.get('message')
+    app.logger.debug(message)
     if data.get('success', False) is False:
-        message += data.get('message')
-        app.logger.debug(message)
-        app.logger.debug('-------------------------------------------------------')
-        pprint(data.get('source'))
-        app.logger.debug('-------------------------------------------------------')
+        app.logger.debug('------------------ Answer Remains -------------------------------------')
         pprint(data.get('error'))
-        app.logger.debug('-------------------------------------------------------')
         return message, 500
     mod = data.get('source', {}).get('mod')
     Model = mod_lookup(mod)
@@ -797,22 +733,7 @@ def hook():
         # if signed != signature:
         #     message = f"Signature did not match. "
         #     return message, 401
-        try:
-            data = request.json if request.is_json else request.data
-        except Exception as e:
-            # TODO: Remove the fake response after testing.
-            fake_story_update = {'exits': 0,
-                                 'impressions': 0,
-                                 'media_id': 0,
-                                 'reach': 0,
-                                 'replies': 0,
-                                 'taps_back': 0,
-                                 'taps_forward': 0
-                                 }
-            one_fake_change = {'field': 'fake_field', 'value': fake_story_update}
-            data = {'object': 'fake', 'entry': [{'id': 42, 'time': 0, 'changes': [one_fake_change]}]}
-            app.logger.info(f"Got an exception in hook route. ")
-            app.logger.error(e)
+        data = request.json if request.is_json else request.data
         res, response_code = process_hook(data)  # Do something with the data!
     elif request.method == 'GET':
         mode = request.args.get('hub.mode')
