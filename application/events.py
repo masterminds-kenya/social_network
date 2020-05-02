@@ -32,10 +32,13 @@ def enqueue_capture(model, value, oldvalue, initiator):
     if str(type(initiator)) != "<class 'sqlalchemy.orm.attributes.Event'>":
         message += "Manually requested capture. "
         is_manual = True
-    else:
+    elif value == 'STORY' and not any([getattr(model, 'saved_media', None), getattr(model, 'capture_name', None)]):
         message += "Triggered by Event. "
-        if value == 'STORY' and not any([getattr(model, 'saved_media', None), getattr(model, 'capture_name', None)]):
-            is_new_story = True
+        is_new_story = True
+    elif value != 'STORY':
+        # Posts without 'STORY' set for media_type are not added for capture unless it was a manual request. Not logged.
+        return value
+
     if is_manual or is_new_story:
         capture_type = 'story_capture' if value == 'STORY' else 'post_capture'
         app.logger.debug(f"========== Adding a {capture_type} with enqueue_capture function. {message} ==========")
@@ -46,8 +49,9 @@ def enqueue_capture(model, value, oldvalue, initiator):
             db.session.info[capture_type].add(model)
         else:
             db.session.info[capture_type] = {model}
-    else:
-        message += "It has already been captured or queued for capture. "
+    elif value == 'STORY':
+        app.logger.debug(f"========== Running enqueue_capture function. {message} ==========")
+        message += f"Did not add {model} because it has already been captured or queued for capture. "
     app.logger.debug(message)
     app.logger.debug('---------------------------------------------------')
     return value

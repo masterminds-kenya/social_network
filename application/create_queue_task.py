@@ -31,8 +31,8 @@ def _get_capture_queue(queue_name):
     queue_settings['retry_config'] = retry_config
     for queue in client.list_queues(parent):  # TODO: Improve efficiency since queues list is in lexicographical order
         if queue_settings['name'] == queue.name:
-            # TODO: Fix q = client.update_queue(queue_settings, retry=capture_retry)
-            return queue.name
+            q = client.update_queue(queue_settings)  # TODO: Fix
+            return q.name
     try:
         q = client.create_queue(parent, queue_settings)
     except AlreadyExists as exists:
@@ -51,7 +51,7 @@ def _get_capture_queue(queue_name):
     return queue_path if q else None
 
 
-def add_to_capture(post, queue_name='testing', task_name=None, in_seconds=90):
+def add_to_capture(post, queue_name='test-on-db-b', task_name=None, in_seconds=90):
     """ Adds a task to a Capture Queue to send a POST request to the Capture API. Sets where the report is sent back """
     mod = 'post'
     if not isinstance(task_name, (str, type(None))):
@@ -62,10 +62,10 @@ def add_to_capture(post, queue_name='testing', task_name=None, in_seconds=90):
         raise TypeError("Expected a valid Post object or an id for an existing Post for add_to_capture. ")
     parent = _get_capture_queue(queue_name)
     capture_api_path = f"/api/v1/{mod}/"
-    report_back = {'service': environ.get('GAE_SERVICE', 'dev'), 'relative_uri': '/capture/report/'}
+    report_settings = {'service': environ.get('GAE_SERVICE', 'dev'), 'relative_uri': '/capture/report/'}
     source = {'queue_type': queue_name, 'queue_name': parent, 'object_type': mod}
     data = {'target_url': post.permalink, 'media_type': post.media_type, 'media_id': post.media_id}
-    payload = {'report_settings': report_back, 'source': source, 'dataset': [data]}
+    payload = {'report_settings': report_settings, 'source': source, 'dataset': [data]}
     task = {
             'app_engine_http_request': {  # Specify the type of request.
                 'http_method': 'POST',
