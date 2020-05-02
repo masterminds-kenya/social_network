@@ -1,6 +1,20 @@
 from .model_db import db, User, Post, Audience
 from flask import current_app as app
+import hashlib
 import json
+
+
+def check_hash(signed, payload):
+    """ Checks if the 'signed' value is a SHA1 hash made with our app secret and the given 'payload' """
+    pre, signed = signed.split('=', 1)
+    if pre != 'sha1':
+        return False
+    secret = app.config.get('SECRET_KEY')
+    payload = payload + secret
+    result = hashlib.sha1(payload.encode())
+    if result == signed:
+        return True
+    return False
 
 
 def update_campaign(campaign, request):

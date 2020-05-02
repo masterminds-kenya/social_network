@@ -22,7 +22,7 @@ def handle_user_page(user, value, oldvalue, initiator):
 
 @event.listens_for(Post.media_type, 'set', retval=True)
 def enqueue_capture(model, value, oldvalue, initiator):
-    """ Triggered when a value is being set for Post.media_type.
+    """ Triggered when a value is being set for Post.media_type. Can also be initiated as a manual request for a Post.
         Unfortunately we can not be certain the other needed fields have been set for this Post model.
         To make sure this Post gets placed in the appropriate Task queue, it is stored with a key in the session.info.
         Another listener will see all Post models prepared for a Capture queue, and will assign them accordingly.
@@ -43,7 +43,6 @@ def enqueue_capture(model, value, oldvalue, initiator):
     if is_manual or is_new_story:
         capture_type = 'story_capture' if value == 'STORY' else 'post_capture'
         app.logger.debug(f"========== Adding a {capture_type} with enqueue_capture function. {message} ==========")
-        # TODO: Fix the next line with the oldvalue we get on new Model instances.
         message += f"New {value} post. " if str(oldvalue) == no_val else f"media_type {oldvalue} to {value}. "
         message += f"When session is committed, will send to {capture_type} Queue. "
         if capture_type in db.session.info:

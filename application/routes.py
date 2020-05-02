@@ -6,7 +6,7 @@ import json
 from .model_db import db_create, db_read, db_update, db_delete, db_all, from_sql
 from .model_db import User, OnlineFollowers, Insight, Audience, Post, Campaign  # , metric_clean
 from . import developer_admin
-from .manage import update_campaign, process_form, report_update
+from .manage import update_campaign, process_form, report_update, check_hash
 from .api import onboard_login, onboarding, get_insight, get_audience, get_posts, get_online_followers, process_hook
 from .sheets import create_sheet, update_sheet, perm_add, perm_list, all_files
 # from pprint import pprint
@@ -726,15 +726,15 @@ def hook():
     """ Endpoint receives all webhook updates from Instagram/Facebook for Story Posts. """
     app.logger.debug(f"========== The hook route has a {request.method} request ==========")
     if request.method == 'POST':
-        signed = request.headers.get('X-Hub-Signature', None)
-        signature = 'sha1='
-        # TODO: Generate a SHA1 with payload and App Secret, confirm it is a match.
-        signature += ''
-        app.logger.debug(f"Signature match worked: {signed == signature} ")
-        # if signed != signature:
-        #     message = f"Signature did not match. "
-        #     return message, 401
+        signed = request.headers.get('X-Hub-Signature', '')
         data = request.json if request.is_json else request.data
+        # TODO: Generate a SHA1 with payload and App Secret, confirm it is a match.
+        verified = check_hash(signed, data)
+        if not verified:
+            message = "Signature given for webhook could not be verified. "
+            app.logger.error(message)
+            app.logger.debug(signed)
+            return message, 401  # 403 if we KNOW it was done wrong
         res, response_code = process_hook(data)  # Do something with the data!
     elif request.method == 'GET':
         mode = request.args.get('hub.mode')

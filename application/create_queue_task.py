@@ -35,6 +35,7 @@ def _get_capture_queue(queue_name):
     queue_settings['retry_config'] = retry_config
     for queue in client.list_queues(parent):  # TODO: ?Improve efficiency since queues list is in lexicographical order?
         if queue_settings['name'] == queue.name:
+            # q = client.update(queue_settings, update_mask=queue_settings.keys())  # TODO: Fix
             return queue.name
     try:
         q = client.create_queue(parent, queue_settings)
