@@ -1,7 +1,7 @@
 from flask import current_app as app
 from google.api_core.exceptions import RetryError, AlreadyExists, GoogleAPICallError
 from google.cloud import tasks_v2
-from google.protobuf import timestamp_pb2
+from google.protobuf import timestamp_pb2, duration_pb2
 from datetime import timedelta, datetime as dt
 from .model_db import Post
 from os import environ
@@ -25,17 +25,17 @@ def _get_capture_queue(queue_name):
     queue_path = client.queue_path(PROJECT_ID, PROJECT_REGION, queue_name)
     routing_override = {'service': CAPTURE_SERVICE}
     rate_limits = {'max_concurrent_dispatches': 2, 'max_dispatches_per_second': 1}
-    retry_config = {'max_attempts': 25, 'min_backoff': '10s', 'max_backoff': '5100s', 'max_doublings': 9}
-    retry_config['max_retry_duration'] = '86100s'  # 5 minutes before 24 hours
-    # rate_limits = {'maxConcurrentDispatches': 2, 'maxDispatchesPerSecond': 1}
-    # retry_config = {'maxAttempts': 25, 'minBackoff': '10s', 'maxBackoff': '5100s', 'maxDoublings': 9}
-    # retry_config['maxRetryDuration'] = '86100s'  # 5 minutes before 24 hours
     queue_settings = {'name': queue_path, 'app_engine_routing_override': routing_override, 'rate_limits': rate_limits}
+    min_backoff, max_backoff, max_life = duration_pb2.Duration(), duration_pb2.Duration(), duration_pb2.Duration()
+    min_backoff.FromJsonString('10s')    # 10 seconds
+    max_backoff.FromJsonString('5100s')  # 1 hour and 25 minutes
+    max_life.FromJsonString('86100s')    # 5 minutes shy of 24 hours
+    retry_config = {'max_attempts': 25, 'min_backoff': min_backoff, 'max_backoff': max_backoff, 'max_doublings': 9}
+    retry_config['max_retry_duration'] = max_life
     queue_settings['retry_config'] = retry_config
-    for queue in client.list_queues(parent):  # TODO: Improve efficiency since queues list is in lexicographical order
+    for queue in client.list_queues(parent):  # TODO: ?Improve efficiency since queues list is in lexicographical order?
         if queue_settings['name'] == queue.name:
-            q = client.update_queue(queue_settings)  # TODO: Fix
-            return q.name
+            return queue.name
     try:
         q = client.create_queue(parent, queue_settings)
     except AlreadyExists as exists:
