@@ -25,7 +25,6 @@ FB_SCOPE = [
 
 def process_hook(req):
     """ We have a confirmed authoritative update on subscribed data of a Story Post. """
-    # req = {'object': 'instagram', 'entry': [{'id': <ig_id>, 'time': 0, 'changes': [{one_fake_change}]}]}
     # req = {'object': 'page', 'entry': [{'id': <ig_id>, 'time': 0, 'changes': [{'field': 'name', 'value': 'newnam'}]}]}
     # pprint(req)
     hook_data, data_count = defaultdict(list), 0
@@ -257,8 +256,8 @@ def get_basic_post(media_id, metrics=None, user_id=None, facebook=None, token=No
         app.logger.error(e)
         return empty_res
     if 'error' in res:
-        app.logger.error(f"Error: {res.get('error', 'Empty Error')} ")
-        app.logger.error('--------------------- Error in get_basic_post FB API response ---------------------')
+        # app.logger.error(f"Error: {res.get('error', 'Empty Error')} ")
+        app.logger.info('--------------------- Error in get_basic_post FB API response ---------------------')
         # pprint(res)
         return empty_res
     res['media_id'] = res.pop('id', media_id)
@@ -374,7 +373,6 @@ def get_fb_page_for_user(user, facebook=None, token=None):
 
 def install_app_on_user_for_story_updates(user_or_id, page=None, facebook=None, token=None):
     """ Accurate Story Post metrics can be pushed to the Platform only if the App is installed on the related Page. """
-    installed = False
     if isinstance(user_or_id, User):
         user = user_or_id
         user_id = user.id
@@ -390,38 +388,13 @@ def install_app_on_user_for_story_updates(user_or_id, page=None, facebook=None, 
             app.logger.error(f"Unable to find the page for user: {user} ")
             return False
     url = f"https://graph.facebook.com/v3.1/{page['id']}/subscribed_apps"
-    # https://developers.facebook.com/docs/graph-api/reference/page/subscribed_apps
-    # read currently subscribed apps
-    # GET on url, returns {'data': [], 'paging': {}}
-    # where data is a list of apps.
-    # if version is greater than 3.1, then data also have a subscribed_fields value.
-    # add app to subscribed_apps
-    # POST on url
-    # if version is greater than 3.1, then subscribed_fields parameter is required.
-    # we want version 3.1 for installing our app just to allow subscribing to Instagram story posts
-    # unclear if the 'read-after-write' means we need a ?fields='success' on the url.
-    # return data should be { success: True }
-    # Business Login and Page Access Token: https://developers.facebook.com/docs/facebook-login/business-login-direct
     params = {} if facebook else {'access_token': page['token']}
     params['subscribed_fields'] = 'name'
     res = facebook.post(url, params=params).json() if facebook else requests.post(url, params=params).json()
     # TODO: See if facebook with params above works.
     app.logger.debug('----------------------------------------------------------------')
     pprint(res)
-    installed = res.get('success', False)
-    # Update user: page details if they are new. story_subscribe if install was successful.
-    # updated_user = False
-    # if page.get('new_page'):
-    #     user.page_id = page['id']
-    #     user.page_token = page['token']
-    #     updated_user = True
-    # if installed:
-    #     user.story_subscribe = True
-    #     updated_user = True
-    # if updated_user:
-    #     db.session.add(user)
-    #     db.session.commit()
-    return installed
+    return res.get('success', False)
 
 
 def get_ig_info(ig_id, facebook=None, token=None):
@@ -452,7 +425,6 @@ def find_instagram_id(accounts, facebook=None, token=None):
         app.logger.error(message)
         raise Exception(message)
     if not accounts or 'data' not in accounts:
-        # message = f"Error in accounts input: {accounts} "
         message = f"No pages found from accounts data: {accounts}. "
         app.logger.debug(message)
         return []

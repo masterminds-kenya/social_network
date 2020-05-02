@@ -8,23 +8,15 @@ from .create_queue_task import add_to_capture
 @event.listens_for(User.page_token, 'set', retval=True)
 def handle_user_page(user, value, oldvalue, initiator):
     """ Triggered when a value is being set for User.page_token """
-    # app.logger.debug("================ The page_token listener function is running! ===============")
+    app.logger.debug("================ The page_token listener function is running ===============")
     if value in (None, ''):
         user.story_subscribed = False
         app.logger.debug(f"Empty page_token for {user} user. Set story_subscribed to False. ")
         return None
-    # page_id = getattr(user, 'page_id', None)
-    # if not page_id:
-    #     app.logger.debug(f"Invalid page_id: {str(page_id)} for user: {user} ")
     if 'subscribe_page' in db.session.info:
         db.session.info['subscribe_page'].add(user)
     else:
         db.session.info['subscribe_page'] = {user}
-    # return value
-    # page = {'id': page_id, 'token': value}
-    # success = install_app_on_user_for_story_updates(user, page=page)
-    # user.story_subscribed = success
-    # app.logger.debug(f"Subscribe {page_id} page for {user} worked: {success} ")
     return value
 
 

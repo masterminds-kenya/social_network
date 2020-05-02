@@ -1,5 +1,4 @@
 from flask import current_app as app
-# from google.api_core.retry import Retry
 from google.api_core.exceptions import RetryError, AlreadyExists, GoogleAPICallError
 from google.cloud import tasks_v2
 from google.protobuf import timestamp_pb2
@@ -28,7 +27,6 @@ def _get_capture_queue(queue_name):
     rate_limits = {'max_concurrent_dispatches': 2, 'max_dispatches_per_second': 1}
     retry_config = {'max_attempts': 25, 'min_backoff': '10', 'max_backoff': '5100', 'max_doublings': 9}
     retry_config['max_retry_duration'] = '24h'
-    # capture_retry = Retry(initial=10.0, maximum=5100.0, multiplier=9.0, deadline=86100.0)
     queue_settings = {'name': queue_path, 'app_engine_routing_override': routing_override, 'rate_limits': rate_limits}
     queue_settings['retry_config'] = retry_config
     for queue in client.list_queues(parent):  # TODO: Improve efficiency since queues list is in lexicographical order
@@ -62,7 +60,6 @@ def add_to_capture(post, queue_name='testing', task_name=None, in_seconds=90):
         post = Post.query.get(post)
     if not isinstance(post, Post):
         raise TypeError("Expected a valid Post object or an id for an existing Post for add_to_capture. ")
-    # app.logger.debug(f"id: {post.id} media_type: {post.media_type} media_id: {post.media_id} ")
     parent = _get_capture_queue(queue_name)
     capture_api_path = f"/api/v1/{mod}/"
     report_back = {'service': environ.get('GAE_SERVICE', 'dev'), 'relative_uri': '/capture/report/'}
