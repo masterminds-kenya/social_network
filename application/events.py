@@ -43,8 +43,8 @@ def enqueue_capture(model, value, oldvalue, initiator):
         capture_type = 'story_capture' if value == 'STORY' else 'post_capture'
         app.logger.debug(f"========== Adding a {capture_type} with enqueue_capture function. {message} ==========")
         # TODO: Fix the next line with the oldvalue we get on new Model instances.
-        message += f"We have a new {value} post. " if oldvalue != '' else f"Update media_type {oldvalue} to {value}. "
-        message += f"Will send to {capture_type} Queue when session committed. "
+        message += f"We have a new {value} post. " if oldvalue != oldvalue else f"Update media_type {oldvalue} to {value}. "
+        message += f"When session is committed, will send to {capture_type} Queue. "
         if capture_type in db.session.info:
             db.session.info[capture_type].add(model)
         else:

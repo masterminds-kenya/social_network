@@ -701,7 +701,8 @@ def capture_report():
 
     app.logger.debug("======================== capture report route =============================")
     message = ''
-    pprint(request.headers)
+    # pprint(request.headers)
+    # TODO: Check request.headers or source info for signs this came from a task queue, and reject if not a valid source
     data = request.json if request.is_json else request.data
     data = json.loads(data.decode())
     # # data = {'success': Bool, 'message': '', 'source': {}, 'error': <answer remains>, 'changes':[change_vals, ...]}
@@ -715,7 +716,7 @@ def capture_report():
         app.logger.debug('------------------ Answer Remains -------------------------------------')
         pprint(data.get('error'))
         return message, 500
-    mod = data.get('source', {}).get('mod')
+    mod = data.get('source', {}).get('object_type', '')
     Model = mod_lookup(mod)
     return report_update(data.get('changes', []), Model)
 
