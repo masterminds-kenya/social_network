@@ -34,7 +34,7 @@ def enqueue_capture(model, value, oldvalue, initiator):
         is_manual = True
     else:
         message += "Triggered by Event. "
-        if value == 'STORY' and not any(getattr(model, 'saved_media', None), getattr(model, 'capture_name', None)):
+        if value == 'STORY' and not any([getattr(model, 'saved_media', None), getattr(model, 'capture_name', None)]):
             is_new_story = True
     if is_manual or is_new_story:
         capture_type = 'story_capture' if value == 'STORY' else 'post_capture'

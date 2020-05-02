@@ -76,7 +76,7 @@ def process_hook(req):
         except Exception as e:
             response_code = 401
             message += "Unable to to commit story hook updates to database. "
-            app.logger.error(e)
+            app.logger.info(e)
             db.session.rollback()
     else:
         message += "No needed record updates. "
@@ -253,7 +253,7 @@ def get_basic_post(media_id, metrics=None, user_id=None, facebook=None, token=No
     except Exception as e:
         auth = 'facebook' if facebook else 'token' if token else 'none'
         app.logger.debug(f"API fail for Post with media_id {media_id} | Auth: {auth} ")
-        app.logger.error(e)
+        app.logger.info(e)
         return empty_res
     if 'error' in res:
         # app.logger.error(f"Error: {res.get('error', 'Empty Error')} ")
