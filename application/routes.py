@@ -727,13 +727,26 @@ def hook():
     app.logger.debug(f"========== The hook route has a {request.method} request ==========")
     if request.method == 'POST':
         signed = request.headers.get('X-Hub-Signature', '')
+        byte_data = request.get_data()
+        app.logger.debug("Byte Data")
+        app.logger.debug(byte_data)
         data = request.json if request.is_json else request.data
+        app.logger.debug("Data")
+        app.logger.debug(data)
+        # if data.encode() == byte_data:
+        #     app.logger.debug("Data encoded is same as byte_data")
+        if json.dumps(data).encode() == byte_data:
+            app.logger.debug("Dumps data then encoded is the same as byte_data")
+        else:
+            app.logger.debug("Somehow data.encode() != byte_data")
+        form = request.form
+        app.logger.debug("Form")
+        app.logger.debug(form)
         # TODO: Generate a SHA1 with payload and App Secret, confirm it is a match.
-        verified = check_hash(signed, data)
+        verified = check_hash(signed, byte_data, data, form)
         if not verified:
             message = "Signature given for webhook could not be verified. "
             app.logger.error(message)
-            app.logger.debug(signed)
             return message, 401  # 403 if we KNOW it was done wrong
         res, response_code = process_hook(data)  # Do something with the data!
     elif request.method == 'GET':

@@ -4,16 +4,73 @@ import hashlib
 import json
 
 
-def check_hash(signed, payload):
+def check_hash(signed, *payloads):
     """ Checks if the 'signed' value is a SHA1 hash made with our app secret and the given 'payload' """
     pre, signed = signed.split('=', 1)
     if pre != 'sha1':
+        app.logger.debug("Signed does not look right")
         return False
-    secret = app.config.get('SECRET_KEY')
-    payload = payload + secret
-    result = hashlib.sha1(payload.encode())
-    if result == signed:
-        return True
+    secrets = {
+        'SECRET_KEY': app.config.get('SECRET_KEY'),
+        'FB_CLIENT_SECRET': app.config.get('FB_CLIENT_SECRET'),
+        'FB_HOOK_SECRET': app.config.get('FB_HOOK_SECRET'),
+        'Empty string': '',
+        'None type': None
+    }
+    attempts = {}
+    for i, payload in enumerate(payloads):
+        app.logger.debug(f"==================== i = {i} ===============================")
+        app.logger.debug(type(payload))
+        app.logger.debug(payload)
+        for name, secret in secrets.items():
+
+            # attempts[f"payload_secret_{i}"] = (payload + secret.encode(), False)
+            # attempts[f"secret_payload_{i}"] = (secret.encode() + payload, False)
+            # attempts[f"encode_each_dump_dict_then_secret_{i}"] = (json.dumps(payload).encode() + secret.encode(), False)
+            # attempts[f"encode_each_secret_then_dump_dict_{i}"] = (secret.encode() + json.dumps(payload).encode(), False)
+            # attempts[f"dump_dict_then_secret_{i}"] = (json.dumps(payload) + secret, True)
+            # attempts[f"try_secret_then_dump_dict_{i}"] = (secret + json.dumps(payload), True)
+            # if type(payload) == 'bytes':
+            #     note = str(i) + '_was_bytes'
+            #     attempts[f"encode_each_dump_dict_then_secret_{note}"] = (payload + secret.encode(), False)
+            #     attempts[f"encode_each_secret_then_dump_dict_{note}"] = (secret.encode() + payload, False)
+            # else:
+            try:
+                attempts[f"p_then_encode_s_{name}_{i}"] = (payload + secret.encode(), False)
+                attempts[f"encode_s_then_p_{name}_{i}"] = (secret.encode() + payload, False)
+                app.logger.debug(f"encode secret w/ plain payload: {i} add ")
+            except Exception as e:
+                app.logger.debug(f"encode secret w/ plain payload: {i} skipped ")
+                app.logger.info(e)
+            try:
+                attempts[f"dump_p_then_encode_s_{name}_{i}"] = (json.dumps(payload) + secret.encode(), False)
+                attempts[f"encode_s_then_dump_p_{name}_{i}"] = (secret.encode() + json.dumps(payload), False)
+                app.logger.debug(f"encode secret w/ dumps payload: {i} add ")
+            except Exception as e:
+                app.logger.debug(f"encode secret w/ dumps payload: {i} skipped ")
+                app.logger.info(e)
+            try:
+                attempts[f"p_then_s_{name}_{i}"] = (payload + secret, True)
+                attempts[f"s_then_p_{name}_{i}"] = (payload + secret, True)
+                app.logger.debug(f"plain secret w/ plain payload: {i} add ")
+            except Exception as e:
+                app.logger.debug(f"plain secret w/ plain payload, encode later: {i} skipped ")
+                app.logger.info(e)
+            try:
+                attempts[f"dump_p_then_s_{name}_{i}"] = (json.dumps(payload) + secret, True)
+                attempts[f"s_then_dump_p_{name}_{i}"] = (secret + json.dumps(payload), True)
+                app.logger.debug(f"plain secret w/ dumps payload, encode later: {i} add ")
+            except Exception as e:
+                app.logger.debug(f"plain secret with dumps payload, encoded later: {i} skipped ")
+                app.logger.info(e)
+    app.logger.debug('Target is: ')
+    app.logger.debug(signed)
+    for ea, val in attempts.items():
+        result = hashlib.sha1(val[0].encode() if val[1] else val[0]).hexdigest()
+        app.logger.debug(result)
+        if result == signed:
+            app.logger.debug(ea)
+            return True
     return False
 
 
@@ -125,7 +182,8 @@ def report_update(reports, Model):
     app.logger.debug("===================== report update - do the work =====================")
     if len(results):
         db.session.commit()
-        message += "Updates committed. "
+        message += ', '.join([str(model) for model in results])
+        message += "\n Updates committed. "
     app.logger.debug(message)
     status_code = 422 if had_error else 200
     return message, status_code
