@@ -490,7 +490,7 @@ def insights(mod, id):
     dataset, i = {}, 0
     max_val, min_val = 4, float('inf')
 
-    for metrics in (Insight.influence_metrics, Insight.profile_metrics, OnlineFollowers.METRICS):
+    for metrics in (Insight.INFLUENCE_METRICS, Insight.PROFILE_METRICS, OnlineFollowers.METRICS):
         for metric in metrics:
             # TODO: Undo the following temporary ignore a lot of the metrics
             if metric in ('impressions', 'reach', 'profile_views'):
