@@ -9,6 +9,8 @@ After running this migration, the User Model should have the following replace t
 
 token = db.Column(EncryptedType(db.String(255), SECRET_KEY, AesEngine, 'pkcs5'))  # encrypt
 
+Then the admin can call to subscribe to pages for all users that gave us their instagram id.
+
 Revision ID: 02_after_encrypt
 Revises: 01_initial
 Create Date: 2020-04-20 16:04:55.000
