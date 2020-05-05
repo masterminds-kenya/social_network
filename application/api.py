@@ -25,9 +25,8 @@ FB_SCOPE = [
 
 def process_hook(req):
     """ We have a confirmed authoritative update on subscribed data of a Story Post. """
-    # req = {'object': 'instagram', 'entry': [{'id': <ig_id>, 'time': 0, 'changes': [{one_fake_change}]}]}
     # req = {'object': 'page', 'entry': [{'id': <ig_id>, 'time': 0, 'changes': [{'field': 'name', 'value': 'newnam'}]}]}
-    pprint(req)
+    # pprint(req)
     hook_data, data_count = defaultdict(list), 0
     for ea in req.get('entry', [{}]):
         for rec in ea.get('changes', [{}]):
@@ -38,12 +37,12 @@ def process_hook(req):
             val.update({'ig_id': ea.get('id')})
             hook_data[rec.get('field', '')].append(val)
             data_count += 1
-    app.logger.debug(f"====== process_hook - stories: {len(hook_data['story_insights'])} total: {data_count} ======")
-    pprint(hook_data)
+    # app.logger.debug(f"====== process_hook - stories: {len(hook_data['story_insights'])} total: {data_count} ======")
+    # pprint(hook_data)
     total, new, modified = 0, 0, 0
     for story in hook_data['story_insights']:
         story['media_type'] = 'STORY'
-        media_id = story.pop('media_id', None)
+        media_id = story.pop('media_id', None)  # Exists on found, or put back during get_basic_post (even if failed).
         ig_id = story.pop('ig_id', None)
         if media_id:
             total += 1
@@ -53,10 +52,9 @@ def process_hook(req):
                 for k, v in story.items():
                     setattr(model, k, v)
                 modified += 1
-                db.session.add(model)
             else:
                 # create, but we need extra data about this story Post.
-                if media_id == '17887498072083520':
+                if media_id == '17887498072083520':  # This the test data sent by FB console
                     res = {'user_id': 190, 'media_id': media_id, 'media_type': 'STORY'}
                     res['timestamp'] = "2020-04-23T18:10:00+0000"
                 else:
@@ -66,11 +64,9 @@ def process_hook(req):
                 story.update(res)
                 model = Post(**story)
                 new += 1
-                db.session.add(model)
-    # message = f"Updates - "
+            db.session.add(model)
     message = ', '.join([f"{key}: {len(value)}" for key, value in hook_data.items()])
     message += ' \n'
-    app.logger.debug(message)
     if modified + new > 0:
         message += f"Updating {modified} and creating {new} Story Posts; Recording data for {total} Story Posts. "
         try:
@@ -80,8 +76,7 @@ def process_hook(req):
         except Exception as e:
             response_code = 401
             message += "Unable to to commit story hook updates to database. "
-            app.logger.debug(message)
-            app.logger.error(e)
+            app.logger.info(e)
             db.session.rollback()
     else:
         message += "No needed record updates. "
@@ -90,13 +85,12 @@ def process_hook(req):
 
 
 def capture_media(post_or_posts, get_story_only):
-    """ For a given Post or list of Post objects, call the API for capturing the images of that InstaGram page.
+    """ DEPRECATED.
+        For a given Post or list of Post objects, call the API for capturing the images of that InstaGram page.
         If get_story_only is True, then only process the Posts that have media_type equal to 'STORY'.
     """
     #  API URL format:
-    #  /api/v1/post/[id]/[media_type]/[media_id]/?url=[url-to-test-for-images]
-    #  Expected JSON response has the following properties:
-    #  'success', 'message', 'file_list', url_list', 'error_files', 'deleted'
+    #  /api/v1/post/
     if isinstance(post_or_posts, Post):
         posts = [post_or_posts]
         started_with_many = False
@@ -111,10 +105,9 @@ def capture_media(post_or_posts, get_story_only):
             raise TypeError("Every element must be a Post object. ")
         if get_story_only and post.media_type != 'STORY':
             continue  # Skip this one if we are skipping non-story posts.
+        # TODO: The following is out of date with the Capture API. Updated code needed if this function is maintained.
         payload = {'url': post.permalink}
         url = f"{CAPTURE_BASE_URL}/api/v1/post/{str(post.id)}/{post.media_type.lower()}/{str(post.media_id)}/"
-        # app.logger.debug('--------- Capture Media Url -------------')
-        # app.logger.debug(url)
         try:
             res = requests.get(url, params=payload)
         except Exception as e:
@@ -251,7 +244,6 @@ def get_basic_post(media_id, metrics=None, user_id=None, facebook=None, token=No
         token = getattr(user, 'token', None)
         if not token:
             message = f"Unable to locate user token value. User should login with Facebook and authorize permissions. "
-            # res = {'message': message, 'error': 403}
             return empty_res
     if not metrics:
         metrics = ','.join(Post.METRICS.get('basic'))
@@ -261,12 +253,12 @@ def get_basic_post(media_id, metrics=None, user_id=None, facebook=None, token=No
     except Exception as e:
         auth = 'facebook' if facebook else 'token' if token else 'none'
         app.logger.debug(f"API fail for Post with media_id {media_id} | Auth: {auth} ")
-        app.logger.error(e)
+        app.logger.info(e)
         return empty_res
     if 'error' in res:
-        app.logger.error(f"Error: {res.get('error', 'Empty Error')} ")
-        app.logger.error('--------------------- Error in get_basic_post FB API response ---------------------')
-        pprint(res)
+        # app.logger.error(f"Error: {res.get('error', 'Empty Error')} ")
+        app.logger.info('--------------------- Error in get_basic_post FB API response ---------------------')
+        # pprint(res)
         return empty_res
     res['media_id'] = res.pop('id', media_id)
     if user_id:
@@ -339,13 +331,7 @@ def get_posts(id_or_users, ig_id=None, facebook=None):
     for ea in id_or_users:
         results.extend(_get_posts_data_of_user(ea, ig_id=ig_id, facebook=facebook))
     saved = db_create_or_update_many(results, Post)
-    # TODO: Add posts to capture queue now!
-    # capture_responses = capture_media(saved, True)
-    # failed_capture = [ea.get('post') for ea in capture_responses if not ea.get('saved_media')]
-    # message = f"Had {len(capture_responses)} story posts. "
-    # message += f"Had {len(failed_capture)} failed media captures. " if failed_capture else "All media captured. "
-    # app.logger.info(message)
-    # flash(message)
+    # If any STORY posts were found, the SQLAlchemy Event Listener will add it to the Task queue for the Capture API.
     return saved
 
 
@@ -387,7 +373,6 @@ def get_fb_page_for_user(user, facebook=None, token=None):
 
 def install_app_on_user_for_story_updates(user_or_id, page=None, facebook=None, token=None):
     """ Accurate Story Post metrics can be pushed to the Platform only if the App is installed on the related Page. """
-    installed = False
     if isinstance(user_or_id, User):
         user = user_or_id
         user_id = user.id
@@ -403,38 +388,13 @@ def install_app_on_user_for_story_updates(user_or_id, page=None, facebook=None, 
             app.logger.error(f"Unable to find the page for user: {user} ")
             return False
     url = f"https://graph.facebook.com/v3.1/{page['id']}/subscribed_apps"
-    # https://developers.facebook.com/docs/graph-api/reference/page/subscribed_apps
-    # read currently subscribed apps
-    # GET on url, returns {'data': [], 'paging': {}}
-    # where data is a list of apps.
-    # if version is greater than 3.1, then data also have a subscribed_fields value.
-    # add app to subscribed_apps
-    # POST on url
-    # if version is greater than 3.1, then subscribed_fields parameter is required.
-    # we want version 3.1 for installing our app just to allow subscribing to Instagram story posts
-    # unclear if the 'read-after-write' means we need a ?fields='success' on the url.
-    # return data should be { success: True }
-    # Business Login and Page Access Token: https://developers.facebook.com/docs/facebook-login/business-login-direct
     params = {} if facebook else {'access_token': page['token']}
     params['subscribed_fields'] = 'name'
     res = facebook.post(url, params=params).json() if facebook else requests.post(url, params=params).json()
     # TODO: See if facebook with params above works.
     app.logger.debug('----------------------------------------------------------------')
     pprint(res)
-    installed = res.get('success', False)
-    # Update user: page details if they are new. story_subscribe if install was successful.
-    # updated_user = False
-    # if page.get('new_page'):
-    #     user.page_id = page['id']
-    #     user.page_token = page['token']
-    #     updated_user = True
-    # if installed:
-    #     user.story_subscribe = True
-    #     updated_user = True
-    # if updated_user:
-    #     db.session.add(user)
-    #     db.session.commit()
-    return installed
+    return res.get('success', False)
 
 
 def get_ig_info(ig_id, facebook=None, token=None):
@@ -465,7 +425,6 @@ def find_instagram_id(accounts, facebook=None, token=None):
         app.logger.error(message)
         raise Exception(message)
     if not accounts or 'data' not in accounts:
-        # message = f"Error in accounts input: {accounts} "
         message = f"No pages found from accounts data: {accounts}. "
         app.logger.debug(message)
         return []

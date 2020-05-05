@@ -1,49 +1,35 @@
 """
-Before running, make sure the dev admin function 'fix_defaults()` has been run.
+Make sure the dev admin function 'encrypt()' has been run to copy (and encrypt) values from token to crypt columns.
+User Model should have the following fields:
 
-Revision ID: 01_initial
-Revises:
-Create Date: 2020-04-20 13:19:41.151481
+token = db.Column(db.String(255),               index=False, unique=False, nullable=True)
+crypt = db.Column(EncryptedType(db.String(255), SECRET_KEY, AesEngine, 'pkcs5'))  # encrypt
 
+After running this migration, the User Model should have the following replace the above 2 lines:
+
+token = db.Column(EncryptedType(db.String(255), SECRET_KEY, AesEngine, 'pkcs5'))  # encrypt
+
+Revision ID: 02_after_encrypt
+Revises: 01_initial
+Create Date: 2020-04-20 16:04:55.000
 """
 from alembic import op
 import sqlalchemy as sa
 from sqlalchemy.dialects import mysql
 import sqlalchemy_utils
 
-
 # revision identifiers, used by Alembic.
-revision = '01_initial'
-down_revision = None
+revision = '02_after_encrypt'
+down_revision = '01_initial'
 branch_labels = None
 depends_on = None
 
 
 def upgrade():
-    op.create_table('post_campaigns',
-                    sa.Column('id', sa.Integer(), nullable=False),
-                    sa.Column('post_id', sa.Integer(), nullable=True),
-                    sa.Column('campaign_id', sa.Integer(), nullable=True),
-                    sa.ForeignKeyConstraint(['campaign_id'], ['campaigns.id'], ondelete='CASCADE'),
-                    sa.ForeignKeyConstraint(['post_id'], ['posts.id'], ondelete='CASCADE'),
-                    sa.PrimaryKeyConstraint('id')
+    op.drop_column('users', 'token')
+    op.alter_column('users', 'crypt', new_column_name='token',
+                    existing_type=sqlalchemy_utils.types.encrypted.encrypted_type.EncryptedType()
                     )
-    op.create_table('processed_campaigns',
-                    sa.Column('id', sa.Integer(), nullable=False),
-                    sa.Column('post_id', sa.Integer(), nullable=True),
-                    sa.Column('campaign_id', sa.Integer(), nullable=True),
-                    sa.ForeignKeyConstraint(['campaign_id'], ['campaigns.id'], ondelete='CASCADE'),
-                    sa.ForeignKeyConstraint(['post_id'], ['posts.id'], ondelete='CASCADE'),
-                    sa.PrimaryKeyConstraint('id')
-                    )
-    op.add_column('posts', sa.Column('saved_media', sa.Text(), nullable=True))
-    op.add_column('posts', sa.Column('capture_name', sa.String(length=191), nullable=True))
-    op.alter_column('posts', 'user_id', existing_type=mysql.INTEGER(display_width=11), nullable=True)
-    op.drop_constraint('posts_ibfk_1', 'posts', type_='foreignkey')
-    op.drop_constraint('posts_ibfk_2', 'posts', type_='foreignkey')
-    op.create_foreign_key('posts_ibfk_1', 'posts', 'users', ['user_id'], ['id'], ondelete='SET NULL')
-    op.drop_column('posts', 'campaign_id')
-    op.drop_column('posts', 'processed')
     op.alter_column('posts', 'comments_count',  existing_type=mysql.INTEGER(11), existing_nullable=True, nullable=False, default=0)
     op.alter_column('posts', 'like_count',      existing_type=mysql.INTEGER(11), existing_nullable=True, nullable=False, default=0)
     op.alter_column('posts', 'impressions',     existing_type=mysql.INTEGER(11), existing_nullable=True, nullable=False, default=0)
@@ -57,19 +43,14 @@ def upgrade():
     op.alter_column('posts', 'taps_back',       existing_type=mysql.INTEGER(11), existing_nullable=True, nullable=False, default=0)
     op.alter_column('onlinefollowers', 'value', existing_type=mysql.INTEGER(11), existing_nullable=True, nullable=False, default=0)
     op.alter_column('insights', 'value',        existing_type=mysql.INTEGER(11), existing_nullable=True, nullable=False, default=0)
-    op.add_column('users', sa.Column('crypt', sqlalchemy_utils.types.encrypted.encrypted_type.EncryptedType(), nullable=True))
-    op.add_column('users', sa.Column('story_subscribed', sa.Boolean(), nullable=True))
-    op.add_column('users', sa.Column('page_id', mysql.BIGINT(unsigned=True), nullable=True))
-    op.add_column('users', sa.Column('page_token', sqlalchemy_utils.types.encrypted.encrypted_type.EncryptedType(), nullable=True))
-    op.create_unique_constraint(None, 'users', ['page_id'])
 
 
 def downgrade():
-    op.drop_constraint(None, 'users', type_='unique')
-    op.drop_column('users', 'page_token')
-    op.drop_column('users', 'story_subscribed')
-    op.drop_column('users', 'page_id')
-    op.drop_column('users', 'crypt')
+    """ If downgrading, after running this downgrade you will need to copy values from crypt to token. User model needs:
+
+        token = db.Column(db.String(255),               index=False, unique=False, nullable=True)
+        crypt = db.Column(EncryptedType(db.String(255), SECRET_KEY, AesEngine, 'pkcs5'))  # encrypt
+    """
     op.alter_column('posts', 'comments_count',  existing_type=mysql.INTEGER(11), existing_nullable=False, nullable=True, existing_default=0, default=None)
     op.alter_column('posts', 'like_count',      existing_type=mysql.INTEGER(11), existing_nullable=False, nullable=True, existing_default=0, default=None)
     op.alter_column('posts', 'impressions',     existing_type=mysql.INTEGER(11), existing_nullable=False, nullable=True, existing_default=0, default=None)
@@ -83,13 +64,7 @@ def downgrade():
     op.alter_column('posts', 'taps_back',       existing_type=mysql.INTEGER(11), existing_nullable=False, nullable=True, existing_default=0, default=None)
     op.alter_column('onlinefollowers', 'value', existing_type=mysql.INTEGER(11), existing_nullable=False, nullable=True, existing_default=0, default=None)
     op.alter_column('insights', 'value',        existing_type=mysql.INTEGER(11), existing_nullable=False, nullable=True, existing_default=0, default=None)
-    op.add_column('posts', sa.Column('processed', mysql.TINYINT(display_width=1), autoincrement=False, nullable=True))
-    op.add_column('posts', sa.Column('campaign_id', mysql.INTEGER(display_width=11), autoincrement=False, nullable=True))
-    op.drop_constraint('posts_ibfk_1', 'posts', type_='foreignkey')
-    op.alter_column('posts', 'user_id', existing_type=mysql.INTEGER(display_width=11), nullable=False)
-    op.create_foreign_key('posts_ibfk_2', 'posts', 'campaigns', ['campaign_id'], ['id'], ondelete='SET NULL')
-    op.create_foreign_key('posts_ibfk_1', 'posts', 'users', ['user_id'], ['id'], ondelete='CASCADE')
-    op.drop_column('posts', 'capture_name')
-    op.drop_column('posts', 'saved_media')
-    op.drop_table('processed_campaigns')
-    op.drop_table('post_campaigns')
+    op.alter_column('users', 'token', new_column_name='crypt',
+                    existing_type=sqlalchemy_utils.types.encrypted.encrypted_type.EncryptedType()
+                    )
+    op.add_column('users', sa.Column('token', mysql.VARCHAR(collation='utf8mb4_unicode_ci', length=255), nullable=True))

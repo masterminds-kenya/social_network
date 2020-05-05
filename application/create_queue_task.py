@@ -1,10 +1,11 @@
 from flask import current_app as app
-# from google.api_core.retry import Retry
 from google.api_core.exceptions import RetryError, AlreadyExists, GoogleAPICallError
 from google.cloud import tasks_v2
-from google.protobuf import timestamp_pb2
+from google.protobuf import timestamp_pb2, duration_pb2
 from datetime import timedelta, datetime as dt
 from .model_db import Post
+from os import environ
+import json
 
 PROJECT_ID = app.config.get('PROJECT_ID')
 PROJECT_REGION = app.config.get('PROJECT_REGION')  # Google Docs said PROJECT_ZONE ?
@@ -24,14 +25,17 @@ def _get_capture_queue(queue_name):
     queue_path = client.queue_path(PROJECT_ID, PROJECT_REGION, queue_name)
     routing_override = {'service': CAPTURE_SERVICE}
     rate_limits = {'max_concurrent_dispatches': 2, 'max_dispatches_per_second': 1}
-    retry_config = {'max_attempts': 25, 'min_backoff': '10', 'max_backoff': '5100', 'max_doublings': 9}
-    retry_config['max_retry_duration'] = '24h'
-    # capture_retry = Retry(initial=10.0, maximum=5100.0, multiplier=9.0, deadline=86100.0)
     queue_settings = {'name': queue_path, 'app_engine_routing_override': routing_override, 'rate_limits': rate_limits}
+    min_backoff, max_backoff, max_life = duration_pb2.Duration(), duration_pb2.Duration(), duration_pb2.Duration()
+    min_backoff.FromJsonString('10s')    # 10 seconds
+    max_backoff.FromJsonString('5100s')  # 1 hour and 25 minutes
+    max_life.FromJsonString('86100s')    # 5 minutes shy of 24 hours
+    retry_config = {'max_attempts': 25, 'min_backoff': min_backoff, 'max_backoff': max_backoff, 'max_doublings': 9}
+    retry_config['max_retry_duration'] = max_life
     queue_settings['retry_config'] = retry_config
-    for queue in client.list_queues(parent):  # TODO: Improve efficiency since queues list is in lexicographical order
+    for queue in client.list_queues(parent):  # TODO: ?Improve efficiency since queues list is in lexicographical order?
         if queue_settings['name'] == queue.name:
-            # TODO: Fix q = client.update_queue(queue_settings, retry=capture_retry)
+            # q = client.update(queue_settings, update_mask=queue_settings.keys())  # TODO: Fix
             return queue.name
     try:
         q = client.create_queue(parent, queue_settings)
@@ -51,31 +55,28 @@ def _get_capture_queue(queue_name):
     return queue_path if q else None
 
 
-def add_to_capture(post, queue_name='testing', task_name=None, payload=None, in_seconds=90):
-    """ Will add a task to a Capture Queue with a POST request if given a payload, else with GET request. """
+def add_to_capture(post, queue_name='test-on-db-b', task_name=None, in_seconds=90):
+    """ Adds a task to a Capture Queue to send a POST request to the Capture API. Sets where the report is sent back """
+    mod = 'post'
     if not isinstance(task_name, (str, type(None))):
         raise TypeError("Usually the task_name for add_to_capture should be None, but should be a string if set. ")
     if isinstance(post, (int, str)):
         post = Post.query.get(post)
     if not isinstance(post, Post):
         raise TypeError("Expected a valid Post object or an id for an existing Post for add_to_capture. ")
-    # app.logger.debug(f"id: {post.id} media_type: {post.media_type} media_id: {post.media_id} ")
     parent = _get_capture_queue(queue_name)
-    #  Capture API url format:
-    #  /api/v1/post/[id]/[media_type]/[media_id]/?url=[url-to-test-for-images]
-    #  Expected JSON response has the following properties:
-    #  'success', 'message', 'file_list', url_list', 'error_files', 'deleted'
-    capture_api_path = f"/api/v1/post/{str(post.id)}/{str(post.media_type).lower()}/{str(post.media_id)}/"
-    capture_api_path += f"?url={str(post.permalink)}"
-    http_method = 'POST' if payload else 'GET'
+    capture_api_path = f"/api/v1/{mod}/"
+    report_settings = {'service': environ.get('GAE_SERVICE', 'dev'), 'relative_uri': '/capture/report/'}
+    source = {'queue_type': queue_name, 'queue_name': parent, 'object_type': mod}
+    data = {'target_url': post.permalink, 'media_type': post.media_type, 'media_id': post.media_id}
+    payload = {'report_settings': report_settings, 'source': source, 'dataset': [data]}
     task = {
             'app_engine_http_request': {  # Specify the type of request.
-                'http_method': http_method,
-                'relative_uri': capture_api_path
+                'http_method': 'POST',
+                'relative_uri': capture_api_path,
+                'body': json.dumps(payload).encode()  # Task API requires type bytes.
             }
     }
-    if payload is not None:
-        task['app_engine_http_request']['body'] = payload.encode()  # Add payload to request as required type bytes.
     if task_name:
         task['name'] = task_name.lower()  # The Task API will generate one if it is not set.
     if in_seconds:
@@ -99,6 +100,6 @@ def add_to_capture(post, queue_name='testing', task_name=None, payload=None, in_
         app.logger.error(e)
         response = None
     if response is not None:
-        app.logger.debug(f"Created task: {response.name} ")
+        app.logger.debug("Created task!")
         app.logger.debug(response)
     return response  # .name if response else None

@@ -40,7 +40,7 @@ To view logs of a service:
 
 We are using Webhooks to allow Instagram/Facebook to send JSON formatted data to a route on our platform application with updated data. There is a [variety of data we can get with webhooks](https://developers.facebook.com/docs/graph-api/webhooks/reference), and the [process to set this up](https://developers.facebook.com/docs/graph-api/webhooks/getting-started) is fairly similar for each, but the [setup for Instagram](https://developers.facebook.com/docs/instagram-api/guides/webhooks) is a little different.
 
-All influencer users, and most brand users, should have a professional instagram account that is connected to a Facebook business page. In order for our platform to get the most accurate Story metrics, this page needs to have *App* platform enabled (the default setting), and continue to grant `manage_pages` permissions for our platform application (set during our onboarding process using Facebook login). The platform application will [subscribe to the page](https://developers.facebook.com/docs/graph-api/webhooks/getting-started/webhooks-for-pages) associated with the instagram account they are using for our platform (subscribing to the page's [name](https://developers.facebook.com/docs/graph-api/webhooks/reference/page/#name) field). There are some additional options for [Page Subscribed Apps](https://developers.facebook.com/docs/graph-api/reference/page/subscribed_apps) should we need it for later development goals.
+All influencer users, and most brand users, should have a professional instagram account that is connected to a Facebook business page. In order for our platform to get the most accurate Story metrics, this page needs to have *App* platform enabled (the default setting), and continue to grant `manage_pages` permissions for our platform application (set during our onboarding process using Facebook login). The platform application will [subscribe to the page](https://developers.facebook.com/docs/graph-api/webhooks/getting-started/webhooks-for-pages) associated with the instagram account they are using for our platform (subscribing to the page's [name](https://developers.facebook.com/docs/graph-api/webhooks/reference/page/#name) field). There are some additional options for [Page Subscribed Apps](https://developers.facebook.com/docs/graph-api/reference/page/subscribed_apps) should we need it for later development goals. Can do a GET request to see current page subscribed apps. For page subscribed apps, if API version is greater than 3.1, then `subscribed_fields` parameter is required. Also see [Business Login and Page Access](https://developers.facebook.com/docs/facebook-login/business-login-direct) for related notes.
 
 During a given sqlalchemy database session, we are using `session.info` to track which of the current User objects in the session are in need of page and story_metrics subscription. Whenever the `page_token` property is set for a user (triggered by using [SQAlchemy Events](https://docs.sqlalchemy.org/en/13/orm/events.html)), this User object is added to the `session.info` dictionary under the appropriate key indicating it is ready for this process. By waiting to process them until triggered by a `before_flush` session event, we can be certain to have both the `page_token` and `page_id` field values we need. So, just before all these records are saved in the database, the function to send a request to the Graph API to subscribe to the page is called for each of these Users. If page subscription is successful, as expected in most cases, this will set `story_subscribed` as true for a User. When the page is subscribed, our platform will also be subscribed to receive all `story_metrics` for the associated Instagram account. The Instagram Story Media posts, and the API data about them and their metrics, are only available for about 24 hours from when they are published by the user. This `story_metrics` subscription ensures that our platform will be updated with the final metrics data of the Story when it expires.
 
@@ -48,12 +48,15 @@ During a given sqlalchemy database session, we are using `session.info` to track
 
 During a given sqlalchemy database session, we are using `session.info` to track which of the current Post objects in the session should be added to a capture task queue. We are using [SQAlchemy Events](https://docs.sqlalchemy.org/en/13/orm/events.html) to notice when a media post is being saved to the database. This Post will be added to the capture queue for stories if the Post is a 'STORY' media post, it does not already have a value for `saved_media` field (indication if we have already captured media image files), and it does not have a value for `capture_name` field (indication if it has already been added to a capture queue). When the Event listener first identifies a targeted STORY post, the Post object is added to an appropriate key in the `session.info` dictionary to be processed later. This slight delay is required since we can not be certain that the Post has set all the values that we need for crafting our Capture API call.
 
+**Outdated starting with version 0.5.1**
 Currently the Capture API requires we know the id in the database for this Post. Therefore, the posts targeted for capture in the `session.info` are added to the appropriate Task queue after writing to the database (triggered by a `after_flush_postexec` session event), which also requires an extra round of writing to the database for these objects.
 
 If the Capture API did not require the id in the database for each Post, this process could be made more efficient. We could move the process of populating the Capture Task queue(s) to be triggered by a `before_flush` session event. This would eliminate the extra round of writing to the database since we would be able to make all our needed field updates just before the objects were about to be written.
 
-### Security and Saving Capture Results
+**With version 0.5.1 and later**
+All the processing of `session.info` is handled in response to a `before_flush` session event. This depends on the Capture API not needing to know the id for each Post object, or any other values generated by the database itself.
 
+### Security and Saving Capture Results
 
 [Client for Clouds Task API](https://googleapis.dev/python/cloudtasks/latest/gapic/v2/api.html)
 
@@ -279,3 +282,21 @@ Setup Flask CLI for app, capture DB changes, apply DB changes:
 flask db migrate
 flask db upgrade
 ```
+
+## Version Updates with Migration
+
+Updates to version 0.5.1
+
+- Take site down to ensure we don't miss any work.
+- Clone the database. Should be named `bacchusdb-a`, or a different last letter.
+- Upload the final code. Make sure it has the final db settings & development mode is off.
+- Locally, make sure the `.env` file is connecting to the new DB, as well as local proxy.
+- Run `flask db upgrade 01_initial`
+- Run `flask run`, then login to admin page. Click the "encrypt" link (also fixes defaults).
+- The model_db.User model should be adjusted to have both `token` and `encrypt` fields.
+- Run `flask db upgrade 02_after_encrypt`
+- The model_db.User model should be adjusted to have the new `token`, but not `encrypt` field.
+- The FB console should be updated so everything links to the production site.
+- The Capture App should send reports to the production site, or site that called it.
+- On the production site, as a dev admin, run the process to subscribe all users.
+- Watch the logging for any issues to be followed up for repairs.
