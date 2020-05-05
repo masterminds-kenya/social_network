@@ -44,7 +44,8 @@ def enqueue_capture(model, value, oldvalue, initiator):
         capture_type = 'story_capture' if value == 'STORY' else 'post_capture'
         app.logger.debug(f"========== Adding a {capture_type} with enqueue_capture function. {message} ==========")
         message += f"New {value} post. " if str(oldvalue) == no_val else f"media_type {oldvalue} to {value}. "
-        message += f"When session is committed, will send to {capture_type} Queue. "
+        # message += f"When session is committed, will send to {capture_type} Queue. "
+        message += f"Normally when session is committed, would send to {capture_type} Queue, except feature not active. "
         if capture_type in db.session.info:
             db.session.info[capture_type].add(model)
         else:

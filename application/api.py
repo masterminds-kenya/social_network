@@ -157,10 +157,10 @@ def get_insight(user_id, first=1, influence_last=30*12, profile_last=30*3, ig_id
     app.logger.info("------------ Get Insight: Influence, Profile ---------------")
     app.logger.debug(influence_last)
     app.logger.debug(profile_last)
-    for insight_metrics, last in [(Insight.influence_metrics, influence_last), (Insight.profile_metrics, profile_last)]:
+    for insight_metrics, last in [(Insight.INFLUENCE_METRICS, influence_last), (Insight.PROFILE_METRICS, profile_last)]:
         metric = ','.join(insight_metrics)
         for i in range(first, last + 2 - 30, 30):
-            until = dt.utcnow() - timedelta(days=i)
+            until = now - timedelta(days=i)
             since = until - timedelta(days=30)
             url = "https://graph.facebook.com"
             url += f"/{ig_id}/insights?metric={metric}&period={ig_period}&since={since}&until={until}"
