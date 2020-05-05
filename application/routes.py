@@ -255,7 +255,7 @@ def encrypt():
 @app.route('/data/capture/<int:id>')
 @admin_required()
 def capture(id):
-    """ Capture the media files. Currently on an Admin function, to be updated later. """
+    """ Manual call to capture the media files. Currently on an Admin function, to be updated later. """
     from .events import enqueue_capture
 
     post = Post.query.get(id)

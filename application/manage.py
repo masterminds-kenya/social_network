@@ -111,6 +111,8 @@ def process_form(mod, request):
 def report_update(reports, Model):
     """ Input is a list of dictionaries, with each being the update values to apply to the 'mod' Model. """
     message, results, had_error = '', [], False
+    app.logger.debug("===================== report update =====================")
+    # TODO: Confirm the the source of this update.
     if Model != Post:
         message += "The Report process is not available for that data. "
         app.logger.debug(message)
@@ -130,7 +132,6 @@ def report_update(reports, Model):
         message += f"Updated Model in capture_report: {str(model)} \n"
     else:
         message += "The report_update function received no reports. "
-    app.logger.debug("===================== report update - do the work =====================")
     if len(results):
         db.session.commit()
         message += ', '.join([str(model) for model in results])

@@ -66,22 +66,22 @@ def process_session_before_flush(session, flush_context, instances):
     subscribe_pages = session.info.get('subscribe_page', [])
     message = f"Story Captures: {len(stories_to_capture)} Other Captures: {len(other_posts_to_capture)} "
     message += f"Subscribe Pages: {len(subscribe_pages)} \n"
-    for story in list(stories_to_capture):
-        capture_response = add_to_capture(story)
-        if capture_response:
-            message += f"Adding to Story capture queue: {str(story)} \n"
-            story.capture_name = getattr(capture_response, 'name', None)
-            session.info['story_capture'].discard(story)
-        else:
-            message += f"Failed to add {str(story)} To Capture Story queue. \n"
-    for post in list(other_posts_to_capture):
-        capture_response = add_to_capture(post, queue_name='post')
-        if capture_response:
-            message += f"Adding to Post capture queue: {str(post)} \n"
-            post.capture_name = getattr(capture_response, 'name', None)
-            session.info['post_capture'].discard(post)
-        else:
-            message += f"Failed to add {str(post)} to Capture Post queue. \n"
+    # for story in list(stories_to_capture):
+    #     capture_response = add_to_capture(story)
+    #     if capture_response:
+    #         message += f"Adding to Story capture queue: {str(story)} \n"
+    #         story.capture_name = getattr(capture_response, 'name', None)
+    #         session.info['story_capture'].discard(story)
+    #     else:
+    #         message += f"Failed to add {str(story)} To Capture Story queue. \n"
+    # for post in list(other_posts_to_capture):
+    #     capture_response = add_to_capture(post, queue_name='post')
+    #     if capture_response:
+    #         message += f"Adding to Post capture queue: {str(post)} \n"
+    #         post.capture_name = getattr(capture_response, 'name', None)
+    #         session.info['post_capture'].discard(post)
+    #     else:
+    #         message += f"Failed to add {str(post)} to Capture Post queue. \n"
     for user in list(subscribe_pages):
         success = install_app_on_user_for_story_updates(user)
         message += f"Subscribe {getattr(user, 'page_id', 'NA')} page for {user} worked: {success} \n"
