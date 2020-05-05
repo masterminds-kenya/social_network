@@ -19,12 +19,12 @@
 | :heavy_check_mark: | Rejecting & accepting Posts only affects current Campaign |
 | :heavy_check_mark: | View & re-evaluate rejected Campaign Posts [stretch goal] |
 | :heavy_check_mark: | Remove dev only logging, code clean-up       |
-|                    | Migrate live DB (and deploy all of above)    |
+| :heavy_check_mark: | Migrate live DB (and deploy all of above)    |
 |                    | **Milestone 3 Completion**                   |
 | :heavy_check_mark: | Saving Story Post media files                |
 | :heavy_check_mark: | Can view saved media in Campaign processing  |
 |                    | **Milestone 4 Completion**                   |
-| :white_check_mark: | Story Webhook for full data at expiration    |
+| :heavy_check_mark: | Story Webhook for full data at expiration    |
 | :heavy_check_mark: | Sheet Report layout update, multi-worksheets |
 | :heavy_check_mark: | Update documentation to capture all updates  |
 |                    | **Completed Stretch Goals**                  |
@@ -66,12 +66,12 @@
 - [s] Stretch Goal. Not for current feature plan.
 
 Current Status:
-2020-04-29 13:41:07
+2020-05-04 20:40:42
 <!-- Ctrl-Shift-I to generate timestamp -->
 
 ### Story Metrics Update
 
-- [ ] WebHook to get Stories data at completion
+- [x] WebHook to get Stories data at completion
   - [x] Must have FB permissions `instagram_manage_insights`
   - [x] App must be installed on the FB page associated with the IG business account.
     - [x] Can determine the page for users we already have.
@@ -83,7 +83,7 @@ Current Status:
       - [x] Record success state of installing app for User
   - [x] Have a hook route on live site
   - [x] Configure hook route on FB App Dashboard
-  - [ ] Security: confirm signature with SHA1 generated with payload and App Secret
+  - [x] Security: confirm signature with SHA1 generated with payload and App Secret
     - [x] FB_HOOK_SECRET for Graph to send in query to our hook route.
   - [ ] Once confirmed, remove story data update from daily cron job
 - [x] ? What storage structure is needed for larger media files ?
@@ -353,8 +353,8 @@ Also see items in the [test-site-content checklist](https://github.com/SeattleCh
 - [c] Remove excessive logs after we confirm numerous onboarding.
 - [?] Check and comply to expected response on a cron job.
 - [x] Flatten Migrate files to not create and delete unneeded changes (esp. test changes)
-- [ ] Migrate Live DB (test with having Dev site connect to it before deploy live code?)
-- [ ] Set DEV_RUN=False, and deploy to live site.
+- [x] Migrate Live DB (test with having Dev site connect to it before deploy live code?)
+- [x] Set DEV_RUN=False, and deploy to live site.
 - [s] Update forms and API digesting with input validation to replace following functionality:
   - [x] Currently fix_date used for both create model, and when create_or_update many
   - [x] Currently create_or_update_many also has to modify inputs from Audience API calls
