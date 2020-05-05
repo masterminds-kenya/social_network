@@ -1,76 +1,27 @@
 from .model_db import db, User, Post, Audience
 from flask import current_app as app
+import hmac
 import hashlib
 import json
 
 
-def check_hash(signed, *payloads):
+def check_hash(signed, payload):
     """ Checks if the 'signed' value is a SHA1 hash made with our app secret and the given 'payload' """
     pre, signed = signed.split('=', 1)
     if pre != 'sha1':
-        app.logger.debug("Signed does not look right")
+        app.logger.debug("Signed does not look right. ")
         return False
-    secrets = {
-        'SECRET_KEY': app.config.get('SECRET_KEY'),
-        'FB_CLIENT_SECRET': app.config.get('FB_CLIENT_SECRET'),
-        'FB_HOOK_SECRET': app.config.get('FB_HOOK_SECRET'),
-        'Empty string': '',
-        'None type': None
-    }
-    attempts = {}
-    for i, payload in enumerate(payloads):
-        app.logger.debug(f"==================== i = {i} ===============================")
-        app.logger.debug(type(payload))
-        app.logger.debug(payload)
-        for name, secret in secrets.items():
-
-            # attempts[f"payload_secret_{i}"] = (payload + secret.encode(), False)
-            # attempts[f"secret_payload_{i}"] = (secret.encode() + payload, False)
-            # attempts[f"encode_each_dump_dict_then_secret_{i}"] = (json.dumps(payload).encode() + secret.encode(), False)
-            # attempts[f"encode_each_secret_then_dump_dict_{i}"] = (secret.encode() + json.dumps(payload).encode(), False)
-            # attempts[f"dump_dict_then_secret_{i}"] = (json.dumps(payload) + secret, True)
-            # attempts[f"try_secret_then_dump_dict_{i}"] = (secret + json.dumps(payload), True)
-            # if type(payload) == 'bytes':
-            #     note = str(i) + '_was_bytes'
-            #     attempts[f"encode_each_dump_dict_then_secret_{note}"] = (payload + secret.encode(), False)
-            #     attempts[f"encode_each_secret_then_dump_dict_{note}"] = (secret.encode() + payload, False)
-            # else:
-            try:
-                attempts[f"p_then_encode_s_{name}_{i}"] = (payload + secret.encode(), False)
-                attempts[f"encode_s_then_p_{name}_{i}"] = (secret.encode() + payload, False)
-                app.logger.debug(f"encode secret w/ plain payload: {i} add ")
-            except Exception as e:
-                app.logger.debug(f"encode secret w/ plain payload: {i} skipped ")
-                app.logger.info(e)
-            try:
-                attempts[f"dump_p_then_encode_s_{name}_{i}"] = (json.dumps(payload) + secret.encode(), False)
-                attempts[f"encode_s_then_dump_p_{name}_{i}"] = (secret.encode() + json.dumps(payload), False)
-                app.logger.debug(f"encode secret w/ dumps payload: {i} add ")
-            except Exception as e:
-                app.logger.debug(f"encode secret w/ dumps payload: {i} skipped ")
-                app.logger.info(e)
-            try:
-                attempts[f"p_then_s_{name}_{i}"] = (payload + secret, True)
-                attempts[f"s_then_p_{name}_{i}"] = (payload + secret, True)
-                app.logger.debug(f"plain secret w/ plain payload: {i} add ")
-            except Exception as e:
-                app.logger.debug(f"plain secret w/ plain payload, encode later: {i} skipped ")
-                app.logger.info(e)
-            try:
-                attempts[f"dump_p_then_s_{name}_{i}"] = (json.dumps(payload) + secret, True)
-                attempts[f"s_then_dump_p_{name}_{i}"] = (secret + json.dumps(payload), True)
-                app.logger.debug(f"plain secret w/ dumps payload, encode later: {i} add ")
-            except Exception as e:
-                app.logger.debug(f"plain secret with dumps payload, encoded later: {i} skipped ")
-                app.logger.info(e)
-    app.logger.debug('Target is: ')
-    app.logger.debug(signed)
-    for ea, val in attempts.items():
-        result = hashlib.sha1(val[0].encode() if val[1] else val[0]).hexdigest()
-        app.logger.debug(result)
-        if result == signed:
-            app.logger.debug(ea)
-            return True
+    if isinstance(payload, dict):
+        payload = json.dumps(payload).encode()
+    elif isinstance(payload, str):
+        payload = payload.encode()
+    if not isinstance(payload, bytes):
+        app.logger.debug(f"Unable to prepare payload. ")
+        return False
+    secret = app.config.get('FB_CLIENT_SECRET').encode()
+    test = hmac.new(secret, payload, hashlib.sha1).hexdigest()
+    if signed == test:
+        return True
     return False
 
 
