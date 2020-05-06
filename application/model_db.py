@@ -15,7 +15,7 @@ import re
 from statistics import mean, median, stdev
 import json
 # from pprint import pprint  # only for debugging
-# from .helper_functions import check_stuff
+# from .db_introspect_functions import check_stuff
 
 db = SQLAlchemy()
 migrate = Migrate(current_app, db)
