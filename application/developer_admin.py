@@ -117,7 +117,10 @@ def fix_defaults():
 
 
 def get_page_for_all_users():
-    """ We need the page number and token in order to setup webhooks for story insights. """
+    """ We need the page number and token in order to setup webhooks for story insights.
+        The subscribing to a user's page will be handled elsewhere, and
+        triggered by this function when it sets and commits the user.page_token value.
+    """
     from .api import get_fb_page_for_user
     from .model_db import User, db
 

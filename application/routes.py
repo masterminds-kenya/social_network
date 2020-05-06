@@ -7,7 +7,8 @@ from .model_db import db_create, db_read, db_update, db_delete, db_all, from_sql
 from .model_db import User, OnlineFollowers, Insight, Audience, Post, Campaign  # , metric_clean
 from . import developer_admin
 from .manage import update_campaign, process_form, report_update, check_hash
-from .api import onboard_login, onboarding, get_insight, get_audience, get_posts, get_online_followers, process_hook
+from .api import onboard_login, onboarding, get_insight, get_audience, get_posts, get_online_followers
+from .api import process_hook, user_permissions
 from .sheets import create_sheet, update_sheet, perm_add, perm_list, all_files
 # from pprint import pprint
 
@@ -170,6 +171,45 @@ def admin(data=None, files=None):
     return render_template('admin.html', dev=dev, data=data, files=files)
 
 
+@app.route('/<string:mod>/<int:id>/permissions')
+@staff_required()
+def permission_check(mod, id):
+    """ Used by admin to see what permissions a given user has granted the platform """
+    from pprint import pprint
+
+    if mod_lookup(mod) != User:
+        flash("Not a valid mod value for this function. ")
+        return redirect(request.referrer)
+    data = user_permissions(id)
+    if not data:
+        flash("Error in looking up permission granted by the user to the platform. ")
+        return redirect(request.referrer)
+    app.logger.info('Got data back from user_permissions request. ')
+    pprint(data)
+    return render_template('view.html', mod=mod, data=data)
+
+
+@app.route('/<string:mod>/<int:id>/subscribe')
+@staff_required()
+def subscribe_page(mod, id):
+    """ NOT IMPLEMENTED. Used by admin manually subscribe to this user's facebook page. """
+    pass
+
+
+@app.route('/<string:mod>/subscribe')
+@staff_required()
+def subscribe_all_pages(mod):
+    """ Used by admin to subscribe to all current platform user's facebook page. """
+    from pprint import pprint
+
+    app.logger.debug(f"========== subscribe_all_pages ==========")
+    all_response = developer_admin.get_page_for_all_users()
+    # app.logger.debug(f"Installing was successful: {page} ! ")
+    pprint(all_response)
+    app.logger.debug('-------------------------------------------------------------')
+    return admin(data=all_response)
+
+
 @app.route('/data/test')
 @admin_required()
 def test_method():
@@ -206,9 +246,8 @@ def test_method():
     # data = {'object': 'fake', 'entry': [{'id': 0, 'time': 0, 'changes': [one_fake_change]}]}
     # app.logger.debug("========== Test: process_hook, passing fake data. ==========")
     # res = process_hook(data)
-    app.logger.debug(f"========== Test: get_page_for_all_users ==========")
-    all_response = developer_admin.get_page_for_all_users()
-    # app.logger.debug(f"Installing was successful: {page} ! ")
+    app.logger.debug(f"========== Test Method for admin:  ==========")
+    all_response = {'key1': 1, 'key2': 'two', 'key3': '3rd', 'meaningful': False}
     pprint(all_response)
     app.logger.debug('-------------------------------------------------------------')
     return admin(data=all_response)

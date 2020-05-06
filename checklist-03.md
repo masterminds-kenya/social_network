@@ -35,6 +35,7 @@
 | :heavy_check_mark: | Task Queue managing calling Capture app      |
 |                    | Secure Queue on gRPC protocol, save response |
 | :heavy_check_mark: | On User delete, remove metrics & keep Posts  |
+| :heavy_check_mark: | Admin feature: check permissions a User granted |
 | :white_check_mark: | Update documentation to capture all updates  |
 |                    | **Suggested Stretch Goals**                  |
 |                    | On User delete, delete Posts not in Campaign |
