@@ -35,11 +35,17 @@ def user_permissions(user, facebook=None, token=None):
         if not token:
             app.logger.error("We do not have a token for this user. ")
             return {}
-    data = {'id': user.id, 'facebook_id': user.facebook_id, 'instagram_id': user.instagram_id}
-    data['name'] = f"{user.name} Permissions Granted"
+    data = {'id': user.id, 'name': f"{user.name} Permissions Granted"}
+    keys = ['facebook_id', 'instagram_id', 'page_id', 'page_token']
+    needed = ', '.join([key for key in keys if not getattr(user, key, None)])
+    if user.story_subscribed is True:
+        subscribed = True
+    elif len(needed):
+        subscribed = f"False, need {needed} "
+    else:
+        subscribed = "Have the account and page info, but NOT subscribed. "
+    data['subscribed'] = subscribed
     data.update({permission: False for permission in FB_SCOPE})
-    # accounts = [getattr(user, 'facebook_id'), getattr(user, 'instagram_id')]
-    # for account_id in accounts:
     url = f"https://graph.facebook.com/{user.facebook_id}/permissions"
     params = {}
     if not facebook:
