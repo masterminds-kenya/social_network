@@ -1,5 +1,9 @@
+from flask import flash, redirect, render_template, url_for, request, current_app as app
 from .model_db import db, User, Post, Audience
-from flask import current_app as app
+from flask_login import current_user, login_user
+from werkzeug.security import generate_password_hash
+from .model_db import db_read, db_create, db_update, db_delete
+from .helper_functions import mod_lookup
 import hmac
 import hashlib
 import json
@@ -108,9 +112,93 @@ def process_form(mod, request):
     return data
 
 
+def add_edit(mod, id=None):
+    """ Adding or Editing a DB record is a similar process handled here. """
+    action = 'Edit' if id else 'Add'
+    Model = mod_lookup(mod)
+    if action == 'Add' and Model == User:
+        if not current_user.is_authenticated \
+           or current_user.role not in ['admin', 'manager'] \
+           or mod != 'brand':
+            flash("Using Signup. ")
+            return redirect(url_for('signup'))
+    app.logger.info(f'------- {action} {mod} ----------')
+    if request.method == 'POST':
+        data = process_form(mod, request)
+        if mod == 'brand' and data.get('instagram_id', '') in ('None', None, ''):
+            # TODO: Decide - Should it work for all User.ROLES, or only 'brand'?
+            data['instagram_id'] = None  # Do not overwrite 'instagram_id' if it was left blank.
+        # TODO: ?Check for failing unique column fields, or failing composite unique requirements?
+        if action == 'Edit':
+            password_mismatch = data.get('password', '') != data.get('password-confirm', '')
+            if password_mismatch:
+                message = "New password and its confirmation did not match. Please try again. "
+                flash(message)
+                return redirect(request.referrer)
+            if Model == User and data.get('password'):
+                # if form password field was blank, process_form has already removed the key by now.
+                data['password'] = generate_password_hash(data.get('password'))
+            try:
+                model = db_update(data, id, Model=Model)
+            except ValueError as e:
+                app.logger.error('------- Came back as ValueError from Integrity Error -----')
+                app.logger.exception(e)
+                # Possibly that User account exists for the 'instagram_id'
+                # If true, then switch to updating the existing user account
+                #     and delete this newly created User account that was trying to be a duplicate.
+                ig_id = data.get('instagram_id', None)
+                found_user = User.query.filter_by(instagram_id=ig_id).first() if ig_id and Model == User else None
+                if found_user:
+                    found_user_id = getattr(found_user, 'id', None)
+                    # TODO: Are we safe from updating the 'instagram_id' on a form?
+                    if current_user.facebook_id == found_user.facebook_id:
+                        try:
+                            model = db_update(data, found_user_id, Model=Model)
+                        except ValueError as e:
+                            message = "Unable to update existing user. "
+                            app.logger.error(f'----- {message} ----')
+                            app.logger.exception(e)
+                            flash(message)
+                            return redirect(url_for('home'))
+                        login_user(found_user, force=True, remember=True)
+                        db_delete(id, Model=User)
+                        flash("You are logged in. ")
+                        # this case will follow the normal return for request.method == 'POST'
+                    else:
+                        message = "You do not seem to match the existing account. "
+                        message += "A new account can not be created with those unique values. "
+                        message += "If you own the existing account you can try to Login instead. "
+                        flash(message)
+                        return redirect(url_for('home'))
+                else:
+                    flash("Please try again or contact an Admin. ")
+                    return redirect(url_for('home'))
+        else:  # action == 'Add' and request.method == 'POST'
+            try:
+                model = db_create(data, Model=Model)
+            except ValueError as e:
+                app.logger.error('------- Came back as ValueError from Integrity Error -----')
+                app.logger.exception(e)
+                flash("Error. Please try again or contact an Admin. ")
+                return redirect(url_for('add', mod=mod, id=id))
+        return redirect(url_for('view', mod=mod, id=model['id']))
+    # else: request.method == 'GET'
+    template, related = 'form.html', {}
+    model = db_read(id, Model=Model) if action == 'Edit' else {}
+    if mod == 'campaign':
+        template = f"{mod}_{template}"
+        users = User.query.filter_by(role='influencer').all()
+        brands = User.query.filter_by(role='brand').all()
+        related['users'] = [(ea.id, ea.name) for ea in users]
+        related['brands'] = [(ea.id, ea.name) for ea in brands]
+    return render_template(template, action=action, mod=mod, data=model, related=related)
+
+
 def report_update(reports, Model):
     """ Input is a list of dictionaries, with each being the update values to apply to the 'mod' Model. """
     message, results, had_error = '', [], False
+    app.logger.debug("===================== report update =====================")
+    # TODO: Confirm the the source of this update.
     if Model != Post:
         message += "The Report process is not available for that data. "
         app.logger.debug(message)
@@ -130,7 +218,6 @@ def report_update(reports, Model):
         message += f"Updated Model in capture_report: {str(model)} \n"
     else:
         message += "The report_update function received no reports. "
-    app.logger.debug("===================== report update - do the work =====================")
     if len(results):
         db.session.commit()
         message += ', '.join([str(model) for model in results])

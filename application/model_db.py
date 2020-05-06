@@ -15,7 +15,7 @@ import re
 from statistics import mean, median, stdev
 import json
 # from pprint import pprint  # only for debugging
-# from .helper_functions import check_stuff
+# from .db_introspect_functions import check_stuff
 
 db = SQLAlchemy()
 migrate = Migrate(current_app, db)
@@ -489,11 +489,11 @@ class Campaign(db.Model):
         if view == 'management':
             for user in self.users:
                 # related[user] = [post for post in user.posts if post not in self.processed]
-                related[user] = [post for post in user.posts if not post.processed.contains(self)]
+                related[user] = [post for post in user.posts if self not in post.processed]
         elif view == 'rejected':
             for post in self.processed:
                 # if post not in self.posts:
-                if not post.campaigns.contains(self):
+                if self not in post.campaigns:
                     user = deleted_user if post.user_id is None else post.user
                     related[user].append(post.display())
         elif view == 'collected':

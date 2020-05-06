@@ -23,6 +23,38 @@ FB_SCOPE = [
         ]
 
 
+def user_permissions(user, facebook=None, token=None):
+    """ Used by admin to check on what permissions a given user has granted to the platform application. """
+    if isinstance(user, (str, int)):
+        user = User.query.get(user)
+    if not isinstance(user, User):
+        app.logger.error("Expected a valid User instance, or id of one, to check what permissions they have granted. ")
+        return {}
+    if not facebook and not token:
+        token = getattr(user, 'token', None)
+        if not token:
+            app.logger.error("We do not have a token for this user. ")
+            return {}
+    data = {'id': user.id, 'facebook_id': user.facebook_id, 'instagram_id': user.instagram_id}
+    data['name'] = f"{user.name} Permissions Granted"
+    data.update({permission: False for permission in FB_SCOPE})
+    # accounts = [getattr(user, 'facebook_id'), getattr(user, 'instagram_id')]
+    # for account_id in accounts:
+    url = f"https://graph.facebook.com/{user.facebook_id}/permissions"
+    params = {}
+    if not facebook:
+        params['access_token'] = token
+    # TODO: Test facebook.get will work as written below.
+    res = facebook.get(url, params=params).json() if facebook else requests.get(url, params=params).json()
+    if 'error' in res:
+        app.logger.info('--------------------- Error in user_permissions response ---------------------')
+        app.logger.error(f"Error: {res.get('error', 'Empty Error')} ")
+        return {}
+    res_data = res.get('data', [{}])
+    data.update({ea.get('permission', ''): ea.get('status', '') for ea in res_data})
+    return data
+
+
 def process_hook(req):
     """ We have a confirmed authoritative update on subscribed data of a Story Post. """
     # req = {'object': 'page', 'entry': [{'id': <ig_id>, 'time': 0, 'changes': [{'field': 'name', 'value': 'newnam'}]}]}
@@ -157,10 +189,10 @@ def get_insight(user_id, first=1, influence_last=30*12, profile_last=30*3, ig_id
     app.logger.info("------------ Get Insight: Influence, Profile ---------------")
     app.logger.debug(influence_last)
     app.logger.debug(profile_last)
-    for insight_metrics, last in [(Insight.influence_metrics, influence_last), (Insight.profile_metrics, profile_last)]:
+    for insight_metrics, last in [(Insight.INFLUENCE_METRICS, influence_last), (Insight.PROFILE_METRICS, profile_last)]:
         metric = ','.join(insight_metrics)
         for i in range(first, last + 2 - 30, 30):
-            until = dt.utcnow() - timedelta(days=i)
+            until = now - timedelta(days=i)
             since = until - timedelta(days=30)
             url = "https://graph.facebook.com"
             url += f"/{ig_id}/insights?metric={metric}&period={ig_period}&since={since}&until={until}"
@@ -336,7 +368,7 @@ def get_posts(id_or_users, ig_id=None, facebook=None):
 
 
 def get_fb_page_for_user(user, facebook=None, token=None):
-    """ For a known Instagram account, we can determine the related Facebook page. """
+    """ For a user with a known Instagram account, we can determine the related Facebook page. """
     if not isinstance(user, User):
         raise Exception(f"get_fb_page_for_user requires a User model instance as the first parameter. ")
     page = dict(zip(['id', 'token'], [getattr(user, 'page_id', None), getattr(user, 'page_token', None)]))
@@ -392,8 +424,8 @@ def install_app_on_user_for_story_updates(user_or_id, page=None, facebook=None, 
     params['subscribed_fields'] = 'name'
     res = facebook.post(url, params=params).json() if facebook else requests.post(url, params=params).json()
     # TODO: See if facebook with params above works.
-    app.logger.debug('----------------------------------------------------------------')
-    pprint(res)
+    # app.logger.debug('----------------------------------------------------------------')
+    # pprint(res)
     return res.get('success', False)
 
 

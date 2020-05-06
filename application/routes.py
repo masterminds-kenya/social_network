@@ -1,65 +1,17 @@
 from flask import render_template, redirect, url_for, request, flash, current_app as app  # , abort
 from flask_login import current_user, login_user, logout_user, login_required
 from werkzeug.security import generate_password_hash, check_password_hash
-from functools import wraps
+# from functools import wraps
 import json
-from .model_db import db_create, db_read, db_update, db_delete, db_all, from_sql
+from .model_db import db_create, db_read, db_delete, db_all, from_sql
 from .model_db import User, OnlineFollowers, Insight, Audience, Post, Campaign  # , metric_clean
-from . import developer_admin
-from .manage import update_campaign, process_form, report_update, check_hash
-from .api import onboard_login, onboarding, get_insight, get_audience, get_posts, get_online_followers, process_hook
+from .developer_admin import admin_view
+from .helper_functions import staff_required, admin_required, mod_lookup
+from .manage import update_campaign, process_form, report_update, check_hash, add_edit
+from .api import onboard_login, onboarding, get_insight, get_audience, get_posts, get_online_followers
+from .api import process_hook, user_permissions
 from .sheets import create_sheet, update_sheet, perm_add, perm_list, all_files
 # from pprint import pprint
-
-
-def mod_lookup(mod):
-    """ Associate to the appropriate Model, or raise error if 'mod' is not an expected value """
-    if not isinstance(mod, str):
-        raise TypeError("Expected a string input. ")
-    lookup = {'insight': Insight, 'audience': Audience, 'post': Post, 'campaign': Campaign}
-    # 'onlinefollowers': OnlineFollowers,
-    lookup.update({role: User for role in User.ROLES})
-    Model = lookup.get(mod, None)
-    if not Model:
-        raise ValueError("That is not a valid url path. ")
-    return Model
-
-
-def staff_required(role=['admin', 'manager']):
-    """ This decorator will allow use to limit access to routes based on user role. """
-    def wrapper(fn):
-        @wraps(fn)
-        def decorated_view(*args, **kwargs):
-            if not current_user.is_authenticated or current_user.role not in role:
-                return app.login_manager.unauthorized()
-            return fn(*args, **kwargs)
-        return decorated_view
-    return wrapper
-
-
-def admin_required(role=['admin']):
-    """ This decorator will limit access to admin only """
-    # staff_required(role=role)
-    def wrapper(fn):
-        @wraps(fn)
-        def decorated_view(*args, **kwargs):
-            if not current_user.is_authenticated or current_user.role not in role:
-                return app.login_manager.unauthorized()
-            return fn(*args, **kwargs)
-        return decorated_view
-    return wrapper
-
-
-def self_or_staff_required(role=['admin', 'manager'], user=current_user):
-    """ This decorator limits access to staff or if the resource belongs to the current_user. """
-    def wrapper(fn):
-        @wraps(fn)
-        def decorated_view(*args, **kwargs):
-            if not current_user.is_authenticated or current_user.role not in role:
-                return app.login_manager.unauthorized()
-            return fn(*args, **kwargs)
-        return decorated_view
-    return wrapper
 
 
 @app.route('/')
@@ -67,20 +19,6 @@ def home():
     """ Default root route """
     data = ''
     return render_template('index.html', data=data)
-
-
-@app.route('/deletion')
-def fb_delete():
-    """ Handle a Facebook Data Deletion Request
-        More details: https://developers.facebook.com/docs/apps/delete-data
-        Not yet implemented.
-    """
-    response = {}
-    response['user_id'] = 'test user_id'
-    response['url'] = 'see status of deletion'
-    response['confirmation_code'] = 'some unique code'
-    # TODO: do stuff
-    return json.dumps(response)
 
 
 @app.route('/signup', methods=['GET', 'POST'])
@@ -163,11 +101,25 @@ def error():
 @app.route('/admin')
 @admin_required()
 def admin(data=None, files=None):
-    """ Platform Admin view to view links and actions unique to admin """
-    dev_email = ['hepcatchris@gmail.com', 'christopherlchapman42@gmail.com']
-    dev = current_user.email in dev_email
-    # files = None if app.config.get('LOCAL_ENV') else all_files()
-    return render_template('admin.html', dev=dev, data=data, files=files)
+    return admin_view(data=data, files=files)
+
+
+@app.route('/<string:mod>/<int:id>/permissions')
+@staff_required()
+def permission_check(mod, id):
+    """ Used by admin to see what permissions a given user has granted the platform """
+    from pprint import pprint
+
+    if mod_lookup(mod) != User:
+        flash("Not a valid mod value for this function. ")
+        return redirect(request.referrer)
+    data = user_permissions(id)
+    if not data:
+        flash("Error in looking up permission granted by the user to the platform. ")
+        return redirect(request.referrer)
+    app.logger.info('Got data back from user_permissions request. ')
+    pprint(data)
+    return render_template('view.html', mod=mod, data=data)
 
 
 @app.route('/data/test')
@@ -206,56 +158,17 @@ def test_method():
     # data = {'object': 'fake', 'entry': [{'id': 0, 'time': 0, 'changes': [one_fake_change]}]}
     # app.logger.debug("========== Test: process_hook, passing fake data. ==========")
     # res = process_hook(data)
-    app.logger.debug(f"========== Test: get_page_for_all_users ==========")
-    all_response = developer_admin.get_page_for_all_users()
-    # app.logger.debug(f"Installing was successful: {page} ! ")
+    app.logger.debug(f"========== Test Method for admin:  ==========")
+    all_response = {'key1': 1, 'key2': 'two', 'key3': '3rd', 'meaningful': False}
     pprint(all_response)
     app.logger.debug('-------------------------------------------------------------')
     return admin(data=all_response)
 
 
-@app.route('/data/load/')
-@admin_required()
-def load_user():
-    """ This is a temporary development function. Will be removed for production. """
-    developer_admin.load()
-    return redirect(url_for('all', mod='influencer'))
-
-
-@app.route('/data/<string:mod>/<int:id>')
-@admin_required()
-def backup_save(mod, id):
-    """ This is a temporary development function. Will be removed for production. """
-    Model = mod_lookup(mod)
-    count = developer_admin.save(mod, id, Model)
-    message = f"We just backed up {count} {mod} model(s). "
-    app.logger.info(message)
-    flash(message)
-    return redirect(url_for('view', mod='influencer', id=id))
-
-
-@app.route('/data/encrypt/')
-@admin_required()
-def encrypt():
-    """ This is a temporary development function. Will be removed for production. """
-    message, success = developer_admin.encrypt()
-    app.logger.info(message)
-    if success:
-        success = developer_admin.fix_defaults()
-        temp = "Fix defaults worked! " if success else "Had an error in fix_defaults. "
-        app.logger.info(temp)
-        message += temp
-    else:
-        message += "Did not attempt fix_defaults. "
-    flash(message)
-    return admin(data=message)
-    # return render_template('admin.html', dev=True, data=message, files=None)
-
-
 @app.route('/data/capture/<int:id>')
 @admin_required()
 def capture(id):
-    """ Capture the media files. Currently on an Admin function, to be updated later. """
+    """ Manual call to capture the media files. Currently on an Admin function, to be updated later. """
     from .events import enqueue_capture
 
     post = Post.query.get(id)
@@ -490,7 +403,7 @@ def insights(mod, id):
     dataset, i = {}, 0
     max_val, min_val = 4, float('inf')
 
-    for metrics in (Insight.influence_metrics, Insight.profile_metrics, OnlineFollowers.METRICS):
+    for metrics in (Insight.INFLUENCE_METRICS, Insight.PROFILE_METRICS, OnlineFollowers.METRICS):
         for metric in metrics:
             # TODO: Undo the following temporary ignore a lot of the metrics
             if metric in ('impressions', 'reach', 'profile_views'):
@@ -583,88 +496,6 @@ def new_post(mod, id):
     flash(logstring)
     return_path = request.referrer
     return redirect(return_path)
-
-
-def add_edit(mod, id=None):
-    """ Adding or Editing a DB record is a similar process handled here. """
-    action = 'Edit' if id else 'Add'
-    Model = mod_lookup(mod)
-    if action == 'Add' and Model == User:
-        if not current_user.is_authenticated \
-           or current_user.role not in ['admin', 'manager'] \
-           or mod != 'brand':
-            flash("Using Signup. ")
-            return redirect(url_for('signup'))
-    app.logger.info(f'------- {action} {mod} ----------')
-    if request.method == 'POST':
-        data = process_form(mod, request)
-        if mod == 'brand' and data.get('instagram_id', '') in ('None', None, ''):
-            # TODO: Decide - Should it work for all User.ROLES, or only 'brand'?
-            data['instagram_id'] = None  # Do not overwrite 'instagram_id' if it was left blank.
-        # TODO: ?Check for failing unique column fields, or failing composite unique requirements?
-        if action == 'Edit':
-            password_mismatch = data.get('password', '') != data.get('password-confirm', '')
-            if password_mismatch:
-                message = "New password and its confirmation did not match. Please try again. "
-                flash(message)
-                return redirect(request.referrer)
-            if Model == User and data.get('password'):
-                # if form password field was blank, process_form has already removed the key by now.
-                data['password'] = generate_password_hash(data.get('password'))
-            try:
-                model = db_update(data, id, Model=Model)
-            except ValueError as e:
-                app.logger.error('------- Came back as ValueError from Integrity Error -----')
-                app.logger.exception(e)
-                # Possibly that User account exists for the 'instagram_id'
-                # If true, then switch to updating the existing user account
-                #     and delete this newly created User account that was trying to be a duplicate.
-                ig_id = data.get('instagram_id', None)
-                found_user = User.query.filter_by(instagram_id=ig_id).first() if ig_id and Model == User else None
-                if found_user:
-                    found_user_id = getattr(found_user, 'id', None)
-                    # TODO: Are we safe from updating the 'instagram_id' on a form?
-                    if current_user.facebook_id == found_user.facebook_id:
-                        try:
-                            model = db_update(data, found_user_id, Model=Model)
-                        except ValueError as e:
-                            message = "Unable to update existing user. "
-                            app.logger.error(f'----- {message} ----')
-                            app.logger.exception(e)
-                            flash(message)
-                            return redirect(url_for('home'))
-                        login_user(found_user, force=True, remember=True)
-                        db_delete(id, Model=User)
-                        flash("You are logged in. ")
-                        # this case will follow the normal return for request.method == 'POST'
-                    else:
-                        message = "You do not seem to match the existing account. "
-                        message += "A new account can not be created with those unique values. "
-                        message += "If you own the existing account you can try to Login instead. "
-                        flash(message)
-                        return redirect(url_for('home'))
-                else:
-                    flash("Please try again or contact an Admin. ")
-                    return redirect(url_for('home'))
-        else:  # action == 'Add' and request.method == 'POST'
-            try:
-                model = db_create(data, Model=Model)
-            except ValueError as e:
-                app.logger.error('------- Came back as ValueError from Integrity Error -----')
-                app.logger.exception(e)
-                flash("Error. Please try again or contact an Admin. ")
-                return redirect(url_for('add', mod=mod, id=id))
-        return redirect(url_for('view', mod=mod, id=model['id']))
-    # else: request.method == 'GET'
-    template, related = 'form.html', {}
-    model = db_read(id, Model=Model) if action == 'Edit' else {}
-    if mod == 'campaign':
-        template = f"{mod}_{template}"
-        users = User.query.filter_by(role='influencer').all()
-        brands = User.query.filter_by(role='brand').all()
-        related['users'] = [(ea.id, ea.name) for ea in users]
-        related['brands'] = [(ea.id, ea.name) for ea in brands]
-    return render_template(template, action=action, mod=mod, data=model, related=related)
 
 
 @app.route('/<string:mod>/add', methods=['GET', 'POST'])

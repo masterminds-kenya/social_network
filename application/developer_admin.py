@@ -1,9 +1,19 @@
-from flask import current_app as app
+from flask import redirect, render_template, url_for, flash, current_app as app
+from flask_login import current_user
 import json
-from .model_db import create_many, db_read
-from .api import get_ig_info
+from .helper_functions import staff_required, admin_required, mod_lookup
+from .model_db import create_many, db_read, User, db
+from .api import get_ig_info, get_fb_page_for_user
 
 USER_FILE = 'env/user_save.txt'
+
+
+def admin_view(data=None, files=None):
+    """ Platform Admin view to view links and actions unique to admin """
+    dev_email = ['hepcatchris@gmail.com', 'christopherlchapman42@gmail.com']
+    dev = current_user.email in dev_email
+    # files = None if app.config.get('LOCAL_ENV') else all_files()
+    return render_template('admin.html', dev=dev, data=data, files=files)
 
 
 def load():
@@ -51,7 +61,7 @@ def save(mod, id, Model):
     return count
 
 
-def encrypt():
+def encrypt_token():
     """ Takes value in token field and saves in encrypt field, triggering the encryption process.
         Function is only for use by dev admin.
     """
@@ -117,10 +127,10 @@ def fix_defaults():
 
 
 def get_page_for_all_users():
-    """ We need the page number and token in order to setup webhooks for story insights. """
-    from .api import get_fb_page_for_user
-    from .model_db import User, db
-
+    """ We need the page number and token in order to setup webhooks for story insights.
+        The subscribing to a user's page will be handled elsewhere, and
+        triggered by this function when it sets and commits the user.page_token value.
+    """
     updates = {}
     users = User.query.filter(User.instagram_id.isnot(None)).all()
     for user in users:
@@ -132,3 +142,76 @@ def get_page_for_all_users():
             updates[user.id] = str(user)
     db.session.commit()
     return updates
+
+
+@app.route('/<string:mod>/<int:id>/subscribe')
+@staff_required()
+def subscribe_page(mod, id):
+    """ NOT IMPLEMENTED. Used by admin manually subscribe to this user's facebook page. """
+    pass
+
+
+@app.route('/all_users/subscribe')
+@staff_required()
+def subscribe_all_pages():
+    """ DEPRECATED. Used by admin to subscribe to all current platform user's facebook page. """
+    from pprint import pprint
+
+    app.logger.debug(f"========== subscribe_all_pages ==========")
+    all_response = get_page_for_all_users()
+    # app.logger.debug(f"Installing was successful: {page} ! ")
+    pprint(all_response)
+    app.logger.debug('-------------------------------------------------------------')
+    return admin_view(data=all_response)
+
+
+@app.route('/data/load/')
+@admin_required()
+def load_user():
+    """ DEPRECATED. This is a temporary development function. Will be removed for production. """
+    load()
+    return redirect(url_for('all', mod='influencer'))
+
+
+@app.route('/data/<string:mod>/<int:id>')
+@admin_required()
+def backup_save(mod, id):
+    """ DEPRECATED. This is a temporary development function. Will be removed for production. """
+    Model = mod_lookup(mod)
+    count = save(mod, id, Model)
+    message = f"We just backed up {count} {mod} model(s). "
+    app.logger.info(message)
+    flash(message)
+    return redirect(url_for('view', mod='influencer', id=id))
+
+
+@app.route('/data/encrypt/')
+@admin_required()
+def encrypt():
+    """ DEPRECATED. This is a temporary development function. Will be removed for production. """
+    message, success = encrypt_token()
+    app.logger.info(message)
+    if success:
+        success = fix_defaults()
+        temp = "Fix defaults worked! " if success else "Had an error in fix_defaults. "
+        app.logger.info(temp)
+        message += temp
+    else:
+        message += "Did not attempt fix_defaults. "
+    flash(message)
+    return admin_view(data=message)
+    # return render_template('admin.html', dev=True, data=message, files=None)
+
+
+@app.route('/deletion')
+def fb_delete():
+    """ NOT IMPLEMENTED.
+        Handle a Facebook Data Deletion Request
+        More details: https://developers.facebook.com/docs/apps/delete-data
+    """
+    response = {}
+    response['user_id'] = 'test user_id'
+    response['url'] = 'see status of deletion'
+    response['confirmation_code'] = 'some unique code'
+    # TODO: do stuff
+    return json.dumps(response)

@@ -7,7 +7,7 @@
 {{ super() }}
 <h1>
   {{ mod.capitalize() }} Details
-  {% if data.name %}for {{ data.name }}{% endif %}
+  {% if data.get('name') %}for {{ data['name'] }}{% endif %}
 </h1>
 {% endblock header %}
 {% block content %}
@@ -16,7 +16,7 @@
 <ul>
 {% for key in data.keys() %}
   {% if key == 'insights' and data[key]|length %}
-  <li><a href="{{ url_for('insights', mod=mod, id=data.id) }}">See Insights</a> </li>
+  <li><a href="{{ url_for('insights', mod=mod, id=data['id']) }}">See Insights</a> </li>
   {% elif key == 'aud_count' %}
   <li>
     <input id="collapsible_{{key}}" class="toggle" type="checkbox" />
@@ -35,7 +35,7 @@
   <li>
     <input id="collapsible_{{key}}" class="toggle" type="checkbox" />
     <label for="collapsible_{{key}}" class="lbl-toggle">
-      {{ key }}
+      {{ key }}: {{ data[key]|length }} total.
     </label>
       <ul class="collapsible-content {{key}}">
         {% for ea in data[key] %}
@@ -83,17 +83,18 @@
 <h3>Change Data Actions</h3>
 <ul>
   {% if mod in ['influencer', 'brand'] and data['instagram_id'] %}
-  <li><a href="{{ url_for('new_post', mod=mod, id=data.id) }}">Get New Media / Posts</a> </li>
-  <li><a href="{{ url_for('new_insight', mod=mod, id=data.id) }}">Get New {{mod|title}} Insights</a> </li>
-  <li><a href="{{ url_for('new_audience', mod=mod, id=data.id) }}">Get New Audience Data</a> </li>
+  <li><a href="{{ url_for('new_post', mod=mod, id=data['id']) }}">Get New Media / Posts</a> </li>
+  <li><a href="{{ url_for('new_insight', mod=mod, id=data['id']) }}">Get New {{mod|title}} Insights</a> </li>
+  <li><a href="{{ url_for('new_audience', mod=mod, id=data['id']) }}">Get New Audience Data</a> </li>
   {% endif %}
   <li>CAREFUL BELOW!</li>
-  <li><a href="{{ url_for('edit', mod=mod, id=data.id) }}">Update {{ mod|title }}</a></li>
-  {% if current_user.role == 'admin' or (current_user.id == data.id and current_user.role == mod) %}
-  <li><a href="{{ url_for('delete', mod=mod, id=data.id) }}">Delete {{ mod|title }}</a></li>
+  <li><a href="{{ url_for('edit', mod=mod, id=data['id']) }}">Update {{ mod|title }}</a></li>
+  {% if current_user.role == 'admin' or (current_user['id'] == data['id'] and current_user.role == mod) %}
+  <li><a href="{{ url_for('delete', mod=mod, id=data['id']) }}">Delete {{ mod|title }}</a></li>
   {% endif %}
   {% if current_user.role == 'admin' %}
-  <li><a href="{{ url_for('export', mod=mod, id=data.id)}}">Export Data to a Google Sheet</a></li>
+  <li><a href="{{ url_for('permission_check', mod=mod, id=data['id'])}}">View permissions granted to Platform</a></li>
+  <li><a href="{{ url_for('export', mod=mod, id=data['id'])}}">Export Data to a Google Sheet</a></li>
   {% endif %}
 </ul>
 {% endif %}
