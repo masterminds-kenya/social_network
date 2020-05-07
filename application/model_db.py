@@ -487,8 +487,9 @@ class Campaign(db.Model):
         related[deleted_user] = []
         if view == 'management':
             for user in self.users:
-                # related[user] = [post for post in user.posts if post not in self.processed]
-                related[user] = [post for post in user.posts if self not in post.processed]
+                # related[user] = [post for post in user.posts if self not in post.processed]  # seems slower than next
+                related[user] = [post for post in user.posts if post not in self.processed]
+                # TODO: Need a faster process. Would refactor to return a query be better?
         elif view == 'rejected':
             for post in self.processed:
                 # if post not in self.posts:
