@@ -1,17 +1,14 @@
 from flask import render_template, redirect, url_for, request, flash, current_app as app  # , abort
 from flask_login import current_user, login_user, logout_user, login_required
 from werkzeug.security import generate_password_hash, check_password_hash
-# from functools import wraps
 import json
 from .model_db import db_create, db_read, db_delete, db_all, from_sql
 from .model_db import User, OnlineFollowers, Insight, Audience, Post, Campaign  # , metric_clean
 from .developer_admin import admin_view
 from .helper_functions import staff_required, admin_required, mod_lookup
-from .manage import update_campaign, process_form, report_update, check_hash, add_edit
-from .api import onboard_login, onboarding, get_insight, get_audience, get_posts, get_online_followers
-from .api import process_hook, user_permissions
+from .manage import update_campaign, process_form, report_update, check_hash, add_edit, process_hook
+from .api import onboard_login, onboarding, get_insight, get_audience, get_posts, get_online_followers, user_permissions
 from .sheets import create_sheet, update_sheet, perm_add, perm_list, all_files
-# from pprint import pprint
 
 
 @app.route('/')
@@ -129,35 +126,6 @@ def test_method():
     # from .sheets import get_vals, get_insight_report
     from pprint import pprint
 
-    # page1_only = True
-    # model = Campaign.query.get(4)
-    # vals = get_vals(model)
-    # insight_report = get_insight_report(model)
-    # results = vals if page1_only else insight_report
-    # pprint(results)
-    # return admin(data=results[0])
-    # # return render_template('admin.html', dev=True, data=results[0], files=None)
-    # from .api import process_hook, get_fb_page_for_user
-    # working .api functions: get_basic_post, get_fb_page_for_user, install_app_on_user_for_story_updates,
-    # user = User.query.get(84)   # Influencer - NOELLERENO
-    # post = Post.query.get(102)  # an IMAGE post by Noelle
-    # media_id = getattr(post, 'media_id', None)
-    # res = get_basic_post(media_id, token=getattr(user, 'token', None))
-    # app.logger.debug("========== Test: get_basic_post func, passing just token. ==========")
-    # pprint(res)
-    # fake_story_update = {
-    #     'exits': 0,
-    #     'impressions': 0,
-    #     'media_id': 0,
-    #     'reach': 0,
-    #     'replies': 0,
-    #     'taps_back': 0,
-    #     'taps_forward': 0
-    #     }
-    # one_fake_change = {'field': 'fake_field', 'value': fake_story_update}
-    # data = {'object': 'fake', 'entry': [{'id': 0, 'time': 0, 'changes': [one_fake_change]}]}
-    # app.logger.debug("========== Test: process_hook, passing fake data. ==========")
-    # res = process_hook(data)
     app.logger.debug(f"========== Test Method for admin:  ==========")
     all_response = {'key1': 1, 'key2': 'two', 'key3': '3rd', 'meaningful': False}
     pprint(all_response)
@@ -559,32 +527,22 @@ def hook():
     if request.method == 'POST':
         signed = request.headers.get('X-Hub-Signature', '')
         # byte_data = request.get_data()
-        # app.logger.debug("Byte Data")
-        # app.logger.debug(byte_data)
         data = request.json if request.is_json else request.data
-        # app.logger.debug("Data")
-        # app.logger.debug(data)
-        # if json.dumps(data).encode() == byte_data:
-        #     app.logger.debug("Dumps data then encoded is the same as byte_data")
-        # else:
-        #     app.logger.debug("Somehow data dumped and encoded != byte_data")
         verified = check_hash(signed, data)
         if not verified:
             message = "Signature given for webhook could not be verified. "
             app.logger.error(message)
             return message, 401  # 403 if we KNOW it was done wrong
-        res, response_code = process_hook(data)  # Do something with the data!
-    elif request.method == 'GET':
+        res, response_code = process_hook(data)
+    else:  # request.method == 'GET':
         mode = request.args.get('hub.mode')
         token_match = request.args.get('hub.verify_token', '') if request.args.get('hub.mode') == 'subscribe' else ''
         token_match = True if token_match == app.config.get('FB_HOOK_SECRET') else False
         res = request.args.get('hub.challenge', '') if token_match else 'Error. '
         response_code = 200 if token_match else 401
         app.logger.debug(f"Mode: {mode} | Challenge: {res} | Token: {token_match} ")
-    else:
-        raise ValueError('Expected either a GET or POST request. ')
     app.logger.debug(f"==================== The hook route returns status code: {response_code} ====================")
-    app.logger.debug(res)
+    app.logger.info(res)
     return res, response_code
 
 

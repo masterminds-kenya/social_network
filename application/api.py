@@ -1,6 +1,5 @@
 from flask import current_app as app
 from flask_login import login_user
-from collections import defaultdict
 from datetime import timedelta, datetime as dt
 import requests
 import requests_oauthlib
@@ -59,67 +58,6 @@ def user_permissions(user, facebook=None, token=None):
     res_data = res.get('data', [{}])
     data.update({ea.get('permission', ''): ea.get('status', '') for ea in res_data})
     return data
-
-
-def process_hook(req):
-    """ We have a confirmed authoritative update on subscribed data of a Story Post. """
-    # req = {'object': 'page', 'entry': [{'id': <ig_id>, 'time': 0, 'changes': [{'field': 'name', 'value': 'newnam'}]}]}
-    # pprint(req)
-    hook_data, data_count = defaultdict(list), 0
-    for ea in req.get('entry', [{}]):
-        for rec in ea.get('changes', [{}]):
-            # obj_type = req.get('object', '')  # likely: page, instagram, user, ...
-            val = rec.get('value', {})
-            if not isinstance(val, dict):
-                val = {'value': val}
-            val.update({'ig_id': ea.get('id')})
-            hook_data[rec.get('field', '')].append(val)
-            data_count += 1
-    # app.logger.debug(f"====== process_hook - stories: {len(hook_data['story_insights'])} total: {data_count} ======")
-    # pprint(hook_data)
-    total, new, modified = 0, 0, 0
-    for story in hook_data['story_insights']:
-        story['media_type'] = 'STORY'
-        media_id = story.pop('media_id', None)  # Exists on found, or put back during get_basic_post (even if failed).
-        ig_id = story.pop('ig_id', None)
-        if media_id:
-            total += 1
-            model = Post.query.filter_by(media_id=media_id).first()  # Returns none if not in DB
-            if model:
-                # update
-                for k, v in story.items():
-                    setattr(model, k, v)
-                modified += 1
-            else:
-                # create, but we need extra data about this story Post.
-                if media_id == '17887498072083520':  # This the test data sent by FB console
-                    res = {'user_id': 190, 'media_id': media_id, 'media_type': 'STORY'}
-                    res['timestamp'] = "2020-04-23T18:10:00+0000"
-                else:
-                    user = User.query.filter_by(instagram_id=ig_id).first() if ig_id else None
-                    user = user or object()
-                    res = get_basic_post(media_id, user_id=getattr(user, 'id'), token=getattr(user, 'token'))
-                story.update(res)
-                model = Post(**story)
-                new += 1
-            db.session.add(model)
-    message = ', '.join([f"{key}: {len(value)}" for key, value in hook_data.items()])
-    message += ' \n'
-    if modified + new > 0:
-        message += f"Updating {modified} and creating {new} Story Posts; Recording data for {total} Story Posts. "
-        try:
-            db.session.commit()
-            response_code = 200
-            message += "Database updated. "
-        except Exception as e:
-            response_code = 401
-            message += "Unable to to commit story hook updates to database. "
-            app.logger.info(e)
-            db.session.rollback()
-    else:
-        message += "No needed record updates. "
-        response_code = 200
-    return message, response_code
 
 
 def capture_media(post_or_posts, get_story_only):
@@ -373,12 +311,12 @@ def get_posts(id_or_users, ig_id=None, facebook=None):
     return saved
 
 
-def get_fb_page_for_user(user, facebook=None, token=None):
+def get_fb_page_for_user(user, ignore_current=False, facebook=None, token=None):
     """ For a user with a known Instagram account, we can determine the related Facebook page. """
     if not isinstance(user, User):
         raise Exception(f"get_fb_page_for_user requires a User model instance as the first parameter. ")
     page = dict(zip(['id', 'token'], [getattr(user, 'page_id', None), getattr(user, 'page_token', None)]))
-    if not page.get('id') or not page.get('token'):
+    if ignore_current or not page.get('id') or not page.get('token'):
         ig_id = int(getattr(user, 'instagram_id', 0))
         fb_id = getattr(user, 'facebook_id', 0)
         if not ig_id or not fb_id:
@@ -392,14 +330,13 @@ def get_fb_page_for_user(user, facebook=None, token=None):
                 app.logger.error(message)
                 return None
         url = f"https://graph.facebook.com/{fb_id}"
-        app.logger.debug(f"========== get_fb_page_for_user ==========")
+        app.logger.info(f"========== get_fb_page_for_user ==========")
         params = {'fields': 'accounts'}
         if not facebook:
             params['access_token'] = token
         # TODO: Test facebook.post will work as written below.
         res = facebook.post(url, params=params).json() if facebook else requests.post(url, params=params).json()
-        # app.logger.debug('---------------------------------------')
-        # pprint(res)
+        pprint(res)
         accounts = res.pop('accounts', None)
         ig_list = find_instagram_id(accounts, facebook=facebook, token=token)
         matching_ig = [ig_info for ig_info in ig_list if int(ig_info.get('id', 0)) == ig_id]
@@ -430,8 +367,8 @@ def install_app_on_user_for_story_updates(user_or_id, page=None, facebook=None, 
     params['subscribed_fields'] = 'name'
     res = facebook.post(url, params=params).json() if facebook else requests.post(url, params=params).json()
     # TODO: See if facebook with params above works.
-    # app.logger.debug('----------------------------------------------------------------')
-    # pprint(res)
+    app.logger.info('----------------------------------------------------------------')
+    pprint(res)
     return res.get('success', False)
 
 

@@ -1,12 +1,14 @@
 from flask import flash, redirect, render_template, url_for, request, current_app as app
-from .model_db import db, User, Post, Audience
 from flask_login import current_user, login_user
 from werkzeug.security import generate_password_hash
-from .model_db import db_read, db_create, db_update, db_delete
-from .helper_functions import mod_lookup
+from collections import defaultdict
 import hmac
 import hashlib
 import json
+from .api import get_basic_post
+from .model_db import db, User, Post, Audience
+from .model_db import db_read, db_create, db_update, db_delete
+from .helper_functions import mod_lookup
 
 
 def check_hash(signed, payload):
@@ -225,3 +227,63 @@ def report_update(reports, Model):
     app.logger.debug(message)
     status_code = 422 if had_error else 200
     return message, status_code
+
+
+def process_hook(req):
+    """ We have a confirmed authoritative update on subscribed data of a Story Post. """
+    # req: {'object': 'page', 'entry': [{'id': <ig_id>, 'time': 0, 'changes': [{'field': 'name', 'value': 'newnam'}]}]}
+    hook_data, data_count = defaultdict(list), 0
+    for ea in req.get('entry', [{}]):
+        for rec in ea.get('changes', [{}]):
+            # obj_type = req.get('object', '')  # likely: page, instagram, user, ...
+            val = rec.get('value', {})
+            if not isinstance(val, dict):
+                val = {'value': val}
+            val.update({'ig_id': ea.get('id')})
+            hook_data[rec.get('field', '')].append(val)
+            data_count += 1
+    # app.logger.debug(f"====== process_hook - stories: {len(hook_data['story_insights'])} total: {data_count} ======")
+    # pprint(hook_data)
+    total, new, modified = 0, 0, 0
+    for story in hook_data['story_insights']:
+        story['media_type'] = 'STORY'
+        media_id = story.pop('media_id', None)  # Exists on found, or put back during get_basic_post (even if failed).
+        ig_id = story.pop('ig_id', None)
+        if media_id:
+            total += 1
+            model = Post.query.filter_by(media_id=media_id).first()  # Returns none if not in DB
+            if model:
+                # update
+                for k, v in story.items():
+                    setattr(model, k, v)
+                modified += 1
+            else:
+                # create, but we need extra data about this story Post.
+                if media_id == '17887498072083520':  # This the test data sent by FB console
+                    res = {'user_id': 190, 'media_id': media_id, 'media_type': 'STORY'}
+                    res['timestamp'] = "2020-04-23T18:10:00+0000"
+                else:
+                    user = User.query.filter_by(instagram_id=ig_id).first() if ig_id else None
+                    user = user or object()
+                    res = get_basic_post(media_id, user_id=getattr(user, 'id'), token=getattr(user, 'token'))
+                story.update(res)
+                model = Post(**story)
+                new += 1
+            db.session.add(model)
+    message = ', '.join([f"{key}: {len(value)}" for key, value in hook_data.items()])
+    message += ' \n'
+    if modified + new > 0:
+        message += f"Updating {modified} and creating {new} Story Posts; Recording data for {total} Story Posts. "
+        try:
+            db.session.commit()
+            response_code = 200
+            message += "Database updated. "
+        except Exception as e:
+            response_code = 401
+            message += "Unable to to commit story hook updates to database. "
+            app.logger.info(e)
+            db.session.rollback()
+    else:
+        message += "No needed record updates. "
+        response_code = 200
+    return message, response_code
