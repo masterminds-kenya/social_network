@@ -43,8 +43,8 @@ def update_campaign(campaign, request):
         data = {int(key.replace('assign_', '')): int(val) for (key, val) in form_dict.items() if val != '0'}
     except ValueError as e:
         app.logger.error("Error in update_campaign, ValueError translating form to data dict. ")
-        app.logger.exception(e)
-        # TODO: handle error
+        app.logger.error(e)
+        # TODO: ?handle error somehow?
         return False
     modified = Post.query.filter(Post.id.in_(data.keys())).all()
     for post in modified:
@@ -200,7 +200,7 @@ def report_update(reports, Model):
     """ Input is a list of dictionaries, with each being the update values to apply to the 'mod' Model. """
     message, results, had_error = '', [], False
     app.logger.debug("===================== report update =====================")
-    # TODO: Confirm the the source of this update.
+    # TODO: CRITICAL before pushed to production. Confirm the the source of this update.
     if Model != Post:
         message += "The Report process is not available for that data. "
         app.logger.debug(message)
