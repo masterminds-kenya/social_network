@@ -65,8 +65,6 @@ def encrypt_token():
     """ Takes value in token field and saves in encrypt field, triggering the encryption process.
         Function is only for use by dev admin.
     """
-    from .model_db import db, User
-
     message, count = '', 0
     # q = User.query.filter(User.token is not None)
     users = User.query.all()
@@ -93,7 +91,7 @@ def encrypt_token():
 
 def fix_defaults():
     """ Temporary route and function for developer to test components. """
-    from .model_db import Post, OnlineFollowers, Insight, db
+    from .model_db import Post, OnlineFollowers, Insight
     p_keys = [*Post.METRICS['STORY'].union(Post.METRICS['VIDEO'])]  # All the integer Metrics requested from API.
     # not_needed_keys = ['comments_count', 'like_count', ]
     update_count = 0
@@ -126,16 +124,30 @@ def fix_defaults():
     return success
 
 
-def get_page_for_all_users():
+def get_page_for_all_users(overwrite=False, **kwargs):
     """ We need the page number and token in order to setup webhooks for story insights.
         The subscribing to a user's page will be handled elsewhere, and
         triggered by this function when it sets and commits the user.page_token value.
     """
     updates = {}
-    users = User.query.filter(User.instagram_id.isnot(None)).all()
+    q = User.query.filter(User.instagram_id.isnot(None))
+    for key, val in kwargs.items():
+        if isinstance(val, (list, tuple)):
+            q = q.filter(getattr(User, key).in_(val))
+        elif isinstance(val, bool):
+            q = q.filter(getattr(User, key).is_(val))
+        elif isinstance(val, type(None)):
+            q = q.filter(getattr(User, key).isnot(None))
+        elif isinstance(val, (str, int, float)):
+            q = q.filter(getattr(User, key) == val)
+        else:
+            app.logger.error(f"Unsure how to filter for type {type(val)} for key: value of {key}: {val} ")
+    users = q.all()
+    app.logger.debug('------------ get page for all users ---------------')
+    app.logger.debug(users)
     for user in users:
         page = get_fb_page_for_user(user)
-        if page and page.get('new_page'):
+        if page and (overwrite or page.get('new_page')):
             user.page_id = page.get('id')
             user.page_token = page.get('token')
             db.session.add(user)
@@ -157,11 +169,12 @@ def subscribe_all_pages():
     """ DEPRECATED. Used by admin to subscribe to all current platform user's facebook page. """
     from pprint import pprint
 
-    app.logger.debug(f"========== subscribe_all_pages ==========")
-    all_response = get_page_for_all_users()
+    app.logger.info(f"========== subscribe_all_pages ==========")
+    column_args = {'story_subscribed': False}
+    all_response = get_page_for_all_users(overwrite=True, **column_args)
     # app.logger.debug(f"Installing was successful: {page} ! ")
     pprint(all_response)
-    app.logger.debug('-------------------------------------------------------------')
+    app.logger.info('-------------------------------------------------------------')
     return admin_view(data=all_response)
 
 

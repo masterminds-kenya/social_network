@@ -7,14 +7,13 @@ from sqlalchemy.dialects.mysql import BIGINT
 from sqlalchemy import or_, desc
 from sqlalchemy_utils import EncryptedType  # encrypt
 from sqlalchemy_utils.types.encrypted.encrypted_type import AesEngine  # encrypt
-from cryptography.fernet import Fernet  # encrypt
+from cryptography.fernet import Fernet  # noqa: F401  # TODO: Is this needed here? # encrypt
 from flask_migrate import Migrate
 from datetime import datetime as dt
 from dateutil import parser
 import re
 from statistics import mean, median, stdev
 import json
-# from pprint import pprint  # only for debugging
 # from .db_introspect_functions import check_stuff
 
 db = SQLAlchemy()
@@ -488,8 +487,9 @@ class Campaign(db.Model):
         related[deleted_user] = []
         if view == 'management':
             for user in self.users:
-                # related[user] = [post for post in user.posts if post not in self.processed]
-                related[user] = [post for post in user.posts if self not in post.processed]
+                # related[user] = [post for post in user.posts if self not in post.processed]  # seems slower than next
+                related[user] = [post for post in user.posts if post not in self.processed]
+                # TODO: Need a faster process. Would refactor to return a query be better?
         elif view == 'rejected':
             for post in self.processed:
                 # if post not in self.posts:

@@ -29,7 +29,7 @@ def filtered(start, under=False, dunder=True, sa=True, caps=True, special=True):
 def check_stuff(row, related, safe):
     """ Determining which properties and methods are tracked through various techniques. """
     # We expect that all "properties" should be in the Mapper.attrs, or perhaps the Mapper.all_orm_descriptors
-    app.logger.debug(f"========== Called from_sql on {row.__class__.__name__} id: {row.id} | related: {related} | safe: {safe} ==========")
+    app.logger.debug(f"==== Check stuff {row.__class__.__name__} id: {row.id} | related: {related} | safe: {safe} ====")
     # both __dict__ and vars on row.__mapper__.all_orm_descriptors are empty.
     # mapper_less_dunder = [ea for ea in dir_mapper if not ea.startswith('__')]
     # orm_less_dunder = [ea for ea in dir_orm if not ea.startswith('__')]

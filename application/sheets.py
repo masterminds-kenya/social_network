@@ -236,8 +236,7 @@ def compute_A1(arr2d, start='A1', sheet='Sheet1'):
         if mod == 0:
             num, mod = num - 1, max_col
         final_col = chr(mod + col_offset) + final_col
-    # final_col is the correct string, even if in the AA to ZZ range or beyond
-    # TODO: Find out if the max rows is 4011 and max cols is 26. Manage if we exceed the max.
+    # maybe: final_col is the correct string, even if in the AA to ZZ range or beyond
     final_row = row_count + row
     result = f"{sheet}!{start}:{final_col}{final_row}"
     app.logger.debug(f"A1 format is {result} for {row_count} rows & {col_count} columns. ")

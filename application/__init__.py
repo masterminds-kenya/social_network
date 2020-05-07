@@ -6,13 +6,13 @@ from flask_login import LoginManager
 def create_app(config, debug=False, testing=False, config_overrides=None):
     app = Flask(__name__)
     app.config.from_object(config)
-    app.debug = config.DEBUG or debug
-    app.testing = testing
+    app.debug = getattr(config, 'DEBUG') or debug
+    app.testing = getattr(config, 'TESTING', None) or testing
     if config_overrides:
         app.config.update(config_overrides)
     # Configure logging depth: ?NOTSET?, DEBUG, INFO, WARNING, ERROR, CRITICAL
     if not app.testing:
-        log_level = logging.DEBUG if app.debug else logging.WARNING
+        log_level = logging.DEBUG if app.debug else logging.INFO
         logging.basicConfig(level=log_level)
     # Configure flask_login
     login_manager = LoginManager()
@@ -24,14 +24,13 @@ def create_app(config, debug=False, testing=False, config_overrides=None):
     def load_user(user_id):
         return model_db.User.query.get(int(user_id))
 
-    # Setup the data model.
+    # Setup the data model. Import routes and events.
     with app.app_context():
         from . import model_db
         from . import routes  # noqa: F401
         model_db.init_app(app)
         from . import events  # noqa: F401
 
-    # TODO: For production, the output of the error should be disabled.
     @app.errorhandler(500)
     def server_error(e):
         app.logger.error('================== Error Handler =====================')
