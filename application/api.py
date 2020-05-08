@@ -28,9 +28,11 @@ def generate_app_access_token():
     params = {'client_id': FB_CLIENT_ID, 'client_secret': FB_CLIENT_SECRET}
     params['grant_type'] = 'client_credentials'
     app.logger.info('----------- generate_app_access_token ----------------')
-    token = requests.get(FB_AUTHORIZATION_BASE_URL, params=params)
-    app.logger.info(token)
-    app.logger.info('------------------------------------------------------')
+    res = requests.get(FB_TOKEN_URL, params=params).json()
+    if 'error' in res:
+        app.logger.debug('Got an error in generate_app_access_token')
+        app.logger.error(res.get('error', 'Empty Error'))
+    token = res.get('access_token', '')
     return token
 
 
@@ -45,14 +47,15 @@ def inspect_access_token(input_token, fb_id=None, ig_id=None, app_access_token=N
         app.logger.error(f"Error: {err} ")
         return err
     data = res.get('data', {})
-    app_match = True if data.get('app_id', 0) == int(FB_CLIENT_ID) else False
+    app_match = True if int(data.get('app_id', 0)) == int(FB_CLIENT_ID) else False
     scope_missing = set(FB_SCOPE)
     for ea in data.get('scopes', []):
-        scope_missing.remove(ea)
-    message = f"Is a Token for our App: {app_match} "
-    message += 'Matches FB ID ' if data.get('user_id', '') == fb_id else ''
-    message += 'Matches IG ID ' if data.get('user_id', '') == ig_id else ''
-    message += f"Missing Scope: {scope_missing} "
+        scope_missing.discard(ea)
+    message = f"Is a Token for our App: {app_match} and "
+    message += 'IS VALID ' if data.get('is_valid') else 'is NOT valid '
+    message += 'Matches FB ID ' if str(data.get('user_id', '')) == str(fb_id) else ''
+    message += 'Matches IG ID ' if str(data.get('user_id', '')) == str(ig_id) else ''
+    message += f"Missing Scope: {scope_missing} " if scope_missing else ''
     app.logger.info("=============== inspect_access_token ==========================")
     app.logger.info(message)
     pprint(data)
