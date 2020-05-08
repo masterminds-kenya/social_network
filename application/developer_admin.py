@@ -146,8 +146,8 @@ def get_page_for_all_users(overwrite=False, **kwargs):
         else:
             app.logger.error(f"Unsure how to filter for type {type(val)} for key: value of {key}: {val} ")
     users = q.all()
-    app.logger.debug('------------ get page for all users ---------------')
-    app.logger.debug(users)
+    app.logger.info('------------ get page for all users ---------------')
+    app.logger.info(users)
     for user in users:
         page = get_fb_page_for_user(user)
         if page and (overwrite or page.get('new_page')):
@@ -175,7 +175,6 @@ def subscribe_all_pages():
     app.logger.info(f"========== subscribe_all_pages ==========")
     column_args = {'story_subscribed': 'IS NOT TRUE'}
     all_response = get_page_for_all_users(overwrite=True, **column_args)
-    # app.logger.debug(f"Installing was successful: {page} ! ")
     pprint(all_response)
     app.logger.info('-------------------------------------------------------------')
     return admin_view(data=all_response)

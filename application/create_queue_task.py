@@ -41,15 +41,15 @@ def _get_capture_queue(queue_name):
         q = client.create_queue(parent, queue_settings)
     except AlreadyExists as exists:
         # TODO: return the existing queue.
-        app.logger.debug(f"Already Exists on get/create/update {queue_name} ")
+        app.logger.info(f"Already Exists on get/create/update {queue_name} ")
         app.logger.info(exists)
         q = None
     except ValueError as error:
-        app.logger.debug(f"Value Error on get/create/update the {queue_name} ")
+        app.logger.info(f"Value Error on get/create/update the {queue_name} ")
         app.logger.error(error)
         q = None
     except GoogleAPICallError as error:
-        app.logger.debug(f"Google API Call Error on get/create/update {queue_name} ")
+        app.logger.info(f"Google API Call Error on get/create/update {queue_name} ")
         app.logger.error(error)
         q = None
     return queue_path if q else None
@@ -88,18 +88,18 @@ def add_to_capture(post, queue_name='test-on-db-b', task_name=None, in_seconds=9
     try:
         response = client.create_task(parent, task)
     except ValueError as e:
-        app.logger.debug(f"Invalid parameters for creating a task: \n {task}")
+        app.logger.info(f"Invalid parameters for creating a task: \n {task}")
         app.logger.error(e)
         response = None
     except RetryError as e:
-        app.logger.debug(f"Retry Attempts exhausted for a task: \n {task}")
+        app.logger.info(f"Retry Attempts exhausted for a task: \n {task}")
         app.logger.error(e)
         response = None
     except GoogleAPICallError as e:
-        app.logger.debug(f"Google API Call Error on creating a task: \n {task}")
+        app.logger.info(f"Google API Call Error on creating a task: \n {task}")
         app.logger.error(e)
         response = None
     if response is not None:
-        app.logger.debug("Created task!")
-        app.logger.debug(response)
+        app.logger.info("Created task!")
+        app.logger.info(response)
     return response  # .name if response else None

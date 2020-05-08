@@ -27,9 +27,10 @@ def generate_app_access_token():
     """ When we need an App access token instead of the app client secret. """
     params = {'client_id': FB_CLIENT_ID, 'client_secret': FB_CLIENT_SECRET}
     params['grant_type'] = 'client_credentials'
-    app.logger.debug('----------- generate_app_access_token ----------------')
+    app.logger.info('----------- generate_app_access_token ----------------')
     token = requests.get(FB_AUTHORIZATION_BASE_URL, params=params)
-    app.logger.debug(token)
+    app.logger.info(token)
+    app.logger.info('------------------------------------------------------')
     return token
 
 
@@ -52,13 +53,14 @@ def inspect_access_token(input_token, fb_id=None, ig_id=None, app_access_token=N
     message += 'Matches FB ID ' if data.get('user_id', '') == fb_id else ''
     message += 'Matches IG ID ' if data.get('user_id', '') == ig_id else ''
     message += f"Missing Scope: {scope_missing} "
-    app.logger.debug(message)
+    app.logger.info("=============== inspect_access_token ==========================")
+    app.logger.info(message)
     pprint(data)
     return data
 
 
 def user_permissions(user, facebook=None, token=None):
-    """ Used by admin to check on what permissions a given user has granted to the platform application. """
+    """ Used by staff to check on what permissions a given user has granted to the platform application. """
     if isinstance(user, (str, int)):
         user = User.query.get(user)
     if not isinstance(user, User):
@@ -92,9 +94,9 @@ def user_permissions(user, facebook=None, token=None):
         return {}
     res_data = res.get('data', [{}])
     data.update({ea.get('permission', ''): ea.get('status', '') for ea in res_data})
-    inspect = inspect_access_token(token, fb_id=user.facebook_id, ig_id=user.instagram_id)
+    inspect = inspect_access_token(token, fb_id=getattr(user, 'facebook_id'), ig_id=getattr(user, 'instagram_id'))
     if inspect:
-        app.logger.debug('Got an inspect response. ')
+        app.logger.info('Got an inspect response. ')
     return data
 
 
@@ -308,7 +310,7 @@ def _get_posts_data_of_user(user_id, ig_id=None, facebook=None):
         app.logger.error('Error: ', response.get('error', 'NA'))
         return []
     media.extend(stories)
-    app.logger.debug(f"------ Looking up a total of {len(media)} Media Posts, including {len(stories)} Stories ------")
+    app.logger.info(f"------ Looking up a total of {len(media)} Media Posts, including {len(stories)} Stories ------")
     post_metrics = {key: ','.join(val) for (key, val) in Post.METRICS.items()}
     results = []
     for post in media:
@@ -328,7 +330,7 @@ def _get_posts_data_of_user(user_id, ig_id=None, facebook=None):
                 temp = {metric_clean(key): val for key, val in temp.items()}
             res.update(temp)
         else:
-            app.logger.debug(f"media {media_id} had NO INSIGHTS for type {media_type} --- {res_insight}. ")
+            app.logger.info(f"media {media_id} had NO INSIGHTS for type {media_type} --- {res_insight}. ")
         results.append(res)
     return results
 
@@ -394,7 +396,7 @@ def install_app_on_user_for_story_updates(user_or_id, page=None, facebook=None, 
         user = User.query.get(user_id)
     else:
         raise ValueError('Input must be either a User model or an id for a User. ')
-    app.logger.debug(f"========== install_app_on_user_for_story_updates: {user} ==========")
+    app.logger.info(f"========== install_app_on_user_for_story_updates: {user} ==========")
     if not isinstance(page, dict) or not page.get('id') or not page.get('token'):
         page = get_fb_page_for_user(user, facebook=facebook, token=token)
         if not page:
@@ -439,11 +441,11 @@ def find_instagram_id(accounts, facebook=None, token=None):
         raise Exception(message)
     if not accounts or 'data' not in accounts:
         message = f"No pages found from accounts data: {accounts}. "
-        app.logger.debug(message)
+        app.logger.info(message)
         return []
     ig_list = []
     pages = [{'id': page.get('id'), 'token': page.get('access_token')} for page in accounts.get('data')]
-    app.logger.debug(f"============ Pages count: {len(pages)} ============")
+    app.logger.info(f"============ Pages count: {len(pages)} ============")
     for page in pages:
         url = f"https://graph.facebook.com/v4.0/{page['id']}?fields=instagram_business_account"
         req_token, err = page['token'], 10
@@ -453,10 +455,10 @@ def find_instagram_id(accounts, facebook=None, token=None):
                 if err == 10:
                     err = 100
                     req_token = token
-                    app.logger.debug("Will try app token for user. ")
+                    app.logger.info("Will try app token for user. ")
                 elif err == 100:
                     err = 200
-                    app.logger.debug("Will try a generated App Token. ")
+                    app.logger.info("Will try a generated App Token. ")
                     token = generate_app_access_token()
                 else:
                     err = 1

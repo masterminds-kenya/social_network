@@ -126,10 +126,10 @@ def test_method():
     # from .sheets import get_vals, get_insight_report
     from pprint import pprint
 
-    app.logger.debug(f"========== Test Method for admin:  ==========")
+    app.logger.info(f"========== Test Method for admin:  ==========")
     all_response = {'key1': 1, 'key2': 'two', 'key3': '3rd', 'meaningful': False}
     pprint(all_response)
-    app.logger.debug('-------------------------------------------------------------')
+    app.logger.info('-------------------------------------------------------------')
     return admin(data=all_response)
 
 
@@ -142,7 +142,7 @@ def capture(id):
     post = Post.query.get(id)
     if not post:
         message = f"Post not found. "
-        app.logger.debug(message)
+        app.logger.info(message)
         flash(message)
         return redirect(url_for('admin'))
     value = post.media_type
@@ -498,7 +498,7 @@ def capture_report():
     """ After the capture work is processed, the results are sent here to update the models. """
     from pprint import pprint
 
-    app.logger.debug("======================== capture report route =============================")
+    app.logger.info("======================== capture report route =============================")
     message = ''
     # pprint(request.headers)
     # TODO: Check request.headers or source info for signs this came from a task queue, and reject if not a valid source
@@ -506,13 +506,13 @@ def capture_report():
     data = json.loads(data.decode())
     # # data = {'success': Bool, 'message': '', 'source': {}, 'error': <answer remains>, 'changes':[change_vals, ...]}
     # # data['changes'] is a list of dict to be used as update content.
-    app.logger.debug('------------------  Source  -------------------------------------')
+    app.logger.info('------------------  Source  -------------------------------------')
     pprint(data.get('source'))
-    app.logger.debug('------------------ Message  -------------------------------------')
+    app.logger.info('------------------ Message  -------------------------------------')
     message += data.get('message')
-    app.logger.debug(message)
+    app.logger.info(message)
     if data.get('success', False) is False:
-        app.logger.debug('------------------ Answer Remains -------------------------------------')
+        app.logger.info('------------------ Answer Remains -------------------------------------')
         pprint(data.get('error'))
         return message, 500
     mod = data.get('source', {}).get('object_type', '')

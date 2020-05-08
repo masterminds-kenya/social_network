@@ -199,11 +199,11 @@ def add_edit(mod, id=None):
 def report_update(reports, Model):
     """ Input is a list of dictionaries, with each being the update values to apply to the 'mod' Model. """
     message, results, had_error = '', [], False
-    app.logger.debug("===================== report update =====================")
+    app.logger.info("===================== report update =====================")
     # TODO: CRITICAL before pushed to production. Confirm the the source of this update.
     if Model != Post:
         message += "The Report process is not available for that data. "
-        app.logger.debug(message)
+        app.logger.info(message)
         return message, 500
     for report in reports:
         media_id = report.get('media_id', '')
@@ -224,7 +224,7 @@ def report_update(reports, Model):
         db.session.commit()
         message += ', '.join([str(model) for model in results])
         message += "\n Updates committed. "
-    app.logger.debug(message)
+    app.logger.info(message)
     status_code = 422 if had_error else 200
     return message, status_code
 
