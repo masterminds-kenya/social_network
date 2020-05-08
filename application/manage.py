@@ -199,11 +199,11 @@ def add_edit(mod, id=None):
 def report_update(reports, Model):
     """ Input is a list of dictionaries, with each being the update values to apply to the 'mod' Model. """
     message, results, had_error = '', [], False
-    app.logger.debug("===================== report update =====================")
+    app.logger.info("===================== report update =====================")
     # TODO: CRITICAL before pushed to production. Confirm the the source of this update.
     if Model != Post:
         message += "The Report process is not available for that data. "
-        app.logger.debug(message)
+        app.logger.info(message)
         return message, 500
     for report in reports:
         media_id = report.get('media_id', '')
@@ -224,7 +224,7 @@ def report_update(reports, Model):
         db.session.commit()
         message += ', '.join([str(model) for model in results])
         message += "\n Updates committed. "
-    app.logger.debug(message)
+    app.logger.info(message)
     status_code = 422 if had_error else 200
     return message, status_code
 
@@ -244,7 +244,7 @@ def process_hook(req):
             data_count += 1
     # app.logger.debug(f"====== process_hook - stories: {len(hook_data['story_insights'])} total: {data_count} ======")
     # pprint(hook_data)
-    total, new, modified = 0, 0, 0
+    total, new, modified, message = 0, 0, 0, ''
     for story in hook_data['story_insights']:
         story['media_type'] = 'STORY'
         media_id = story.pop('media_id', None)  # Exists on found, or put back during get_basic_post (even if failed).
@@ -253,24 +253,28 @@ def process_hook(req):
             total += 1
             model = Post.query.filter_by(media_id=media_id).first()  # Returns none if not in DB
             if model:
+                message += f"STORY post UPDATE for user: {model.user} \n"
                 # update
                 for k, v in story.items():
                     setattr(model, k, v)
                 modified += 1
             else:
                 # create, but we need extra data about this story Post.
-                if media_id == '17887498072083520':  # This the test data sent by FB console
-                    res = {'user_id': 190, 'media_id': media_id, 'media_type': 'STORY'}
-                    res['timestamp'] = "2020-04-23T18:10:00+0000"
-                else:
-                    user = User.query.filter_by(instagram_id=ig_id).first() if ig_id else None
-                    user = user or object()
-                    res = get_basic_post(media_id, user_id=getattr(user, 'id'), token=getattr(user, 'token'))
+                # if media_id == '17887498072083520':  # This the test data sent by FB console
+                #     res = {'user_id': 190, 'media_id': media_id, 'media_type': 'STORY'}
+                #     res['timestamp'] = "2020-04-23T18:10:00+0000"
+                #     message += "Test update, added to user # 190 "
+                # else:
+                user = User.query.filter_by(instagram_id=ig_id).first() if ig_id else None
+                user = user or object()
+                user_id = getattr(user, 'id', None) or "No User"
+                message += f"STORY post CREATE for user: {user_id} \n"
+                res = get_basic_post(media_id, user_id=getattr(user, 'id'), token=getattr(user, 'token'))
                 story.update(res)
                 model = Post(**story)
                 new += 1
             db.session.add(model)
-    message = ', '.join([f"{key}: {len(value)}" for key, value in hook_data.items()])
+    message += ', '.join([f"{key}: {len(value)}" for key, value in hook_data.items()])
     message += ' \n'
     if modified + new > 0:
         message += f"Updating {modified} and creating {new} Story Posts; Recording data for {total} Story Posts. "

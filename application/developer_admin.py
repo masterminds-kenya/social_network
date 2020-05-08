@@ -17,7 +17,7 @@ def admin_view(data=None, files=None):
 
 
 def load():
-    """ Deprecated function.
+    """ DEPRECATED
         Function is only for use by dev admin.
         Takes users saved in text file and puts that data in the database.
     """
@@ -39,7 +39,7 @@ def load():
 
 
 def save(mod, id, Model):
-    """ Deprecated Function
+    """ DEPRECATED
         Function is only for use by dev admin.
         Takes users in the database and saves them in a text file to later be managed by the load function.
     """
@@ -62,7 +62,8 @@ def save(mod, id, Model):
 
 
 def encrypt_token():
-    """ Takes value in token field and saves in encrypt field, triggering the encryption process.
+    """ DEPRECATED
+        Takes value in token field and saves in encrypt field, triggering the encryption process.
         Function is only for use by dev admin.
     """
     message, count = '', 0
@@ -90,7 +91,7 @@ def encrypt_token():
 
 
 def fix_defaults():
-    """ Temporary route and function for developer to test components. """
+    """ DEPRECATED. Temporary route and function for developer to test components. """
     from .model_db import Post, OnlineFollowers, Insight
     p_keys = [*Post.METRICS['STORY'].union(Post.METRICS['VIDEO'])]  # All the integer Metrics requested from API.
     # not_needed_keys = ['comments_count', 'like_count', ]
@@ -136,15 +137,17 @@ def get_page_for_all_users(overwrite=False, **kwargs):
             q = q.filter(getattr(User, key).in_(val))
         elif isinstance(val, bool):
             q = q.filter(getattr(User, key).is_(val))
-        elif isinstance(val, type(None)):
-            q = q.filter(getattr(User, key).isnot(None))
+        elif isinstance(val, type(None)) or val in ('IS NOT TRUE', 'IS NOT FALSE'):
+            if val is not None:
+                val = True if val == 'IS NOT TRUE' else False
+            q = q.filter(getattr(User, key).isnot(val))
         elif isinstance(val, (str, int, float)):
             q = q.filter(getattr(User, key) == val)
         else:
             app.logger.error(f"Unsure how to filter for type {type(val)} for key: value of {key}: {val} ")
     users = q.all()
-    app.logger.debug('------------ get page for all users ---------------')
-    app.logger.debug(users)
+    app.logger.info('------------ get page for all users ---------------')
+    app.logger.info(users)
     for user in users:
         page = get_fb_page_for_user(user)
         if page and (overwrite or page.get('new_page')):
@@ -166,13 +169,12 @@ def subscribe_page(mod, id):
 @app.route('/all_users/subscribe')
 @staff_required()
 def subscribe_all_pages():
-    """ DEPRECATED. Used by admin to subscribe to all current platform user's facebook page. """
+    """ Used by admin to subscribe to all current platform user's facebook page, if they are not already subscribed. """
     from pprint import pprint
 
     app.logger.info(f"========== subscribe_all_pages ==========")
-    column_args = {'story_subscribed': False}
+    column_args = {'story_subscribed': 'IS NOT TRUE'}
     all_response = get_page_for_all_users(overwrite=True, **column_args)
-    # app.logger.debug(f"Installing was successful: {page} ! ")
     pprint(all_response)
     app.logger.info('-------------------------------------------------------------')
     return admin_view(data=all_response)

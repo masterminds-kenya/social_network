@@ -8,10 +8,10 @@ from .create_queue_task import add_to_capture
 @event.listens_for(User.page_token, 'set', retval=True)
 def handle_user_page(user, value, oldvalue, initiator):
     """ Triggered when a value is being set for User.page_token """
-    app.logger.debug("================ The page_token listener function is running ===============")
+    app.logger.info("================ The page_token listener function is running ===============")
     if value in (None, ''):
         user.story_subscribed = False
-        app.logger.debug(f"Empty page_token for {user} user. Set story_subscribed to False. ")
+        app.logger.info(f"Empty page_token for {user} user. Set story_subscribed to False. ")
         return None
     if 'subscribe_page' in db.session.info:
         db.session.info['subscribe_page'].add(user)
@@ -42,26 +42,26 @@ def enqueue_capture(model, value, oldvalue, initiator):
 
     if is_manual or is_new_story:
         capture_type = 'story_capture' if value == 'STORY' else 'post_capture'
-        app.logger.debug(f"========== Adding a {capture_type} with enqueue_capture function. {message} ==========")
+        app.logger.info(f"========== Adding a {capture_type} with enqueue_capture function. {message} ==========")
         message += f"New {value} post. " if str(oldvalue) == no_val else f"media_type {oldvalue} to {value}. "
         # message += f"When session is committed, will send to {capture_type} Queue. "
-        message += f"Normally when session is committed, would send to {capture_type} Queue, except feature not active. "
+        message += f"Normally when session is committed, would send to {capture_type} Queue, BUT feature NOT ACTIVATE. "
         if capture_type in db.session.info:
             db.session.info[capture_type].add(model)
         else:
             db.session.info[capture_type] = {model}
     elif value == 'STORY':
-        app.logger.debug(f"========== Running enqueue_capture function. {message} ==========")
+        app.logger.info(f"========== Running enqueue_capture function. {message} ==========")
         message += f"Did not add {model} because it has already been captured or queued for capture. "
-    app.logger.debug(message)
-    app.logger.debug('---------------------------------------------------')
+    app.logger.info(message)
+    app.logger.info('---------------------------------------------------')
     return value
 
 
 @event.listens_for(db.session, 'before_flush')
 def process_session_before_flush(session, flush_context, instances):
     """ During creation or modification of Post models, some may be marked for adding to a Capture queue. """
-    app.logger.debug("================ Process Session Before Flush ===============")
+    app.logger.info("================ Process Session Before Flush ===============")
     stories_to_capture = session.info.get('story_capture', [])
     other_posts_to_capture = session.info.get('post_capture', [])
     subscribe_pages = session.info.get('subscribe_page', [])
@@ -91,6 +91,6 @@ def process_session_before_flush(session, flush_context, instances):
             session.info['subscribe_page'].discard(user)
     # TODO: Handle deletion of Posts not assigned to a Campaign when deleting a User.
     # session.deleted  # The set of all instances marked as 'deleted' within this Session
-    app.logger.debug(message)
-    app.logger.debug(session.info)
-    app.logger.debug('---------------------------------------------------')
+    app.logger.info(message)
+    app.logger.info(session.info)
+    app.logger.info('---------------------------------------------------')
