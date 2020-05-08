@@ -1,8 +1,8 @@
-from flask import current_app as app
+from flask import session, current_app as app
 from flask_login import login_user
 from datetime import timedelta, datetime as dt
 import requests
-import requests_oauthlib
+from requests_oauthlib import OAuth2Session
 from requests_oauthlib.compliance_fixes import facebook_compliance_fix
 from .model_db import db_create, db_read, db_create_or_update_many, db
 from .model_db import metric_clean, Insight, Audience, Post, OnlineFollowers, User  # , Campaign
@@ -14,12 +14,47 @@ FB_CLIENT_ID = app.config.get('FB_CLIENT_ID')
 FB_CLIENT_SECRET = app.config.get('FB_CLIENT_SECRET')
 FB_AUTHORIZATION_BASE_URL = "https://www.facebook.com/dialog/oauth"
 FB_TOKEN_URL = "https://graph.facebook.com/oauth/access_token"
+FB_INSPECT_TOKEN_URL = 'https://graph.facebook.com/debug_token'
 FB_SCOPE = [
     'pages_show_list',
     'instagram_basic',
     'instagram_manage_insights',
     'manage_pages'
         ]
+
+
+def generate_app_access_token():
+    """ When we need an App access token instead of the app client secret. """
+    params = {'client_id': FB_CLIENT_ID, 'client_secret': FB_CLIENT_SECRET}
+    params['grant_type'] = 'client_credentials'
+    app.logger.debug('----------- generate_app_access_token ----------------')
+    token = requests.get(FB_AUTHORIZATION_BASE_URL, params=params)
+    app.logger.debug(token)
+    return token
+
+
+def inspect_access_token(input_token, fb_id=None, ig_id=None, app_access_token=None):
+    """ Confirm the access token is valid and belongs to this user. """
+    app_access_token = app_access_token or generate_app_access_token()
+    params = {'input_token': input_token, 'access_token': app_access_token}
+    res = requests.get(FB_INSPECT_TOKEN_URL, params=params).json()
+    if 'error' in res:
+        app.logger.info('--------------------- Error in inspect_access_token response ---------------------')
+        err = res.get('error', 'Empty Error')
+        app.logger.error(f"Error: {err} ")
+        return err
+    data = res.get('data', {})
+    app_match = True if data.get('app_id', 0) == int(FB_CLIENT_ID) else False
+    scope_missing = set(FB_SCOPE)
+    for ea in data.get('scopes', []):
+        scope_missing.remove(ea)
+    message = f"Is a Token for our App: {app_match} "
+    message += 'Matches FB ID ' if data.get('user_id', '') == fb_id else ''
+    message += 'Matches IG ID ' if data.get('user_id', '') == ig_id else ''
+    message += f"Missing Scope: {scope_missing} "
+    app.logger.debug(message)
+    pprint(data)
+    return data
 
 
 def user_permissions(user, facebook=None, token=None):
@@ -57,6 +92,9 @@ def user_permissions(user, facebook=None, token=None):
         return {}
     res_data = res.get('data', [{}])
     data.update({ea.get('permission', ''): ea.get('status', '') for ea in res_data})
+    inspect = inspect_access_token(token, fb_id=user.facebook_id, ig_id=user.instagram_id)
+    if inspect:
+        app.logger.debug('Got an inspect response. ')
     return data
 
 
@@ -330,7 +368,7 @@ def get_fb_page_for_user(user, ignore_current=False, facebook=None, token=None):
                 app.logger.error(message)
                 return None
         url = f"https://graph.facebook.com/{fb_id}"
-        app.logger.info(f"========== get_fb_page_for_user ==========")
+        app.logger.info(f"========== get_fb_page_for_user {user} ==========")
         params = {'fields': 'accounts'}
         if not facebook:
             params['access_token'] = token
@@ -356,7 +394,7 @@ def install_app_on_user_for_story_updates(user_or_id, page=None, facebook=None, 
         user = User.query.get(user_id)
     else:
         raise ValueError('Input must be either a User model or an id for a User. ')
-    app.logger.debug(f"========== install_app_on_user_for_story_updates ==========")
+    app.logger.debug(f"========== install_app_on_user_for_story_updates: {user} ==========")
     if not isinstance(page, dict) or not page.get('id') or not page.get('token'):
         page = get_fb_page_for_user(user, facebook=facebook, token=token)
         if not page:
@@ -408,32 +446,50 @@ def find_instagram_id(accounts, facebook=None, token=None):
     app.logger.debug(f"============ Pages count: {len(pages)} ============")
     for page in pages:
         url = f"https://graph.facebook.com/v4.0/{page['id']}?fields=instagram_business_account"
-        res = facebook.get(url).json() if facebook else requests.get(f"{url}&access_token={page['token']}").json()
-        if 'error' in res:
-            app.logger.error(f"Error on getting info from {page['id']} Page. ")
-            pprint(res)
+        req_token, err = page['token'], 10
+        while err > 1:
+            res = facebook.get(url).json() if facebook else requests.get(f"{url}&access_token={req_token}").json()
+            if 'error' in res and res['error'].get('code', 0) in (100, 190):
+                if err == 10:
+                    err = 100
+                    req_token = token
+                    app.logger.debug("Will try app token for user. ")
+                elif err == 100:
+                    err = 200
+                    app.logger.debug("Will try a generated App Token. ")
+                    token = generate_app_access_token()
+                else:
+                    err = 1
+            else:
+                err = 0
         ig_business = res.get('instagram_business_account', None)
         if ig_business:
             ig_info = get_ig_info(ig_business.get('id', None), facebook=facebook, token=token)
             ig_info['page_id'] = page['id']
             ig_info['page_token'] = page['token']
             ig_list.append(ig_info)
+        elif 'error' in res:
+            app.logger.error(f"Error on getting info from {page['id']} Page. ")
+            pprint(res)
+        else:
+            app.logger.info("No Appropriate Account on this page. ")
+            pprint(res)
     return ig_list
 
 
 def onboard_login(mod):
     """ Process the initiation of creating a new influencer or brand user with facebook authorization. """
     callback = URL + '/callback/' + mod
-    facebook = requests_oauthlib.OAuth2Session(FB_CLIENT_ID, redirect_uri=callback, scope=FB_SCOPE)
+    facebook = OAuth2Session(FB_CLIENT_ID, redirect_uri=callback, scope=FB_SCOPE)
     authorization_url, state = facebook.authorization_url(FB_AUTHORIZATION_BASE_URL)
-    # session['oauth_state'] = state
+    session['oauth_state'] = state
     return authorization_url
 
 
 def onboarding(mod, request):
     """ Verify the authorization request and create the appropriate influencer or brand user. """
     callback = URL + '/callback/' + mod
-    facebook = requests_oauthlib.OAuth2Session(FB_CLIENT_ID, scope=FB_SCOPE, redirect_uri=callback)
+    facebook = OAuth2Session(FB_CLIENT_ID, scope=FB_SCOPE, redirect_uri=callback, state=session['oauth_state'])
     facebook = facebook_compliance_fix(facebook)  # we need to apply a fix for Facebook here
     # TODO: ? Modify input parameters to only pass the request.url value since that is all we use?
     token = facebook.fetch_token(FB_TOKEN_URL, client_secret=FB_CLIENT_SECRET, authorization_response=request.url)
