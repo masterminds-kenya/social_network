@@ -17,9 +17,10 @@ FB_TOKEN_URL = "https://graph.facebook.com/oauth/access_token"
 FB_INSPECT_TOKEN_URL = 'https://graph.facebook.com/debug_token'
 FB_SCOPE = [
     'pages_show_list',
+    'pages_read_engagement',  # Graph API v7.0 requires this to get instagram_basic permissions.
     'instagram_basic',
     'instagram_manage_insights',
-    'manage_pages'
+    # 'manage_pages'  # Deprecated. Now using pages_read_engagement for Graph API v7.0.
         ]
 
 
@@ -354,16 +355,16 @@ def get_posts(id_or_users, ig_id=None, facebook=None):
     return saved
 
 
-def get_fb_page_for_user(user, ignore_current=False, facebook=None, token=None):
+def get_fb_page_for_users_ig_account(user, ignore_current=False, facebook=None, token=None):
     """ For a user with a known Instagram account, we can determine the related Facebook page. """
     if not isinstance(user, User):
-        raise Exception(f"get_fb_page_for_user requires a User model instance as the first parameter. ")
+        raise Exception("get_fb_page_for_users_ig_account requires a User model instance as the first parameter. ")
     page = dict(zip(['id', 'token'], [getattr(user, 'page_id', None), getattr(user, 'page_token', None)]))
     if ignore_current or not page.get('id') or not page.get('token'):
         ig_id = int(getattr(user, 'instagram_id', 0))
         fb_id = getattr(user, 'facebook_id', 0)
         if not ig_id or not fb_id:
-            message = f"We can only get a users page if we already know their accounts on Facebook and Instagram. "
+            message = "We can only get a users page if we already know their accounts on Facebook and Instagram. "
             app.logger.error(message)
             return None
         if not facebook and not token:
@@ -373,7 +374,7 @@ def get_fb_page_for_user(user, ignore_current=False, facebook=None, token=None):
                 app.logger.error(message)
                 return None
         url = f"https://graph.facebook.com/{fb_id}"
-        app.logger.info(f"========== get_fb_page_for_user {user} ==========")
+        app.logger.info(f"========== get_fb_page_for_users_ig_account {user} ==========")
         params = {'fields': 'accounts'}
         if not facebook:
             params['access_token'] = token
@@ -401,7 +402,7 @@ def install_app_on_user_for_story_updates(user_or_id, page=None, facebook=None, 
         raise ValueError('Input must be either a User model or an id for a User. ')
     app.logger.info(f"========== install_app_on_user_for_story_updates: {user} ==========")
     if not isinstance(page, dict) or not page.get('id') or not page.get('token'):
-        page = get_fb_page_for_user(user, facebook=facebook, token=token)
+        page = get_fb_page_for_users_ig_account(user, facebook=facebook, token=token)
         if not page:
             app.logger.error(f"Unable to find the page for user: {user} ")
             return False
@@ -434,12 +435,28 @@ def get_ig_info(ig_id, facebook=None, token=None):
     return res
 
 
+def find_pages_for_fb_id(fb_id, facebook=None, token=None):
+    """ From a known facebook id, we can get a list of all pages the user has a role on through the accounts route. """
+    url = f"https://graph.facebook.com/v7.0/{fb_id}/accounts"
+    if not facebook and not token:
+        message = "This function requires at least one value for either 'facebook' or 'token' keyword arguments. "
+        app.logger.error(message)
+        raise Exception(message)
+    params = {} if facebook else {'access_token': token}
+    res = facebook.get(url).json() if facebook else requests.get(url, params=params).json()
+    # res = facebook.get(url).json() if facebook else requests.get(f"{url}&access_token={token}").json()
+    if 'error' in res:
+        app.logger.error('Got error in find_pages_for_fb_id function')
+        app.logger.error(res['error'])
+    return res
+
+
 def find_instagram_id(accounts, facebook=None, token=None):
     """ For an influencer or brand, we can discover all of their instagram business accounts they have.
         This depends on them having their expected associated facebook page (for each).
     """
     if not facebook and not token:
-        message = f"This function requires at least one value for either 'facebook' or 'token' keyword arguments. "
+        message = "This function requires at least one value for either 'facebook' or 'token' keyword arguments. "
         app.logger.error(message)
         raise Exception(message)
     if not accounts or 'data' not in accounts:
@@ -450,7 +467,8 @@ def find_instagram_id(accounts, facebook=None, token=None):
     pages = [{'id': page.get('id'), 'token': page.get('access_token')} for page in accounts.get('data')]
     app.logger.info(f"============ Pages count: {len(pages)} ============")
     for page in pages:
-        url = f"https://graph.facebook.com/v4.0/{page['id']}?fields=instagram_business_account"
+        # url = f"https://graph.facebook.com/v4.0/{page['id']}?fields=instagram_business_account"
+        url = f"https://graph.facebook.com/{page['id']}?fields=instagram_business_account"
         req_token, err = page['token'], 10
         while err > 1:
             res = facebook.get(url).json() if facebook else requests.get(f"{url}&access_token={req_token}").json()
@@ -507,7 +525,7 @@ def onboarding(mod, request):
     data = facebook_user_data.copy()  # .to_dict(flat=True)
     data['role'] = mod
     data['token'] = token
-    accounts = data.pop('accounts', None)
+    accounts = data.pop('accounts', find_pages_for_fb_id(data.get('id', ''), facebook=facebook, token=token))
     ig_list = find_instagram_id(accounts, facebook=facebook)
     ig_id = None
     if len(ig_list) == 1:
@@ -534,12 +552,12 @@ def onboarding(mod, request):
     user = User.query.get(account_id)
     login_user(user, force=True, remember=True)
     if ig_id:
-        insights, follow_report = get_insight(account_id, ig_id=ig_id, facebook=facebook)
-        message = "We have IG account insights. " if insights else "No IG account insights. "
-        message += "We have IG followers report. " if follow_report else "No IG followers report. "
-        audience = get_audience(account_id, ig_id=ig_id, facebook=facebook)
-        message += "Audience data collected. " if audience else "No Audience data. "
-        app.logger.info(message)
+        # insights, follow_report = get_insight(account_id, ig_id=ig_id, facebook=facebook)
+        # message = "We have IG account insights. " if insights else "No IG account insights. "
+        # message += "We have IG followers report. " if follow_report else "No IG followers report. "
+        # audience = get_audience(account_id, ig_id=ig_id, facebook=facebook)
+        # message += "Audience data collected. " if audience else "No Audience data. "
+        # app.logger.info(message)
         return ('complete', 0, account_id)
     else:  # This Facebook user needs to select one of many of their IG business accounts
         return ('decide', ig_list, account_id)

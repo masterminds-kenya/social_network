@@ -3,7 +3,7 @@ from flask_login import current_user
 import json
 from .helper_functions import staff_required, admin_required, mod_lookup
 from .model_db import create_many, db_read, User, db
-from .api import get_ig_info, get_fb_page_for_user
+from .api import get_ig_info, get_fb_page_for_users_ig_account
 
 USER_FILE = 'env/user_save.txt'
 
@@ -149,7 +149,7 @@ def get_page_for_all_users(overwrite=False, **kwargs):
     app.logger.info('------------ get page for all users ---------------')
     app.logger.info(users)
     for user in users:
-        page = get_fb_page_for_user(user)
+        page = get_fb_page_for_users_ig_account(user)
         if page and (overwrite or page.get('new_page')):
             user.page_id = page.get('id')
             user.page_token = page.get('token')
