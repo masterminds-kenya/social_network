@@ -8,7 +8,7 @@
 | :heavy_check_mark: | Previous Features, see [README](./README.md)    |
 |                    | **Milestone 1 Completion**                      |
 | :heavy_check_mark: | Update dependency packages                      |
-|                    | Onboarding login made quicker, manual user account API calls |
+| :heavy_check_mark: | Onboarding login made quicker, manual user account API calls |
 |                    | Updates for deprecated manage_pages permission  |
 |                    | **Milestone 2 Completion**                      |
 |                    | Proposal and quotes for upcoming features       |
@@ -60,6 +60,36 @@ Current Status:
 2020-06-06 22:12:14
 <!-- Ctrl-Shift-I to generate timestamp -->
 
+### Login & Authentication Features
+
+- [x] Faster Onboarding: Remove user account metrics collection from onboarding process.
+  - [x] Removed from onboarding function.
+  - [x] Confirm there is a manual button for all API calls removed from onboarding.
+- [ ] Updates for deprecated manage_pages permission.
+  - [ ] Lookup permissions of all current users to see if they have `manage_pages` or replaced permissions.
+  - [ ] Confirm `pages_read_engagement` works where we previously needed `manage_pages`.
+    - [c] To see accounts (pages this user has a role on), our `pages_show_list` permission is sufficient.
+    - [c] We can still find the `instagram_business_account` as previously worked for onboarding.
+    - [ ] See if we need to find `connected_instagram_account` as described in [Page](https://developers.facebook.com/docs/graph-api/reference/page/).
+    - [ ] ?Do we need to consider [assigned_pages](https://developers.facebook.com/docs/graph-api/reference/user/assigned_pages/)?
+    - [ ] Does our app need the Feature: [Page Public Content Access](https://developers.facebook.com/docs/apps/review/feature#reference-PAGES_ACCESS).
+    - [ ] We can still subscribe to the page (if confirmed it is needed).
+    - [ ] Confirm we can still subscribe to a users `story_metrics`.
+    - [ ] Check other places we depended on `manage_pages`.
+    - [ ] ? Needed?: Determine processes for old user accounts updating their permissions.
+- [?] Fix brand select an IG account.
+- [s] Update User name method.
+  - [x] Old: temporary name if we do not have one while we are waiting for their IG account selection.
+  - [s] ? Use their email address from facebook ?
+  - [s] ? Other plan ?
+- [c] Fix: The 'add admin' from admin list does not work because it should redirect.
+- [s] Allow admin to create a user w/o a password.
+  - [s] Require the user to set password on first login.
+- [?] ?Confirm Google login for Worksheet access?
+- [s] Auth management features:
+  - [s] Change password.
+  - [s] Recover account (via email).
+
 ### Collect data only if needed for an active Campaign
 
 - [ ] Story Metrics only subscribed for users currently in an active Campaign.
@@ -72,6 +102,8 @@ Current Status:
 - [ ] Manage Campaign active status:
   - [ ] Option 1) All managed by active dates: If before expire AND (after start OR created date).
   - [ ] Option 2) Process to switch Campaign.completed bool; possible end of Campaign processes.
+- [ ] Create process to automatically collect User account metrics if User is in a campaign.
+  - [ ] ? When to collect: Campaign end | Campaign start | User assigned to uncompleted Campaign?
 
 ### Capture Media Image Files for Stories
 
@@ -170,35 +202,6 @@ Also see items in the [test-site-content checklist](https://github.com/SeattleCh
 - [s] For a given worksheet, ability to delete existing permissions
 - [s] For a given worksheet, ability to delete the file
 - [s] Attach worksheets to the Campaign model so we not always creating new.
-
-### Login & Authentication Features
-
-- [ ] Faster Onboarding: Remove user account metrics collection from onboarding process.
-  - [x] Removed from onboarding function.
-  - [ ] Confirm there is a manual button for all API calls removed from onboarding.
-  - [ ] Create process to automatically collect this data if User is in a campaign.
-- [ ] Updates for deprecated manage_pages permission.
-  - [ ] Confirm `pages_read_engagement` works where we previously needed `manage_pages`.
-    - [ ] To see accounts (pages this user has a role on), our `pages_show_list` permission is sufficient.
-    - [ ] We can still find the `instagram_business_account` as previously worked for onboarding.
-    - [ ] See if we need to find `connected_instagram_account` as described in [Page](https://developers.facebook.com/docs/graph-api/reference/page/).
-    - [ ] ?Do we need to consider [assigned_pages](https://developers.facebook.com/docs/graph-api/reference/user/assigned_pages/)?
-    - [ ] Does our app need the Feature: [Page Public Content Access](https://developers.facebook.com/docs/apps/review/feature#reference-PAGES_ACCESS).
-    - [ ] We can still subscribe to the page (if confirmed it is needed).
-    - [ ] Confirm we can still subscribe to a users `story_metrics`.
-    - [ ] Check other places we depended on `manage_pages`.
-- [?] Fix brand select an IG account.
-- [s] Update User name method.
-  - [x] Old: temporary name if we do not have one while we are waiting for their IG account selection.
-  - [s] ? Use their email address from facebook ?
-  - [s] ? Other plan ?
-- [c] Fix: The 'add admin' from admin list does not work because it should redirect.
-- [s] Allow admin to create a user w/o a password.
-  - [s] Require the user to set password on first login.
-- [?] ?Confirm Google login for Worksheet access?
-- [s] Auth management features:
-  - [s] Change password.
-  - [s] Recover account (via email).
 
 ### Permissions to Routes and Showing/Hiding links in Templates
 

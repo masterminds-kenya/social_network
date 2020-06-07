@@ -477,10 +477,11 @@ def find_instagram_id(accounts, facebook=None, token=None):
     for page in pages:
         # url = f"https://graph.facebook.com/v4.0/{page['id']}?fields=instagram_business_account"
         url = f"https://graph.facebook.com/{page['id']}?fields=instagram_business_account"
+        # Docs: https://developers.facebook.com/docs/instagram-api/reference/page
         req_token, err = page['token'], 10
         while err > 1:
             res = facebook.get(url).json() if facebook else requests.get(f"{url}&access_token={req_token}").json()
-            if 'error' in res and res['error'].get('code', 0) in (100, 190):
+            if 'error' in res and res['error'].get('code', 0) in (100, 190) and not facebook:
                 if err == 10:
                     err = 100
                     req_token = token
