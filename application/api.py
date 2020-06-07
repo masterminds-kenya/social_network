@@ -436,8 +436,12 @@ def get_ig_info(ig_id, facebook=None, token=None):
 
 
 def find_pages_for_fb_id(fb_id, facebook=None, token=None):
-    """ From a known facebook id, we can get a list of all pages the user has a role on through the accounts route. """
+    """ From a known facebook id, we can get a list of all pages the user has a role on via the accounts route.
+        Using technique from Graph API docs: https://developers.facebook.com/docs/graph-api/reference/v7.0/user/accounts
+    """
+
     url = f"https://graph.facebook.com/v7.0/{fb_id}/accounts"
+    app.logger.info("========================== The find_pages_for_fb_id was called ==========================")
     if not facebook and not token:
         message = "This function requires at least one value for either 'facebook' or 'token' keyword arguments. "
         app.logger.error(message)
@@ -448,6 +452,7 @@ def find_pages_for_fb_id(fb_id, facebook=None, token=None):
     if 'error' in res:
         app.logger.error('Got error in find_pages_for_fb_id function')
         app.logger.error(res['error'])
+        # TODO: Handle error.
     return res
 
 
@@ -463,6 +468,9 @@ def find_instagram_id(accounts, facebook=None, token=None):
         message = f"No pages found from accounts data: {accounts}. "
         app.logger.info(message)
         return []
+    if 'paging' in accounts:
+        app.logger.info(f"Have paging in accounts: {accounts['paging']} ")
+        # TODO: Handle paging in results.
     ig_list = []
     pages = [{'id': page.get('id'), 'token': page.get('access_token')} for page in accounts.get('data')]
     app.logger.info(f"============ Pages count: {len(pages)} ============")

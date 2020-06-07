@@ -96,7 +96,15 @@ Through our [manually built Facebook Login flow](https://developers.facebook.com
 
 The Instagram features of this platform require that Influencer users, and is strongly recommended for Brand users, to have [Instagram Professional Accounts(s)](https://help.instagram.com/502981923235522?fbclid=IwAR1pmzAotXJ4X_-XFKNP4Ft2A9F4BuAyMbuFtCZ7ayb3FtLoM7kO6nWQFV4). The platform is also depending on this account being [connected to a business Facebook page](https://www.facebook.com/business/help/898752960195806), as is customary for professional Instagram accounts. During the platform onboarding process, influencer and brand users use Facebook login to grant the platform various permissions for their Instagram account and connected Facebook page. The platform aims to only request the permissions needed. The platform's automation features will be unreliable for a user or behave in unexpected ways if the user changes and removes these requested permissions.
 
-In order for our platform to get the most accurate Story metrics, the user's connected business Facebook page needs to have *App* platform enabled (the default setting) in their [App Settings](https://www.facebook.com/settings?tab=applications) for the page. This feature depends on the user continuing to grant `manage_pages` permissions for our platform application, which is set during our platform's onboarding process.
+In order for our platform to get the most accurate Story metrics, the following conditions must be met:
+
+- The Page connected to the app user's account must have Page subscriptions enabled.
+- The Business connected to the app user's Page must be verified.
+- The user must have granted us instagram_manage_insights as requested in onboarding.
+- ? The Page connected to the app user's account must have *App* platform enabled (the default setting)?
+  - Check in their [App Settings](https://www.facebook.com/settings?tab=applications) for the page.
+- ? Old: The user must grant `manage_pages` as requested in onboarding?
+- ? The user must grant `pages_read_engagement` as requested in onboarding?
 
 ## Deployment
 
@@ -116,6 +124,7 @@ We are using pipenv, for local development, to help us track both dependencies a
 
 We are keeping a checklist for features and tasks that are both completed and are upcoming. This is intended as brief overview and to capture ongoing thoughts on how we are proceeding in developing this application. As a living document, it loosely indicates what we plan on working soon, with various degrees of specificity in planning. The current status of this file can be found in the following link:
 
+- [Features & Tasks - Round 3](./checklist-06.md) for up to version 0.5.2.
 - [Features & Tasks - Round 2](./checklist-03.md) for up to version 0.5.0.
 - [Original Features & Tasks](./checklist.md) for up to version 0.2.0.
 
