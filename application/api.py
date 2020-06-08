@@ -526,7 +526,7 @@ def onboard_new(data, facebook=None):
     ig_list = find_instagram_id(accounts, facebook=facebook)
     ig_id = None
     if len(ig_list) == 1:
-        ig_info = ig_list.pop()
+        ig_info = ig_list[0]
         data['name'] = ig_info.get('name', None)
         ig_id = int(ig_info.get('id', 0))
         data['instagram_id'] = ig_id
@@ -548,6 +548,8 @@ def onboard_new(data, facebook=None):
     account_id = account.get('id')
     user = User.query.get(account_id)
     login_user(user, force=True, remember=True)
+    for ig_info in ig_list:
+        ig_info.update({'account_id': account_id})
     if ig_id:
         # insights, follow_report = get_insight(account_id, ig_id=ig_id, facebook=facebook)
         # message = "We have IG account insights. " if insights else "No IG account insights. "
@@ -555,14 +557,17 @@ def onboard_new(data, facebook=None):
         # audience = get_audience(account_id, ig_id=ig_id, facebook=facebook)
         # message += "Audience data collected. " if audience else "No Audience data. "
         # app.logger.info(message)
-        return ('complete', 0, account_id)
+        return ('complete', ig_list)
     else:  # This Facebook user needs to select one of many of their IG business accounts
-        return ('decide', ig_list, account_id)
+        return ('decide', ig_list)
 
 
 def onboard_existing(users, data, facebook=None):
     """ Either logging in an existing user, or let them onboard a different instagram account. """
-    pass
+    user_list = []
+    for user in users:
+        pass
+    return ('existing', user_list)
 
 
 def onboarding(mod, request):

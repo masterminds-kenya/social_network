@@ -12,7 +12,7 @@
 <main>
   {% for account in ig_list %}
   <hr />
-  <form action="{{url_for('edit', mod=mod, id=id)}} " method="POST" enctype="multipart/form-data">
+  <form action="{{url_for('edit', mod=mod, id=account.account_id)}} " method="POST" enctype="multipart/form-data">
     <div class="form-group">
       <h3>{{account.name}} </h3>
       <input type="hidden" name="name" id="name" value="{{account.name}}" />

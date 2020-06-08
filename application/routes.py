@@ -218,9 +218,9 @@ def fb_login(mod):
 def callback(mod):
     """ Handle the callback for Facebook authorization. Create new influencer or brand user as indicated by 'mod'. """
     app.logger.info(f'================= Authorization Callback {mod}===================')
-    view, data, account_id = onboarding(mod, request)
+    view, data = onboarding(mod, request)
     if view == 'decide':
-        app.logger.info(f"Decide which IG account | Data: {data} | ID: {account_id}. ")
+        app.logger.info(f"Decide which IG account | Data: {data}. ")
         ig_list = []
         for ig_info in data:
             cleaned = {}
@@ -228,10 +228,10 @@ def callback(mod):
                 cleaned[key] = json.dumps(value) if key in Audience.IG_DATA else value
             ig_list.append(cleaned)
         app.logger.debug(f"Amongst these IG options: {ig_list}. ")
-        return render_template('decide_ig.html', mod=mod, id=account_id, ig_list=ig_list)
+        return render_template('decide_ig.html', mod=mod, ig_list=ig_list)
     elif view == 'complete':
-        app.logger.info(f"Completed User")
-        return redirect(url_for('view', mod=mod, id=account_id))
+        app.logger.info("Completed User")
+        return redirect(url_for('view', mod=mod, id=data[0].get('account_id')))
     elif view == 'error':
         return redirect(url_for('error', data=data), code=307)
     else:
