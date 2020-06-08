@@ -30,8 +30,8 @@ def load():
             #     del user['email']
             ig_id, token = user.get('instagram_id'), user.get('token')
             ig_info = get_ig_info(ig_id, token=token)
-            user['username'] = ig_info.get('username')
-            app.logger.info(user['username'])
+            user['name'] = ig_info.get('username', ig_info.get('name', ''))
+            app.logger.info(user['name'])
             new_users.append(user)
     created_users = create_many(new_users)
     app.logger.info(f'------------- Create from File: {len(created_users)} users -------------')

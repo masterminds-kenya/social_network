@@ -432,6 +432,7 @@ def get_ig_info(ig_id, facebook=None, token=None):
     end_time = dt.utcnow().isoformat(timespec='seconds') + '+0000'
     for name in Audience.IG_DATA:
         res[name] = {'end_time': end_time, 'value': res.get(name)}
+    res['name'] = res.pop('username', res.get('name', ''))
     return res
 
 
@@ -499,6 +500,7 @@ def find_instagram_id(accounts, facebook=None, token=None):
             ig_info = get_ig_info(ig_business.get('id', None), facebook=facebook, token=token)
             ig_info['page_id'] = page['id']
             ig_info['page_token'] = page['token']
+            # ig_info['name'] = ig_info.pop('username', ig_info.get('name', ''))
             ig_list.append(ig_info)
         elif 'error' in res:
             app.logger.error(f"Error on getting info from {page['id']} Page. ")
@@ -518,28 +520,14 @@ def onboard_login(mod):
     return authorization_url
 
 
-def onboarding(mod, request):
-    """ Verify the authorization request and create the appropriate influencer or brand user. """
-    callback = URL + '/callback/' + mod
-    facebook = OAuth2Session(FB_CLIENT_ID, scope=FB_SCOPE, redirect_uri=callback, state=session['oauth_state'])
-    facebook = facebook_compliance_fix(facebook)  # we need to apply a fix for Facebook here
-    # TODO: ? Modify input parameters to only pass the request.url value since that is all we use?
-    token = facebook.fetch_token(FB_TOKEN_URL, client_secret=FB_CLIENT_SECRET, authorization_response=request.url)
-    if 'error' in token:
-        return ('error', token, None)
-    facebook_user_data = facebook.get("https://graph.facebook.com/me?fields=id,accounts").json()
-    if 'error' in facebook_user_data:
-        return ('error', facebook_user_data, None)
-    # TODO: use a better constructor for the user account.
-    data = facebook_user_data.copy()  # .to_dict(flat=True)
-    data['role'] = mod
-    data['token'] = token
-    accounts = data.pop('accounts', find_pages_for_fb_id(data.get('id', ''), facebook=facebook, token=token))
+def onboard_new(data, facebook=None):
+    """ Adding a user that does not have any accounts under their facebook id. """
+    accounts = data.pop('accounts', find_pages_for_fb_id(data.get('id', ''), facebook=facebook))
     ig_list = find_instagram_id(accounts, facebook=facebook)
     ig_id = None
     if len(ig_list) == 1:
         ig_info = ig_list.pop()
-        data['name'] = ig_info.get('username', None)
+        data['name'] = ig_info.get('name', None)
         ig_id = int(ig_info.get('id', 0))
         data['instagram_id'] = ig_id
         data['page_id'] = ig_info.get('page_id')
@@ -570,3 +558,33 @@ def onboarding(mod, request):
         return ('complete', 0, account_id)
     else:  # This Facebook user needs to select one of many of their IG business accounts
         return ('decide', ig_list, account_id)
+
+
+def onboard_existing(users, data, facebook=None):
+    """ Either logging in an existing user, or let them onboard a different instagram account. """
+    pass
+
+
+def onboarding(mod, request):
+    """ Verify the authorization request and create the appropriate influencer or brand user. """
+    callback = URL + '/callback/' + mod
+    facebook = OAuth2Session(FB_CLIENT_ID, scope=FB_SCOPE, redirect_uri=callback, state=session['oauth_state'])
+    facebook = facebook_compliance_fix(facebook)  # we need to apply a fix for Facebook here
+    # TODO: ? Modify input parameters to only pass the request.url value since that is all we use?
+    token = facebook.fetch_token(FB_TOKEN_URL, client_secret=FB_CLIENT_SECRET, authorization_response=request.url)
+    if 'error' in token:
+        return ('error', token, None)
+    facebook_user_data = facebook.get("https://graph.facebook.com/me?fields=id,accounts").json()
+    if 'error' in facebook_user_data:
+        return ('error', facebook_user_data, None)
+    # TODO: use a better constructor for the user account.
+    data = facebook_user_data.copy()  # .to_dict(flat=True)
+    data['role'] = mod
+    data['token'] = token
+    # TODO: Handle if we already have this facebook account as a user.
+    fb_id = data.get('id', None)
+    users = User.query.filter(User.facebook_id == fb_id).all() if fb_id else None
+    if users:
+        return onboard_existing(users, data, facebook=facebook)
+    else:
+        return onboard_new(data, facebook=facebook)
