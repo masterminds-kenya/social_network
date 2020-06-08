@@ -593,10 +593,12 @@ def db_create(data, Model=User):
         # pprint(unique)
         current_app.logger.debug(unique)
         model = Model.query.filter(*[getattr(Model, key) == val for key, val in unique.items()]).one_or_none()
-        if model:
+        if model and Model == User:
+            message = f"Using existing account. Welcome back {model.get('name', '')}! "
+        elif model:
             message = f"A {model.__class__.__name__} already exists with id: {model.id} . Using existing. "
         else:
-            message = f"Cannot create due to collision on unique fields. Cannot retrieve existing record. "
+            message = "Cannot create due to collision on unique fields. Cannot retrieve existing record. "
         current_app.logger.error(message)
         flash(message)
     except Exception as e:
