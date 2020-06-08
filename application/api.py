@@ -421,7 +421,7 @@ def get_ig_info(ig_id, facebook=None, token=None):
     # Possible fields. Fields with asterisk (*) are public and can be returned by and edge using field expansion:
     # biography*, id*, ig_id, followers_count*, follows_count, media_count*, name,
     # profile_picture_url, username*, website*
-    fields = ','.join(['username', *Audience.IG_DATA])
+    fields = ','.join(['username', *Audience.IG_DATA])  # 'media_count', 'followers_count'
     app.logger.info('============ Get IG Info ===================')
     if not token and not facebook:
         logstring = "You must pass a 'token' or 'facebook' reference. "
@@ -551,12 +551,7 @@ def onboard_new(data, facebook=None):
     for ig_info in ig_list:
         ig_info.update({'account_id': account_id})
     if ig_id:
-        # insights, follow_report = get_insight(account_id, ig_id=ig_id, facebook=facebook)
-        # message = "We have IG account insights. " if insights else "No IG account insights. "
-        # message += "We have IG followers report. " if follow_report else "No IG followers report. "
-        # audience = get_audience(account_id, ig_id=ig_id, facebook=facebook)
-        # message += "Audience data collected. " if audience else "No Audience data. "
-        # app.logger.info(message)
+        # previously called get_insight and get_audience. These will need to be called manually later.
         return ('complete', ig_list)
     else:  # This Facebook user needs to select one of many of their IG business accounts
         return ('decide', ig_list)
@@ -566,7 +561,16 @@ def onboard_existing(users, data, facebook=None):
     """ Either logging in an existing user, or let them onboard a different instagram account. """
     user_list = []
     for user in users:
-        pass
+        ig_info = {}
+        ig_info['account_id'] = user.id
+        ig_info['name'] = user.name
+        ig_info['id'] = user.instagram_id
+        ig_info['followers_count'] = ''
+        ig_info['media_count'] = ''
+        ig_info['page_id'] = user.page_id
+        ig_info['page_token'] = user.page_token
+        user_list.append(ig_info)
+    session['onboard_data'] = (data, facebook)
     return ('existing', user_list)
 
 
