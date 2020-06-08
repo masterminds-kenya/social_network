@@ -1,4 +1,4 @@
-from flask import render_template, redirect, url_for, request, flash, current_app as app  # , abort
+from flask import render_template, redirect, url_for, request, flash, session, current_app as app  # , abort
 from flask_login import current_user, login_user, logout_user, login_required
 from werkzeug.security import generate_password_hash, check_password_hash
 import json
@@ -214,13 +214,44 @@ def fb_login(mod):
     return redirect(authorization_url)
 
 
+@app.route('/<string:mod>/<int:id>/login_revisit')
+def login_revisit(mod):
+    """ An influencer or brand is logging in with an existing user account. """
+    user = User.query.get(id)
+    # TODO: Cleanup these and possibly other edge cases.
+    if not user:
+        message = "Selected a non-existent user. "
+        app.logger.error(message)
+        flash(message)
+        return redirect(url_for('home'))
+    if user.role != mod:
+        message = "Selected User does not match the selected mod. "
+        app.logger.error(message)
+        flash(message)
+    login_user(user, force=True, remember=True)
+    session.pop('onboard_data', None)
+    return redirect(url_for('view', mod=mod, id=id))
+
+
+@app.route('/decide_new/<string:mod>')
+def decide_new(mod):
+    """ An existing user is making an influencer or brand account with a different IG account. """
+    from .api import onboard_new
+    data, facebook = session.pop('onboard_data', ({}, None))
+    if not any(data, facebook):
+        app.logger.info("User probably closed window/session. Starting over with login. ")
+        # TODO: Check for potential infinate loop issues.
+        return redirect(url_for('fb_login', mod=mod))
+    return onboard_new(data, facebook=facebook)
+
+
 @app.route('/callback/<string:mod>')
 def callback(mod):
     """ Handle the callback for Facebook authorization. Create new influencer or brand user as indicated by 'mod'. """
     app.logger.info(f'================= Authorization Callback {mod}===================')
-    view, data, account_id = onboarding(mod, request)
+    view, data = onboarding(mod, request)
     if view == 'decide':
-        app.logger.info(f"Decide which IG account | Data: {data} | ID: {account_id}. ")
+        app.logger.info("Decide which IG account")
         ig_list = []
         for ig_info in data:
             cleaned = {}
@@ -228,10 +259,14 @@ def callback(mod):
                 cleaned[key] = json.dumps(value) if key in Audience.IG_DATA else value
             ig_list.append(cleaned)
         app.logger.debug(f"Amongst these IG options: {ig_list}. ")
-        return render_template('decide_ig.html', mod=mod, id=account_id, ig_list=ig_list)
+        return render_template('decide_ig.html', mod=mod, view=view, ig_list=ig_list)
+    elif view == 'existing':
+        app.logger.info("Login Existing or Create New for different IG account. ")
+        app.logger.debug(f"Amongst these existing User options: {data}. ")
+        return render_template('decide_ig.html', mod=mod, view=view, ig_list=data)
     elif view == 'complete':
-        app.logger.info(f"Completed User")
-        return redirect(url_for('view', mod=mod, id=account_id))
+        app.logger.info("Completed User")
+        return redirect(url_for('view', mod=mod, id=data[0].get('account_id')))
     elif view == 'error':
         return redirect(url_for('error', data=data), code=307)
     else:

@@ -115,7 +115,7 @@ class User(UserMixin, db.Model):
 
     def __init__(self, *args, **kwargs):
         kwargs['facebook_id'] = kwargs.pop('id') if 'facebook_id' not in kwargs and 'id' in kwargs else None
-        kwargs['name'] = kwargs.pop('username', kwargs.get('name'))
+        kwargs['name'] = kwargs.pop('username', kwargs.get('name'))  # TODO: Confirm 'username' is no longer needed.
         if 'token_expires' not in kwargs and 'token' in kwargs:
             # modifications for parsing data from api call
             token_expires = kwargs['token'].get('token_expires', None)
@@ -593,10 +593,12 @@ def db_create(data, Model=User):
         # pprint(unique)
         current_app.logger.debug(unique)
         model = Model.query.filter(*[getattr(Model, key) == val for key, val in unique.items()]).one_or_none()
-        if model:
+        if model and Model == User:
+            message = f"Using existing account. Welcome back {model.get('name', '')}! "
+        elif model:
             message = f"A {model.__class__.__name__} already exists with id: {model.id} . Using existing. "
         else:
-            message = f"Cannot create due to collision on unique fields. Cannot retrieve existing record. "
+            message = "Cannot create due to collision on unique fields. Cannot retrieve existing record. "
         current_app.logger.error(message)
         flash(message)
     except Exception as e:

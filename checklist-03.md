@@ -51,9 +51,9 @@
 |                    | Sheet management: Delete, Modify access, etc |
 |                    | Tests: ensure future dev doesn't break existing functions |
 |                    | **March 2020 Features Completed**            |
-|                    | Migrate live DB (and deploy all of above)    |
-|                    | Run functions needed for migrate steps       |
-|                    | Confirm Onboarding, including page subscribe |
+| :heavy_check_mark: | Migrate live DB (and deploy all of above)    |
+| :heavy_check_mark: | Run functions needed for migrate steps       |
+| :heavy_check_mark: | Confirm Onboarding, including page subscribe |
 
 ## Checklist
 
@@ -243,7 +243,7 @@ Also see items in the [test-site-content checklist](https://github.com/SeattleCh
 - [x] Encrypt tokens
 - [n] Keep a DB table of worksheet ids?
   - [s] Will we have multiple report views?
-- [s] DB Migration: Integrate flask-migrate?
+- [x] DB Migration: Integrate flask-migrate?
 - [s] ?Delete User information in response to a Facebook callback to delete.?
 - [x] Allow a user to delete their account on the platform
   - [x] Confirmation page before delete?

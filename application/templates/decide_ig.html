@@ -12,20 +12,24 @@
 <main>
   {% for account in ig_list %}
   <hr />
-  <form action="{{url_for('edit', mod=mod, id=id)}} " method="POST" enctype="multipart/form-data">
-    <div class="form-group">
-      <h3>{{account.username}} </h3>
-      <input type="hidden" name="name" id="name" value="{{account.username}}" />
-      <input type="hidden" name="instagram_id" id="ig_id" value="{{account.id}}" />
-      <input type="hidden" name="followers_count" id="followers_count" value="{{account.followers_count}}" />
-      <input type="hidden" name="media_count" id="media_count" value="{{account.media_count}}" />
-      <input type="hidden" name="page_id" id="page_id" value="{{account.page_id}}" />
-    </div>
+  <h3>{{account.name}} </h3>
+  {% if view == 'existing' %}
+  <form action="{{url_for('login_revisit', mod=mod, id=account.account_id)}} " method="POST" enctype="multipart/form-data">
+    <input type="hidden" name="user_id" id="user_id" value="{{account.account_id}}" />
+  {% elif view == 'decide' %}
+  <form action="{{url_for('edit', mod=mod, id=account.account_id)}} " method="POST" enctype="multipart/form-data">
+    <input type="hidden" name="name" id="name" value="{{account.name}}" />
+    <input type="hidden" name="instagram_id" id="ig_id" value="{{account.id}}" />
+    <input type="hidden" name="page_id" id="page_id" value="{{account.page_id}}" />
+    <input type="hidden" name="page_token" id="page_token" value="{{account.page_token}}" />
+    <input type="hidden" name="followers_count" id="followers_count" value="{{account.followers_count}}" />
+    <input type="hidden" name="media_count" id="media_count" value="{{account.media_count}}" />
     <ul>
       <li>followers count: {{account.followers_count}}</li>
       <li>media_count: {{account.media_count}} </li>
     </ul>
-    <button type="submit" class="btn btn-success">{{account.username}}</button>
+  {% endif %}
+    <button type="submit" class="btn btn-success">{{account.name}}</button>
   </form>
   {% else %}
   <hr />
@@ -36,5 +40,13 @@
     For clarification or assistance, you can contact a Platform admin or manager.
   </p>
   {% endfor %}
+  {% if view == 'existing' %}
+  <hr />
+  <h2>Create {{mod}} account using a different Instagram account</h2>
+  <form action="{{url_for('decide_new', mod=mod, id=ig_list[0].account_id)}} " method="POST" enctype="multipart/form-data">
+    <input type="hidden" name="create_new" id="create_new" value="{{ig_list[0].account_id}}" />
+    <button type="submit" class="btn btn-success">Create New</button>
+  </form>
+  {% endif %}
 </main>
 {% endblock content %}
