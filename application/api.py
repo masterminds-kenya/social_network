@@ -540,7 +540,7 @@ def onboarding(mod, request):
     if len(ig_list) == 1:
         ig_info = ig_list.pop()
         data['name'] = ig_info.get('username', None)
-        ig_id = int(ig_info.get('id'))
+        ig_id = int(ig_info.get('id', 0))
         data['instagram_id'] = ig_id
         data['page_id'] = ig_info.get('page_id')
         data['page_token'] = ig_info.get('page_token')
