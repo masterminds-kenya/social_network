@@ -1,11 +1,11 @@
-from flask import render_template, redirect, url_for, request, flash, session, current_app as app  # , abort
+from flask import render_template, redirect, url_for, request, flash, current_app as app  # , abort
 from flask_login import current_user, login_user, logout_user, login_required
 from werkzeug.security import generate_password_hash, check_password_hash
 import json
-from .model_db import db_create, db_read, db_delete, db_all, from_sql
-from .model_db import User, OnlineFollowers, Insight, Audience, Post, Campaign  # , metric_clean
+from .model_db import db_create, db_read, db_delete, db_all, from_sql  # , metric_clean
+from .model_db import User, OnlineFollowers, Insight, Post, Campaign   # , Audience
 from .developer_admin import admin_view
-from .helper_functions import staff_required, admin_required, mod_lookup
+from .helper_functions import staff_required, admin_required, mod_lookup, prep_ig_decide
 from .manage import update_campaign, process_form, report_update, check_hash, add_edit, process_hook
 from .api import onboard_login, onboarding, get_insight, get_audience, get_posts, get_online_followers, user_permissions
 from .sheets import create_sheet, update_sheet, perm_add, perm_list, all_files
@@ -201,6 +201,7 @@ def data_permissions(mod, id, sheet_id, perm_id=None):
 
 
 # ############# End Worksheets #############
+# ############# Used for Facebook login, including onboarding. #############
 
 @app.route('/login/<string:mod>')
 def fb_login(mod):
@@ -214,7 +215,30 @@ def fb_login(mod):
     return redirect(authorization_url)
 
 
-@app.route('/<string:mod>/<int:id>/login_select')
+@app.route('/callback/<string:mod>')
+def callback(mod):
+    """ Handle the callback for Facebook authorization. Create new influencer or brand user as indicated by 'mod'. """
+    app.logger.info(f'================= Authorization Callback {mod}===================')
+    view, data = onboarding(mod, request)
+    if view == 'decide':
+        data = prep_ig_decide(data)
+        return render_template('decide_ig.html', mod=mod, view=view, ig_list=data)
+    elif view == 'existing':
+        app.logger.info("Login Existing influencer or brand user. ")
+        app.logger.debug(f"Amongst these existing User options: {data}. ")
+        return render_template('decide_ig.html', mod=mod, view=view, ig_list=data)
+    elif view == 'not_found':
+        return render_template('decide_ig.html', mod=mod, view=view, ig_list=data)
+    elif view == 'complete':
+        app.logger.info("Completed User")
+        return redirect(url_for('view', mod=mod, id=data[0].get('account_id')))
+    elif view == 'error':
+        return redirect(url_for('error', data=data), code=307)
+    else:
+        return redirect(url_for('error', data='unknown response'), code=307)
+
+
+@app.route('/<string:mod>/<int:id>/login_select', methods=['GET', 'POST'])
 @login_required
 def login_sel(mod, id):
     """ An influencer or brand is logging in with an existing user account. """
@@ -255,45 +279,22 @@ def decide_new(mod, id):
         flash(f"That feature for {mod} is not available at this time. Contact an Admin for details. ")
         return redirect(request.referrer)
     fb_id = getattr(user, 'facebook_id', '')
-    data = {'facebook_id': fb_id, 'role': mod}
+    data = {'facebook_id': fb_id, 'role': mod, 'token_expires': getattr(user, 'token_expires', None)}
     data['id'] = fb_id  # TODO: Remove once confirmed always looking for 'facebook_id' key instead.
     token = getattr(user, 'token', None)
     if not token:
         app.logger.info("User probably closed window/session. Starting over with login. ")
         # TODO: Check for potential infinate loop issues.
         return redirect(url_for('fb_login', mod=mod))
-    return onboard_new(data, token=token)
-
-
-@app.route('/callback/<string:mod>')
-def callback(mod):
-    """ Handle the callback for Facebook authorization. Create new influencer or brand user as indicated by 'mod'. """
-    app.logger.info(f'================= Authorization Callback {mod}===================')
-    view, data = onboarding(mod, request)
-    if view == 'decide':
-        app.logger.info("Decide which IG account")
-        ig_list = []
-        for ig_info in data:
-            cleaned = {}
-            for key, value in ig_info.items():
-                cleaned[key] = json.dumps(value) if key in Audience.IG_DATA else value
-            ig_list.append(cleaned)
-        app.logger.debug(f"Amongst these IG options: {ig_list}. ")
-        return render_template('decide_ig.html', mod=mod, view=view, ig_list=ig_list)
-    elif view == 'existing':
-        app.logger.info("Login Existing influencer or brand user. ")
-        app.logger.debug(f"Amongst these existing User options: {data}. ")
-        return render_template('decide_ig.html', mod=mod, view=view, ig_list=data)
-    elif view == 'not_found':
-        return render_template('decide_ig.html', mod=mod, view=view, ig_list=data)
-    elif view == 'complete':
-        app.logger.info("Completed User")
-        return redirect(url_for('view', mod=mod, id=data[0].get('account_id')))
-    elif view == 'error':
+    view, data = onboard_new(data, token=token)  # ('not_found', data) | ('decide', data)
+    if view == 'error':
         return redirect(url_for('error', data=data), code=307)
-    else:
-        return redirect(url_for('error', data='unknown response'), code=307)
+    if view == 'decide':
+        data = prep_ig_decide(data)
+    return render_template('decide_ig.html', mod=mod, view=view, ig_list=data)
 
+
+# ############# End Facebook login functions. #############
 # ########## The following are for Campaign Views ############
 
 
