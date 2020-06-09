@@ -1,5 +1,5 @@
 from flask import session, current_app as app
-from flask_login import login_user
+from flask_login import login_user, logout_user, current_user
 from datetime import timedelta, datetime as dt
 import requests
 from requests_oauthlib import OAuth2Session
@@ -430,7 +430,7 @@ def get_ig_info(ig_id, facebook=None, token=None):
     url = f"https://graph.facebook.com/v4.0/{ig_id}?fields={fields}"
     res = facebook.get(url).json() if facebook else requests.get(f"{url}&access_token={token}").json()
     end_time = dt.utcnow().isoformat(timespec='seconds') + '+0000'
-    for name in Audience.IG_DATA:
+    for name in Audience.IG_DATA:  # {'media_count', 'followers_count'}
         res[name] = {'end_time': end_time, 'value': res.get(name)}
     res['name'] = res.pop('username', res.get('name', ''))
     return res
@@ -440,7 +440,6 @@ def find_pages_for_fb_id(fb_id, facebook=None, token=None):
     """ From a known facebook id, we can get a list of all pages the user has a role on via the accounts route.
         Using technique from Graph API docs: https://developers.facebook.com/docs/graph-api/reference/v7.0/user/accounts
     """
-
     url = f"https://graph.facebook.com/v7.0/{fb_id}/accounts"
     app.logger.info("========================== The find_pages_for_fb_id was called ==========================")
     if not facebook and not token:
@@ -454,6 +453,7 @@ def find_pages_for_fb_id(fb_id, facebook=None, token=None):
         app.logger.error('Got error in find_pages_for_fb_id function')
         app.logger.error(res['error'])
         # TODO: Handle error.
+    # TODO: Confirm 'res' is formatted to match what is expected for 'accounts'
     return res
 
 
@@ -486,12 +486,13 @@ def find_instagram_id(accounts, facebook=None, token=None):
                 if err == 10:
                     err = 100
                     req_token = token
-                    app.logger.info("Will try app token for user. ")
+                    app.logger.info("Will use app token for user. ")
                 elif err == 100:
                     err = 200
-                    app.logger.info("Will try a generated App Token. ")
-                    token = generate_app_access_token()
+                    app.logger.info("Will use a generated app token. ")
+                    req_token = generate_app_access_token()
                 else:
+                    app.logger.info("Tried page token, user token, and generated token. All have failed. ")
                     err = 1
             else:
                 err = 0
@@ -504,10 +505,10 @@ def find_instagram_id(accounts, facebook=None, token=None):
             ig_list.append(ig_info)
         elif 'error' in res:
             app.logger.error(f"Error on getting info from {page['id']} Page. ")
-            pprint(res)
+            # pprint(res)
         else:
-            app.logger.info("No Appropriate Account on this page. ")
-            pprint(res)
+            app.logger.info(f"No appropriate account on {page['id']} Page. ")
+            # pprint(res)
     return ig_list
 
 
@@ -520,12 +521,31 @@ def onboard_login(mod):
     return authorization_url
 
 
-def onboard_new(data, facebook=None):
-    """ Adding a user that does not have any accounts under their facebook id. """
-    accounts = data.pop('accounts', find_pages_for_fb_id(data.get('id', ''), facebook=facebook))
-    ig_list = find_instagram_id(accounts, facebook=facebook)
-    ig_id = None
-    if len(ig_list) == 1:
+def onboard_new(data, facebook=None, token=None):
+    """ Typically used for adding a user that does not have any accounts under their facebook id.
+        May also be used for a currently logged in user to create another account with a different Instagram account.
+        The user should be logged in before returning results, but only if valid Instagram account(s) are found.
+    """
+    if not facebook and not token:
+        message = "This function requires at least one value for either 'facebook' or 'token' keyword arguments. "
+        app.logger.error(message)
+        raise Exception(message)
+    accounts = data.pop('accounts', find_pages_for_fb_id(data.get('facebook_id', ''), facebook=facebook, token=token))
+    ig_list = find_instagram_id(accounts, facebook=facebook, token=token)
+    ig_id, user = None, None
+    if len(ig_list) == 0:
+        app.logger.info("No valid instagram accounts were found. ")
+        return ('not_found', ig_list)
+    if current_user.is_authenticated and getattr(current_user, 'facebook_id', '') == data.get('facebook_id', None):
+        # This is the case when a current user is creating another user account with a different Instagram account.
+        data['token'] = token
+        fb_id = data.get('facebook_id', '')
+        data['name'] = fb_id
+        user = User.query.filter(User.name == fb_id, User.facebook_id == fb_id, User.id != current_user.id).first()
+        logout_user()
+        # TODO: Complete modifications needed for creating another user account.
+        app.logger.debug(f'------ Found {len(ig_list)} potential IG accounts ------')
+    elif len(ig_list) == 1:
         ig_info = ig_list[0]
         data['name'] = ig_info.get('name', None)
         ig_id = int(ig_info.get('id', 0))
@@ -540,25 +560,31 @@ def onboard_new(data, facebook=None):
         data['audiences'] = models
         app.logger.debug('------ Only 1 InstaGram business account ------')
     else:
-        data['name'] = data.get('id', None) if 'name' not in data else data['name']
+        data['name'] = data.get('facebook_id', data.get('id', None)) if 'name' not in data else data['name']
         app.logger.debug(f'------ Found {len(ig_list)} potential IG accounts ------')
     # TODO: Create and use a User method that will create or use existing User, and returns a User object.
     # Refactor next three lines to utilize this method so we don't need the extra query based on id.
-    account = db_create(data)
-    account_id = account.get('id')
-    user = User.query.get(account_id)
+    if not user:
+        account = db_create(data)
+        user = User.query.get(account.get('id'))
+    else:
+        app.logger.info(f"Found existing user account {user}. ")
+        # TODO: Update user with data values.
     login_user(user, force=True, remember=True)
     for ig_info in ig_list:
-        ig_info.update({'account_id': account_id})
+        ig_info.update({'account_id': user.id})
     if ig_id:
-        # previously called get_insight and get_audience. These will need to be called manually later.
+        # previous versions called get_insight and get_audience. These will need to be called manually later.
         return ('complete', ig_list)
     else:  # This Facebook user needs to select one of many of their IG business accounts
         return ('decide', ig_list)
 
 
 def onboard_existing(users, data, facebook=None):
-    """ Either logging in an existing user, or let them onboard a different instagram account. """
+    """ Login an existing user. If multiple users under the same facebook id, return a list of users to switch to. """
+    login_user(users[0], force=True, remember=True)
+    if len(users) == 1:
+        return ('complete', [{'account_id': users[0].id}])
     user_list = []
     for user in users:
         ig_info = {}
@@ -570,28 +596,33 @@ def onboard_existing(users, data, facebook=None):
         ig_info['page_id'] = user.page_id
         ig_info['page_token'] = user.page_token
         user_list.append(ig_info)
-    session['onboard_data'] = (data, facebook)
     return ('existing', user_list)
 
 
 def onboarding(mod, request):
-    """ Verify the authorization request and create the appropriate influencer or brand user. """
+    """ Verify the authorization request. Then either login or create the appropriate influencer or brand user.
+        The user should be logged in before the output is returned, but only if there are potential IG accounts.
+        Output: (view, data_list)
+        view can be one of: 'complete', 'decide', 'existing', 'not_found', 'error'.
+        data_list has dicts with keys: account_id, name, facebook_id, followers_count, media_count, page_id, page_token.
+        or data_list is the error response for error.
+    """
     callback = URL + '/callback/' + mod
     facebook = OAuth2Session(FB_CLIENT_ID, scope=FB_SCOPE, redirect_uri=callback, state=session['oauth_state'])
     facebook = facebook_compliance_fix(facebook)  # we need to apply a fix for Facebook here
     # TODO: ? Modify input parameters to only pass the request.url value since that is all we use?
     token = facebook.fetch_token(FB_TOKEN_URL, client_secret=FB_CLIENT_SECRET, authorization_response=request.url)
     if 'error' in token:
-        return ('error', token, None)
+        return ('error', token['error'])
     facebook_user_data = facebook.get("https://graph.facebook.com/me?fields=id,accounts").json()
     if 'error' in facebook_user_data:
-        return ('error', facebook_user_data, None)
+        return ('error', facebook_user_data)
     # TODO: use a better constructor for the user account.
     data = facebook_user_data.copy()  # .to_dict(flat=True)
     data['role'] = mod
     data['token'] = token
-    # TODO: Handle if we already have this facebook account as a user.
-    fb_id = data.get('id', None)
+    fb_id = data.get('id', None)  # TODO: Change to .pop once confirmed elsewhere always looks for 'facebook_id'.
+    data['facebook_id'] = fb_id
     users = User.query.filter(User.facebook_id == fb_id).all() if fb_id else None
     if users:
         return onboard_existing(users, data, facebook=facebook)

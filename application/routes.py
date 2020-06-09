@@ -214,35 +214,55 @@ def fb_login(mod):
     return redirect(authorization_url)
 
 
-@app.route('/<string:mod>/<int:id>/login_revisit')
-def login_revisit(mod):
+@app.route('/<string:mod>/<int:id>/login_select')
+@login_required
+def login_sel(mod, id):
     """ An influencer or brand is logging in with an existing user account. """
     user = User.query.get(id)
     # TODO: Cleanup these and possibly other edge cases.
     if not user:
-        message = "Selected a non-existent user. "
+        logout_user()
+        message = "Selected a non-existent user. You are logged off. "
         app.logger.error(message)
         flash(message)
         return redirect(url_for('home'))
-    if user.role != mod:
+    elif user.facebook_id != current_user.facebook_id:
+        logout_user()
+        message = "Non-matching facebook_id. "
+        app.logger.error(message)
+        flash("Not valid input. You are logged off. ")
+        return redirect(url_for('home'))
+    elif user.role != mod:
         message = "Selected User does not match the selected mod. "
         app.logger.error(message)
         flash(message)
+        # TODO: Should this be handled differently?
+    logout_user()
     login_user(user, force=True, remember=True)
-    session.pop('onboard_data', None)
-    return redirect(url_for('view', mod=mod, id=id))
+    return redirect(url_for('view', mod=user.role, id=user.id))
 
 
-@app.route('/decide_new/<string:mod>')
-def decide_new(mod):
+@app.route('/<string:mod>/<int:id>/decide_new')
+@login_required
+def decide_new(mod, id):
     """ An existing user is making an influencer or brand account with a different IG account. """
     from .api import onboard_new
-    data, facebook = session.pop('onboard_data', ({}, None))
-    if not any(data, facebook):
+
+    valid_mod = {'influencer', 'brand'}
+    user = User.query.get(id)
+    if mod not in valid_mod or not user or user != current_user:
+        app.logger.error(f"Unable to decide_new for {mod}. ")
+        flash(f"That feature for {mod} is not available at this time. Contact an Admin for details. ")
+        return redirect(request.referrer)
+    fb_id = getattr(user, 'facebook_id', '')
+    data = {'facebook_id': fb_id, 'role': mod}
+    data['id'] = fb_id  # TODO: Remove once confirmed always looking for 'facebook_id' key instead.
+    token = getattr(user, 'token', None)
+    if not token:
         app.logger.info("User probably closed window/session. Starting over with login. ")
         # TODO: Check for potential infinate loop issues.
         return redirect(url_for('fb_login', mod=mod))
-    return onboard_new(data, facebook=facebook)
+    return onboard_new(data, token=token)
 
 
 @app.route('/callback/<string:mod>')
@@ -261,8 +281,10 @@ def callback(mod):
         app.logger.debug(f"Amongst these IG options: {ig_list}. ")
         return render_template('decide_ig.html', mod=mod, view=view, ig_list=ig_list)
     elif view == 'existing':
-        app.logger.info("Login Existing or Create New for different IG account. ")
+        app.logger.info("Login Existing influencer or brand user. ")
         app.logger.debug(f"Amongst these existing User options: {data}. ")
+        return render_template('decide_ig.html', mod=mod, view=view, ig_list=data)
+    elif view == 'not_found':
         return render_template('decide_ig.html', mod=mod, view=view, ig_list=data)
     elif view == 'complete':
         app.logger.info("Completed User")
