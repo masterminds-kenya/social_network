@@ -2,6 +2,7 @@ from flask import current_app as app
 from functools import wraps
 from flask_login import current_user
 from .model_db import User, Insight, Audience, Post, Campaign
+import json
 
 
 def mod_lookup(mod):
@@ -15,6 +16,19 @@ def mod_lookup(mod):
     if not Model:
         raise ValueError("That is not a valid url path. ")
     return Model
+
+
+def prep_ig_decide(data):
+    """ Some needed changes to prepare for the user to select amongst various Instagram accounts and data. """
+    app.logger.info("Decide which IG account")
+    ig_list = []
+    for ig_info in data:
+        cleaned = {}
+        for key, value in ig_info.items():
+            cleaned[key] = json.dumps(value) if key in Audience.IG_DATA else value
+        ig_list.append(cleaned)
+    app.logger.debug(f"Amongst these IG options: {ig_list}. ")
+    return ig_list
 
 
 def staff_required(role=['admin', 'manager']):
