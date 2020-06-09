@@ -88,6 +88,7 @@
   <li><a href="{{ url_for('new_audience', mod=mod, id=data['id']) }}">Get New Audience Data</a> </li>
   {% endif %}
   <li>CAREFUL BELOW!</li>
+  <li><a href="{{ url_for('decide_new', mod=mod, id=data['id']) }}">Create Account using a different Instagram account</a></li>
   <li><a href="{{ url_for('edit', mod=mod, id=data['id']) }}">Update {{ mod|title }}</a></li>
   {% if current_user.role == 'admin' or (current_user['id'] == data['id'] and current_user.role == mod) %}
   <li><a href="{{ url_for('delete', mod=mod, id=data['id']) }}">Delete {{ mod|title }}</a></li>

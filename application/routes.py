@@ -255,7 +255,7 @@ def decide_new(mod, id):
         flash(f"That feature for {mod} is not available at this time. Contact an Admin for details. ")
         return redirect(request.referrer)
     fb_id = getattr(user, 'facebook_id', '')
-    data = {'facebook_id': fb_id, 'role': mod}
+    data = {'facebook_id': fb_id, 'role': mod, 'token_expires': getattr(user, 'token_expires', None)}
     data['id'] = fb_id  # TODO: Remove once confirmed always looking for 'facebook_id' key instead.
     token = getattr(user, 'token', None)
     if not token:
