@@ -14,7 +14,7 @@
   <hr />
   <h3>{{account.name}} </h3>
   {% if view == 'existing' %}
-  <form action="{{url_for('login_revisit', mod=mod, id=account.account_id)}} " method="POST" enctype="multipart/form-data">
+  <form action="{{url_for('login_sel', mod=mod, id=account.account_id)}} " method="POST" enctype="multipart/form-data">
     <input type="hidden" name="user_id" id="user_id" value="{{account.account_id}}" />
   {% elif view == 'decide' %}
   <form action="{{url_for('edit', mod=mod, id=account.account_id)}} " method="POST" enctype="multipart/form-data">
@@ -43,10 +43,11 @@
   {% if view == 'existing' %}
   <hr />
   <h2>Create {{mod}} account using a different Instagram account</h2>
-  <form action="{{url_for('decide_new', mod=mod, id=ig_list[0].account_id)}} " method="POST" enctype="multipart/form-data">
-    <input type="hidden" name="create_new" id="create_new" value="{{ig_list[0].account_id}}" />
-    <button type="submit" class="btn btn-success">Create New</button>
-  </form>
+  <p>
+    If you want to use a different Instagram account for this platform, first login with an existing account listed
+    above. This will take you to the profile page for that account. At the bottom of the page you will see a link to
+    create another account on the platform to connect to your other Instagram account.
+  </p>
   {% endif %}
 </main>
 {% endblock content %}
