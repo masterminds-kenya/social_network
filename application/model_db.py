@@ -114,7 +114,8 @@ class User(UserMixin, db.Model):
     UNSAFE = {'password', 'token', 'token_expires', 'page_token', 'modified', 'created'}
 
     def __init__(self, *args, **kwargs):
-        kwargs['facebook_id'] = kwargs.pop('id') if 'facebook_id' not in kwargs and 'id' in kwargs else None
+        temp_id = kwargs.pop('id', None)
+        kwargs['facebook_id'] = temp_id if 'facebook_id' not in kwargs else kwargs['facebook_id']
         kwargs['name'] = kwargs.pop('username', kwargs.get('name'))  # TODO: Confirm 'username' is no longer needed.
         if 'token_expires' not in kwargs and 'token' in kwargs:
             # modifications for parsing data from api call
