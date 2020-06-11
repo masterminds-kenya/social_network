@@ -9,9 +9,15 @@
 |                    | **Milestone 1 Completion**                      |
 | :heavy_check_mark: | Update dependency packages                      |
 | :heavy_check_mark: | Onboarding login made quicker, manual user account API calls |
+|                    | Onboard test: 1 IG account, 2+ IG account       |
+|                    | Onboard test: Paginated results on IG accounts  |
+|                    | Onboard test: No FB pages, No IG on any FB pages|
+|                    | Onboard test: Add 2nd User                      |
+|                    | Return Login: 1 User acct, 2+ User acct         |
 |                    | Updates for deprecated manage_pages permission  |
 |                    | **Milestone 2 Completion**                      |
 |                    | Proposal and quotes for upcoming features       |
+|                    | On user delete, unsubscribe from stories        |
 |                    | Cron Posts only for Users in active Campaigns   |
 |                    | Story Metrics only for Users in active Campaigns|
 |                    | **Milestone 3 Completion**                      |

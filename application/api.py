@@ -464,7 +464,8 @@ def find_instagram_id(accounts, facebook=None, token=None):
     if not facebook and not token:
         message = "This function requires at least one value for either 'facebook' or 'token' keyword arguments. "
         app.logger.error(message)
-        raise Exception(message)
+        return []
+        # raise Exception(message)
     if not accounts or 'data' not in accounts:
         message = f"No pages found from accounts data: {accounts}. "
         app.logger.info(message)
@@ -501,7 +502,6 @@ def find_instagram_id(accounts, facebook=None, token=None):
             ig_info = get_ig_info(ig_business.get('id', None), facebook=facebook, token=token)
             ig_info['page_id'] = page['id']
             ig_info['page_token'] = page['token']
-            # ig_info['name'] = ig_info.pop('username', ig_info.get('name', ''))
             ig_list.append(ig_info)
         elif 'error' in res:
             app.logger.error(f"Error on getting info from {page['id']} Page. ")
@@ -517,7 +517,13 @@ def onboard_login(mod):
     callback = URL + '/callback/' + mod
     facebook = OAuth2Session(FB_CLIENT_ID, redirect_uri=callback, scope=FB_SCOPE)
     authorization_url, state = facebook.authorization_url(FB_AUTHORIZATION_BASE_URL)
-    session['oauth_state'] = state
+    session['oauth_state'] = state.strip()
+    app.logger.info("============= Login Function Paramters ==================")
+    app.logger.info(f"mod: {mod} ")
+    app.logger.info(f"callback: {callback} ")
+    app.logger.info(f"authorization_url: {authorization_url} ")
+    app.logger.info(f"Session State: {session['oauth_state']} ")
+    app.logger.info("=========================================================")
     return authorization_url
 
 
@@ -529,7 +535,8 @@ def onboard_new(data, facebook=None, token=None):
     if not facebook and not token:
         message = "This function requires at least one value for either 'facebook' or 'token' keyword arguments. "
         app.logger.error(message)
-        raise Exception(message)
+        return ('not_found', [])
+        # raise Exception(message)
     accounts = data.pop('accounts', find_pages_for_fb_id(data.get('facebook_id', ''), facebook=facebook, token=token))
     ig_list = find_instagram_id(accounts, facebook=facebook, token=token)
     ig_id, user = None, None
@@ -608,22 +615,41 @@ def onboarding(mod, request):
         or data_list is the error response for error.
     """
     callback = URL + '/callback/' + mod
+    request_url = request.url.strip()
+    params = request.args
+    state = params.get('state', None)
+    app.logger.info("============= Onboarding Function Paramters ==================")
+    app.logger.info(f"mod: {mod} ")
+    app.logger.info(f"callback: {callback} ")
+    app.logger.info(f"Request Url: {request_url} ")
+    app.logger.info(f"Session-State: {session['oauth_state']} ")
+    app.logger.info(f"Params--State: {state} ")
+    app.logger.info(state == session['oauth_state'])
+    app.logger.info("=========================================================")
     facebook = OAuth2Session(FB_CLIENT_ID, scope=FB_SCOPE, redirect_uri=callback, state=session['oauth_state'])
     facebook = facebook_compliance_fix(facebook)  # we need to apply a fix for Facebook here
+    app.logger.info(facebook)
     # TODO: ? Modify input parameters to only pass the request.url value since that is all we use?
-    token = facebook.fetch_token(FB_TOKEN_URL, client_secret=FB_CLIENT_SECRET, authorization_response=request.url)
+    token = facebook.fetch_token(FB_TOKEN_URL, client_secret=FB_CLIENT_SECRET, authorization_response=request_url)
+    app.logger.info(token)
     if 'error' in token:
+        app.logger.info(token['error'])
         return ('error', token['error'])
     facebook_user_data = facebook.get("https://graph.facebook.com/me?fields=id,accounts").json()
     if 'error' in facebook_user_data:
-        return ('error', facebook_user_data)
+        app.logger.info(facebook_user_data['error'])
+        return ('error', facebook_user_data['error'])
     # TODO: use a better constructor for the user account.
     data = facebook_user_data.copy()  # .to_dict(flat=True)
     data['role'] = mod
     data['token'] = token
     fb_id = data.get('id', None)  # TODO: Change to .pop once confirmed elsewhere always looks for 'facebook_id'.
     data['facebook_id'] = fb_id
+    app.logger.info('================= Prepared Data and Users =======================')
+    app.logger.info(data)
     users = User.query.filter(User.facebook_id == fb_id).all() if fb_id else None
+    app.logger.info(users)
+    app.logger.info('=================================================================')
     if users:
         return onboard_existing(users, data, facebook=facebook)
     else:
