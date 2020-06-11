@@ -645,7 +645,11 @@ def onboarding(mod, request):
     data['token'] = token
     fb_id = data.get('id', None)  # TODO: Change to .pop once confirmed elsewhere always looks for 'facebook_id'.
     data['facebook_id'] = fb_id
+    app.logger.info('================= Prepared Data and Users =======================')
+    app.logger.info(data)
     users = User.query.filter(User.facebook_id == fb_id).all() if fb_id else None
+    app.logger.info(users)
+    app.logger.info('=================================================================')
     if users:
         return onboard_existing(users, data, facebook=facebook)
     else:
