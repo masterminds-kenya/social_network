@@ -516,6 +516,7 @@ def onboard_login(mod):
     """ Process the initiation of creating a new influencer or brand user with facebook authorization. """
     callback = URL + '/callback/' + mod
     facebook = OAuth2Session(FB_CLIENT_ID, redirect_uri=callback, scope=FB_SCOPE)
+    facebook = facebook_compliance_fix(facebook)  # we need to apply a fix for Facebook here
     authorization_url, state = facebook.authorization_url(FB_AUTHORIZATION_BASE_URL)
     session['oauth_state'] = state.strip()
     app.logger.info("============= Login Function Paramters ==================")
@@ -537,16 +538,16 @@ def onboard_new(data, facebook=None, token=None):
         app.logger.error(message)
         return ('not_found', [])
         # raise Exception(message)
-    accounts = data.pop('accounts', find_pages_for_fb_id(data.get('facebook_id', ''), facebook=facebook, token=token))
+    fb_id = data.get('facebook_id', '')
+    accounts = data.pop('accounts', None) or find_pages_for_fb_id(fb_id, facebook=facebook, token=token)
     ig_list = find_instagram_id(accounts, facebook=facebook, token=token)
     ig_id, user = None, None
     if len(ig_list) == 0:
         app.logger.info("No valid instagram accounts were found. ")
         return ('not_found', ig_list)
-    if current_user.is_authenticated and getattr(current_user, 'facebook_id', '') == data.get('facebook_id', None):
+    if current_user.is_authenticated and getattr(current_user, 'facebook_id', None) == fb_id:
         # This is the case when a current user is creating another user account with a different Instagram account.
         data['token'] = token
-        fb_id = data.get('facebook_id', '')
         data['name'] = fb_id
         user = User.query.filter(User.name == fb_id, User.facebook_id == fb_id, User.id != current_user.id).first()
         logout_user()
@@ -615,19 +616,20 @@ def onboarding(mod, request):
         or data_list is the error response for error.
     """
     callback = URL + '/callback/' + mod
-    request_url = request.url.strip()
+    request_url = request.url.strip().rstrip('#_=_')
     params = request.args
     state = params.get('state', None)
     app.logger.info("============= Onboarding Function Paramters ==================")
     app.logger.info(f"mod: {mod} ")
     app.logger.info(f"callback: {callback} ")
-    app.logger.info(f"Request Url: {request_url} ")
-    app.logger.info(f"Session-State: {session['oauth_state']} ")
+    app.logger.info(f"Request Url Initial: {request.url} ")
+    app.logger.info(f"Request Url Cleaned: {request_url} ")
+    app.logger.info(f"Session-State: {session.get('oauth_state')} ")
     app.logger.info(f"Params--State: {state} ")
-    app.logger.info(state == session['oauth_state'])
+    app.logger.info(state == session.get('oauth_state'))
     app.logger.info("=========================================================")
-    facebook = OAuth2Session(FB_CLIENT_ID, scope=FB_SCOPE, redirect_uri=callback, state=session['oauth_state'])
-    facebook = facebook_compliance_fix(facebook)  # we need to apply a fix for Facebook here
+    facebook = OAuth2Session(FB_CLIENT_ID, scope=FB_SCOPE, redirect_uri=callback, state=session.get('oauth_state'))
+    # facebook = facebook_compliance_fix(facebook)  # we need to apply a fix for Facebook here
     app.logger.info(facebook)
     # TODO: ? Modify input parameters to only pass the request.url value since that is all we use?
     token = facebook.fetch_token(FB_TOKEN_URL, client_secret=FB_CLIENT_SECRET, authorization_response=request_url)
