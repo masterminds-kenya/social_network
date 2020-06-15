@@ -629,7 +629,7 @@ def onboarding(mod, request):
     app.logger.info(state == session.get('oauth_state'))
     app.logger.info("=========================================================")
     facebook = OAuth2Session(FB_CLIENT_ID, scope=FB_SCOPE, redirect_uri=callback, state=session.get('oauth_state'))
-    # facebook = facebook_compliance_fix(facebook)  # we need to apply a fix for Facebook here
+    facebook = facebook_compliance_fix(facebook)  # we need to apply a fix for Facebook here
     app.logger.info(facebook)
     # TODO: ? Modify input parameters to only pass the request.url value since that is all we use?
     token = facebook.fetch_token(FB_TOKEN_URL, client_secret=FB_CLIENT_SECRET, authorization_response=request_url)

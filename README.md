@@ -1,7 +1,7 @@
 # social_network
 
 **Author**: Chris L Chapman
-**Version**: 0.5.1
+**Version**: 0.5.5
 
 This application is a social media analysis platform with "Influencer" users who are experts in social media that bring value to our "Brand" company users who are principally responsible for the investment in the reputation of their products, as well as "Marketing" users who further manage this brand reputation investment.
 
@@ -124,7 +124,8 @@ We are using pipenv, for local development, to help us track both dependencies a
 
 We are keeping a checklist for features and tasks that are both completed and are upcoming. This is intended as brief overview and to capture ongoing thoughts on how we are proceeding in developing this application. As a living document, it loosely indicates what we plan on working soon, with various degrees of specificity in planning. The current status of this file can be found in the following link:
 
-- [Features & Tasks - Round 3](./checklist-06.md) for up to version 0.5.2.
+- [Features & Tasks - Round 3](./checklist-07.md) for up to version 0.7.0.
+- [Login - Onboarding Update](./checklist-06.md) for up to version 0.5.5.
 - [Features & Tasks - Round 2](./checklist-03.md) for up to version 0.5.0.
 - [Original Features & Tasks](./checklist.md) for up to version 0.2.0.
 
