@@ -3,6 +3,8 @@ from os import environ
 # class Config:
 #     """ Flask configuration variables """
 SECRET_KEY = environ.get('SECRET_KEY')  # for session cookies & flash messages
+SESSION_COOKIE_SECURE = True
+REMEMBER_COOKIE_SECURE = True
 FB_HOOK_SECRET = environ.get('FB_HOOK_SECRET')
 FLASK_APP = environ.get('FLASK_APP')
 FLASK_ENV = environ.get('FLASK_ENV')
