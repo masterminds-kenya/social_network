@@ -66,3 +66,13 @@ def self_or_staff_required(role=['admin', 'manager'], user=current_user):
             return fn(*args, **kwargs)
         return decorated_view
     return wrapper
+
+
+def get_daily_ig_accounts(active=True):
+    """Returns a list of users that should have up-to-date tracking of their daily IG media posts. """
+    target_users = User.query.filter(User.instagram_id.isnot(None))
+    if not active:
+        return target_users.all()
+    # get all active campaigns.
+    # filter users to those only in active campaigns.
+    return target_users.all()
