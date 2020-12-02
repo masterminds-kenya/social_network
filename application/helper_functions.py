@@ -1,6 +1,7 @@
 from flask import current_app as app
 from functools import wraps
 from flask_login import current_user
+from sqlalchemy import or_
 from .model_db import User, Insight, Audience, Post, Campaign
 import json
 
@@ -70,9 +71,8 @@ def self_or_staff_required(role=['admin', 'manager'], user=current_user):
 
 def get_daily_ig_accounts(active=True):
     """Returns a list of users that should have up-to-date tracking of their daily IG media posts. """
-    target_users = User.query.filter(User.instagram_id.isnot(None))
-    if not active:
-        return target_users.all()
-    # get all active campaigns.
-    # filter users to those only in active campaigns.
-    return target_users.all()
+    users = User.query.filter(User.instagram_id.isnot(None))
+    if active:
+        is_active = Campaign.completed.is_(False)
+        users = users.filter(or_(User.campaigns.any(is_active), User.brand_campaigns.any(is_active)))
+    return users.all()

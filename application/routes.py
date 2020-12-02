@@ -123,14 +123,15 @@ def permission_check(mod, id):
 @admin_required()
 def test_method():
     """ Temporary route and function for developer to test components. """
-    # from .sheets import get_vals, get_insight_report
     from pprint import pprint
 
-    app.logger.info(f"========== Test Method for admin:  ==========")
-    all_response = {'key1': 1, 'key2': 'two', 'key3': '3rd', 'meaningful': False}
-    pprint(all_response)
+    app.logger.info("========== Test Method for admin:  ==========")
+    info = get_daily_ig_accounts()
+    pprint([f"{ea}: {len(ea.campaigns)} | {len(ea.brand_campaigns)} " for ea in info])
+    # info = {'key1': 1, 'key2': 'two', 'key3': '3rd', 'meaningful': False}
+    # pprint(info)
     app.logger.info('-------------------------------------------------------------')
-    return admin(data=all_response)
+    return admin(data=info)
 
 
 @app.route('/data/capture/<int:id>')
