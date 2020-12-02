@@ -1,34 +1,48 @@
-{% extends "base.html" %}
-{% block head %}
+{% extends "base.html" %} {% block head %}
 <title>{{ mod.capitalize() }}s</title>
-{% endblock %}
+{% endblock %} {% block content %}
+<main>
+  <div class="intro">
+    <h2>All Current {{ mod.capitalize() }}s</h2>
 
-{% block content %}
-<h3>All Current {{ mod.capitalize() }}s</h3>
-<ul>
-{% for datum in data %}
-  {% if mod == 'file' %}
-  <li>
-    {{ datum['name'] }} |
-    <a href="{{ url_for('data_permissions', mod='admin', id=datum['admin_id'], sheet_id=datum['id']) }}">
-      Edit Permissions
-    </a> |
-    <a href="{{ datum['link'] }}">View {{ datum['type'] }}</a>
-  </li>
-  {% else %}
-  <li><a href="{{ url_for('view', mod=mod, id=datum.id) }}">{{ datum }}</a></li>
+    {% if current_user.is_authenticated %}
+    <p class="platform-user-header">
+      Using the Platform as - {{ current_user.name }}
+    </p>
+    {% endif %}
+  </div>
+  <ul>
+    {% for datum in data %} {% if mod == 'file' %}
+    <li>
+      {{ datum['name'] }} |
+      <a
+        href="{{ url_for('data_permissions', mod='admin', id=datum['admin_id'], sheet_id=datum['id']) }}"
+      >
+        Edit Permissions
+      </a>
+      |
+      <a href="{{ datum['link'] }}">View {{ datum['type'] }}</a>
+    </li>
+    {% else %}
+    <li>
+      <a href="{{ url_for('view', mod=mod, id=datum.id) }}">{{ datum }}</a>
+    </li>
+    {% endif %} {% else %}
+    <li>Currently None</li>
+    {% endfor %}
+  </ul>
+  {% if mod != 'files' %}
+  <h3>Other Options</h3>
+  <ul>
+    <li>
+      <a href="{{url_for('add', mod=mod)}}"
+        >Add {% if mod == 'influencer' %}Fake {%endif%}{{mod.capitalize()}}</a
+      >
+    </li>
+    {% if mod == 'campaign' %}
+    <li><a href="{{ url_for('add', mod='brand')}}">Add Brand</a></li>
+    {% endif %}
+  </ul>
   {% endif %}
-{% else %}
-  <li>Currently None</li>
-{% endfor %}
-</ul>
-{% if mod != 'files' %}
-<h3>Other Options</h3>
-<ul>
-  <li><a href="{{url_for('add', mod=mod)}}">Add {% if mod == 'influencer' %}Fake {%endif%}{{mod.capitalize()}}</a></li>
-  {% if mod == 'campaign' %}
-  <li><a href="{{ url_for('add', mod='brand')}}">Add Brand</a></li>
-  {% endif %}
-</ul>
-{% endif %}
+</main>
 {% endblock %}

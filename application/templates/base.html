@@ -1,69 +1,107 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="description" content="Social Network Management">
-  <meta http-equiv="X-UA-Compatible" content="ie=edge">
-  <link rel="stylesheet" href="/static/normalize.css">
-  <link rel="stylesheet" href="/static/main.css">
-  <link rel="icon" type="image/x-icon" href="/static/favicon.ico">
-  {% block head %}
-  <title>Bacchus Influencer Platform</title>
-  {% endblock head %}
-</head>
-<body>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="Social Network Management" />
+    <meta http-equiv="X-UA-Compatible" content="ie=edge" />
+    <!-- <link rel="stylesheet" href="/static/normalize.css" /> -->
+    <link rel="stylesheet" href="/static/main.css" />
+    <link rel="icon" type="image/x-icon" href="/static/favicon.ico" />
+    {% block head %}
+    <title>Bacchus Influencer Platform</title>
+    {% endblock head %}
+  </head>
+  <body>
+    <header id="header">
+      <nav>
+        {% block header %}
 
-<header>
-{% block header %}
-  <nav>
-    <ul>
-      <li><a href="{{ url_for('home') }}">Home</a></li>
-      <li><a href="{{ url_for('all', mod='influencer') }}">Influencers</a></li>
-      <li><a href="{{ url_for('all', mod='brand') }}">Brands</a></li>
-      {% if current_user.role in ['admin', 'manager'] %}
-      <li><a href="{{ url_for('all', mod='campaign') }}">Campaigns</a></li>
-      <li><a href="{{ url_for('view', mod=current_user.role, id=current_user.id) }}">Profile</a></li>
-      {% endif %}
-      {% if current_user.role == 'admin' %}
-      <li><a href="{{ url_for('admin') }}">Admin Page</a></li>
-      {% endif %}
-      {% if current_user.is_authenticated %}
-      <li><a href="{{ url_for('logout') }}">Logout</a></li>
-      {% else %}
-      <li><a href="{{ url_for('login') }}">Login</a></li>
-      <li><a href="{{ url_for('signup') }}">Sign Up</a></li>
-      {% endif %}
-    </ul>
-    {% if current_user.is_authenticated %}
-    <p>
-      Using the Platform as - {{ current_user.name }}
-    </p>
-    {% endif %}
-  </nav>
-{% endblock header %}
+        <div class="header">
+          <input class="menu-btn" type="checkbox" id="menu-btn" />
+          <label class="menu-icon" for="menu-btn"
+            ><span class="navicon"></span
+          ></label>
 
-{% with messages = get_flashed_messages() %}
-  {% if messages %}
-    {% for message in messages %}
-    <h3>{{ message }}</h3>
-    {% endfor %}
-  {% endif %}
-{% endwith %}
-</header>
+          <div class="header-logo">
+            <img
+              src="../static/Bacchus_Logo_Black.png"
+              alt="logo"
+              class="logo"
+            />
+            <h1>Influencer Platform</h1>
+          </div>
+          <ul class="menu">
+            <li><a href="{{ url_for('home') }}">Home</a></li>
+            <li>
+              <a href="{{ url_for('all', mod='influencer') }}">Influencers</a>
+            </li>
+            <li><a href="{{ url_for('all', mod='brand') }}">Brands</a></li>
+            {% if current_user.role in ['admin', 'manager'] %}
+            <li>
+              <a href="{{ url_for('all', mod='campaign') }}">Campaigns</a>
+            </li>
+            <li>
+              <a
+                href="{{ url_for('view', mod=current_user.role, id=current_user.id) }}"
+                >Profile</a
+              >
+            </li>
+            {% endif %} {% if current_user.role == 'admin' %}
+            <li><a href="{{ url_for('admin') }}">Admin Page</a></li>
+            {% endif %} {% if current_user.is_authenticated %}
+            <li><a href="{{ url_for('logout') }}">Logout</a></li>
+            {% else %}
+            <li><a href="{{ url_for('login') }}">Login</a></li>
+            <li><a href="{{ url_for('signup') }}">Sign Up</a></li>
+            {% endif %}
+          </ul>
+          <!-- {% if current_user.is_authenticated %}
+          <p class="platform-user-header">
+            Using the Platform as - {{ current_user.name }}
+          </p>
+          {% endif %} -->
+        </div>
+      </nav>
+      {% endblock header %} {% with messages = get_flashed_messages() %} {% if
+      messages %} {% for message in messages %}
+      <h3>{{ message }}</h3>
+      {% endfor %} {% endif %} {% endwith %}
+    </header>
 
-{% block content %}
-<main>
-  <h1>Main Content</h1>
-  <p>content goes here</p>
-</main>
-{% endblock content %}
-<footer>
-  <p>
-    <a href="{{ url_for('home')}}">Home</a> |
-    <a href="{{ url_for('render_static', page_name='privacy') }}">Privacy</a> |
-    <a href="{{ url_for('render_static', page_name='tos') }}">Terms of Service</a>
-  </p>
-</footer>
-</body>
+    {% block content %}
+    <main>
+      <h1>Main Content</h1>
+      <p>content goes here</p>
+    </main>
+    {% endblock content %}
+    <footer>
+      <p>
+        <a href="{{ url_for('home')}}">Home</a> |
+        <a href="{{ url_for('render_static', page_name='privacy') }}"
+          >Privacy</a
+        >
+        |
+        <a href="{{ url_for('render_static', page_name='tos') }}"
+          >Terms of Service</a
+        >
+      </p>
+    </footer>
+
+    <script>
+      window.onscroll = function () {
+        myFunction();
+      };
+
+      var header = document.getElementById("header");
+      var sticky = header.offsetTop;
+      function myFunction() {
+        if (window.pageYOffset > sticky) {
+          header.classList.add("sticky");
+        } else {
+          header.classList.remove("sticky");
+        }
+      }
+    </script>
+  </body>
 </html>
