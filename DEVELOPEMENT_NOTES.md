@@ -42,6 +42,17 @@ We are using Webhooks to allow Instagram/Facebook to send JSON formatted data to
 
 All influencer users, and most brand users, should have a professional instagram account that is connected to a Facebook business page. In order for our platform to get the most accurate Story metrics, this page needs to have *App* platform enabled (the default setting), and continue to grant `manage_pages` permissions for our platform application (set during our onboarding process using Facebook login). The platform application will [subscribe to the page](https://developers.facebook.com/docs/graph-api/webhooks/getting-started/webhooks-for-pages) associated with the instagram account they are using for our platform (subscribing to the page's [name](https://developers.facebook.com/docs/graph-api/webhooks/reference/page/#name) field). There are some additional options for [Page Subscribed Apps](https://developers.facebook.com/docs/graph-api/reference/page/subscribed_apps) should we need it for later development goals. Can do a GET request to see current page subscribed apps. For page subscribed apps, if API version is greater than 3.1, then `subscribed_fields` parameter is required. Also see [Business Login and Page Access](https://developers.facebook.com/docs/facebook-login/business-login-direct) for related notes.
 
+Requirements for live updates by Webhooks for Instagram (STORY updates):
+
+- The app user must have granted your app appropriate Permissions
+  - instagram_manage_insights for Stories
+  - instagram_manage_comments for Comments and @Mentions.
+- The Page connected to the app user's account must have Page subscriptions enabled.
+- The Business connected to the app user's Page must be verified.
+- Instagram Webhooks must be configured and appropriate Fields subscribed to in the App Dashboard.
+- The app must be in Live Mode.
+- [IG Docs](https://developers.facebook.com/docs/graph-api/webhooks/getting-started/webhooks-for-instagram)
+
 During a given sqlalchemy database session, we are using `session.info` to track which of the current User objects in the session are in need of page and story_metrics subscription. Whenever the `page_token` property is set for a user (triggered by using [SQAlchemy Events](https://docs.sqlalchemy.org/en/13/orm/events.html)), this User object is added to the `session.info` dictionary under the appropriate key indicating it is ready for this process. By waiting to process them until triggered by a `before_flush` session event, we can be certain to have both the `page_token` and `page_id` field values we need. So, just before all these records are saved in the database, the function to send a request to the Graph API to subscribe to the page is called for each of these Users. If page subscription is successful, as expected in most cases, this will set `story_subscribed` as true for a User. When the page is subscribed, our platform will also be subscribed to receive all `story_metrics` for the associated Instagram account. The Instagram Story Media posts, and the API data about them and their metrics, are only available for about 24 hours from when they are published by the user. This `story_metrics` subscription ensures that our platform will be updated with the final metrics data of the Story when it expires.
 
 ## Task Queue on Google Cloud Platform

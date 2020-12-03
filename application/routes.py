@@ -223,13 +223,13 @@ def callback(mod):
     view, data = onboarding(mod, request)
     if view == 'decide':
         data = prep_ig_decide(data)
-        return render_template('decide_ig.html', mod=mod, view=view, ig_list=data)
+        return render_template('decide_ig.html', mod=mod, view=view, ig_list=data)  # POST to edit
     elif view == 'existing':
         app.logger.info("Login Existing influencer or brand user. ")
         app.logger.debug(f"Amongst these existing User options: {data}. ")
-        return render_template('decide_ig.html', mod=mod, view=view, ig_list=data)
+        return render_template('decide_ig.html', mod=mod, view=view, ig_list=data)  # POST to login_sel
     elif view == 'not_found':
-        return render_template('decide_ig.html', mod=mod, view=view, ig_list=data)
+        return render_template('decide_ig.html', mod=mod, view=view, ig_list=data)  # POST to edit
     elif view == 'complete':
         app.logger.info("Completed User")
         return redirect(url_for('view', mod=mod, id=data[0].get('account_id')))

@@ -1,8 +1,22 @@
 from flask import current_app as app
 from sqlalchemy import event
-from .model_db import User, Post, db
-from .api import install_app_on_user_for_story_updates
+from .model_db import User, Post, Campaign, db
+from .api import install_app_on_user_for_story_updates, remove_app_on_user_for_story_updates
 from .create_queue_task import add_to_capture
+
+
+def handle_user_subscribe(user, remove=False):
+    """Called for a User with a page_token is in an active Campaign.  """
+    add, drop = 'subscribe_page', 'unsubscribe_page'
+    if remove:
+        add, drop = drop, add
+    if add in db.session.info:
+        db.session.info[add].add(user)
+    else:
+        db.session.info[add] = {user, }
+    if remove in db.session.info:  # and user in db.session.info[remove]:
+        db.session.info[remove].discard(user)
+    return user
 
 
 @event.listens_for(User.page_token, 'set', retval=True)
@@ -13,10 +27,33 @@ def handle_user_page(user, value, oldvalue, initiator):
         user.story_subscribed = False
         app.logger.info(f"Empty page_token for {user} user. Set story_subscribed to False. ")
         return None
-    if 'subscribe_page' in db.session.info:
-        db.session.info['subscribe_page'].add(user)
-    else:
-        db.session.info['subscribe_page'] = {user}
+    connected_campaigns = user.campaigns + user.brand_campaigns
+    has_active_campaign = any(ea.completed is False for ea in connected_campaigns)
+    if has_active_campaign:
+        app.logger.info(f"The {user} has an active campaign. Time to subscribe. ")
+        handle_user_subscribe(user)
+    return value
+
+
+@event.listens_for(Campaign.completed, 'set', retval=True)
+def handle_campaign_stories(campaign, value, oldvalue, initiator):
+    """ Triggered when a Campaign is marked completed. """
+    app.logger.info("================ The campaign stories function is running ===============")
+    if value == oldvalue:
+        return value
+    # related_users = campaign.users + campaign.brands
+    related_users = getattr(campaign, 'users', []) + getattr(campaign, 'brands', [])
+    for user in related_users:
+        if value is True:
+            campaigns_done = (ea.completed for ea in user.brand_campaigns + user.campaigns if ea != campaign)
+            if user.story_subscribed and all(campaigns_done):
+                app.logger.info(f"The {user} is being removed for completed {campaign} ")
+                handle_user_subscribe(user, remove=True)
+        else:
+            has_token = getattr(user, 'page_token', None)
+            if has_token and not user.story_subscribed:
+                app.logger.info(f"The {user} is being subscribed for NOT completed {campaign} ")
+                handle_user_subscribe(user)
     return value
 
 
@@ -89,6 +126,12 @@ def process_session_before_flush(session, flush_context, instances):
         user.story_subscribed = success
         if success:
             session.info['subscribe_page'].discard(user)
+    for user in list(remove_pages):
+        success = remove_app_on_user_for_story_updates(user)
+        message += f"Remove {getattr(user, 'page_id', 'NA')} page for {user} worked: {success} \n"
+        if success:
+            user.story_subscribed = not success
+            session.info['unsubscribe_page'].discard(user)
     # TODO: Handle deletion of Posts not assigned to a Campaign when deleting a User.
     # session.deleted  # The set of all instances marked as 'deleted' within this Session
     app.logger.info(message)
