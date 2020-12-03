@@ -276,8 +276,8 @@ def get_basic_post(media_id, metrics=None, user_id=None, facebook=None, token=No
         app.logger.info(e)
         return empty_res
     if 'error' in res:
-        # app.logger.error(f"Error: {res.get('error', 'Empty Error')} ")
         app.logger.info('--------------------- Error in get_basic_post FB API response ---------------------')
+        app.logger.error(f"Error: {res.get('error', 'Empty Error')} ")
         # pprint(res)
         return empty_res
     res['media_id'] = res.pop('id', media_id)
