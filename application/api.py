@@ -286,7 +286,7 @@ def get_basic_post(media_id, metrics=None, user_id=None, facebook=None, token=No
     return res
 
 
-def _get_posts_data_of_user(user_id, ig_id=None, facebook=None):
+def _get_posts_data_of_user(user_id, stories=True, ig_id=None, facebook=None):
     """ Called by get_posts. Returns the API response data for posts on a single user. """
     user, token = None, None
     if isinstance(user_id, User):
@@ -300,19 +300,23 @@ def _get_posts_data_of_user(user_id, ig_id=None, facebook=None):
         user = user or User.query.get(user_id)
         ig_id, token = getattr(user, 'instagram_id', None), getattr(user, 'token', None)
     # app.logger.info(f"==================== Get Posts on User {user_id} ====================")
-    url = f"https://graph.facebook.com/{ig_id}/stories"
-    story_res = facebook.get(url).json() if facebook else requests.get(f"{url}?access_token={token}").json()
-    stories = story_res.get('data')
-    if not isinstance(stories, list) or 'error' in story_res:
-        app.logger.error('Error: ', story_res.get('error', 'NA'))
-        return []
+    if stories:
+        url = f"https://graph.facebook.com/{ig_id}/stories"
+        story_res = facebook.get(url).json() if facebook else requests.get(f"{url}?access_token={token}").json()
+        stories = story_res.get('data')
+        if not isinstance(stories, list) or 'error' in story_res:
+            app.logger.error('Stories Error: ', story_res.get('error', 'NA'))
+            # return []
+    if not isinstance(stories, list):
+        stories = []
     story_ids = set([ea.get('id') for ea in stories])
     url = f"https://graph.facebook.com/{ig_id}/media"
     response = facebook.get(url).json() if facebook else requests.get(f"{url}?access_token={token}").json()
     media = response.get('data')
     if not isinstance(media, list):
         app.logger.error('Error: ', response.get('error', 'NA'))
-        return []
+        media = []
+        # return []
     media.extend(stories)
     # app.logger.info(f"------ Looking up a total of {len(media)} Media Posts, including {len(stories)} Stories ------")
     post_metrics = {key: ','.join(val) for (key, val) in Post.METRICS.items()}
@@ -339,7 +343,7 @@ def _get_posts_data_of_user(user_id, ig_id=None, facebook=None):
     return results
 
 
-def get_posts(id_or_users, ig_id=None, facebook=None):
+def get_posts(id_or_users, stories=True, ig_id=None, facebook=None):
     """ Input is a single entity or list of User instance(s), or User id(s).
         Calls the API to get all of the Posts (with insights of Posts) of User(s).
         Saves this data to the Database, creating or updating as needed.
@@ -349,7 +353,7 @@ def get_posts(id_or_users, ig_id=None, facebook=None):
         id_or_users = [id_or_users]
     results = []
     for ea in id_or_users:
-        results.extend(_get_posts_data_of_user(ea, ig_id=ig_id, facebook=facebook))
+        results.extend(_get_posts_data_of_user(ea, stories=stories, ig_id=ig_id, facebook=facebook))
     saved = db_create_or_update_many(results, Post)
     # If any STORY posts were found, the SQLAlchemy Event Listener will add it to the Task queue for the Capture API.
     return saved
