@@ -21,7 +21,7 @@ def home():
 @app.route('/signup', methods=['GET', 'POST'])
 def signup():
     """ Using Flask-Login to create a new user (manager or admin) account """
-    app.logger.info(f'--------- Sign Up User ------------')
+    app.logger.info('--------- Sign Up User ------------')
     ignore = ['influencer', 'brand']
     signup_roles = [role for role in User.ROLES if role not in ignore]
     if request.method == 'POST':
@@ -142,7 +142,7 @@ def capture(id):
 
     post = Post.query.get(id)
     if not post:
-        message = f"Post not found. "
+        message = "Post not found. "
         app.logger.info(message)
         flash(message)
         return redirect(url_for('admin'))
@@ -488,7 +488,7 @@ def followers(mod, id):
         flash("This was not a correct location. You are redirected to the home page. ")
         return redirect(url_for('home'))
     follow_report = get_online_followers(id)
-    logstring = f"New Online Followers for {mod} - {id}. " if follow_report else f"No new Online Followers data. "
+    logstring = "New Online Followers for {mod} - {id}. " if follow_report else "No new Online Followers data. "
     app.logger.info(logstring)
     flash(logstring)
     return redirect(url_for('view', mod=mod, id=id))
@@ -504,7 +504,7 @@ def new_insight(mod, id):
     insights, follow_report = get_insight(id)
     logstring = f"For {mod} - {id}: "
     logstring += "New Insight data added. " if insights else "No new insight data found. "
-    logstring += "New Online Followers data added. " if follow_report else f"No new online followers data found. "
+    logstring += "New Online Followers data added. " if follow_report else "No new online followers data found. "
     app.logger.info(logstring)
     flash(logstring)
     return redirect(url_for('insights', mod=mod, id=id))

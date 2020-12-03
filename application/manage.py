@@ -22,7 +22,7 @@ def check_hash(signed, payload):
     elif isinstance(payload, str):
         payload = payload.encode()
     if not isinstance(payload, bytes):
-        app.logger.debug(f"Unable to prepare payload. ")
+        app.logger.debug("Unable to prepare payload. ")
         return False
     secret = app.config.get('FB_CLIENT_SECRET').encode()
     test = hmac.new(secret, payload, hashlib.sha1).hexdigest()

@@ -195,7 +195,7 @@ def get_insight(user_id, first=1, influence_last=30*12, profile_last=30*3, ig_id
                     results.append(val)
     models = db_create_or_update_many(results, user_id=user_id, Model=Insight)
     follow_report = get_online_followers(user_id, ig_id=ig_id, facebook=facebook)
-    logstring = f"Added Online Followers data. " if follow_report else "No follow report. "
+    logstring = "Added Online Followers data. " if follow_report else "No follow report. "
     app.logger.debug(logstring)
     return (models, follow_report)
 
@@ -257,13 +257,13 @@ def get_basic_post(media_id, metrics=None, user_id=None, facebook=None, token=No
     empty_res = {'media_id': media_id, 'user_id': user_id, 'timestamp': str(dt.utcnow())}
     if not facebook and not token:
         if not user_id:
-            message = f"The get_basic_post must have at least one of 'user_id', 'facebook', or 'token' values. "
+            message = "The get_basic_post must have at least one of 'user_id', 'facebook', or 'token' values. "
             app.logger.debug(message)
             raise Exception(message)
         user = User.query.get(user_id)
         token = getattr(user, 'token', None)
         if not token:
-            message = f"Unable to locate user token value. User should login with Facebook and authorize permissions. "
+            message = "Unable to locate user token value. User should login with Facebook and authorize permissions. "
             return empty_res
     if not metrics:
         metrics = ','.join(Post.METRICS.get('basic'))
@@ -439,7 +439,7 @@ def remove_app_on_user_for_story_updates(user_or_id, page=None, facebook=None, t
     #         return False
     # url = f"https://graph.facebook.com/v3.1/{page['id']}/subscribed_apps"
     # params = {} if facebook else {'access_token': page['token']}
-    # params['subscribed_fields'] = ''  # Remove all despite docs saying the parameter cannot configure Instagram Webhooks
+    # params['subscribed_fields'] = ''  # Remove all despite docs saying parameter cannot configure Instagram Webhooks
     # res = facebook.post(url, params=params).json() if facebook else requests.post(url, params=params).json()
     # # TODO: See if facebook with params above works.
     # app.logger.info('----------------------------------------------------------------')
