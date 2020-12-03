@@ -1,7 +1,7 @@
 from flask import current_app as app
 from sqlalchemy import event
 from .model_db import User, Post, db
-from .api import install_app_on_user_for_story_updates
+from .api import install_app_on_user_for_story_updates, remove_app_on_user_for_story_updates
 from .create_queue_task import add_to_capture
 
 
@@ -13,10 +13,13 @@ def handle_user_page(user, value, oldvalue, initiator):
         user.story_subscribed = False
         app.logger.info(f"Empty page_token for {user} user. Set story_subscribed to False. ")
         return None
-    if 'subscribe_page' in db.session.info:
-        db.session.info['subscribe_page'].add(user)
-    else:
-        db.session.info['subscribe_page'] = {user}
+    connected_campaigns = user.campaigns + user.brand_campaigns
+    has_active_campaign = any(ea.completed is False for ea in connected_campaigns)
+    if has_active_campaign:
+        if 'subscribe_page' in db.session.info:
+            db.session.info['subscribe_page'].add(user)
+        else:
+            db.session.info['subscribe_page'] = {user}
     return value
 
 
@@ -89,6 +92,12 @@ def process_session_before_flush(session, flush_context, instances):
         user.story_subscribed = success
         if success:
             session.info['subscribe_page'].discard(user)
+    for user in list(remove_pages):
+        success = remove_app_on_user_for_story_updates(user)
+        message += f"Remove {getattr(user, 'page_id', 'NA')} page for {user} worked: {success} \n"
+        if success:
+            user.story_subscribed = not success
+            session.info['unsubscribe_page'].discard(user)
     # TODO: Handle deletion of Posts not assigned to a Campaign when deleting a User.
     # session.deleted  # The set of all instances marked as 'deleted' within this Session
     app.logger.info(message)
