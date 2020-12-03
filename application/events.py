@@ -1,8 +1,22 @@
 from flask import current_app as app
 from sqlalchemy import event
-from .model_db import User, Post, db
+from .model_db import User, Post, Campaign, db
 from .api import install_app_on_user_for_story_updates, remove_app_on_user_for_story_updates
 from .create_queue_task import add_to_capture
+
+
+def handle_user_subscribe(user, remove=False):
+    """Called for a User with a page_token is in an active Campaign.  """
+    add, drop = 'subscribe_page', 'unsubscribe_page'
+    if remove:
+        add, drop = drop, add
+    if add in db.session.info:
+        db.session.info[add].add(user)
+    else:
+        db.session.info[add] = {user, }
+    if remove in db.session.info:  # and user in db.session.info[remove]:
+        db.session.info[remove].discard(user)
+    return user
 
 
 @event.listens_for(User.page_token, 'set', retval=True)
@@ -16,10 +30,27 @@ def handle_user_page(user, value, oldvalue, initiator):
     connected_campaigns = user.campaigns + user.brand_campaigns
     has_active_campaign = any(ea.completed is False for ea in connected_campaigns)
     if has_active_campaign:
-        if 'subscribe_page' in db.session.info:
-            db.session.info['subscribe_page'].add(user)
+        app.logger.info(f"The {user} has an active campaign. Time to subscribe. ")
+        handle_user_subscribe(user)
+    return value
+
+
+@event.listens_for(Campaign.completed, 'set', retval=True)
+def handle_campaign_stories(campaign, value, oldvalue, initiator):
+    """ Triggered when a Campaign is marked completed. """
+    app.logger.info("================ The campaign stories function is running ===============")
+    related_users = campaign.users + campaign.brands
+    for user in related_users:
+        if value is True:
+            campaigns_done = (ea.completed for ea in user.brand_campaigns + user.campaigns if ea != campaign)
+            if user.story_subscribed and all(campaigns_done):
+                app.logger.info(f"The {user} is being removed for completed {campaign} ")
+                handle_user_subscribe(user, remove=True)
         else:
-            db.session.info['subscribe_page'] = {user}
+            has_token = getattr(user, 'page_token', None)
+            if has_token and not user.story_subscribed:
+                app.logger.info(f"The {user} is being subscribed for NOT completed {campaign} ")
+                handle_user_subscribe(user)
     return value
 
 

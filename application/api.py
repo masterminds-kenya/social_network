@@ -431,19 +431,20 @@ def remove_app_on_user_for_story_updates(user_or_id, page=None, facebook=None, t
     else:
         raise ValueError('Input must be either a User model or an id for a User. ')
     app.logger.info(f"========== remove_app_on_user_for_story_updates: {user} ==========")
-    if not isinstance(page, dict) or not page.get('id') or not page.get('token'):
-        page = get_fb_page_for_users_ig_account(user, facebook=facebook, token=token)
-        if not page:
-            app.logger.error(f"Unable to find the page for user: {user} ")
-            return False
-    url = f"https://graph.facebook.com/v3.1/{page['id']}/subscribed_apps"
-    params = {} if facebook else {'access_token': page['token']}
-    params['subscribed_fields'] = ''  # Remove all despite docs saying the parameter cannot configure Instagram Webhooks
-    res = facebook.post(url, params=params).json() if facebook else requests.post(url, params=params).json()
-    # TODO: See if facebook with params above works.
-    app.logger.info('----------------------------------------------------------------')
-    pprint(res)
-    return res.get('success', False)
+    return True
+    # if not isinstance(page, dict) or not page.get('id') or not page.get('token'):
+    #     page = get_fb_page_for_users_ig_account(user, facebook=facebook, token=token)
+    #     if not page:
+    #         app.logger.error(f"Unable to find the page for user: {user} ")
+    #         return False
+    # url = f"https://graph.facebook.com/v3.1/{page['id']}/subscribed_apps"
+    # params = {} if facebook else {'access_token': page['token']}
+    # params['subscribed_fields'] = ''  # Remove all despite docs saying the parameter cannot configure Instagram Webhooks
+    # res = facebook.post(url, params=params).json() if facebook else requests.post(url, params=params).json()
+    # # TODO: See if facebook with params above works.
+    # app.logger.info('----------------------------------------------------------------')
+    # pprint(res)
+    # return res.get('success', False)
 
 
 def get_ig_info(ig_id, facebook=None, token=None):
