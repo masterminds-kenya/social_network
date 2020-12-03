@@ -43,7 +43,7 @@ def inspect_access_token(input_token, fb_id=None, ig_id=None, app_access_token=N
     params = {'input_token': input_token, 'access_token': app_access_token}
     res = requests.get(FB_INSPECT_TOKEN_URL, params=params).json()
     if 'error' in res:
-        app.logger.info('--------------------- Error in inspect_access_token response ---------------------')
+        app.logger.info('---------------- Error in inspect_access_token response ----------------')
         err = res.get('error', 'Empty Error')
         app.logger.error(f"Error: {err} ")
         return err
@@ -57,7 +57,7 @@ def inspect_access_token(input_token, fb_id=None, ig_id=None, app_access_token=N
     message += 'Matches FB ID ' if str(data.get('user_id', '')) == str(fb_id) else ''
     message += 'Matches IG ID ' if str(data.get('user_id', '')) == str(ig_id) else ''
     message += f"Missing Scope: {scope_missing} " if scope_missing else ''
-    app.logger.info("=============== inspect_access_token ==========================")
+    app.logger.info("================ inspect_access_token ================")
     app.logger.info(message)
     pprint(data)
     return data
@@ -68,7 +68,7 @@ def user_permissions(user, facebook=None, token=None):
     if isinstance(user, (str, int)):
         user = User.query.get(user)
     if not isinstance(user, User):
-        app.logger.error("Expected a valid User instance, or id of one, to check what permissions they have granted. ")
+        app.logger.error("Expected a valid User instance, or id of one, for user_permissions check. ")
         return {}
     if not facebook and not token:
         token = getattr(user, 'token', None)
@@ -93,7 +93,7 @@ def user_permissions(user, facebook=None, token=None):
     # TODO: Test facebook.get will work as written below.
     res = facebook.get(url, params=params).json() if facebook else requests.get(url, params=params).json()
     if 'error' in res:
-        app.logger.info('--------------------- Error in user_permissions response ---------------------')
+        app.logger.info('---------------- Error in user_permissions response ----------------')
         app.logger.error(f"Error: {res.get('error', 'Empty Error')} ")
         return {}
     res_data = res.get('data', [{}])
@@ -174,7 +174,7 @@ def get_insight(user_id, first=1, influence_last=30*12, profile_last=30*3, ig_id
     if profile_date:
         profile_last = max(30, int(min(profile_last, (now - profile_date).days)))
         app.logger.debug('Updated Profile Last')
-    app.logger.info("------------ Get Insight: Influence, Profile ---------------")
+    app.logger.info("------------ Get Insight: Influence, Profile ------------")
     app.logger.debug(influence_last)
     app.logger.debug(profile_last)
     for insight_metrics, last in [(Insight.INFLUENCE_METRICS, influence_last), (Insight.PROFILE_METRICS, profile_last)]:
@@ -202,7 +202,7 @@ def get_insight(user_id, first=1, influence_last=30*12, profile_last=30*3, ig_id
 
 def get_online_followers(user_id, ig_id=None, facebook=None):
     """ Just want to get Facebook API response for online_followers for the maximum of the previous 30 days """
-    app.logger.info('================= Get Online Followers data ==============')
+    app.logger.info('================ Get Online Followers data ================')
     ig_period, token = 'lifetime', ''
     metric = ','.join(OnlineFollowers.METRICS)
     if not facebook or not ig_id:
@@ -226,7 +226,7 @@ def get_online_followers(user_id, ig_id=None, facebook=None):
 
 def get_audience(user_id, ig_id=None, facebook=None):
     """ Get the audience data for the (influencer or brand) user with given user_id """
-    app.logger.info('=========================== Get Audience Data ======================')
+    app.logger.info('================ Get Audience Data ================')
     audience_metric = ','.join(Audience.METRICS)
     ig_period = 'lifetime'
     results, token = [], ''
@@ -272,13 +272,13 @@ def get_basic_post(media_id, metrics=None, user_id=None, facebook=None, token=No
         res = facebook.get(url).json() if facebook else requests.get(f"{url}&access_token={token}").json()
     except Exception as e:
         auth = 'facebook' if facebook else 'token' if token else 'none'
+        app.logger.info('------------- Error in get_basic_post FB API response -------------')
         app.logger.debug(f"API fail for Post with media_id {media_id} | Auth: {auth} ")
         app.logger.info(e)
         return empty_res
     if 'error' in res:
-        app.logger.info('--------------------- Error in get_basic_post FB API response ---------------------')
-        app.logger.error(f"Error: {res.get('error', 'Empty Error')} ")
-        # pprint(res)
+        app.logger.info('------------- Error in get_basic_post FB API response -------------')
+        app.logger.error(f"User: {user_id} | Media: {media_id} | Error: {res.get('error', 'Empty Error')} ")
         return empty_res
     res['media_id'] = res.pop('id', media_id)
     if user_id:
@@ -299,7 +299,7 @@ def _get_posts_data_of_user(user_id, stories=True, ig_id=None, facebook=None):
     if not facebook or not ig_id:
         user = user or User.query.get(user_id)
         ig_id, token = getattr(user, 'instagram_id', None), getattr(user, 'token', None)
-    # app.logger.info(f"==================== Get Posts on User {user_id} ====================")
+    app.logger.info(f"==================== Get Posts on User {user_id} ====================")
     if stories:
         url = f"https://graph.facebook.com/{ig_id}/stories"
         story_res = facebook.get(url).json() if facebook else requests.get(f"{url}?access_token={token}").json()
@@ -550,7 +550,7 @@ def onboard_login(mod):
     facebook = facebook_compliance_fix(facebook)  # we need to apply a fix for Facebook here
     authorization_url, state = facebook.authorization_url(FB_AUTHORIZATION_BASE_URL)
     session['oauth_state'] = state.strip()
-    app.logger.info("============= Login Function Paramters ==================")
+    app.logger.info("================ Login Function Paramters ================")
     app.logger.info(f"mod: {mod} ")
     app.logger.info(f"callback: {callback} ")
     app.logger.info(f"authorization_url: {authorization_url} ")
@@ -652,7 +652,7 @@ def onboarding(mod, request):
     state = params.get('state', None)
     url_diff = str(request.url).lstrip(request_url)
     # request_url = request_url.rstrip(f"&state={state}") if state else request_url
-    app.logger.info("============= Onboarding Function Paramters ==================")
+    app.logger.info("================ Onboarding Function Paramters ================")
     app.logger.info(f"mod: {mod} ")
     app.logger.info(f"callback: {callback} ")
     app.logger.info(f"Url Cleaned unchanged: {str(request.url) == request_url} ")
@@ -679,11 +679,11 @@ def onboarding(mod, request):
     data['token'] = token
     fb_id = data.get('id', None)  # TODO: Change to .pop once confirmed elsewhere always looks for 'facebook_id'.
     data['facebook_id'] = fb_id
-    app.logger.info('================= Prepared Data and Users =======================')
+    app.logger.info('================ Prepared Data and Users ================')
     app.logger.info(data)
     users = User.query.filter(User.facebook_id == fb_id).all() if fb_id else None
     app.logger.info(users)
-    app.logger.info('=================================================================')
+    app.logger.info('=========================================================')
     if users:
         return onboard_existing(users, data, facebook=facebook)
     else:
