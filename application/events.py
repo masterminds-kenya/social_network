@@ -39,7 +39,10 @@ def handle_user_page(user, value, oldvalue, initiator):
 def handle_campaign_stories(campaign, value, oldvalue, initiator):
     """ Triggered when a Campaign is marked completed. """
     app.logger.info("================ The campaign stories function is running ===============")
-    related_users = campaign.users + campaign.brands
+    if value == oldvalue:
+        return value
+    # related_users = campaign.users + campaign.brands
+    related_users = getattr(campaign, 'users', []) + getattr(campaign, 'brands', [])
     for user in related_users:
         if value is True:
             campaigns_done = (ea.completed for ea in user.brand_campaigns + user.campaigns if ea != campaign)
