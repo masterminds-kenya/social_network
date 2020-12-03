@@ -299,7 +299,7 @@ def _get_posts_data_of_user(user_id, ig_id=None, facebook=None):
     if not facebook or not ig_id:
         user = user or User.query.get(user_id)
         ig_id, token = getattr(user, 'instagram_id', None), getattr(user, 'token', None)
-    app.logger.info(f"==================== Get Posts on User {user_id} ====================")
+    # app.logger.info(f"==================== Get Posts on User {user_id} ====================")
     url = f"https://graph.facebook.com/{ig_id}/stories"
     story_res = facebook.get(url).json() if facebook else requests.get(f"{url}?access_token={token}").json()
     stories = story_res.get('data')
@@ -314,7 +314,7 @@ def _get_posts_data_of_user(user_id, ig_id=None, facebook=None):
         app.logger.error('Error: ', response.get('error', 'NA'))
         return []
     media.extend(stories)
-    app.logger.info(f"------ Looking up a total of {len(media)} Media Posts, including {len(stories)} Stories ------")
+    # app.logger.info(f"------ Looking up a total of {len(media)} Media Posts, including {len(stories)} Stories ------")
     post_metrics = {key: ','.join(val) for (key, val) in Post.METRICS.items()}
     results = []
     for post in media:

@@ -5,7 +5,7 @@ import json
 from .model_db import db_create, db_read, db_delete, db_all, from_sql  # , metric_clean
 from .model_db import User, OnlineFollowers, Insight, Post, Campaign   # , Audience
 from .developer_admin import admin_view
-from .helper_functions import staff_required, admin_required, mod_lookup, prep_ig_decide
+from .helper_functions import staff_required, admin_required, mod_lookup, prep_ig_decide, get_daily_ig_accounts
 from .manage import update_campaign, process_form, report_update, check_hash, add_edit, process_hook
 from .api import onboard_login, onboarding, get_insight, get_audience, get_posts, get_online_followers, user_permissions
 from .sheets import create_sheet, update_sheet, perm_add, perm_list, all_files
@@ -123,14 +123,15 @@ def permission_check(mod, id):
 @admin_required()
 def test_method():
     """ Temporary route and function for developer to test components. """
-    # from .sheets import get_vals, get_insight_report
     from pprint import pprint
 
-    app.logger.info(f"========== Test Method for admin:  ==========")
-    all_response = {'key1': 1, 'key2': 'two', 'key3': '3rd', 'meaningful': False}
-    pprint(all_response)
+    app.logger.info("========== Test Method for admin:  ==========")
+    info = get_daily_ig_accounts()
+    pprint([f"{ea}: {len(ea.campaigns)} | {len(ea.brand_campaigns)} " for ea in info])
+    # info = {'key1': 1, 'key2': 'two', 'key3': '3rd', 'meaningful': False}
+    # pprint(info)
     app.logger.info('-------------------------------------------------------------')
-    return admin(data=all_response)
+    return admin(data=info)
 
 
 @app.route('/data/capture/<int:id>')
@@ -361,16 +362,16 @@ def all_posts():
         flash(message)
         app.logger.error(message)
         return redirect(url_for('error'))
-    all_ig = User.query.filter(User.instagram_id.isnot(None)).all()
+    all_ig = get_daily_ig_accounts()
     saved = get_posts(all_ig)
     message = f"Got all posts for {len(all_ig)} users, for a total of {len(saved)} posts. "
-    if admin_run:
+    if cron_run:
+        message += "Cron job completed. "
+        response = json.dumps({'User_num': len(all_ig), 'Post_num': len(saved), 'message': message, 'status_code': 200})
+    else:  # admin_run is True
         message += "Admin requested getting posts for all users. "
         flash(message)
         response = redirect(url_for('admin'))
-    elif cron_run:
-        message += "Cron job completed. "
-        response = json.dumps({'User_num': len(all_ig), 'Post_num': len(saved), 'message': message, 'status_code': 200})
     app.logger.info(message)
     return response
 

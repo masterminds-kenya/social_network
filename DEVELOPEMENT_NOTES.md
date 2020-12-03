@@ -95,7 +95,6 @@ The following is from [Cloud Task Types](https://googleapis.dev/python/cloudtask
   - instance
   - host  # Output only. Constructed from the domain name of the app, service, version, instance.
 
-
 ## Other Gcloud Docs and Links
 
 - [Dispatch: url routing](https://cloud.google.com/appengine/docs/standard/python3/reference/dispatch-yaml)
@@ -253,11 +252,21 @@ Since we are using pipenv, the local development files, `Pipfile` and `Pipfile.l
 
 ## Running Locally with Remote Database
 
-When running locally, we can proxy the database. This requires a cloud_sql_proxy file, and knowing the DB_CONNECTION_NAME. In the terminal, substituting as needed, execute the following command:
+When running locally, we can proxy the database. This requires a cloud_sql_proxy file, and knowing the DB_CONNECTION_NAME. First make sure the virtual environment running (the `pipenv shell` line). In the terminal, substituting as needed, execute the following command:
 
 ``` bash
+pipenv shell
 ./cloud_sql_proxy -instances="DB_CONNECTION_NAME"=tcp:3306
 ```
+
+Then in another terminal, First make sure the virtual environment running (the `pipenv shell` line). Then at the root of the Repo have flask run the app:
+
+``` bash
+pipenv shell
+flask run
+```
+
+## Connecting to the SQL shell for Remote Database
 
 We can login to the SQL terminal, knowing the correct user and password, with the Google Cloud CLI (replace [DB_INSTANCE] and [username] as appropriate).
 
@@ -265,13 +274,14 @@ We can login to the SQL terminal, knowing the correct user and password, with th
 gcloud sql connect [DB_INSTANCE] --user=[username]
 ```
 
-We can create the database tables by running:
+DEPRECIATED: We can create the database tables by running:
 
 ``` bash
 python application/model_db.py
 ```
 
-For Database Migrations:
+## Database Migrations
+
 Before upgrading, MAKE SURE our proxy is to the correct database.
 
 If 'FLASK_APP' is not already set in our .env, then in the terminal we need: `export FLASK_APP=main.py`
@@ -284,6 +294,13 @@ flask db upgrade
 ```
 
 ## Version Updates with Migration
+
+Updates to version 0.6.0
+
+- Styling and site interface updates, including logo and hamburger menu.
+- Daily IG media posts downloads limited to Users in currently active Campaigns.
+- Security Updates.
+- Documentation updates.
 
 Updates to version 0.5.1
 
