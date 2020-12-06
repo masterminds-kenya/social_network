@@ -172,7 +172,7 @@ def subscribe_all_pages():
     """ Used by admin to subscribe to all current platform user's facebook page, if they are not already subscribed. """
     from pprint import pprint
 
-    app.logger.info(f"========== subscribe_all_pages ==========")
+    app.logger.info("========== subscribe_all_pages ==========")
     column_args = {'story_subscribed': 'IS NOT TRUE'}
     all_response = get_page_for_all_users(overwrite=True, **column_args)
     pprint(all_response)

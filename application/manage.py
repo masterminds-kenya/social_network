@@ -22,7 +22,7 @@ def check_hash(signed, payload):
     elif isinstance(payload, str):
         payload = payload.encode()
     if not isinstance(payload, bytes):
-        app.logger.debug(f"Unable to prepare payload. ")
+        app.logger.debug("Unable to prepare payload. ")
         return False
     secret = app.config.get('FB_CLIENT_SECRET').encode()
     test = hmac.new(secret, payload, hashlib.sha1).hexdigest()
@@ -269,8 +269,8 @@ def process_hook(req):
                 user = user or object()
                 user_id = getattr(user, 'id', None) or "No User"
                 message += f"STORY post CREATE for user: {user_id} \n"
-                res = get_basic_post(media_id, user_id=getattr(user, 'id'), token=getattr(user, 'token'))
-                story.update(res)
+                # res = get_basic_post(media_id, user_id=getattr(user, 'id'), token=getattr(user, 'token'))
+                # story.update(res)
                 model = Post(**story)
                 new += 1
             db.session.add(model)

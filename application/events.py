@@ -22,7 +22,7 @@ def handle_user_subscribe(user, remove=False):
 @event.listens_for(User.page_token, 'set', retval=True)
 def handle_user_page(user, value, oldvalue, initiator):
     """ Triggered when a value is being set for User.page_token """
-    app.logger.info("================ The page_token listener function is running ===============")
+    app.logger.info("================ The page_token listener function is running ================")
     if value in (None, ''):
         user.story_subscribed = False
         app.logger.info(f"Empty page_token for {user} user. Set story_subscribed to False. ")
@@ -35,10 +35,25 @@ def handle_user_page(user, value, oldvalue, initiator):
     return value
 
 
+# # @event.listens_for(Campaign.brands, 'append', propagate=True)
+# @event.listens_for(Campaign.users, 'append', propagate=True)
+# def handle_campaign_users(campaign, users, initiator):
+#     """ Triggered when a User is associated with a Campaign. """
+#     app.logger.info("================ The campaign users function is running ================")
+#     app.logger.info(f"Campaign: {campaign} | Users: {users} ")
+#     for user in users:
+#         if not user.story_subscribed and getattr(user, 'page_token', None):
+#             app.logger.info(f"The {user} has a token and needs to subscribe for campaign: {campaign} ")
+#             handle_user_subscribe(user)
+#         else:
+#             app.logger.info(f"Triggered by campaign {campaign} the {user} is not being subscribed. ")
+#     return users
+
+
 @event.listens_for(Campaign.completed, 'set', retval=True)
 def handle_campaign_stories(campaign, value, oldvalue, initiator):
     """ Triggered when a Campaign is marked completed. """
-    app.logger.info("================ The campaign stories function is running ===============")
+    app.logger.info("================ The campaign stories function is running ================")
     if value == oldvalue:
         return value
     # related_users = campaign.users + campaign.brands
@@ -57,6 +72,24 @@ def handle_campaign_stories(campaign, value, oldvalue, initiator):
     return value
 
 
+# # @event.listens_for(Campaign.brands, 'set', retval=True)
+# # @event.listens_for(Campaign.users, 'set', retval=True)
+# def handle_subscribe_active(user, value, oldvalue, initiator):
+#     """ Triggered when a User is added to an active Campaign. """
+#     app.logger.info("================ The subscribe_active listener function is running ===============")
+#     if value in (None, ''):
+#         user.story_subscribed = False
+#         app.logger.info(f"Empty page_token for {user} user. Set story_subscribed to False. ")
+#         return None
+#     if 'subscribe_page' in db.session.info:
+#         db.session.info['subscribe_page'].add(user)
+#     else:
+#         db.session.info['subscribe_page'] = {user}
+#     if 'unsubscribe_page' in db.session.info and user in db.session.info['unsubscribe_page']:
+#         db.session.info['unsubscribe_page'].discard(user)
+#     return value
+
+
 @event.listens_for(Post.media_type, 'set', retval=True)
 def enqueue_capture(model, value, oldvalue, initiator):
     """ Triggered when a value is being set for Post.media_type. Can also be initiated as a manual request for a Post.
@@ -68,10 +101,10 @@ def enqueue_capture(model, value, oldvalue, initiator):
     no_val = "symbol('NO_VALUE')"
     is_manual, is_new_story, message = False, False, ''
     if str(type(initiator)) != "<class 'sqlalchemy.orm.attributes.Event'>":
-        message += "Manually requested capture. "
+        message += "Manual Capture. "
         is_manual = True
     elif value == 'STORY' and not any([getattr(model, 'saved_media', None), getattr(model, 'capture_name', None)]):
-        message += "Triggered by Event. "
+        message += "Event Capture. "
         is_new_story = True
     elif value != 'STORY':
         # Posts without 'STORY' set for media_type are not added for capture unless it was a manual request. Not logged.
@@ -79,16 +112,16 @@ def enqueue_capture(model, value, oldvalue, initiator):
 
     if is_manual or is_new_story:
         capture_type = 'story_capture' if value == 'STORY' else 'post_capture'
-        app.logger.info(f"========== Adding a {capture_type} with enqueue_capture function. {message} ==========")
+        app.logger.info(f"========== Add {message} - {capture_type} ==========")
         message += f"New {value} post. " if str(oldvalue) == no_val else f"media_type {oldvalue} to {value}. "
         # message += f"When session is committed, will send to {capture_type} Queue. "
-        message += f"Normally when session is committed, would send to {capture_type} Queue, BUT feature NOT ACTIVATE. "
+        message += f"Would send to {capture_type} Queue, BUT feature NOT ACTIVATE. "
         if capture_type in db.session.info:
             db.session.info[capture_type].add(model)
         else:
             db.session.info[capture_type] = {model}
     elif value == 'STORY':
-        app.logger.info(f"========== Running enqueue_capture function. {message} ==========")
+        app.logger.info(f"========== Function enqueue_capture. {message} ==========")
         message += f"Did not add {model} because it has already been captured or queued for capture. "
     app.logger.info(message)
     app.logger.info('---------------------------------------------------')
@@ -102,8 +135,10 @@ def process_session_before_flush(session, flush_context, instances):
     stories_to_capture = session.info.get('story_capture', [])
     other_posts_to_capture = session.info.get('post_capture', [])
     subscribe_pages = session.info.get('subscribe_page', [])
+    remove_pages = session.info.get('unsubscribe_page', [])
     message = f"Story Captures: {len(stories_to_capture)} Other Captures: {len(other_posts_to_capture)} "
     message += f"Subscribe Pages: {len(subscribe_pages)} \n"
+    message += f"Remove Page Subscription: {len(remove_pages)} \n"
     # for story in list(stories_to_capture):
     #     capture_response = add_to_capture(story)
     #     if capture_response:
