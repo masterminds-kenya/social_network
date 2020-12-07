@@ -242,15 +242,14 @@ def process_hook(req):
             val.update({'ig_id': ea.get('id')})
             hook_data[rec.get('field', '')].append(val)
             data_count += 1
-    # app.logger.debug(f"====== process_hook - stories: {len(hook_data['story_insights'])} total: {data_count} ======")
-    # pprint(hook_data)
-    app.logger.info(f"============ PROCESS HOOK: {len(hook_data.get('story_insights', []))} STORIES ============")
+    data_log = f"{len(hook_data.get('story_insights', []))} stories, {data_count} total"
+    app.logger.info(f"============ PROCESS HOOK: {data_log} ============")
     total, new, modified, message = 0, 0, 0, ''
     for story in hook_data['story_insights']:
         story['media_type'] = 'STORY'
         app.logger.info(story)
-        media_id = story.pop('media_id', None)  # Exists on found, or put back during create.
-        ig_id = story.pop('ig_id', None)
+        media_id = story.pop('media_id', None)  # Will be put back if creating, but already exists if updating.
+        ig_id = story.pop('ig_id', None)  # Used to find the user if creating.
         total += 1
         if not media_id or not ig_id:
             missed = 'media_id ' if not media_id else 'ig_id'
@@ -268,24 +267,19 @@ def process_hook(req):
         else:  # We did not see this STORY post in our daily download.
             # create, but we need to fill in some data about this story Post.
             # if media_id == '17887498072083520':  # This the test data sent by FB console
-            #     res = {'user_id': 190, 'media_id': media_id, 'media_type': 'STORY'}
-            #     res['timestamp'] = "2020-04-23T18:10:00+0000"
-            #     message += "Test update, added to user # 190 "
+            #     user_id = '190'  # or other testing user_id.
+            #     message += f"Test update, added to user # {user_id} "
             # else:
-            user = User.query.filter_by(instagram_id=ig_id).first() if ig_id else None
-            user = user or object()
-            user_id = getattr(user, 'id', None)
-            if not getattr(user, 'story_subscribed', None) or not user_id:
-                message += f"STORY post NOT TRACKED for user: {user_id or 'NO USER FOUND'} \n"
+            user = User.query.filter_by(instagram_id=ig_id).first()  # returns None if not found.
+            if not user or not getattr(user, 'story_subscribed', None):
+                message += f"STORY post for {user or 'not-found-user'} NOT TRACKED \n"
                 continue
-            else:
-                timestamp = make_missing_timestamp()  # timestamp = str(dt.utcnow() - 1 day)
-                story.update(media_id=media_id, user_id=user_id, timestamp=timestamp)
-                message += f"STORY post CREATE for user: {user_id} | Timestamp: {timestamp} \n"
-                # res = get_basic_post(media_id, user_id=getattr(user, 'id'), token=getattr(user, 'token'))
-                # story.update(res)
-                model = Post(**story)
-                new += 1
+            user_id = getattr(user, 'id', None)
+            timestamp = make_missing_timestamp()  # timestamp = str(dt.utcnow() - 1 day)
+            story.update(media_id=media_id, user_id=user_id, timestamp=timestamp)
+            message += f"STORY post CREATE for user: {user_id} | Timestamp: {timestamp} \n"
+            model = Post(**story)
+            new += 1
         if not model:
             app.logger.info("Expected a model, but do not have one. ")
         db.session.add(model)
