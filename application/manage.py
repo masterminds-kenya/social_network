@@ -242,8 +242,9 @@ def process_hook(req):
             val.update({'ig_id': ea.get('id')})
             hook_data[rec.get('field', '')].append(val)
             data_count += 1
-    data_log = f"{len(hook_data.get('story_insights', []))} stories"
-    if data_count != len(hook_data.get('story_insights', [])):
+    insight_count = len(hook_data.get('story_insights', []))
+    data_log = f"{insight_count} stories"
+    if data_count != insight_count:
         data_log += f", {data_count} total"
     # app.logger.info(f"============ PROCESS HOOK: {data_log} ============")
     total, new, modified, skipped, message = 0, 0, 0, 0, ''
@@ -305,5 +306,5 @@ def process_hook(req):
     else:
         message += "No needed record updates. "
         response_code = 200
-    app.logger.info(f"============ PROCESS HOOK: {data_log} ============")
+    app.logger.info(f"======== PROCESS HOOK: {data_log} ========")
     return message, response_code
