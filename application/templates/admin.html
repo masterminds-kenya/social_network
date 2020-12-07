@@ -48,16 +48,17 @@
   <li><a href="{{ url_for('all', mod='insight') }}">List all Insights</a></li>
   <li><a href="{{ url_for('all', mod='audience') }}">List all Audience Data</a></li>
   {% if dev %}
-  <li>Dangerous Developer Only Functions</li>
-  <li><a href="{{ url_for('encrypt') }}">Run Encrypt Process</a></li>
-  <li><a href="{{ url_for('load_user') }}">Load File contents into Database</a> </li>
-  <li>Developer Only Functions</li>
+  <li>Developer Only Functions - Potentially Dangerous</li>
   <li><a href="{{ url_for('add', mod='influencer') }}">Add Fake Influencer</a></li>
   <li><a href="{{ url_for('subscribe_pages', group='all') }}">Subscribe to all Users FB page</a></li>
   <li><a href="{{ url_for('subscribe_pages', group='active') }}">Subscribe to active Users FB page</a></li>
   <li><a href="{{ url_for('subscribe_pages', group='remove') }}">Remove inactive Users FB page</a></li>
   <li><a href="{{ url_for('test_method') }}">Dev Test Method</a></li>
   <li><a href="{{ url_for('capture', id=378) }}">Capture Media Test Link</a></li>
+  <li>Removed of Deprecated Functions (inactive function)</li>
+  <li><a href="">Run Encrypt Process (encrypt)</a></li>
+  <li><a href="">Load File contents into Database (load_user)</a> </li>
+  <li><a href="">Save users to file (backup_save)</a></li>
   {% endif %}
 </ul>
 
