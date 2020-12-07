@@ -150,6 +150,10 @@ def get_pages_for_users(overwrite=False, remove=False, **kwargs):
     app.logger.info(users)
     for user in users:
         page = get_fb_page_for_users_ig_account(user)
+        if remove and user.story_subscribed:
+            user.story_subscribed = False
+            db.session.add(user)
+            updates[user.id] = str(user)
         if page and (overwrite or page.get('new_page')):
             user.page_id = page.get('id')
             user.page_token = page.get('token')
