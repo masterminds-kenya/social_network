@@ -125,7 +125,7 @@ def fix_defaults():
     return success
 
 
-def get_page_for_all_users(overwrite=False, **kwargs):
+def get_pages_for_users(overwrite=False, remove=False, **kwargs):
     """ We need the page number and token in order to setup webhooks for story insights.
         The subscribing to a user's page will be handled elsewhere, and
         triggered by this function when it sets and commits the user.page_token value.
@@ -166,15 +166,21 @@ def subscribe_page(mod, id):
     pass
 
 
-@app.route('/all_users/subscribe')
+@app.route('/all_users/subscribe/<string:group>')
 @staff_required()
-def subscribe_all_pages():
+def subscribe_pages(group):
     """ Used by admin to subscribe to all current platform user's facebook page, if they are not already subscribed. """
     from pprint import pprint
 
     app.logger.info("========== subscribe_all_pages ==========")
-    column_args = {'story_subscribed': 'IS NOT TRUE'}
-    all_response = get_page_for_all_users(overwrite=True, **column_args)
+    param_lookup = {
+        'all': {'page_id': None, 'overwrite': True, },
+        'all_force': {'story_subscribed': 'IS NOT TRUE', 'overwrite': True, },
+        'active': {'story_subscribed': True, 'overwrite': False, },
+        'remove': {'remove': True, 'overwrite': False, },
+    }
+    column_args = param_lookup.get(group, {})
+    all_response = get_pages_for_users(**column_args)
     pprint(all_response)
     app.logger.info('-------------------------------------------------------------')
     return admin_view(data=all_response)
