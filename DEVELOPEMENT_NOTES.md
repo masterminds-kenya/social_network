@@ -18,6 +18,18 @@ To view logs of a service:
     gcloud app logs tail -s [service_name]
 ```
 
+## Useful SQL Queries
+
+If using command line interface for MySQL, these can be helpful for looking for issues with story_metrics hooks/subscriptions and campaign completion status.
+
+### Brands
+
+SELECT brand_id, users.name AS brand, page_id, story_subscribed, campaigns.name AS campaign_name, campaign_id, completed FROM users JOIN brand_campaigns ON users.id = brand_campaigns.brand_id JOIN campaigns ON campaigns.id = brand_campaigns.campaign_id WHERE completed = False ORDER BY story_subscribed, brand;
+
+### Influencers
+
+SELECT user_id, users.name AS influencer, page_id, story_subscribed, campaigns.name AS campaign_name, campaign_id, completed FROM users JOIN user_campaigns ON users.id = user_campaigns.user_id JOIN campaigns ON campaigns.id = user_campaigns.campaign_id WHERE completed = False ORDER BY story_subscribed, influencer;
+
 ## Default Env Variables
 
 [App Engine Standard Docs](https://cloud.google.com/appengine/docs/standard/python3/runtime)
