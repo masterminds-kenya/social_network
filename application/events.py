@@ -6,7 +6,7 @@ from .create_queue_task import add_to_capture
 
 
 def handle_user_subscribe(user, remove=False):
-    """Called for a User with a page_token is in an active Campaign.  """
+    """Enqueue user to change their 'story_subscribed' property. Does NOT check if user has active campaigns. """
     add, drop = 'subscribe_page', 'unsubscribe_page'
     if remove:
         add, drop = drop, add
@@ -53,10 +53,9 @@ def handle_user_page(user, value, oldvalue, initiator):
 @event.listens_for(Campaign.completed, 'set', retval=True)
 def handle_campaign_stories(campaign, value, oldvalue, initiator):
     """ Triggered when a Campaign is marked completed. """
-    app.logger.info("================ The campaign stories function is running ================")
+    app.logger.info(f"================ The campaign stories function from {initiator} ================")
     if value == oldvalue:
         return value
-    # related_users = campaign.users + campaign.brands
     related_users = getattr(campaign, 'users', []) + getattr(campaign, 'brands', [])
     for user in related_users:
         if value is True:

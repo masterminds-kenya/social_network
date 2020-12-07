@@ -2,8 +2,9 @@ from flask import redirect, render_template, url_for, flash, current_app as app
 from flask_login import current_user
 import json
 from .helper_functions import staff_required, admin_required, mod_lookup
-from .model_db import create_many, db_read, User, db
+from .model_db import Campaign, create_many, db_read, User, db
 from .api import get_ig_info, get_fb_page_for_users_ig_account
+from .events import handle_campaign_stories
 
 
 def admin_view(data=None, files=None):
@@ -37,8 +38,9 @@ def get_pages_for_users(overwrite=False, remove=False, **kwargs):
         else:
             app.logger.error(f"Unsure how to filter for type {type(val)} for key: value of {key}: {val} ")
     users = q.all()
-    app.logger.info('------------ get page for all users ---------------')
+    app.logger.info("------------ get pages for filtered users ---------------")
     app.logger.info(users)
+    app.logger.info("---------------------------------------------------------")
     for user in users:
         page = get_fb_page_for_users_ig_account(user)
         if remove and user.story_subscribed:
@@ -62,7 +64,12 @@ def subscribe_pages(group):
     """ Used by admin to subscribe to all current platform user's facebook page, if they are not already subscribed. """
     from pprint import pprint
 
-    app.logger.info("========== subscribe_all_pages ==========")
+    app.logger.info(f"========== subscribe_pages: {group} ==========")
+    if group == 'active':  # For every user in an active campaign, add them to db.session.info['subscribe_page'] set.
+        active_campaigns = Campaign.query.filter(Campaign.completed is False)
+        for ea in active_campaigns:
+            handle_campaign_stories(ea, False, 'Fake Old Value', 'Manual_Call')
+        # db.session.commit()
     param_lookup = {
         'all': {'page_id': None, 'overwrite': True, },
         'token': {'page_token': None, 'overwrite': True, },
