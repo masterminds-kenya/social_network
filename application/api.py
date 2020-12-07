@@ -412,7 +412,7 @@ def install_app_on_user_for_story_updates(user_or_id, page=None, facebook=None, 
             return False
     url = f"https://graph.facebook.com/v3.1/{page['id']}/subscribed_apps"
     params = {} if facebook else {'access_token': page['token']}
-    params['subscribed_fields'] = 'name'
+    params['subscribed_fields'] = 'category'  # OPTIONS: 'has_added_app', 'is_owned', 'website'  # WAS 'name'
     res = facebook.post(url, params=params).json() if facebook else requests.post(url, params=params).json()
     # TODO: See if facebook with params above works.
     app.logger.info('----------------------------------------------------------------')
