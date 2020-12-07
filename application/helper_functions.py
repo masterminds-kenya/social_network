@@ -82,5 +82,4 @@ def get_daily_ig_accounts(active=True):
 def make_missing_timestamp():
     """Returns a string representing a timestamp that is from 24 hours before now in UTC. """
     result = dt.utcnow() - timedelta(days=1)
-    loginfo = f"Created timestamp: {result}, "
-    return str(result), loginfo
+    return str(result)

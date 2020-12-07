@@ -4,8 +4,10 @@ from .model_db import User, Post, Campaign, db
 from .api import install_app_on_user_for_story_updates, remove_app_on_user_for_story_updates
 from .create_queue_task import add_to_capture
 
+CAPTURE_FEATURE_ACTIVE = False
 
-def handle_user_subscribe(user, remove=False):
+
+def session_user_subscribe(user, remove=False):
     """Enqueue user to change their 'story_subscribed' property. Does NOT check if user has active campaigns. """
     add, drop = 'subscribe_page', 'unsubscribe_page'
     if remove:
@@ -31,7 +33,7 @@ def handle_user_page(user, value, oldvalue, initiator):
     has_active_campaign = any(ea.completed is False for ea in connected_campaigns)
     if has_active_campaign:
         app.logger.info(f"The {user} has an active campaign. Time to subscribe. ")
-        handle_user_subscribe(user)
+        session_user_subscribe(user)
     return value
 
 
@@ -44,7 +46,7 @@ def handle_user_page(user, value, oldvalue, initiator):
 #     for user in users:
 #         if not user.story_subscribed and getattr(user, 'page_token', None):
 #             app.logger.info(f"The {user} has a token and needs to subscribe for campaign: {campaign} ")
-#             handle_user_subscribe(user)
+#             session_user_subscribe(user)
 #         else:
 #             app.logger.info(f"Triggered by campaign {campaign} the {user} is not being subscribed. ")
 #     return users
@@ -62,12 +64,12 @@ def handle_campaign_stories(campaign, value, oldvalue, initiator):
             campaigns_done = (ea.completed for ea in user.brand_campaigns + user.campaigns if ea != campaign)
             if user.story_subscribed and all(campaigns_done):
                 app.logger.info(f"The {user} is being removed for completed {campaign} ")
-                handle_user_subscribe(user, remove=True)
+                session_user_subscribe(user, remove=True)
         else:
             has_token = getattr(user, 'page_token', None)
             if has_token and not user.story_subscribed:
                 app.logger.info(f"The {user} is being subscribed for NOT completed {campaign} ")
-                handle_user_subscribe(user)
+                session_user_subscribe(user)
     return value
 
 
@@ -111,19 +113,18 @@ def enqueue_capture(model, value, oldvalue, initiator):
 
     if is_manual or is_new_story:
         capture_type = 'story_capture' if value == 'STORY' else 'post_capture'
-        # app.logger.info(f"========== Add {message} - {capture_type} ==========")
-        message += f"New {value}. " if str(oldvalue) == no_val else f"media_type {oldvalue} to {value}. "
-        # message += f"When session is committed, will send to {capture_type} Queue. "
-        message += f"Feature {capture_type} Queue NOT ACTIVATE. "
+        message += f"New {value}. " if str(oldvalue) == no_val else f"{oldvalue} to {value}. "
+        message += f"Queue {capture_type} "
+        if not CAPTURE_FEATURE_ACTIVE:
+            message += "NOT ACTIVATE "
         if capture_type in db.session.info:
             db.session.info[capture_type].add(model)
         else:
             db.session.info[capture_type] = {model}
     elif value == 'STORY':
-        # app.logger.info(f"========== Function enqueue_capture. {message} ==========")
         message += f"Expect STORY already queued: {model} "
     app.logger.info(message)
-    app.logger.info('---------------------------------------------------')
+    # app.logger.info('---------------------------------------------------')
     return value
 
 
@@ -136,32 +137,38 @@ def process_session_before_flush(session, flush_context, instances):
     subscribe_pages = session.info.get('subscribe_page', [])
     remove_pages = session.info.get('unsubscribe_page', [])
     message = f"Story Captures: {len(stories_to_capture)} Other Captures: {len(other_posts_to_capture)} "
-    message += f"Subscribe & Remove: {len(subscribe_pages)} & {len(remove_pages)} \n"
-    # for story in list(stories_to_capture):
-    #     capture_response = add_to_capture(story)
-    #     if capture_response:
-    #         message += f"Adding to Story capture queue: {str(story)} \n"
-    #         story.capture_name = getattr(capture_response, 'name', None)
-    #         session.info['story_capture'].discard(story)
-    #     else:
-    #         message += f"Failed to add {str(story)} To Capture Story queue. \n"
-    # for post in list(other_posts_to_capture):
-    #     capture_response = add_to_capture(post, queue_name='post')
-    #     if capture_response:
-    #         message += f"Adding to Post capture queue: {str(post)} \n"
-    #         post.capture_name = getattr(capture_response, 'name', None)
-    #         session.info['post_capture'].discard(post)
-    #     else:
-    #         message += f"Failed to add {str(post)} to Capture Post queue. \n"
+    message += f"Remove: {len(remove_pages)} Subscribe: {len(subscribe_pages)} "
+    for story in list(stories_to_capture):
+        if not CAPTURE_FEATURE_ACTIVE:
+            session.info['story_capture'].discard(story)
+            continue
+        capture_response = add_to_capture(story)
+        if capture_response:
+            message += f"Adding to Story capture queue: {str(story)} \n"
+            story.capture_name = getattr(capture_response, 'name', None)
+            session.info['story_capture'].discard(story)
+        else:
+            message += f"Failed to add {str(story)} To Capture Story queue. \n"
+    for post in list(other_posts_to_capture):
+        if not CAPTURE_FEATURE_ACTIVE:
+            session.info['post_capture'].discard(post)
+            continue
+        capture_response = add_to_capture(post, queue_name='post')
+        if capture_response:
+            message += f"Adding to Post capture queue: {str(post)} \n"
+            post.capture_name = getattr(capture_response, 'name', None)
+            session.info['post_capture'].discard(post)
+        else:
+            message += f"Failed to add {str(post)} to Capture Post queue. \n"
     for user in list(subscribe_pages):
         success = install_app_on_user_for_story_updates(user)
-        message += f"Subscribe {getattr(user, 'page_id', 'NA')} page for {user} worked: {success} "
+        message += '\n' + f"Subscribe {getattr(user, 'page_id', 'NA')} page for {user} worked: {success} "
         user.story_subscribed = success
         if success:
             session.info['subscribe_page'].discard(user)
     for user in list(remove_pages):
         success = remove_app_on_user_for_story_updates(user)
-        message += f"Remove {getattr(user, 'page_id', 'NA')} page for {user} worked: {success} "
+        message += '\n' + f"Remove {getattr(user, 'page_id', 'NA')} page for {user} worked: {success} "
         if success:
             user.story_subscribed = not success
             session.info['unsubscribe_page'].discard(user)
@@ -169,4 +176,4 @@ def process_session_before_flush(session, flush_context, instances):
     # session.deleted  # The set of all instances marked as 'deleted' within this Session
     app.logger.info(message)
     app.logger.info(session.info)
-    app.logger.info('---------------------------------------------------')
+    app.logger.info('---------------- End pre-flush session process ----------------')
