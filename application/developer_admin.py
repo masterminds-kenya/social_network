@@ -5,8 +5,6 @@ from .helper_functions import staff_required, admin_required, mod_lookup
 from .model_db import create_many, db_read, User, db
 from .api import get_ig_info, get_fb_page_for_users_ig_account
 
-USER_FILE = 'env/user_save.txt'
-
 
 def admin_view(data=None, files=None):
     """ Platform Admin view to view links and actions unique to admin """
@@ -14,6 +12,90 @@ def admin_view(data=None, files=None):
     dev = current_user.email in dev_email
     # files = None if app.config.get('LOCAL_ENV') else all_files()
     return render_template('admin.html', dev=dev, data=data, files=files)
+
+
+def get_pages_for_users(overwrite=False, remove=False, **kwargs):
+    """ We need the page number and token in order to setup webhooks for story insights.
+        The subscribing to a user's page will be handled elsewhere, and
+        triggered by this function when it sets and commits the user.page_token value.
+    """
+    updates = {}
+    q = User.query.filter(User.instagram_id.isnot(None))
+    for key, val in kwargs.items():
+        if isinstance(val, (list, tuple)):
+            q = q.filter(getattr(User, key).in_(val))
+        elif isinstance(val, bool):
+            q = q.filter(getattr(User, key).is_(val))
+        elif isinstance(val, type(None)) or val in ('IS NOT TRUE', 'IS NOT FALSE'):
+            if val is not None:
+                val = True if val == 'IS NOT TRUE' else False
+            q = q.filter(getattr(User, key).isnot(val))
+        elif isinstance(val, (str, int, float)):
+            q = q.filter(getattr(User, key) == val)
+        else:
+            app.logger.error(f"Unsure how to filter for type {type(val)} for key: value of {key}: {val} ")
+    users = q.all()
+    app.logger.info('------------ get page for all users ---------------')
+    app.logger.info(users)
+    for user in users:
+        page = get_fb_page_for_users_ig_account(user)
+        if remove and user.story_subscribed:
+            user.story_subscribed = False
+            db.session.add(user)
+            updates[user.id] = str(user)
+        if page and (overwrite or page.get('new_page')):
+            user.page_id = page.get('id')
+            user.page_token = page.get('token')
+            db.session.add(user)
+            updates[user.id] = str(user)
+    db.session.commit()
+    return updates
+
+
+@app.route('/<string:mod>/<int:id>/subscribe')
+@staff_required()
+def subscribe_page(mod, id):
+    """ NOT IMPLEMENTED. Used by admin manually subscribe to this user's facebook page. """
+    pass
+
+
+@app.route('/all_users/subscribe/<string:group>')
+@staff_required()
+def subscribe_pages(group):
+    """ Used by admin to subscribe to all current platform user's facebook page, if they are not already subscribed. """
+    from pprint import pprint
+
+    app.logger.info("========== subscribe_all_pages ==========")
+    param_lookup = {
+        'all': {'page_id': None, 'overwrite': True, },
+        'all_force': {'story_subscribed': 'IS NOT TRUE', 'overwrite': True, },
+        'active': {'story_subscribed': True, 'overwrite': False, },
+        'remove': {'remove': True, 'overwrite': False, },
+    }
+    column_args = param_lookup.get(group, {})
+    all_response = get_pages_for_users(**column_args)
+    pprint(all_response)
+    app.logger.info('-------------------------------------------------------------')
+    return admin_view(data=all_response)
+
+
+@app.route('/deletion')
+def fb_delete():
+    """ NOT IMPLEMENTED.
+        Handle a Facebook Data Deletion Request
+        More details: https://developers.facebook.com/docs/apps/delete-data
+    """
+    response = {}
+    response['user_id'] = 'test user_id'
+    response['url'] = 'see status of deletion'
+    response['confirmation_code'] = 'some unique code'
+    # TODO: do stuff
+    return json.dumps(response)
+
+
+# # DEPRECATED FUNCTIONS AND ROUTES
+
+USER_FILE = 'env/user_save.txt'
 
 
 def load():
@@ -125,71 +207,6 @@ def fix_defaults():
     return success
 
 
-def get_pages_for_users(overwrite=False, remove=False, **kwargs):
-    """ We need the page number and token in order to setup webhooks for story insights.
-        The subscribing to a user's page will be handled elsewhere, and
-        triggered by this function when it sets and commits the user.page_token value.
-    """
-    updates = {}
-    q = User.query.filter(User.instagram_id.isnot(None))
-    for key, val in kwargs.items():
-        if isinstance(val, (list, tuple)):
-            q = q.filter(getattr(User, key).in_(val))
-        elif isinstance(val, bool):
-            q = q.filter(getattr(User, key).is_(val))
-        elif isinstance(val, type(None)) or val in ('IS NOT TRUE', 'IS NOT FALSE'):
-            if val is not None:
-                val = True if val == 'IS NOT TRUE' else False
-            q = q.filter(getattr(User, key).isnot(val))
-        elif isinstance(val, (str, int, float)):
-            q = q.filter(getattr(User, key) == val)
-        else:
-            app.logger.error(f"Unsure how to filter for type {type(val)} for key: value of {key}: {val} ")
-    users = q.all()
-    app.logger.info('------------ get page for all users ---------------')
-    app.logger.info(users)
-    for user in users:
-        page = get_fb_page_for_users_ig_account(user)
-        if remove and user.story_subscribed:
-            user.story_subscribed = False
-            db.session.add(user)
-            updates[user.id] = str(user)
-        if page and (overwrite or page.get('new_page')):
-            user.page_id = page.get('id')
-            user.page_token = page.get('token')
-            db.session.add(user)
-            updates[user.id] = str(user)
-    db.session.commit()
-    return updates
-
-
-@app.route('/<string:mod>/<int:id>/subscribe')
-@staff_required()
-def subscribe_page(mod, id):
-    """ NOT IMPLEMENTED. Used by admin manually subscribe to this user's facebook page. """
-    pass
-
-
-@app.route('/all_users/subscribe/<string:group>')
-@staff_required()
-def subscribe_pages(group):
-    """ Used by admin to subscribe to all current platform user's facebook page, if they are not already subscribed. """
-    from pprint import pprint
-
-    app.logger.info("========== subscribe_all_pages ==========")
-    param_lookup = {
-        'all': {'page_id': None, 'overwrite': True, },
-        'all_force': {'story_subscribed': 'IS NOT TRUE', 'overwrite': True, },
-        'active': {'story_subscribed': True, 'overwrite': False, },
-        'remove': {'remove': True, 'overwrite': False, },
-    }
-    column_args = param_lookup.get(group, {})
-    all_response = get_pages_for_users(**column_args)
-    pprint(all_response)
-    app.logger.info('-------------------------------------------------------------')
-    return admin_view(data=all_response)
-
-
 @app.route('/data/load/')
 @admin_required()
 def load_user():
@@ -226,17 +243,3 @@ def encrypt():
     flash(message)
     return admin_view(data=message)
     # return render_template('admin.html', dev=True, data=message, files=None)
-
-
-@app.route('/deletion')
-def fb_delete():
-    """ NOT IMPLEMENTED.
-        Handle a Facebook Data Deletion Request
-        More details: https://developers.facebook.com/docs/apps/delete-data
-    """
-    response = {}
-    response['user_id'] = 'test user_id'
-    response['url'] = 'see status of deletion'
-    response['confirmation_code'] = 'some unique code'
-    # TODO: do stuff
-    return json.dumps(response)
