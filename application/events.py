@@ -7,7 +7,7 @@ from .create_queue_task import add_to_capture
 CAPTURE_FEATURE_ACTIVE = False
 
 
-def handle_user_subscribe(user, remove=False):
+def session_user_subscribe(user, remove=False):
     """Enqueue user to change their 'story_subscribed' property. Does NOT check if user has active campaigns. """
     add, drop = 'subscribe_page', 'unsubscribe_page'
     if remove:
@@ -33,7 +33,7 @@ def handle_user_page(user, value, oldvalue, initiator):
     has_active_campaign = any(ea.completed is False for ea in connected_campaigns)
     if has_active_campaign:
         app.logger.info(f"The {user} has an active campaign. Time to subscribe. ")
-        handle_user_subscribe(user)
+        session_user_subscribe(user)
     return value
 
 
@@ -46,7 +46,7 @@ def handle_user_page(user, value, oldvalue, initiator):
 #     for user in users:
 #         if not user.story_subscribed and getattr(user, 'page_token', None):
 #             app.logger.info(f"The {user} has a token and needs to subscribe for campaign: {campaign} ")
-#             handle_user_subscribe(user)
+#             session_user_subscribe(user)
 #         else:
 #             app.logger.info(f"Triggered by campaign {campaign} the {user} is not being subscribed. ")
 #     return users
@@ -64,12 +64,12 @@ def handle_campaign_stories(campaign, value, oldvalue, initiator):
             campaigns_done = (ea.completed for ea in user.brand_campaigns + user.campaigns if ea != campaign)
             if user.story_subscribed and all(campaigns_done):
                 app.logger.info(f"The {user} is being removed for completed {campaign} ")
-                handle_user_subscribe(user, remove=True)
+                session_user_subscribe(user, remove=True)
         else:
             has_token = getattr(user, 'page_token', None)
             if has_token and not user.story_subscribed:
                 app.logger.info(f"The {user} is being subscribed for NOT completed {campaign} ")
-                handle_user_subscribe(user)
+                session_user_subscribe(user)
     return value
 
 
