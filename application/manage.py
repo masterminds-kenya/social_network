@@ -267,12 +267,16 @@ def process_hook(req):
                 # else:
                 user = User.query.filter_by(instagram_id=ig_id).first() if ig_id else None
                 user = user or object()
-                user_id = getattr(user, 'id', None) or "No User"
-                message += f"STORY post CREATE for user: {user_id} \n"
-                # res = get_basic_post(media_id, user_id=getattr(user, 'id'), token=getattr(user, 'token'))
-                # story.update(res)
-                model = Post(**story)
-                new += 1
+                user_id = getattr(user, 'id', None)
+                if not user.story_subscribed:
+                    message += f"STORY post NOT TRACKED for user: {user_id or 'NO USER FOUND'} \n"
+                else:
+                    story.update(media_id=media_id, user_id=user_id)  # timestamp=str(dt.utcnow()
+                    message += f"STORY post CREATE for user: {user_id or 'NO USER FOUND'} \n"
+                    # res = get_basic_post(media_id, user_id=getattr(user, 'id'), token=getattr(user, 'token'))
+                    # story.update(res)
+                    model = Post(**story)
+                    new += 1
             db.session.add(model)
     message += ', '.join([f"{key}: {len(value)}" for key, value in hook_data.items()])
     message += ' \n'
