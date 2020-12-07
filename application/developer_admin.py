@@ -52,13 +52,6 @@ def get_pages_for_users(overwrite=False, remove=False, **kwargs):
     return updates
 
 
-@app.route('/<string:mod>/<int:id>/subscribe')
-@staff_required()
-def subscribe_page(mod, id):
-    """ NOT IMPLEMENTED. Used by admin manually subscribe to this user's facebook page. """
-    pass
-
-
 @app.route('/all_users/subscribe/<string:group>')
 @staff_required()
 def subscribe_pages(group):
@@ -77,6 +70,13 @@ def subscribe_pages(group):
     pprint(all_response)
     app.logger.info('-------------------------------------------------------------')
     return admin_view(data=all_response)
+
+
+@app.route('/<string:mod>/<int:id>/subscribe')
+@staff_required()
+def subscribe_page(mod, id):
+    """ NOT IMPLEMENTED. Used by admin manually subscribe to this user's facebook page. """
+    pass
 
 
 @app.route('/deletion')
