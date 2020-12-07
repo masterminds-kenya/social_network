@@ -52,7 +52,7 @@ def get_pages_for_users(overwrite=False, remove=False, **kwargs):
     return updates
 
 
-@app.route('/all_users/subscribe/<string:group>')
+@app.route('/subscribe/<string:group>')
 @staff_required()
 def subscribe_pages(group):
     """ Used by admin to subscribe to all current platform user's facebook page, if they are not already subscribed. """
@@ -61,9 +61,12 @@ def subscribe_pages(group):
     app.logger.info("========== subscribe_all_pages ==========")
     param_lookup = {
         'all': {'page_id': None, 'overwrite': True, },
-        'all_force': {'story_subscribed': 'IS NOT TRUE', 'overwrite': True, },
+        'token': {'page_token': None, 'overwrite': True, },
         'active': {'story_subscribed': True, 'overwrite': False, },
         'remove': {'remove': True, 'overwrite': False, },
+        'all_force': {'overwrite': True, },
+        'inactive_force': {'story_subscribed': 'IS NOT TRUE', 'overwrite': True, },
+        'active_force': {'story_subscribed': True, 'overwrite': True, },
     }
     column_args = param_lookup.get(group, {})
     all_response = get_pages_for_users(**column_args)
