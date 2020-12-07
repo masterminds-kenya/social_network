@@ -111,19 +111,18 @@ def enqueue_capture(model, value, oldvalue, initiator):
 
     if is_manual or is_new_story:
         capture_type = 'story_capture' if value == 'STORY' else 'post_capture'
-        # app.logger.info(f"========== Add {message} - {capture_type} ==========")
-        message += f"New {value}. " if str(oldvalue) == no_val else f"media_type {oldvalue} to {value}. "
-        # message += f"When session is committed, will send to {capture_type} Queue. "
-        message += f"Feature {capture_type} Queue NOT ACTIVATE. "
+        message += f"New {value}. " if str(oldvalue) == no_val else f"{oldvalue} to {value}. "
+        message += f"Queue {capture_type} "
+        if not CAPTURE_FEATURE_ACTIVE:
+            message += "NOT ACTIVATE "
         if capture_type in db.session.info:
             db.session.info[capture_type].add(model)
         else:
             db.session.info[capture_type] = {model}
     elif value == 'STORY':
-        # app.logger.info(f"========== Function enqueue_capture. {message} ==========")
         message += f"Expect STORY already queued: {model} "
     app.logger.info(message)
-    app.logger.info('---------------------------------------------------')
+    # app.logger.info('---------------------------------------------------')
     return value
 
 
