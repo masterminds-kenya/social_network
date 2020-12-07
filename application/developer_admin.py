@@ -18,6 +18,8 @@ def get_pages_for_users(overwrite=False, remove=False, **kwargs):
     """ We need the page number and token in order to setup webhooks for story insights.
         The subscribing to a user's page will be handled elsewhere, and
         triggered by this function when it sets and commits the user.page_token value.
+        If remove is True, then User.story_subscribed is set to False,
+        - but is overridden for any user who has other active campaigns.
     """
     updates = {}
     q = User.query.filter(User.instagram_id.isnot(None))
@@ -41,6 +43,8 @@ def get_pages_for_users(overwrite=False, remove=False, **kwargs):
         page = get_fb_page_for_users_ig_account(user)
         if remove and user.story_subscribed:
             user.story_subscribed = False
+            page_token = page.get('token', None) or getattr(user, 'page_token', None)
+            user.page_token = page_token  # Triggers checking for active Campaigns.
             db.session.add(user)
             updates[user.id] = str(user)
         if page and (overwrite or page.get('new_page')):
