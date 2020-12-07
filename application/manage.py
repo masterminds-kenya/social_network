@@ -242,20 +242,22 @@ def process_hook(req):
             val.update({'ig_id': ea.get('id')})
             hook_data[rec.get('field', '')].append(val)
             data_count += 1
-    data_log = f"{len(hook_data.get('story_insights', []))} stories, {data_count} total"
-    app.logger.info(f"============ PROCESS HOOK: {data_log} ============")
-    total, new, modified, message = 0, 0, 0, ''
+    data_log = f"{len(hook_data.get('story_insights', []))} stories"
+    if data_count != len(hook_data.get('story_insights', [])):
+        data_log += f", {data_count} total"
+    # app.logger.info(f"============ PROCESS HOOK: {data_log} ============")
+    total, new, modified, skipped, message = 0, 0, 0, 0, ''
     for story in hook_data['story_insights']:
         story['media_type'] = 'STORY'
-        app.logger.info(story)
         media_id = story.pop('media_id', None)  # Will be put back if creating, but already exists if updating.
         ig_id = story.pop('ig_id', None)  # Used to find the user if creating.
         total += 1
         if not media_id or not ig_id:
             missed = 'media_id ' if not media_id else 'ig_id'
             missed = 'media_id AND ig_id' if not media_id and not ig_id else missed
-            message += f"story_insights missing: {missed} "
-            app.logger.info("---------- SKIP BAD ID ----------")
+            message += f"story_insights missing: {missed} " + '\n'
+            app.logger.info(story)
+            app.logger.info(f"---------- media_id: {media_id} | ig_id: {ig_id} | SKIP BAD {missed} ----------")
             continue
         model = Post.query.filter_by(media_id=media_id).first()  # Returns none if not in DB
         if model:
@@ -272,7 +274,9 @@ def process_hook(req):
             # else:
             user = User.query.filter_by(instagram_id=ig_id).first()  # returns None if not found.
             if not user or not getattr(user, 'story_subscribed', None):
-                message += f"STORY post for {user or 'not-found-user'} NOT TRACKED \n"
+                data_log += f", for {user or 'not-found-user'} SKIP"
+                skipped += 1
+                # message += f"STORY post for {user or 'not-found-user'} NOT TRACKED \n"
                 continue
             user_id = getattr(user, 'id', None)
             timestamp = make_missing_timestamp()  # timestamp = str(dt.utcnow() - 1 day)
@@ -283,10 +287,9 @@ def process_hook(req):
         if not model:
             app.logger.info("Expected a model, but do not have one. ")
         db.session.add(model)
-    message += ', '.join([f"{key}: {len(value)}" for key, value in hook_data.items()])
-    message += ' \n'
+    message += ', '.join([f"{key}: {len(value)}" for key, value in hook_data.items()]) + ' '
     if modified + new > 0:
-        message += f"STORY posts: update {modified}, create {new}, TOTAL {total}. "
+        message += '\n' + f"STORY posts: update {modified}, create {new}, TOTAL {total}. "
         try:
             db.session.commit()
             response_code = 200
@@ -296,7 +299,11 @@ def process_hook(req):
             message += "Unable to to commit story hook updates to database. "
             app.logger.info(e)
             db.session.rollback()
+    elif total == skipped:
+        message = ''
+        response_code = 200
     else:
         message += "No needed record updates. "
         response_code = 200
+    app.logger.info(f"============ PROCESS HOOK: {data_log} ============")
     return message, response_code
