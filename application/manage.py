@@ -247,6 +247,8 @@ def process_hook(req):
     total, new, modified, message = 0, 0, 0, ''
     for story in hook_data['story_insights']:
         story['media_type'] = 'STORY'
+        app.logger.info("========== PROCESS HOOK ==========")
+        app.logger.info(story)
         media_id = story.pop('media_id', None)  # Exists on found, or put back during get_basic_post (even if failed).
         ig_id = story.pop('ig_id', None)
         if media_id:
@@ -281,7 +283,7 @@ def process_hook(req):
     message += ', '.join([f"{key}: {len(value)}" for key, value in hook_data.items()])
     message += ' \n'
     if modified + new > 0:
-        message += f"Updating {modified} and creating {new} Story Posts; Recording data for {total} Story Posts. "
+        message += f"STORY posts: update {modified}, create {new}, TOTAL {total}. "
         try:
             db.session.commit()
             response_code = 200
