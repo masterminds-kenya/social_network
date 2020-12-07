@@ -5,10 +5,10 @@ from collections import defaultdict
 import hmac
 import hashlib
 import json
-from .api import get_basic_post
+# from .api import get_basic_post
 from .model_db import db, User, Post, Audience
 from .model_db import db_read, db_create, db_update, db_delete
-from .helper_functions import mod_lookup
+from .helper_functions import mod_lookup, make_missing_timestamp
 
 
 def check_hash(signed, payload):
@@ -249,7 +249,7 @@ def process_hook(req):
         story['media_type'] = 'STORY'
         app.logger.info("========== PROCESS HOOK ==========")
         app.logger.info(story)
-        media_id = story.pop('media_id', None)  # Exists on found, or put back during get_basic_post (even if failed).
+        media_id = story.pop('media_id', None)  # Exists on found, or put back during create.
         ig_id = story.pop('ig_id', None)
         if media_id:
             total += 1
@@ -273,8 +273,10 @@ def process_hook(req):
                 if not user.story_subscribed:
                     message += f"STORY post NOT TRACKED for user: {user_id or 'NO USER FOUND'} \n"
                 else:
-                    story.update(media_id=media_id, user_id=user_id)  # timestamp=str(dt.utcnow()
+                    timestamp, loginfo = make_missing_timestamp()  # timestamp = str(dt.utcnow() - 1 day)
+                    story.update(media_id=media_id, user_id=user_id, timestamp=timestamp)
                     message += f"STORY post CREATE for user: {user_id or 'NO USER FOUND'} \n"
+                    message += loginfo
                     # res = get_basic_post(media_id, user_id=getattr(user, 'id'), token=getattr(user, 'token'))
                     # story.update(res)
                     model = Post(**story)

@@ -3,6 +3,7 @@ from functools import wraps
 from flask_login import current_user
 from sqlalchemy import or_
 from .model_db import User, Insight, Audience, Post, Campaign
+from datetime import timedelta, datetime as dt
 import json
 
 
@@ -76,3 +77,10 @@ def get_daily_ig_accounts(active=True):
         is_active = Campaign.completed.is_(False)
         users = users.filter(or_(User.campaigns.any(is_active), User.brand_campaigns.any(is_active)))
     return users.all()
+
+
+def make_missing_timestamp():
+    """Returns a string representing a timestamp that is from 24 hours before now in UTC. """
+    result = dt.utcnow() - timedelta(days=1)
+    loginfo = f"Created timestamp: {result}, "
+    return str(result), loginfo
