@@ -15,7 +15,7 @@ def admin_view(data=None, files=None):
     return render_template('admin.html', dev=dev, data=data, files=files)
 
 
-def get_pages_for_users(overwrite=False, remove=False, **kwargs):
+def get_pages_for_users(overwrite=False, remove=False, active_campaigns=False, **kwargs):
     """ We need the page number and token in order to setup webhooks for story insights.
         The subscribing to a user's page will be handled elsewhere, and
         triggered by this function when it sets and commits the user.page_token value.
@@ -39,12 +39,15 @@ def get_pages_for_users(overwrite=False, remove=False, **kwargs):
             app.logger.error(f"Unsure how to filter for type {type(val)} for key: value of {key}: {val} ")
     users = q.all()
     app.logger.info("------------ get pages for filtered users ---------------")
+    if active_campaigns:
+        app.logger.info(f"Only active users. Initial count: {len(users)} ")
+        users = [u for u in users if any(not ea.completed for ea in u.brand_campaigns + u.campaigns)]
     app.logger.info(users)
     app.logger.info("---------------------------------------------------------")
     for user in users:
         page = get_fb_page_for_users_ig_account(user)
         if remove and user.story_subscribed:
-            user.story_subscribed = False
+            user.story_subscribed = False  # Expected to be overridden at session commit if user has active campaigns.
             page_token = page.get('token', None) or getattr(user, 'page_token', None)
             user.page_token = page_token  # Triggers checking for active Campaigns.
             db.session.add(user)
@@ -73,7 +76,7 @@ def subscribe_pages(group):
     param_lookup = {
         'all': {'page_id': None, 'overwrite': True, },
         'token': {'page_token': None, 'overwrite': True, },
-        'active': {'story_subscribed': True, 'overwrite': False, },
+        'active': {'active_campaigns': True, 'overwrite': False, },
         'remove': {'remove': True, 'overwrite': False, },
         'all_force': {'overwrite': True, },
         'inactive_force': {'story_subscribed': 'IS NOT TRUE', 'overwrite': True, },
