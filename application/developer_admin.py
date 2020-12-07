@@ -4,7 +4,7 @@ import json
 from .helper_functions import staff_required, admin_required, mod_lookup
 from .model_db import Campaign, create_many, db_read, User, db
 from .api import get_ig_info, get_fb_page_for_users_ig_account
-from .events import handle_campaign_stories
+from .events import handle_campaign_stories, session_user_subscribe
 
 
 def admin_view(data=None, files=None):
@@ -38,15 +38,16 @@ def get_pages_for_users(overwrite=False, remove=False, active_campaigns=False, *
         else:
             app.logger.error(f"Unsure how to filter for type {type(val)} for key: value of {key}: {val} ")
     users = q.all()
-    app.logger.info("------------ get pages for filtered users ---------------")
+    # app.logger.info("------------ get pages for filtered users ------------")
     if active_campaigns:
-        app.logger.info(f"Only active users. Initial count: {len(users)} ")
+        # app.logger.info(f"Only active users. Initial count: {len(users)} ")
         users = [u for u in users if any(not ea.completed for ea in u.brand_campaigns + u.campaigns)]
-    app.logger.info(users)
-    app.logger.info("---------------------------------------------------------")
+    # app.logger.info(users)
+    # app.logger.info("------------ end filtered users ------------")
     for user in users:
         page = get_fb_page_for_users_ig_account(user)
         if remove and user.story_subscribed:
+            # session_user_subscribe(user, remove=True)  # This would remove, even if they have other active campaigns.
             user.story_subscribed = False  # Expected to be overridden at session commit if user has active campaigns.
             page_token = page.get('token', None) or getattr(user, 'page_token', None)
             user.page_token = page_token  # Triggers checking for active Campaigns.
@@ -55,6 +56,10 @@ def get_pages_for_users(overwrite=False, remove=False, active_campaigns=False, *
         if page and (overwrite or page.get('new_page')):
             user.page_id = page.get('id')
             user.page_token = page.get('token')
+            db.session.add(user)
+            updates[user.id] = str(user)
+        elif page and active_campaigns:
+            session_user_subscribe(user)
             db.session.add(user)
             updates[user.id] = str(user)
     db.session.commit()
@@ -67,7 +72,7 @@ def subscribe_pages(group):
     """ Used by admin to subscribe to all current platform user's facebook page, if they are not already subscribed. """
     from pprint import pprint
 
-    app.logger.info(f"========== subscribe_pages: {group} ==========")
+    app.logger.info(f"=============== subscribe_pages: {group} ===============")
     if group == 'active':  # For every user in an active campaign, add them to db.session.info['subscribe_page'] set.
         active_campaigns = Campaign.query.filter(Campaign.completed is False)
         for ea in active_campaigns:
@@ -85,7 +90,7 @@ def subscribe_pages(group):
     column_args = param_lookup.get(group, {})
     all_response = get_pages_for_users(**column_args)
     pprint(all_response)
-    app.logger.info('-------------------------------------------------------------')
+    app.logger.info('--------------- End subscribe {group} ---------------')
     return admin_view(data=all_response)
 
 
