@@ -5,6 +5,7 @@ from .helper_functions import staff_required, admin_required, mod_lookup
 from .model_db import Campaign, create_many, db_read, User, db
 from .api import get_ig_info, get_fb_page_for_users_ig_account
 from .events import handle_campaign_stories, session_user_subscribe
+from pprint import pprint
 
 
 def admin_view(data=None, files=None):
@@ -58,11 +59,23 @@ def get_pages_for_users(overwrite=False, remove=False, active_campaigns=False, *
             user.page_token = page.get('token')
             db.session.add(user)
             updates[user.id] = str(user)
-        elif page and active_campaigns:
+        elif page and active_campaigns and not user.story_subscribed:
             session_user_subscribe(user)
+            old_notes = user.notes or ''
+            user.notes = old_notes + ' add story_metrics'
             db.session.add(user)
             updates[user.id] = str(user)
+    app.logger.info("---------- get_pages_for_users session ----------")
+    pprint(db.session.__dict__)
+    app.logger.info("----- Session.info -----")
+    app.logger.info(db.session.info)
+    app.logger.info("------------ Now commit ------------")
     db.session.commit()
+    app.logger.info("---------- get_pages_for_users session AFTER commit ----------")
+    pprint(db.session.__dict__)
+    app.logger.info("----- Session.info -----")
+    app.logger.info(db.session.info)
+    app.logger.info("------------ End get_pages_for_users ------------")
     return updates
 
 
@@ -70,7 +83,6 @@ def get_pages_for_users(overwrite=False, remove=False, active_campaigns=False, *
 @staff_required()
 def subscribe_pages(group):
     """ Used by admin to subscribe to all current platform user's facebook page, if they are not already subscribed. """
-    from pprint import pprint
 
     app.logger.info(f"=============== subscribe_pages: {group} ===============")
     if group == 'active':  # For every user in an active campaign, add them to db.session.info['subscribe_page'] set.
@@ -89,8 +101,9 @@ def subscribe_pages(group):
     }
     column_args = param_lookup.get(group, {})
     all_response = get_pages_for_users(**column_args)
+    app.logger.info(f"--------------- Results subscribe {group} ---------------")
     pprint(all_response)
-    app.logger.info('--------------- End subscribe {group} ---------------')
+    app.logger.info(f"--------------- End subscribe {group} ---------------")
     return admin_view(data=all_response)
 
 
