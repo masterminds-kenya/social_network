@@ -5,10 +5,10 @@ from collections import defaultdict
 import hmac
 import hashlib
 import json
-from .api import get_basic_post
+# from .api import get_basic_post
 from .model_db import db, User, Post, Audience
 from .model_db import db_read, db_create, db_update, db_delete
-from .helper_functions import mod_lookup
+from .helper_functions import mod_lookup, make_missing_timestamp
 
 
 def check_hash(signed, payload):
@@ -247,7 +247,9 @@ def process_hook(req):
     total, new, modified, message = 0, 0, 0, ''
     for story in hook_data['story_insights']:
         story['media_type'] = 'STORY'
-        media_id = story.pop('media_id', None)  # Exists on found, or put back during get_basic_post (even if failed).
+        app.logger.info("========== PROCESS HOOK ==========")
+        app.logger.info(story)
+        media_id = story.pop('media_id', None)  # Exists on found, or put back during create.
         ig_id = story.pop('ig_id', None)
         if media_id:
             total += 1
@@ -267,17 +269,23 @@ def process_hook(req):
                 # else:
                 user = User.query.filter_by(instagram_id=ig_id).first() if ig_id else None
                 user = user or object()
-                user_id = getattr(user, 'id', None) or "No User"
-                message += f"STORY post CREATE for user: {user_id} \n"
-                # res = get_basic_post(media_id, user_id=getattr(user, 'id'), token=getattr(user, 'token'))
-                # story.update(res)
-                model = Post(**story)
-                new += 1
+                user_id = getattr(user, 'id', None)
+                if not getattr(user, 'story_subscribed', None):
+                    message += f"STORY post NOT TRACKED for user: {user_id or 'NO USER FOUND'} \n"
+                else:
+                    timestamp, loginfo = make_missing_timestamp()  # timestamp = str(dt.utcnow() - 1 day)
+                    story.update(media_id=media_id, user_id=user_id, timestamp=timestamp)
+                    message += f"STORY post CREATE for user: {user_id or 'NO USER FOUND'} \n"
+                    message += loginfo
+                    # res = get_basic_post(media_id, user_id=getattr(user, 'id'), token=getattr(user, 'token'))
+                    # story.update(res)
+                    model = Post(**story)
+                    new += 1
             db.session.add(model)
     message += ', '.join([f"{key}: {len(value)}" for key, value in hook_data.items()])
     message += ' \n'
     if modified + new > 0:
-        message += f"Updating {modified} and creating {new} Story Posts; Recording data for {total} Story Posts. "
+        message += f"STORY posts: update {modified}, create {new}, TOTAL {total}. "
         try:
             db.session.commit()
             response_code = 200
