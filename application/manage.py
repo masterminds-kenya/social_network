@@ -270,7 +270,7 @@ def process_hook(req):
                 user = User.query.filter_by(instagram_id=ig_id).first() if ig_id else None
                 user = user or object()
                 user_id = getattr(user, 'id', None)
-                if not user.story_subscribed:
+                if not getattr(user, 'story_subscribed', None):
                     message += f"STORY post NOT TRACKED for user: {user_id or 'NO USER FOUND'} \n"
                 else:
                     timestamp, loginfo = make_missing_timestamp()  # timestamp = str(dt.utcnow() - 1 day)
