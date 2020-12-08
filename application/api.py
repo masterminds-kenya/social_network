@@ -404,7 +404,7 @@ def install_app_on_user_for_story_updates(user_or_id, page=None, facebook=None, 
         user = User.query.get(user_id)
     else:
         raise ValueError('Input must be either a User model or an id for a User. ')
-    app.logger.info(f"========== INSTALL APP for: {user} ==========")
+    # app.logger.info(f"========== INSTALL APP for: {user} ==========")
     if not isinstance(page, dict) or not page.get('id') or not page.get('token'):
         page = get_fb_page_for_users_ig_account(user, facebook=facebook, token=token)
         if not page:
@@ -417,8 +417,7 @@ def install_app_on_user_for_story_updates(user_or_id, page=None, facebook=None, 
     params = {} if facebook else {'access_token': page['token']}
     params['subscribed_fields'] = field
     res = facebook.post(url, params=params).json() if facebook else requests.post(url, params=params).json()
-    # TODO: See if facebook with params above works.
-    app.logger.info(f"-------- End for {user.name} - Success: {res.get('success', False)} --------")
+    app.logger.info(f"======== Install App for {user.name} - Success: {res.get('success', False)} ========")
     pprint(res)
     return res.get('success', False)
 
