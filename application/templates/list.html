@@ -41,6 +41,7 @@
     </li>
     {% if mod == 'campaign' %}
     <li><a href="{{ url_for('add', mod='brand')}}">Add Brand</a></li>
+    <li><a href="{{ url_for('all', mod='campaign', role='active') }}">View Active Campaigns (default)</a></li>
     <li><a href="{{ url_for('all', mod='campaign', role='completed') }}">View Completed Campaigns</a></li>
     <li><a href="{{ url_for('all', mod='campaign', role='all') }}">View Both Active and Completed Campaigns</a></li>
     {% endif %}
