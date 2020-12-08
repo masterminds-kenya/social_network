@@ -410,7 +410,7 @@ def install_app_on_user_for_story_updates(user_or_id, page=None, facebook=None, 
         if not page:
             app.logger.error(f"Unable to find the page for user: {user} ")
             return False
-    url = f"https://graph.facebook.com/{page['id']}/subscribed_apps",  # TODO: Works, but FB docs indicate v# required.
+    url = f"https://graph.facebook.com/{page['id']}/subscribed_apps"  # TODO: Works, but FB docs indicate v# required.
     # url = f"https://graph.facebook.com/v9.0/{page['id']}/subscribed_apps",  # TODO: v3.1 out of date, is v# needed?
     field = 'name'  # OPTIONS: 'category', 'website' # NOT VALID: 'has_added_app', 'is_owned'
     # TODO: Check if permission needed: pages_manage_metadata or pages_read_user_content
