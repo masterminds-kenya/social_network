@@ -416,7 +416,7 @@ def install_app_on_user_for_story_updates(user_or_id, page=None, facebook=None, 
         f"https://graph.facebook.com/v3.1/{page['id']}/subscribed_apps",  # TODO: v3.1 it out of date?
         f"https://graph.facebook.com/v9.0/{page['id']}/subscribed_apps",  # TODO: Correct route?
     ]
-    fields_list = ['category', 'name', 'website']  # NOT VALID: 'has_added_app', 'is_owned',
+    fields_list = ['has_added_app', 'category', 'is_owned', 'name', 'website']
     # TODO: Check if permission needed: pages_manage_metadata or pages_read_user_content
     collected_res, errors = [], []
     for url in urls:
