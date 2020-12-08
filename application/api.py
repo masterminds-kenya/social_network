@@ -418,7 +418,26 @@ def install_app_on_user_for_story_updates(user_or_id, page=None, facebook=None, 
     params['subscribed_fields'] = field
     res = facebook.post(url, params=params).json() if facebook else requests.post(url, params=params).json()
     app.logger.info(f"======== Install App for {user.name} - Success: {res.get('success', False)} ========")
-    pprint(res)
+    errors = []
+    if 'error' in res:
+        common_error_strings = {
+            'two factor auth': 'requires Two Factor Authentication, the user also needs to enable Two Factor Auth',
+            'permissions': 'permissions is needed',
+            'admin level': 'does not have sufficient administrative',
+            'not authorized': 'has not authorized application',
+            'pages_read_engagement': 'pages_read_engagement',
+            'pages_read_user_content': 'pages_read_user_content',
+            'pages_show_list': 'pages_show_list',
+            'pages_manage_metadata': 'pages_manage_metadata',
+        }
+        message = res['error'].get('message')
+        for key, value in common_error_strings.items():
+            if value in message:
+                errors.append(key)
+    if errors:
+        app.logger.error(f"Found errors: {errors} ")
+    else:
+        pprint(res)
     return res.get('success', False)
 
 
