@@ -20,7 +20,8 @@ FB_SCOPE = [
     'pages_read_engagement',  # Graph API v7.0 requires this to get instagram_basic permissions.
     'instagram_basic',
     'instagram_manage_insights',
-    # 'manage_pages'  # Deprecated. Now using pages_read_engagement for Graph API v7.0.
+    'pages_manage_metadata',
+    # 'manage_pages'  # Deprecated. Now using pages_read_engagement (v7.0), 'pages_manage_metadata' for later.
         ]
 
 
