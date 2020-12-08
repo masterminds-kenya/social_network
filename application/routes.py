@@ -659,7 +659,8 @@ def all(mod):
         models = all_files()
     else:
         Model = mod_lookup(mod)
-        models = db_all(Model=Model, role=mod) if Model == User else db_all(Model=Model)
+        role = mod if Model == User else request.args.get('role', None)  # 'all', 'completed', ...
+        models = db_all(Model=Model, role=role) if Model in (User, Campaign) else db_all(Model=Model)
     return render_template('list.html', mod=mod, data=models)
 
 

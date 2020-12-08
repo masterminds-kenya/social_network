@@ -650,6 +650,9 @@ def db_all(Model=User, role=None):
     if Model == User:
         role_type = role if role else 'influencer'
         query = query.filter_by(role=role_type)
+    if Model == Campaign and role != 'all':
+        only_completed = True if role == 'completed' else False
+        query = query.filter_by(completed=only_completed)
     sort_field = Model.recorded if hasattr(Model, 'recorded') else Model.name if hasattr(Model, 'name') else Model.id
     # TODO: For each model declare default sort, then use that here: query.order_by(Model.<sortfield>).all()
     return query.order_by(sort_field).all()
