@@ -404,19 +404,46 @@ def install_app_on_user_for_story_updates(user_or_id, page=None, facebook=None, 
         user = User.query.get(user_id)
     else:
         raise ValueError('Input must be either a User model or an id for a User. ')
-    app.logger.info(f"========== install_app_on_user_for_story_updates: {user} ==========")
+    app.logger.info(f"========== INSTALL APP for: {user} ==========")
     if not isinstance(page, dict) or not page.get('id') or not page.get('token'):
         page = get_fb_page_for_users_ig_account(user, facebook=facebook, token=token)
         if not page:
             app.logger.error(f"Unable to find the page for user: {user} ")
             return False
-    url = f"https://graph.facebook.com/v3.1/{page['id']}/subscribed_apps"
-    params = {} if facebook else {'access_token': page['token']}
-    params['subscribed_fields'] = 'category'  # OPTIONS: 'has_added_app', 'is_owned', 'website'  # WAS 'name'
-    res = facebook.post(url, params=params).json() if facebook else requests.post(url, params=params).json()
+    # TODO: UPDATE AFTER THIS TEMPORARY PROCESS DETERMINES THE BEST PROCESS
+    urls = [
+        f"https://graph.facebook.com/{page['id']}/subscribed_apps",  # TODO: Correct route?
+        f"https://graph.facebook.com/v3.1/{page['id']}/subscribed_apps",  # TODO: v3.1 it out of date?
+        f"https://graph.facebook.com/v9.0/{page['id']}/subscribed_apps",  # TODO: Correct route?
+    ]
+    fields_list = ['category', 'name', 'website']  # NOT VALID: 'has_added_app', 'is_owned',
+    # TODO: Check if permission needed: pages_manage_metadata or pages_read_user_content
+    collected_res, errors = [], []
+    for url in urls:
+        for field in fields_list:
+            params = {} if facebook else {'access_token': page['token']}
+            params['subscribed_fields'] = field
+            res = facebook.post(url, params=params).json() if facebook else requests.post(url, params=params).json()
+            if 'error' not in res:
+                app.logger.info(f"======== Success Install for {user} ========")
+                app.logger.info(f"URL: {url} ")
+                app.logger.info(f"Field: {field} ")
+                app.logger.info(f"Success: {res.get('success', False)} ")
+                if res.get('success', False):
+                    collected_res.append(res)
+            else:
+                errors.append({'error': res['error'], 'URL': url, 'FIELD': field})
     # TODO: See if facebook with params above works.
-    app.logger.info('----------------------------------------------------------------')
-    pprint(res)
+    success_count = len(collected_res)
+    if success_count:
+        app.logger.info(f"-------- End for {user.name} - Success: {success_count} --------")
+        res = collected_res[0]
+        pprint(res)
+    else:
+        app.logger.info(f"-------- End for {user.name} - Fails: {len(errors)} --------")
+        res = {}
+        for err in errors:
+            pprint(err)
     return res.get('success', False)
 
 
@@ -437,7 +464,8 @@ def remove_app_on_user_for_story_updates(user_or_id, page=None, facebook=None, t
     #     if not page:
     #         app.logger.error(f"Unable to find the page for user: {user} ")
     #         return False
-    # url = f"https://graph.facebook.com/v3.1/{page['id']}/subscribed_apps"
+    # url = f"https://graph.facebook.com/v3.1/{page['id']}/subscribed_apps"  # TODO: v3.1 it out of date?
+    # TODO: Check if permission needed: pages_manage_metadata or pages_read_user_content
     # params = {} if facebook else {'access_token': page['token']}
     # params['subscribed_fields'] = ''  # Remove all despite docs saying parameter cannot configure Instagram Webhooks
     # res = facebook.post(url, params=params).json() if facebook else requests.post(url, params=params).json()
