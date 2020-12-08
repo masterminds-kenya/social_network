@@ -655,13 +655,16 @@ def all(mod):
     # if mod not in ['campaign', *User.ROLES] and current_user.role != 'admin':
     #     flash('It seems that is not a correct route. You are redirected to the home page.')
     #     return redirect(url_for('home'))
+    view = None  # Possible values: 'all', 'completed', 'active', None
     if mod == 'file':
         models = all_files()
     else:
         Model = mod_lookup(mod)
         role = mod if Model == User else request.args.get('role', None)  # 'all', 'completed', ...
+        if Model == Campaign:
+            view = role or 'active'
         models = db_all(Model=Model, role=role) if Model in (User, Campaign) else db_all(Model=Model)
-    return render_template('list.html', mod=mod, data=models)
+    return render_template('list.html', mod=mod, data=models, view=view)
 
 
 # Catchall redirect route.
