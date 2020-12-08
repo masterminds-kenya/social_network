@@ -56,9 +56,13 @@
   <li><a href="{{ url_for('test_method') }}">Dev Test Method</a></li>
   <li><a href="{{ url_for('capture', id=378) }}">Capture Media Test Link</a></li>
   <li>Removed of Deprecated Functions (inactive function)</li>
-  <li><a href="">Run Encrypt Process (encrypt)</a></li>
-  <li><a href="">Load File contents into Database (load_user)</a> </li>
-  <li><a href="">Save users to file (backup_save)</a></li>
+  <li><a href="{{ url_for('admin', data='DEPRECATED: encrypt') }}">Run Encrypt Process (encrypt)</a></li>
+  <li>
+    <a href="{{ url_for('admin', data='DEPRECATED: load_user') }}">Load File contents into Database (load_user)</a>
+  </li>
+  <li><a href="{{ url_for('admin', data='DEPRECATED: backup_save') }}">Save users to file (backup_save)</a></li>
+  <li>Start Admin Over</li>
+  <li><a href="{{ url_for('admin') }}">RETURN to Base Admin Page (admin)</a></li>
   {% endif %}
 </ul>
 
