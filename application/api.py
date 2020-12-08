@@ -411,28 +411,24 @@ def install_app_on_user_for_story_updates(user_or_id, page=None, facebook=None, 
             app.logger.error(f"Unable to find the page for user: {user} ")
             return False
     # TODO: UPDATE AFTER THIS TEMPORARY PROCESS DETERMINES THE BEST PROCESS
-    urls = [
-        f"https://graph.facebook.com/{page['id']}/subscribed_apps",  # TODO: Correct route?
-        f"https://graph.facebook.com/v3.1/{page['id']}/subscribed_apps",  # TODO: v3.1 it out of date?
-        f"https://graph.facebook.com/v9.0/{page['id']}/subscribed_apps",  # TODO: Correct route?
-    ]
-    fields_list = ['has_added_app', 'category', 'is_owned', 'name', 'website']
+    fields_list = ['name', 'category', 'website']  # OPTIONS:  # NOT VALID: 'has_added_app', 'is_owned'
     # TODO: Check if permission needed: pages_manage_metadata or pages_read_user_content
+    url = f"https://graph.facebook.com/{page['id']}/subscribed_apps",  # TODO: Correct route?
+    # url = f"https://graph.facebook.com/v9.0/{page['id']}/subscribed_apps",  # TODO: v3.1 out of date, is v# needed?
     collected_res, errors = [], []
-    for url in urls:
-        for field in fields_list:
-            params = {} if facebook else {'access_token': page['token']}
-            params['subscribed_fields'] = field
-            res = facebook.post(url, params=params).json() if facebook else requests.post(url, params=params).json()
-            if 'error' not in res:
-                app.logger.info(f"======== Success Install for {user} ========")
-                app.logger.info(f"URL: {url} ")
-                app.logger.info(f"Field: {field} ")
-                app.logger.info(f"Success: {res.get('success', False)} ")
-                if res.get('success', False):
-                    collected_res.append(res)
-            else:
-                errors.append({'error': res['error'], 'URL': url, 'FIELD': field})
+    for field in fields_list:
+        params = {} if facebook else {'access_token': page['token']}
+        params['subscribed_fields'] = field
+        res = facebook.post(url, params=params).json() if facebook else requests.post(url, params=params).json()
+        if 'error' not in res:
+            app.logger.info(f"======== Success Install for {user} ========")
+            app.logger.info(f"URL: {url} ")
+            app.logger.info(f"Field: {field} ")
+            app.logger.info(f"Success: {res.get('success', False)} ")
+            if res.get('success', False):
+                collected_res.append(res)
+        else:
+            errors.append({'error': res['error'], 'URL': url, 'FIELD': field})
     # TODO: See if facebook with params above works.
     success_count = len(collected_res)
     if success_count:
