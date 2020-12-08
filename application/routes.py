@@ -97,7 +97,9 @@ def error():
 
 @app.route('/admin')
 @admin_required()
-def admin(data=None, files=None):
+def admin():
+    data = request.args.get('data', None)
+    files = request.args.get('files', None)
     return admin_view(data=data, files=files)
 
 
