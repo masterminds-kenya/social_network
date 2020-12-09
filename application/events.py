@@ -121,7 +121,7 @@ def enqueue_capture(model, value, oldvalue, initiator):
 @event.listens_for(db.session, 'before_flush')
 def process_session_before_flush(session, flush_context, instances):
     """ During creation or modification of Post models, some may be marked for adding to a Capture queue. """
-    app.logger.info("================ Process Session Before Flush ===============")
+    app.logger.info("============ Process Session Before Flush ===============")
     stories_to_capture = session.info.get('story_capture', [])
     other_posts_to_capture = session.info.get('post_capture', [])
     subscribe_pages = session.info.get('subscribe_page', [])
