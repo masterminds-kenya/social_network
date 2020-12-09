@@ -5,8 +5,7 @@ from collections import defaultdict
 import hmac
 import hashlib
 import json
-# from .api import get_basic_post
-from .model_db import db, User, Post, Audience
+from .model_db import db, User, Post  # , Audience
 from .model_db import db_read, db_create, db_update, db_delete
 from .helper_functions import mod_lookup, make_missing_timestamp
 
@@ -32,7 +31,7 @@ def check_hash(signed, payload):
 
 
 def update_campaign(campaign, request):
-    """ Handle adding or removing posts assigned to a campaign, as well removing posts from the processing cue. """
+    """ Handle adding or removing posts assigned to a campaign, as well as removing posts from the processing Queue. """
     app.logger.info('=========== Update Campaign ==================')
     form_dict = request.form.to_dict(flat=True)
     # Radio Button | Management | Results | Manage Outcome  | Result Outcome
@@ -82,9 +81,9 @@ def process_form(mod, request):
     if mod == 'campaign':
         data = request.form.to_dict(flat=False)
         # capture the relationship collections
-        # TODO: I might be missing how SQLAlchemy intends for use to handle related models
-        # the following may not be needed, or need to be managed differently
         rel_collections = (('brands', User), ('users', User), ('posts', Post))
+        data.setdefault('brands', [])  # No value means user removed the pre-populated value.
+        data.setdefault('users', [])  # No value means user removed the pre-populated value.
         for rel, Model in rel_collections:
             if rel in data:
                 model_ids = [int(ea) for ea in data[rel]]
@@ -92,22 +91,24 @@ def process_form(mod, request):
                 save[rel] = models
     data = request.form.to_dict(flat=True)
     if mod in ['login', *User.ROLES]:
-        data['role'] = data.get('role', mod)
+        data['role'] = data.get('role', mod)  # For mod == 'login', extra keys are never looked up or applied.
         # checking, or creating, password hash is handled outside of this function.
-        # On User edit, keep the current password if they left the input box blank.
-        if not data.get('password'):
+        if not data.get('password'):  # On User edit, keep the current password if they left the input box blank.
             data.pop('password', None)
-        # Create IG media_count & followers_count here, then they are associated on User create or update.
-        models = []
-        for name in Audience.IG_DATA:  # {'media_count', 'followers_count'}
-            value = data.pop(name, None)
-            if value:
-                models.append(Audience(name=name, values=[json.loads(value)]))
-        save['audiences'] = models
+        # The audiences (specifically 'media_count' and 'followers_count') do NOT need to be modified in process_form.
+        # # Create IG media_count & followers_count here, then they are associated on User create or update.
+        # models = []
+        # for name in Audience.IG_DATA:  # {'media_count', 'followers_count'}
+        #     value = data.pop(name, None)
+        #     if value:
+        #         models.append(Audience(name=name, values=[json.loads(value)]))
+        # save['audiences'] = models
+        # # TODO: Confirm that 'audiences' are not overwritten unintentionally.
+        # # SAFE: login->process_form, signup->process_form, add(only allows 'campaign' or 'brand' mod)->add_edit
+        # # edit->add_edit: Only mod in ('campaign', *User.ROLES) by admin, manager or self user allowed. is it SAFE?
     data.update(save)  # adds to the data dict if we did save some relationship collections
     # If the form has a checkbox for a Boolean in the form, we may need to reformat.
-    # currently I think only Campaign and Post have checkboxes
-    bool_fields = {'campaign': 'completed', 'login': 'remember'}
+    bool_fields = {'campaign': 'completed', 'login': 'remember'}  # currently only Campaign and Post have checkboxes
     # TODO: Add logic to find all Boolean fields in models and handle appropriately.
     if mod in bool_fields:
         data[bool_fields[mod]] = True if data.get(bool_fields[mod]) in {'on', True} else False
@@ -115,7 +116,7 @@ def process_form(mod, request):
 
 
 def add_edit(mod, id=None):
-    """ Adding or Editing a DB record is a similar process handled here. """
+    """Adding or Editing Models. For Campaigns, settings handled here, but all else handled by update_campaign. """
     action = 'Edit' if id else 'Add'
     Model = mod_lookup(mod)
     if action == 'Add' and Model == User:
@@ -132,8 +133,7 @@ def add_edit(mod, id=None):
             data['instagram_id'] = None  # TODO: Do not overwrite 'instagram_id' if it was left blank.
         # TODO: ?Check for failing unique column fields, or failing composite unique requirements?
         if action == 'Edit':
-            password_mismatch = data.get('password', '') != data.get('password-confirm', '')
-            if password_mismatch:
+            if 'password' in data and 'password-confirm' in data and data['password'] != data['password-confirm']:
                 message = "New password and its confirmation did not match. Please try again. "
                 flash(message)
                 return redirect(request.referrer)
@@ -189,10 +189,8 @@ def add_edit(mod, id=None):
     model = db_read(id, Model=Model) if action == 'Edit' else {}
     if mod == 'campaign':
         template = f"{mod}_{template}"
-        users = User.query.filter_by(role='influencer').all()
-        brands = User.query.filter_by(role='brand').all()
-        related['users'] = [(ea.id, ea.name) for ea in users]
-        related['brands'] = [(ea.id, ea.name) for ea in brands]
+        related['users'] = User.query.filter_by(role='influencer').all()
+        related['brands'] = User.query.filter_by(role='brand').all()
     return render_template(template, action=action, mod=mod, data=model, related=related)
 
 

@@ -66,16 +66,16 @@ def get_pages_for_users(overwrite=False, remove=False, active_campaigns=False, *
             db.session.add(user)
             updates[user.id] = str(user)
     app.logger.info("---------- get_pages_for_users session ----------")
-    pprint(db.session.__dict__)
-    app.logger.info("----- Session.info -----")
+    # pprint(db.session.__dict__)
+    # app.logger.info("----- Session.info -----")
     app.logger.info(db.session.info)
     app.logger.info("------------ Now commit ------------")
     db.session.commit()
-    app.logger.info("---------- get_pages_for_users session AFTER commit ----------")
-    pprint(db.session.__dict__)
-    app.logger.info("----- Session.info -----")
-    app.logger.info(db.session.info)
-    app.logger.info("------------ End get_pages_for_users ------------")
+    # app.logger.info("---------- get_pages_for_users session AFTER commit ----------")
+    # pprint(db.session.__dict__)
+    # app.logger.info("----- Session.info -----")
+    # app.logger.info(db.session.info)
+    # app.logger.info("------------ End get_pages_for_users ------------")
     return updates
 
 

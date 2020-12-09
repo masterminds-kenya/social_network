@@ -622,10 +622,12 @@ def db_update(data, id, related=False, Model=User):
         for k, v in data.items():
             setattr(model, k, v)
         for k, v in associated.items():
-            if getattr(model, k, None):
-                getattr(model, k).append(v)
-            else:
-                setattr(model, k, v)
+            # if getattr(model, k, None):
+            #     temp = v if isinstance(v, (list, tuple)) else [v]
+            #     for t in temp:
+            #         getattr(model, k).append(t)
+            # else:
+            setattr(model, k, v)
         db.session.commit()
     except IntegrityError as e:
         current_app.logger.exception(e)
@@ -636,6 +638,14 @@ def db_update(data, id, related=False, Model=User):
             message = "Input Error. Make sure values are unique where required, and confirm all inputs are valid. "
         flash(message)
         raise ValueError(e)
+    except Exception as e:  # TODO: Remove this except catch and log after confirming no consistant issues.
+        current_app.logger.info("===== Got a non-IntegrityError in db_update =====")
+        current_app.logger.info(model)
+        current_app.logger.info(associated)
+        current_app.logger.info("-------------------------------------------------")
+        current_app.logger.error(e)
+        current_app.logger.info("-------------------------------------------------")
+        raise e
     return from_sql(model, related=related, safe=True)
 
 
@@ -650,6 +660,9 @@ def db_all(Model=User, role=None):
     if Model == User:
         role_type = role if role else 'influencer'
         query = query.filter_by(role=role_type)
+    if Model == Campaign and role != 'all':
+        only_completed = True if role == 'completed' else False
+        query = query.filter_by(completed=only_completed)
     sort_field = Model.recorded if hasattr(Model, 'recorded') else Model.name if hasattr(Model, 'name') else Model.id
     # TODO: For each model declare default sort, then use that here: query.order_by(Model.<sortfield>).all()
     return query.order_by(sort_field).all()

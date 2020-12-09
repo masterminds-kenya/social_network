@@ -20,7 +20,8 @@ FB_SCOPE = [
     'pages_read_engagement',  # Graph API v7.0 requires this to get instagram_basic permissions.
     'instagram_basic',
     'instagram_manage_insights',
-    # 'manage_pages'  # Deprecated. Now using pages_read_engagement for Graph API v7.0.
+    'pages_manage_metadata',
+    # 'manage_pages'  # Deprecated. Now using pages_read_engagement (v7.0), 'pages_manage_metadata' for later.
         ]
 
 
@@ -404,19 +405,40 @@ def install_app_on_user_for_story_updates(user_or_id, page=None, facebook=None, 
         user = User.query.get(user_id)
     else:
         raise ValueError('Input must be either a User model or an id for a User. ')
-    app.logger.info(f"========== install_app_on_user_for_story_updates: {user} ==========")
+    # app.logger.info(f"========== INSTALL APP for: {user} ==========")
     if not isinstance(page, dict) or not page.get('id') or not page.get('token'):
         page = get_fb_page_for_users_ig_account(user, facebook=facebook, token=token)
         if not page:
             app.logger.error(f"Unable to find the page for user: {user} ")
             return False
-    url = f"https://graph.facebook.com/v3.1/{page['id']}/subscribed_apps"
+    url = f"https://graph.facebook.com/{page['id']}/subscribed_apps"  # TODO: Works, but FB docs indicate v# required.
+    # url = f"https://graph.facebook.com/v9.0/{page['id']}/subscribed_apps",  # TODO: v3.1 out of date, is v# needed?
+    field = 'name'  # OPTIONS: 'category', 'website' # NOT VALID: 'has_added_app', 'is_owned'
+    # TODO: Check if permission needed: pages_manage_metadata or pages_read_user_content
     params = {} if facebook else {'access_token': page['token']}
-    params['subscribed_fields'] = 'name'
+    params['subscribed_fields'] = field
     res = facebook.post(url, params=params).json() if facebook else requests.post(url, params=params).json()
-    # TODO: See if facebook with params above works.
-    app.logger.info('----------------------------------------------------------------')
-    pprint(res)
+    app.logger.info(f"======== Install App for {user.name} - Success: {res.get('success', False)} ========")
+    errors = []
+    if 'error' in res:
+        common_error_strings = {
+            'two factor auth': 'requires Two Factor Authentication, the user also needs to enable Two Factor Auth',
+            'permissions': 'permissions is needed',
+            'admin level': 'does not have sufficient administrative',
+            'not authorized': 'has not authorized application',
+            'pages_read_engagement': 'pages_read_engagement',
+            'pages_read_user_content': 'pages_read_user_content',
+            'pages_show_list': 'pages_show_list',
+            'pages_manage_metadata': 'pages_manage_metadata',
+        }
+        message = res['error'].get('message')
+        for key, value in common_error_strings.items():
+            if value in message:
+                errors.append(key)
+    if errors:
+        app.logger.error(f"Found errors: {errors} ")
+    else:
+        pprint(res)
     return res.get('success', False)
 
 
@@ -437,7 +459,8 @@ def remove_app_on_user_for_story_updates(user_or_id, page=None, facebook=None, t
     #     if not page:
     #         app.logger.error(f"Unable to find the page for user: {user} ")
     #         return False
-    # url = f"https://graph.facebook.com/v3.1/{page['id']}/subscribed_apps"
+    # url = f"https://graph.facebook.com/v3.1/{page['id']}/subscribed_apps"  # TODO: v3.1 it out of date?
+    # TODO: Check if permission needed: pages_manage_metadata or pages_read_user_content
     # params = {} if facebook else {'access_token': page['token']}
     # params['subscribed_fields'] = ''  # Remove all despite docs saying parameter cannot configure Instagram Webhooks
     # res = facebook.post(url, params=params).json() if facebook else requests.post(url, params=params).json()

@@ -97,7 +97,9 @@ def error():
 
 @app.route('/admin')
 @admin_required()
-def admin(data=None, files=None):
+def admin():
+    data = request.args.get('data', None)
+    files = request.args.get('files', None)
     return admin_view(data=data, files=files)
 
 
@@ -541,7 +543,7 @@ def add(mod):
 @login_required
 def edit(mod, id):
     """ Modify the existing DB entry. Model indicated by mod, and provided record id. """
-    valid_mod = {'campaign'}.union(set(User.ROLES))
+    valid_mod = {'campaign'}.union(User.ROLES)
     if mod not in valid_mod:
         app.logger.error(f"Unable to edit {mod}. ")
         flash(f"Editing a {mod} is not working right now. Contact an Admin. ")
@@ -655,12 +657,16 @@ def all(mod):
     # if mod not in ['campaign', *User.ROLES] and current_user.role != 'admin':
     #     flash('It seems that is not a correct route. You are redirected to the home page.')
     #     return redirect(url_for('home'))
+    view = None  # Possible values: 'all', 'completed', 'active', None
     if mod == 'file':
         models = all_files()
     else:
         Model = mod_lookup(mod)
-        models = db_all(Model=Model, role=mod) if Model == User else db_all(Model=Model)
-    return render_template('list.html', mod=mod, data=models)
+        role = mod if Model == User else request.args.get('role', None)  # 'all', 'completed', ...
+        if Model == Campaign:
+            view = role or 'active'
+        models = db_all(Model=Model, role=role) if Model in (User, Campaign) else db_all(Model=Model)
+    return render_template('list.html', mod=mod, data=models, view=view)
 
 
 # Catchall redirect route.

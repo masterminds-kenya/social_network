@@ -21,13 +21,13 @@
     id="completed" {% if data.completed %}checked{% endif %}
     class="form-control"/>
     <label for="completed">Campaign is Finished</label>
-    </div>
+  </div>
   {% endif %}
   <div class="form-group">
     <label for="brand-select">Select Brand(s) for this Campaign</label>
     <select class="js-example-basic-multiple" name="brands" multiple="multiple" id="brand-select">
       {% for brand in related.brands %}
-      <option value="{{ brand[0] }}">{{ brand[1] }}</option>
+      <option value="{{ brand.id }}"{% if brand in data.brands %} selected{% endif %}>{{ brand.name }}</option>
       {% endfor %}
     </select>
     <p>Or <a href="{{ url_for('add', mod='brand') }} ">Create another Brand option</a></p>
@@ -37,7 +37,7 @@
     <label for="user-select">Select Influencer(s) for this Campaign</label>
     <select class="js-example-basic-multiple" name="users" multiple="multiple" id="user-select">
       {% for user in related.users %}
-      <option value="{{ user[0] }}">{{ user[1] }}</option>
+      <option value="{{ user.id }}"{% if user in data.users %} selected{% endif %}>{{ user.name }}</option>
       {% endfor %}
     </select>
   </div>
