@@ -106,8 +106,6 @@ class User(UserMixin, db.Model):
     page_id = db.Column(BIGINT(unsigned=True),      index=False, unique=True,  nullable=True)
     instagram_id = db.Column(BIGINT(unsigned=True), index=True,  unique=True,  nullable=True)
     facebook_id = db.Column(BIGINT(unsigned=True),  index=False, unique=False, nullable=True)
-    # token = db.Column(db.String(255),               index=False, unique=False, nullable=True)
-    # crypt = db.Column(EncryptedType(db.String(255), SECRET_KEY, AesEngine, 'pkcs5'))  # encrypt
     token = db.Column(EncryptedType(db.String(255), SECRET_KEY, AesEngine, 'pkcs5'))  # encrypt
     token_expires = db.Column(db.DateTime,          index=False, unique=False, nullable=True)
     notes = db.Column(db.String(191),               index=False, unique=False, nullable=True)
@@ -264,7 +262,6 @@ class OnlineFollowers(db.Model):
 
     def __str__(self):
         return f"{self.recorded} - {self.hour}: {str(int(self.value or 0))} "
-        # return str(int(self.value or 0))
 
     def __repr__(self):
         return f"<OnlineFollowers {self.recorded} | Hour: {self.hour} | User {self.user_id} >"
@@ -424,28 +421,28 @@ user_campaign = db.Table(
     db.Column('id',          db.Integer, primary_key=True),
     db.Column('user_id',     db.Integer, db.ForeignKey('users.id', ondelete="CASCADE")),
     db.Column('campaign_id', db.Integer, db.ForeignKey('campaigns.id', ondelete="CASCADE"))
-)
+    )
 
 brand_campaign = db.Table(
     'brand_campaigns',
     db.Column('id',          db.Integer, primary_key=True),
     db.Column('brand_id',    db.Integer, db.ForeignKey('users.id',    ondelete="CASCADE")),
     db.Column('campaign_id', db.Integer, db.ForeignKey('campaigns.id', ondelete="CASCADE"))
-)
+    )
 
 post_campaign = db.Table(
     'post_campaigns',
     db.Column('id',          db.Integer, primary_key=True),
     db.Column('post_id',    db.Integer, db.ForeignKey('posts.id',    ondelete="CASCADE")),
     db.Column('campaign_id', db.Integer, db.ForeignKey('campaigns.id', ondelete="CASCADE"))
-)
+    )
 
 processed_campaign = db.Table(
     'processed_campaigns',
     db.Column('id',          db.Integer, primary_key=True),
     db.Column('post_id',     db.Integer, db.ForeignKey('posts.id',    ondelete="CASCADE")),
     db.Column('campaign_id', db.Integer, db.ForeignKey('campaigns.id', ondelete="CASCADE"))
-)
+    )
 
 
 class Campaign(db.Model):
@@ -475,12 +472,8 @@ class Campaign(db.Model):
         ignore = {'id', 'user_id'}
         ignore.update(Post.UNSAFE)
         ignore.update(Post.__mapper__.relationships.keys())  # TODO: Decide if we actually want to keep related models?
-        # current_app.logger.debug('--------- export posts, but ignored fields: ----------')
-        # pprint(ignore)
         properties = [k for k in dir(Post.__mapper__.all_orm_descriptors) if not k.startswith('_') and k not in ignore]
         data = [[clean(getattr(post, ea, '')) for ea in properties] for post in self.posts]
-        # current_app.logger.debug('----- Campaign.export_posts() return value -----')
-        # pprint([properties, *data])
         return [properties, *data]
 
     def related_posts(self, view):
@@ -493,7 +486,6 @@ class Campaign(db.Model):
         related[deleted_user] = []
         if view == 'management':
             for user in self.users:
-                # related[user] = [post for post in user.posts if self not in post.processed]  # seems slower than next
                 related[user] = [post for post in user.posts if post not in self.processed]
                 # TODO: Need a faster process. Would refactor to return a query be better?
         elif view == 'rejected':
@@ -589,14 +581,12 @@ def db_create(data, Model=User):
         model = Model(**data)
         db.session.add(model)
         db.session.commit()
-    except IntegrityError as error:
-        # most likely only happening on Brand, User, or Campaign
+    except IntegrityError as error:  # most likely only happening on Brand, User, or Campaign
         current_app.logger.error('----------- IntegrityError Condition -------------------')
         current_app.logger.error(error)
         db.session.rollback()
         columns = Model.__table__.columns
-        unique = {c.name: data.get(c.name) for c in columns if c.unique}
-        # pprint(unique)
+        unique = {c.name: data.get(c.name) for c in columns if c.unique}  # ?? pprint(unique)
         current_app.logger.debug(unique)
         model = Model.query.filter(*[getattr(Model, key) == val for key, val in unique.items()]).one_or_none()
         if model and Model == User:
@@ -696,7 +686,6 @@ def db_create_or_update_many(dataset, user_id=None, Model=Post):
         match = Model.query.filter(Model.user_id == user_id).all()
         current_app.logger.debug(f'------ Composite Unique for {Model.__name__}: {len(match)} possible matches ------')
         lookup = {tuple([getattr(ea, key) for key in composite_unique]): ea for ea in match}
-        # pprint(lookup)
         for data in dataset:
             data = fix_date(Model, data)  # fix incoming data 'recorded' as needed for this Model
             # TODO: The following patch for Audience is not needed once we improve API validation process
@@ -707,9 +696,7 @@ def db_create_or_update_many(dataset, user_id=None, Model=Post):
             key = tuple([data.get(ea) for ea in composite_unique])
             model = lookup.get(key, None)
             current_app.logger.debug(f'------- {key} -------')
-            if model:
-                # pprint(model)
-                # TODO: Look into Model.update method
+            if model:  # TODO: Look into Model.update method
                 associated = {name: data.pop(name) for name in model.__mapper__.relationships.keys() if data.get(name)}
                 for k, v in data.items():
                     setattr(model, k, v)

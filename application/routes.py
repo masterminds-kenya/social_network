@@ -231,7 +231,7 @@ def callback(mod):
         app.logger.debug(f"Amongst these existing User options: {data}. ")
         return render_template('decide_ig.html', mod=mod, view=view, ig_list=data)  # POST to login_sel
     elif view == 'not_found':
-        return render_template('decide_ig.html', mod=mod, view=view, ig_list=data)  # POST to edit
+        return render_template('decide_ig.html', mod=mod, view=view, ig_list=data)  # POST to edit, but no form.
     elif view == 'complete':
         app.logger.info("Completed User")
         return redirect(url_for('view', mod=mod, id=data[0].get('account_id')))
@@ -583,8 +583,7 @@ def hook():
     app.logger.debug(f"========== The hook route has a {request.method} request ==========")
     if request.method == 'POST':
         signed = request.headers.get('X-Hub-Signature', '')
-        # byte_data = request.get_data()
-        data = request.json if request.is_json else request.data
+        data = request.json if request.is_json else request.data  # request.get_data() for byte_data
         verified = check_hash(signed, data)
         if not verified:
             message = "Signature given for webhook could not be verified. "

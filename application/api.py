@@ -502,7 +502,6 @@ def find_pages_for_fb_id(fb_id, facebook=None, token=None):
         raise Exception(message)
     params = {} if facebook else {'access_token': token}
     res = facebook.get(url).json() if facebook else requests.get(url, params=params).json()
-    # res = facebook.get(url).json() if facebook else requests.get(f"{url}&access_token={token}").json()
     if 'error' in res:
         app.logger.error('Got error in find_pages_for_fb_id function')
         app.logger.error(res['error'])
@@ -559,10 +558,8 @@ def find_instagram_id(accounts, facebook=None, token=None):
             ig_list.append(ig_info)
         elif 'error' in res:
             app.logger.error(f"Error on getting info from {page['id']} Page. ")
-            # pprint(res)
         else:
             app.logger.info(f"No appropriate account on {page['id']} Page. ")
-            # pprint(res)
     return ig_list
 
 
@@ -665,7 +662,6 @@ def user_update_on_login(user, data, ig_list):
             user.audiences.extend(models)
         app.logger.debug('------ Only 1 InstaGram business account for onboard_existing ------')
     elif len(ig_list) > 1:  # this user is missing page_id or page_token, unsure which to use.
-        # data['name'] = data.get('facebook_id', data.get('id', None)) if 'name' not in data else data['name']
         app.logger.debug(f'------ Found {len(ig_list)} IG Pages for onboard_existing ------')
     return user
 
@@ -720,7 +716,6 @@ def onboarding(mod, request):
     params = request.args
     state = params.get('state', None)
     url_diff = str(request.url).lstrip(request_url)
-    # request_url = request_url.rstrip(f"&state={state}") if state else request_url
     app.logger.info("================ Onboarding Function Paramters ================")
     app.logger.info(f"mod: {mod} ")
     app.logger.info(f"callback: {callback} ")
@@ -742,7 +737,6 @@ def onboarding(mod, request):
     if 'error' in facebook_user_data:
         app.logger.info(facebook_user_data['error'])
         return ('error', facebook_user_data['error'])
-    # TODO: use a better constructor for the user account.
     data = facebook_user_data.copy()  # .to_dict(flat=True)
     data['role'] = mod
     data['token'] = token
