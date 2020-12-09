@@ -622,10 +622,12 @@ def db_update(data, id, related=False, Model=User):
         for k, v in data.items():
             setattr(model, k, v)
         for k, v in associated.items():
-            if getattr(model, k, None):
-                getattr(model, k).append(v)
-            else:
-                setattr(model, k, v)
+            # if getattr(model, k, None):
+            #     temp = v if isinstance(v, (list, tuple)) else [v]
+            #     for t in temp:
+            #         getattr(model, k).append(t)
+            # else:
+            setattr(model, k, v)
         db.session.commit()
     except IntegrityError as e:
         current_app.logger.exception(e)

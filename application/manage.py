@@ -81,9 +81,9 @@ def process_form(mod, request):
     if mod == 'campaign':
         data = request.form.to_dict(flat=False)
         # capture the relationship collections
-        # TODO: I might be missing how SQLAlchemy intends for use to handle related models
-        # the following may not be needed, or need to be managed differently
         rel_collections = (('brands', User), ('users', User), ('posts', Post))
+        data.setdefault('brands', [])  # No value means user removed the pre-populated value.
+        data.setdefault('users', [])  # No value means user removed the pre-populated value.
         for rel, Model in rel_collections:
             if rel in data:
                 model_ids = [int(ea) for ea in data[rel]]
