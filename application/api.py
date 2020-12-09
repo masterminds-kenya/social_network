@@ -601,8 +601,10 @@ def onboard_new(data, facebook=None, token=None):
         return ('not_found', ig_list)
     if current_user.is_authenticated and getattr(current_user, 'facebook_id', None) == fb_id:
         # This is the case when a current user is creating another user account with a different Instagram account.
-        data['token'] = token
-        data['name'] = fb_id
+        if token:
+            data['token'] = token
+        if fb_id:
+            data['name'] = fb_id
         user = User.query.filter(User.name == fb_id, User.facebook_id == fb_id, User.id != current_user.id).first()
         logout_user()
         # TODO: Complete modifications needed for creating another user account.
