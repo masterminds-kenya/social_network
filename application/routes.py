@@ -246,27 +246,23 @@ def callback(mod):
 def login_sel(mod, id):
     """ An influencer or brand is logging in with an existing user account. """
     user = User.query.get(id)
-    # TODO: Cleanup these and possibly other edge cases.
+    message, url = '', url_for('home')
     if not user:
-        logout_user()
         message = "Selected a non-existent user. You are logged off. "
-        app.logger.error(message)
-        flash(message)
-        return redirect(url_for('home'))
     elif user.facebook_id != current_user.facebook_id:
-        logout_user()
-        message = "Non-matching facebook_id. "
-        app.logger.error(message)
-        flash("Not valid input. You are logged off. ")
-        return redirect(url_for('home'))
-    elif user.role != mod:
-        message = "Selected User does not match the selected mod. "
+        message = "Not valid input. You are logged off. "
+    elif user.role != mod:  # TODO: Should this be handled differently?
+        txt = "Selected User does not match the selected mod. "
+        app.logger.error(txt)
+        flash(txt)
+    logout_user()
+    if message:
         app.logger.error(message)
         flash(message)
-        # TODO: Should this be handled differently?
-    logout_user()
-    login_user(user, force=True, remember=True)
-    return redirect(url_for('view', mod=user.role, id=user.id))
+    else:
+        login_user(user, force=True, remember=True)
+        url = url_for('view', mod=user.role, id=user.id)
+    return redirect(url)
 
 
 @app.route('/<string:mod>/<int:id>/decide_new')
