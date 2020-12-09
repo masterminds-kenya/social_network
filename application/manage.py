@@ -185,10 +185,8 @@ def add_edit(mod, id=None):
     model = db_read(id, Model=Model) if action == 'Edit' else {}
     if mod == 'campaign':
         template = f"{mod}_{template}"
-        users = User.query.filter_by(role='influencer').all()
-        brands = User.query.filter_by(role='brand').all()
-        related['users'] = [(ea.id, ea.name, ea) for ea in users]
-        related['brands'] = [(ea.id, ea.name, ea) for ea in brands]
+        related['users'] = User.query.filter_by(role='influencer').all()
+        related['brands'] = User.query.filter_by(role='brand').all()
     return render_template(template, action=action, mod=mod, data=model, related=related)
 
 
