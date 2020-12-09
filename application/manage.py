@@ -187,8 +187,8 @@ def add_edit(mod, id=None):
         template = f"{mod}_{template}"
         users = User.query.filter_by(role='influencer').all()
         brands = User.query.filter_by(role='brand').all()
-        related['users'] = [(ea.id, ea.name) for ea in users]
-        related['brands'] = [(ea.id, ea.name) for ea in brands]
+        related['users'] = [(ea.id, ea.name, ea) for ea in users]
+        related['brands'] = [(ea.id, ea.name, ea) for ea in brands]
     return render_template(template, action=action, mod=mod, data=model, related=related)
 
 

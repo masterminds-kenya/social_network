@@ -27,7 +27,7 @@
     <label for="brand-select">Select Brand(s) for this Campaign</label>
     <select class="js-example-basic-multiple" name="brands" multiple="multiple" id="brand-select">
       {% for brand in related.brands %}
-      <option value="{{ brand[0] }}">{{ brand[1] }}</option>
+      <option value="{{ brand[0] }}"{% if brand[2] in data.brands %} selected{% endif %}>{{ brand[1] }}</option>
       {% endfor %}
     </select>
     <p>Or <a href="{{ url_for('add', mod='brand') }} ">Create another Brand option</a></p>
@@ -37,7 +37,7 @@
     <label for="user-select">Select Influencer(s) for this Campaign</label>
     <select class="js-example-basic-multiple" name="users" multiple="multiple" id="user-select">
       {% for user in related.users %}
-      <option value="{{ user[0] }}">{{ user[1] }}</option>
+      <option value="{{ user[0] }}"{% if user[2] in data.users %} selected{% endif %}>{{ user[1] }}</option>
       {% endfor %}
     </select>
   </div>
