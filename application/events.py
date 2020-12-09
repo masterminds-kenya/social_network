@@ -24,7 +24,7 @@ def session_user_subscribe(user, remove=False):
 @event.listens_for(User.page_token, 'set', retval=True)
 def handle_user_page(user, value, oldvalue, initiator):
     """ Triggered when a value is being set for User.page_token """
-    app.logger.info("================ The page_token listener function is running ================")
+    # app.logger.info("============ The page_token listener function is running ============")
     if value in (None, ''):
         user.story_subscribed = False
         app.logger.info(f"Empty page_token for {user} user. Set story_subscribed to False. ")
@@ -32,7 +32,7 @@ def handle_user_page(user, value, oldvalue, initiator):
     connected_campaigns = user.campaigns + user.brand_campaigns
     has_active_campaign = any(ea.completed is False for ea in connected_campaigns)
     if has_active_campaign:
-        app.logger.info(f"The {user} has an active campaign. Time to subscribe. ")
+        # app.logger.info(f"The {user} has an active campaign. Time to subscribe. ")
         session_user_subscribe(user)
     return value
 
@@ -71,24 +71,6 @@ def handle_campaign_stories(campaign, value, oldvalue, initiator):
                 app.logger.info(f"The {user} is being subscribed for NOT completed {campaign} ")
                 session_user_subscribe(user)
     return value
-
-
-# # @event.listens_for(Campaign.brands, 'set', retval=True)
-# # @event.listens_for(Campaign.users, 'set', retval=True)
-# def handle_subscribe_active(user, value, oldvalue, initiator):
-#     """ Triggered when a User is added to an active Campaign. """
-#     app.logger.info("================ The subscribe_active listener function is running ===============")
-#     if value in (None, ''):
-#         user.story_subscribed = False
-#         app.logger.info(f"Empty page_token for {user} user. Set story_subscribed to False. ")
-#         return None
-#     if 'subscribe_page' in db.session.info:
-#         db.session.info['subscribe_page'].add(user)
-#     else:
-#         db.session.info['subscribe_page'] = {user}
-#     if 'unsubscribe_page' in db.session.info and user in db.session.info['unsubscribe_page']:
-#         db.session.info['unsubscribe_page'].discard(user)
-#     return value
 
 
 @event.listens_for(Post.media_type, 'set', retval=True)

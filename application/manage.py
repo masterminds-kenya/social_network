@@ -5,7 +5,6 @@ from collections import defaultdict
 import hmac
 import hashlib
 import json
-# from .api import get_basic_post
 from .model_db import db, User, Post, Audience
 from .model_db import db_read, db_create, db_update, db_delete
 from .helper_functions import mod_lookup, make_missing_timestamp
@@ -94,8 +93,7 @@ def process_form(mod, request):
     if mod in ['login', *User.ROLES]:
         data['role'] = data.get('role', mod)
         # checking, or creating, password hash is handled outside of this function.
-        # On User edit, keep the current password if they left the input box blank.
-        if not data.get('password'):
+        if not data.get('password'):  # On User edit, keep the current password if they left the input box blank.
             data.pop('password', None)
         # Create IG media_count & followers_count here, then they are associated on User create or update.
         models = []
@@ -106,8 +104,7 @@ def process_form(mod, request):
         save['audiences'] = models
     data.update(save)  # adds to the data dict if we did save some relationship collections
     # If the form has a checkbox for a Boolean in the form, we may need to reformat.
-    # currently I think only Campaign and Post have checkboxes
-    bool_fields = {'campaign': 'completed', 'login': 'remember'}
+    bool_fields = {'campaign': 'completed', 'login': 'remember'}  # currently only Campaign and Post have checkboxes
     # TODO: Add logic to find all Boolean fields in models and handle appropriately.
     if mod in bool_fields:
         data[bool_fields[mod]] = True if data.get(bool_fields[mod]) in {'on', True} else False
@@ -132,8 +129,7 @@ def add_edit(mod, id=None):
             data['instagram_id'] = None  # TODO: Do not overwrite 'instagram_id' if it was left blank.
         # TODO: ?Check for failing unique column fields, or failing composite unique requirements?
         if action == 'Edit':
-            password_mismatch = data.get('password', '') != data.get('password-confirm', '')
-            if password_mismatch:
+            if 'password' in data and 'password-confirm' in data and data['password'] != data['password-confirm']:
                 message = "New password and its confirmation did not match. Please try again. "
                 flash(message)
                 return redirect(request.referrer)
