@@ -231,7 +231,7 @@ def callback(mod):
         app.logger.debug(f"Amongst these existing User options: {data}. ")
         return render_template('decide_ig.html', mod=mod, view=view, ig_list=data)  # POST to login_sel
     elif view == 'not_found':
-        return render_template('decide_ig.html', mod=mod, view=view, ig_list=data)  # POST to edit
+        return render_template('decide_ig.html', mod=mod, view=view, ig_list=data)  # POST to edit, but no form.
     elif view == 'complete':
         app.logger.info("Completed User")
         return redirect(url_for('view', mod=mod, id=data[0].get('account_id')))
@@ -246,27 +246,23 @@ def callback(mod):
 def login_sel(mod, id):
     """ An influencer or brand is logging in with an existing user account. """
     user = User.query.get(id)
-    # TODO: Cleanup these and possibly other edge cases.
+    message, url = '', url_for('home')
     if not user:
-        logout_user()
         message = "Selected a non-existent user. You are logged off. "
-        app.logger.error(message)
-        flash(message)
-        return redirect(url_for('home'))
     elif user.facebook_id != current_user.facebook_id:
-        logout_user()
-        message = "Non-matching facebook_id. "
-        app.logger.error(message)
-        flash("Not valid input. You are logged off. ")
-        return redirect(url_for('home'))
-    elif user.role != mod:
-        message = "Selected User does not match the selected mod. "
+        message = "Not valid input. You are logged off. "
+    elif user.role != mod:  # TODO: Should this be handled differently?
+        txt = "Selected User does not match the selected mod. "
+        app.logger.error(txt)
+        flash(txt)
+    logout_user()
+    if message:
         app.logger.error(message)
         flash(message)
-        # TODO: Should this be handled differently?
-    logout_user()
-    login_user(user, force=True, remember=True)
-    return redirect(url_for('view', mod=user.role, id=user.id))
+    else:
+        login_user(user, force=True, remember=True)
+        url = url_for('view', mod=user.role, id=user.id)
+    return redirect(url)
 
 
 @app.route('/<string:mod>/<int:id>/decide_new')
@@ -587,8 +583,7 @@ def hook():
     app.logger.debug(f"========== The hook route has a {request.method} request ==========")
     if request.method == 'POST':
         signed = request.headers.get('X-Hub-Signature', '')
-        # byte_data = request.get_data()
-        data = request.json if request.is_json else request.data
+        data = request.json if request.is_json else request.data  # request.get_data() for byte_data
         verified = check_hash(signed, data)
         if not verified:
             message = "Signature given for webhook could not be verified. "

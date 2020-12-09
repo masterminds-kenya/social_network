@@ -4,7 +4,7 @@ from datetime import timedelta, datetime as dt
 import requests
 from requests_oauthlib import OAuth2Session
 from requests_oauthlib.compliance_fixes import facebook_compliance_fix
-from .model_db import db_create, db_read, db_create_or_update_many, db
+from .model_db import translate_api_user_token, db_create, db_read, db_create_or_update_many, db
 from .model_db import metric_clean, Insight, Audience, Post, OnlineFollowers, User  # , Campaign
 from pprint import pprint
 
@@ -502,7 +502,6 @@ def find_pages_for_fb_id(fb_id, facebook=None, token=None):
         raise Exception(message)
     params = {} if facebook else {'access_token': token}
     res = facebook.get(url).json() if facebook else requests.get(url, params=params).json()
-    # res = facebook.get(url).json() if facebook else requests.get(f"{url}&access_token={token}").json()
     if 'error' in res:
         app.logger.error('Got error in find_pages_for_fb_id function')
         app.logger.error(res['error'])
@@ -559,10 +558,8 @@ def find_instagram_id(accounts, facebook=None, token=None):
             ig_list.append(ig_info)
         elif 'error' in res:
             app.logger.error(f"Error on getting info from {page['id']} Page. ")
-            # pprint(res)
         else:
             app.logger.info(f"No appropriate account on {page['id']} Page. ")
-            # pprint(res)
     return ig_list
 
 
@@ -601,8 +598,10 @@ def onboard_new(data, facebook=None, token=None):
         return ('not_found', ig_list)
     if current_user.is_authenticated and getattr(current_user, 'facebook_id', None) == fb_id:
         # This is the case when a current user is creating another user account with a different Instagram account.
-        data['token'] = token
-        data['name'] = fb_id
+        if token:
+            data['token'] = token
+        if fb_id:
+            data['name'] = fb_id
         user = User.query.filter(User.name == fb_id, User.facebook_id == fb_id, User.id != current_user.id).first()
         logout_user()
         # TODO: Complete modifications needed for creating another user account.
@@ -642,21 +641,64 @@ def onboard_new(data, facebook=None, token=None):
         return ('decide', ig_list)
 
 
+def user_update_on_login(user, data, ig_list):
+    """During login of existing user, update their user model with recent information. """
+    data_token = data.get('token', None)
+    if data_token and data_token != user.token:
+        user.token = data_token  # TODO: confirm this is saved by some automatic db.session.commit()
+        user.token_expires = data.get('token_expires', None)
+    if len(ig_list) == 1:  # this user is missing page_id or page_token, and there is only 1 option.
+        ig_info = ig_list[0]
+        user.page_id = ig_info.get('page_id')
+        user.page_token = ig_info.get('page_token')
+        if not user.instagram_id:
+            user.name = ig_info.get('name', user.name)
+            user.instagram_id = int(ig_info.get('id', 0))
+            models = []
+            for name in Audience.IG_DATA:  # {'media_count', 'followers_count'}
+                value = ig_info.get(name, None)
+                if value:
+                    models.append(Audience(name=name, values=[value]))
+            user.audiences.extend(models)
+        app.logger.debug('------ Only 1 InstaGram business account for onboard_existing ------')
+    elif len(ig_list) > 1:  # this user is missing page_id or page_token, unsure which to use.
+        app.logger.debug(f'------ Found {len(ig_list)} IG Pages for onboard_existing ------')
+    return user
+
+
 def onboard_existing(users, data, facebook=None):
     """ Login an existing user. If multiple users under the same facebook id, return a list of users to switch to. """
     login_user(users[0], force=True, remember=True)
+    data = translate_api_user_token(data)
+    missing_page_info = any(not u.page_id or not u.page_token for u in users)
+    if missing_page_info:
+        accounts = data.pop('accounts', None)
+        ig_list = find_instagram_id(accounts, facebook=facebook)
+        ig_id_targets = set(u.instagram_id for u in users if u.instagram_id)
+        if len(ig_id_targets):
+            ig_list = [ig_info for ig_info in ig_list if int(ig_info.get('id', 0)) in ig_id_targets]
+    else:
+        ig_list = []
     if len(users) == 1:
-        return ('complete', [{'account_id': users[0].id}])
+        user = users[0]
+        user = user_update_on_login(user, data, ig_list)
+        return ('complete', [{'account_id': user.id}])
     user_list = []
     for user in users:
-        ig_info = {}
-        ig_info['account_id'] = user.id
-        ig_info['name'] = user.name
-        ig_info['id'] = user.instagram_id
-        ig_info['followers_count'] = ''
-        ig_info['media_count'] = ''
-        ig_info['page_id'] = user.page_id
-        ig_info['page_token'] = user.page_token
+        if all(user.instagram_id, user.page_id, user.page_token):
+            cur_ig_list = []
+        elif user.instagram_id and len(ig_list):
+            cur_ig_list = [ig_info for ig_info in ig_list if int(ig_info.get('id', 0)) == user.instagram_id]
+        else:
+            cur_ig_list = ig_list
+        user = user_update_on_login(user, data, cur_ig_list)
+        ig_info = {'account_id': user.id, 'name': user.name, 'followers_count': 'unknown', 'media_count': 'unknown'}
+        # ig_info['name'] = user.name
+        # ig_info['id'] = user.instagram_id
+        # ig_info['followers_count'] = ''  # Will be skipped in manage.process_form
+        # ig_info['media_count'] = ''  # Will be skipped in manage.process_form
+        # ig_info['page_id'] = user.page_id
+        # ig_info['page_token'] = user.page_token
         user_list.append(ig_info)
     return ('existing', user_list)
 
@@ -674,7 +716,6 @@ def onboarding(mod, request):
     params = request.args
     state = params.get('state', None)
     url_diff = str(request.url).lstrip(request_url)
-    # request_url = request_url.rstrip(f"&state={state}") if state else request_url
     app.logger.info("================ Onboarding Function Paramters ================")
     app.logger.info(f"mod: {mod} ")
     app.logger.info(f"callback: {callback} ")
@@ -696,7 +737,6 @@ def onboarding(mod, request):
     if 'error' in facebook_user_data:
         app.logger.info(facebook_user_data['error'])
         return ('error', facebook_user_data['error'])
-    # TODO: use a better constructor for the user account.
     data = facebook_user_data.copy()  # .to_dict(flat=True)
     data['role'] = mod
     data['token'] = token
