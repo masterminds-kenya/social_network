@@ -638,7 +638,7 @@ def db_update(data, id, related=False, Model=User):
             message = "Input Error. Make sure values are unique where required, and confirm all inputs are valid. "
         flash(message)
         raise ValueError(e)
-    except Exception as e:
+    except Exception as e:  # TODO: Remove this except catch and log after confirming no consistant issues.
         current_app.logger.info("===== Got a non-IntegrityError in db_update =====")
         current_app.logger.info(model)
         current_app.logger.info(associated)
