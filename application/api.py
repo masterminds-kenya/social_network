@@ -4,7 +4,7 @@ from datetime import timedelta, datetime as dt
 import requests
 from requests_oauthlib import OAuth2Session
 from requests_oauthlib.compliance_fixes import facebook_compliance_fix
-from .model_db import db_create, db_read, db_create_or_update_many, db
+from .model_db import translate_api_user_token, db_create, db_read, db_create_or_update_many, db
 from .model_db import metric_clean, Insight, Audience, Post, OnlineFollowers, User  # , Campaign
 from pprint import pprint
 

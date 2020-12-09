@@ -79,6 +79,15 @@ def fix_date(Model, data):
     return data
 
 
+def translate_api_user_token(data):
+    """Returns the given dict with 'token' & 'token_expires' updated if 'token' is a Graph API formatted user token. """
+    if 'token_expires' not in data and 'token' in data:  # modifications for parsing data from api call
+        token_expires = data['token'].get('token_expires', None)
+        data['token_expires'] = dt.fromtimestamp(token_expires) if token_expires else None
+        data['token'] = data['token'].get('access_token', None)
+    return data
+
+
 class User(UserMixin, db.Model):
     """ Data model for user (influencer or brand) accounts.
         Assumes only 1 Instagram per user, and it must be a business account.
@@ -117,11 +126,7 @@ class User(UserMixin, db.Model):
         temp_id = kwargs.pop('id', None)
         kwargs['facebook_id'] = temp_id if 'facebook_id' not in kwargs else kwargs['facebook_id']
         kwargs['name'] = kwargs.pop('username', kwargs.get('name'))  # TODO: Confirm 'username' is no longer needed.
-        if 'token_expires' not in kwargs and 'token' in kwargs:
-            # modifications for parsing data from api call
-            token_expires = kwargs['token'].get('token_expires', None)
-            kwargs['token_expires'] = dt.fromtimestamp(token_expires) if token_expires else None
-            kwargs['token'] = kwargs['token'].get('access_token', None)
+        kwargs = translate_api_user_token(kwargs)
         super().__init__(*args, **kwargs)
 
     def recent_insight(self, metrics):
