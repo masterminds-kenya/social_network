@@ -543,7 +543,7 @@ def add(mod):
 @login_required
 def edit(mod, id):
     """ Modify the existing DB entry. Model indicated by mod, and provided record id. """
-    valid_mod = {'campaign'}.union(set(User.ROLES))
+    valid_mod = {'campaign'}.union(User.ROLES)
     if mod not in valid_mod:
         app.logger.error(f"Unable to edit {mod}. ")
         flash(f"Editing a {mod} is not working right now. Contact an Admin. ")
