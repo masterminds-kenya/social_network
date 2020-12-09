@@ -37,25 +37,32 @@ def handle_user_page(user, value, oldvalue, initiator):
     return value
 
 
-# # @event.listens_for(Campaign.brands, 'append', propagate=True)
+# # # @event.listens_for(Campaign.brands, 'append', propagate=True)
 # @event.listens_for(Campaign.users, 'append', propagate=True)
 # def handle_campaign_users(campaign, users, initiator):
 #     """ Triggered when a User is associated with a Campaign. """
-#     app.logger.info("================ The campaign users function is running ================")
-#     app.logger.info(f"Campaign: {campaign} | Users: {users} ")
-#     for user in users:
-#         if not user.story_subscribed and getattr(user, 'page_token', None):
-#             app.logger.info(f"The {user} has a token and needs to subscribe for campaign: {campaign} ")
-#             session_user_subscribe(user)
-#         else:
-#             app.logger.info(f"Triggered by campaign {campaign} the {user} is not being subscribed. ")
+#     app.logger.info("============ The campaign users function is running ============")
+#     app.logger.info(f"Campaign: {campaign} ")
+#     app.logger.info(f"Users: {users} ")
+#     app.logger.info(f"Initiator Dir: {dir(initiator)} ")
+#     app.logger.info("----------------------------------------")
+#     # app.logger.info(f"Campaign: {campaign} | Users: {users} ")
+#     # for user in users:
+#     #     if not user.story_subscribed and getattr(user, 'page_token', None):
+#     #         app.logger.info(f"The {user} has a token and needs to subscribe for campaign: {campaign} ")
+#     #         session_user_subscribe(user)
+#     #     else:
+#     #         app.logger.info(f"Triggered by campaign {campaign} the {user} is not being subscribed. ")
 #     return users
 
 
 @event.listens_for(Campaign.completed, 'set', retval=True)
 def handle_campaign_stories(campaign, value, oldvalue, initiator):
     """ Triggered when a Campaign is marked completed. """
-    app.logger.info(f"================ The campaign stories function from {initiator} ================")
+    app.logger.info(f"========== Campaign Stories Listener: {getattr(initiator, 'impl', initiator)} ==========")
+    # initiator.op is the operation (set, append, delete, etc)
+    # initiator.impl and initiator.parent_token are the model & field trigger, initiator.op is the trigger operation.
+    # app.logger.info(f"Initiator Slots: {initiator.__slots__} ")
     if value == oldvalue:
         return value
     related_users = getattr(campaign, 'users', []) + getattr(campaign, 'brands', [])
@@ -70,6 +77,7 @@ def handle_campaign_stories(campaign, value, oldvalue, initiator):
             if has_token and not user.story_subscribed:
                 app.logger.info(f"The {user} is being subscribed for NOT completed {campaign} ")
                 session_user_subscribe(user)
+    app.logger.info("---------- Campaign Stories Listener DONE ----------")
     return value
 
 
