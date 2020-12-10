@@ -59,17 +59,13 @@ def handle_user_page(user, value, oldvalue, initiator):
 @event.listens_for(Campaign.completed, 'set', retval=True)
 def handle_campaign_stories(campaign, value, oldvalue, initiator):
     """ Triggered when a Campaign is marked completed. """
-    app.logger.info(f"========== Campaign Stories Listener: {getattr(initiator, 'impl', initiator)} ==========")
-    # initiator.op is the operation (set, append, delete, etc)
-    # initiator.impl and initiator.parent_token are the model & field trigger, initiator.op is the trigger operation.
-    # app.logger.info(f"Initiator Slots: {initiator.__slots__} ")
+    app.logger.info(f"************** Campaign Listener: {getattr(initiator, 'impl', initiator)} **************")
     if value == oldvalue:
         return value
     related_users = getattr(campaign, 'users', []) + getattr(campaign, 'brands', [])
     for user in related_users:
         if value is True:
-            campaigns_done = (ea.completed for ea in user.brand_campaigns + user.campaigns if ea != campaign)
-            if user.story_subscribed and all(campaigns_done):
+            if user.story_subscribed and not user.has_active(campaign):
                 app.logger.info(f"The {user} is being removed for completed {campaign} ")
                 session_user_subscribe(user, remove=True)
         else:
@@ -77,7 +73,7 @@ def handle_campaign_stories(campaign, value, oldvalue, initiator):
             if has_token and not user.story_subscribed:
                 app.logger.info(f"The {user} is being subscribed for NOT completed {campaign} ")
                 session_user_subscribe(user)
-    app.logger.info("---------- Campaign Stories Listener DONE ----------")
+    app.logger.info("---------- Campaign Listener DONE ----------")
     return value
 
 
