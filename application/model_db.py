@@ -34,7 +34,7 @@ def metric_clean(metric_string):
 
 
 def clean(obj):
-    """ Make sure this obj is serializable. Datetime objects should be turned to strings. """
+    """Make sure this obj is serializable. Datetime objects should be turned to strings. """
     if isinstance(obj, dt):
         return obj.isoformat()
     elif isinstance(obj, (list, tuple)):
@@ -51,7 +51,7 @@ def clean(obj):
 
 
 def from_sql(row, related=False, safe=True):
-    """ Translates a SQLAlchemy model instance into a dictionary.
+    """Translates a SQLAlchemy model instance into a dictionary.
         Can return all properties, both column fields and properties declared by decorators.
         Will return ORM related fields unless 'related' is False.
         Will return only safe for viewing fields when 'safe' is True.
@@ -139,7 +139,7 @@ class User(UserMixin, db.Model):
         return has_active_campaign
 
     def recent_insight(self, metrics):
-        """ What is the most recent date that we collected the given insight metrics """
+        """What is the most recent date that we collected the given insight metrics """
         if metrics == 'influence' or metrics == Insight.INFLUENCE_METRICS:
             metrics = list(Insight.INFLUENCE_METRICS)
         elif metrics == 'profile' or metrics == Insight.PROFILE_METRICS:
@@ -162,7 +162,7 @@ class User(UserMixin, db.Model):
         return date
 
     def export_posts(self):
-        """ Collect all posts for this user in a list of lists for populating a worksheet. """
+        """Collect all posts for this user in a list of lists for populating a worksheet. """
         # TODO: Use code similar to Campaign.export_posts() ?
         ignore = ['id', 'user_id']
         columns = [ea.name for ea in Post.__table__.columns if ea.name not in ignore]
@@ -170,7 +170,7 @@ class User(UserMixin, db.Model):
         return [columns, *data]
 
     def insight_report(self):
-        """ Collect all of the Insights (including OnlineFollowers) and prepare for data dump on a sheet """
+        """Collect all of the Insights (including OnlineFollowers) and prepare for data dump on a sheet """
         report = [
             [f"{self.role.capitalize()} Name", self.name],
             ["Notes", self.notes],
@@ -199,7 +199,7 @@ class User(UserMixin, db.Model):
         return report
 
     def insight_summary(self, label_only=False):
-        """ Used for Sheet report: giving summary stats of insight metrics for a Brand (or other user). """
+        """Used for Sheet report: giving summary stats of insight metrics for a Brand (or other user). """
         big_metrics = list(Insight.INFLUENCE_METRICS)
         big_stat = [('Median', median), ('Average', mean), ('StDev', stdev)]
         insight_labels = [f"{metric} {ea[0]}" for metric in big_metrics for ea in big_stat]
@@ -237,7 +237,7 @@ class User(UserMixin, db.Model):
 
 
 class DeletedUser:
-    """ Used as a placeholder for a user who has been deleted, but we still have data on their posts. """
+    """Used as a placeholder for a user who has been deleted, but we still have data on their posts. """
 
     def __init__(self):
         self.id = 'na'
@@ -253,7 +253,7 @@ class DeletedUser:
 
 
 class OnlineFollowers(db.Model):
-    """ Data model for 'online_followers' for a user (influencer or brand) """
+    """Data model for 'online_followers' for a user (influencer or brand) """
     COMPOSITE_UNIQUE = ('user_id', 'recorded', 'hour')
     __tablename__ = 'onlinefollowers'
     __table_args__ = (db.UniqueConstraint(*COMPOSITE_UNIQUE, name='uq_onlinefollowers_recorded_hour'),)
@@ -279,7 +279,7 @@ class OnlineFollowers(db.Model):
 
 
 class Insight(db.Model):
-    """ Data model for insights data on a (influencer or brand) user's account """
+    """Data model for insights data on a (influencer or brand) user's account """
     COMPOSITE_UNIQUE = ('user_id', 'recorded', 'name')
     __tablename__ = 'insights'
     __table_args__ = (db.UniqueConstraint(*COMPOSITE_UNIQUE, name='uq_insights_recorded_name'),)
@@ -308,7 +308,7 @@ class Insight(db.Model):
 
 
 class Audience(db.Model):
-    """ Data model for current information about the user's audience. """
+    """Data model for current information about the user's audience. """
     # TODO: If this data not taken over by Neo4j, then refactor to parse out the age groups and gender groups
     COMPOSITE_UNIQUE = ('user_id', 'recorded', 'name')
     __tablename__ = 'audiences'
@@ -342,7 +342,7 @@ class Audience(db.Model):
 
 
 class Post(db.Model):
-    """ Instagram media that was posted by an influencer or brand user """
+    """Instagram media that was posted by an influencer or brand user """
     __tablename__ = 'posts'
 
     id = db.Column(db.Integer,          primary_key=True)
@@ -406,7 +406,7 @@ class Post(db.Model):
 
     @hybrid_property
     def saved_media_options(self):
-        """ Return the list of all saved_media url links. """
+        """Return the list of all saved_media url links. """
         return None if self._saved_media is None else json.loads(self._saved_media)
 
     @saved_media_options.setter
@@ -415,7 +415,7 @@ class Post(db.Model):
         self.saved_media(saved_urls, display=0)
 
     def display(self):
-        """ Since different media post types have different metrics, we only want to show the appropriate fields. """
+        """Since different media post types have different metrics, we only want to show the appropriate fields. """
         post = from_sql(self, related=True, safe=True)
         fields = {'id', 'user_id', 'saved_media', 'saved_media_options', 'capture_name', 'campaigns', 'processed'}
         fields.update(('recorded', 'modified'), Post.METRICS['basic'], Post.METRICS[post['media_type']])
@@ -460,7 +460,7 @@ processed_campaign = db.Table(
 
 
 class Campaign(db.Model):
-    """ Model to manage the Campaign relationship between influencers and brands """
+    """Model to manage the Campaign relationship between influencers and brands """
     __tablename__ = 'campaigns'
 
     id = db.Column(db.Integer,       primary_key=True)
@@ -482,7 +482,7 @@ class Campaign(db.Model):
         super().__init__(*args, **kwargs)
 
     def export_posts(self):
-        """ Used for Sheets Report, a top label row followed by rows of Posts data. """
+        """Used for Sheets Report, a top label row followed by rows of Posts data. """
         ignore = {'id', 'user_id'}
         ignore.update(Post.UNSAFE)
         ignore.update(Post.__mapper__.relationships.keys())  # TODO: Decide if we actually want to keep related models?
@@ -491,7 +491,7 @@ class Campaign(db.Model):
         return [properties, *data]
 
     def related_posts(self, view):
-        """ Used for the different campaign management views. """
+        """Used for the different campaign management views. """
         allowed_view_values = ('management', 'collected', 'rejected')
         if view not in allowed_view_values:
             raise ValueError(f"The passed parameter was {view} and did not match {allowed_view_values}. ")
@@ -517,7 +517,7 @@ class Campaign(db.Model):
         return related
 
     def get_results(self):
-        """ We want the datasets and summary statistics. Used for results view as preview before creating sheet. """
+        """We want the datasets and summary statistics. Used for results view as preview before creating sheet. """
         # when finished, related is a dictionary with the following format:
         # {media_type: {
         #               'posts': [],
@@ -669,7 +669,7 @@ def db_delete(id, Model=User):
 
 
 def db_all(Model=User, role=None):
-    """ Returns all of the records for the indicated Model, or for User Model returns either brands or influencers. """
+    """Returns all of the records for the indicated Model, or for User Model returns either brands or influencers. """
     query = Model.query
     if Model == User:
         role_type = role if role else 'influencer'
@@ -683,7 +683,7 @@ def db_all(Model=User, role=None):
 
 
 def create_many(dataset, Model=User):
-    """ Currently only used for temporary developer_admin function """
+    """Currently only used for temporary developer_admin function """
     all_results = []
     for data in dataset:
         model = Model(**data)
@@ -694,7 +694,7 @@ def create_many(dataset, Model=User):
 
 
 def db_create_or_update_many(dataset, user_id=None, Model=Post):
-    """ Create or Update if the record exists for all of the dataset list. Returns a list of Model objects. """
+    """Create or Update if the record exists for all of the dataset list. Returns a list of Model objects. """
     current_app.logger.info(f'============== Create or Update Many {Model.__name__} ====================')
     allowed_models = {Post, Insight, Audience, OnlineFollowers}
     if Model not in allowed_models:
@@ -779,7 +779,7 @@ def db_create_or_update_many(dataset, user_id=None, Model=Post):
 
 
 def _create_database():
-    """ May currently only work if we do not need to drop the tables before creating them """
+    """May currently only work if we do not need to drop the tables before creating them """
     app = Flask(__name__)
     app.config.from_pyfile('../config.py')
     init_app(app)

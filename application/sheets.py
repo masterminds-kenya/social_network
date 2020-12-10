@@ -17,7 +17,7 @@ service_config = {
 
 
 def get_creds(config):
-    """ Using google.oauth2.service_account to get credentials for the service account. """
+    """Using google.oauth2.service_account to get credentials for the service account. """
     creds = None
     if not path.exists(config.get('file')):
         message = "Wrong Path to Secret File. "
@@ -41,7 +41,7 @@ def get_creds(config):
 
 
 def perm_add(sheet_id, add_users, service=None):
-    """ Used to update permissions. Currently Only add users.
+    """Used to update permissions. Currently Only add users.
         add_users can be a list of strings, with each string an email address to give reader permissions.
         add_users can be a list of objects, each with a 'emailAddress' key, and an option 'role' key.
         add_users can be a single entity of either of the above.
@@ -79,7 +79,7 @@ def perm_add(sheet_id, add_users, service=None):
 
 
 def all_files(*args, service=None):
-    """ List, and possibly manage, all files owned by the app. """
+    """List, and possibly manage, all files owned by the app. """
     app.logger.debug(f"======== List all Google Sheet Files ========")
     if not service:
         creds = get_creds(service_config['sheets'])
@@ -96,7 +96,7 @@ def all_files(*args, service=None):
 
 
 def perm_list(sheet_id, service=None):
-    """ For a given worksheet, list who currently has access to view it. """
+    """For a given worksheet, list who currently has access to view it. """
     if not service:
         creds = get_creds(service_config['sheets'])
         service = build('drive', 'v3', credentials=creds, cache_discovery=False)
@@ -107,7 +107,7 @@ def perm_list(sheet_id, service=None):
 
 
 def create_sheet(model, service=None):
-    """ Takes in a Model instance, usually from Campaign or User (must have a name property) and create a worksheet. """
+    """Takes in a Model instance, usually from Campaign or User (must have a name property) and create a worksheet. """
     app.logger.debug(f'======== create {model.name} sheet ========')
     if not service:
         creds = get_creds(service_config['sheets'])
@@ -125,7 +125,7 @@ def create_sheet(model, service=None):
 
 # TODO: ? Is this going to be used, or it should be deleted?
 def read_sheet_full(id=SHARED_SHEET_ID, service=None):
-    """ Get the information (not the values) for a worksheet with permissions granted to our app service. """
+    """Get the information (not the values) for a worksheet with permissions granted to our app service. """
     app.logger.debug('================== read sheet full =======================')
     if not service:
         creds = get_creds(service_config['sheets'])
@@ -141,7 +141,7 @@ def read_sheet_full(id=SHARED_SHEET_ID, service=None):
 
 
 def read_sheet(id=SHARED_SHEET_ID, ranges=None, service=None):
-    """ Read a sheet that our app service account has been given permission for. """
+    """Read a sheet that our app service account has been given permission for. """
     app.logger.debug(f'============== read sheet: {id} =====================')
     if not service:
         creds = get_creds(service_config['sheets'])
@@ -166,7 +166,7 @@ def read_sheet(id=SHARED_SHEET_ID, ranges=None, service=None):
 
 
 def get_vals(model):
-    """ Get the values we want to put into our worksheet report. """
+    """Get the values we want to put into our worksheet report. """
     model_name = model.__class__.__name__
     if model_name == 'User':
         # flash(f"Sheet has {model.role} {model_name} data for {model.name}. ")
@@ -190,7 +190,7 @@ def get_vals(model):
 
 
 def unexpected_model(model_name):
-    """ Generate sheet content that confirms making sheets work but the error was with the model. """
+    """Generate sheet content that confirms making sheets work but the error was with the model. """
     logstring = f"Unexpected {model_name} model at this time. "
     flash(logstring)
     app.logger.error(f'-------- {logstring} --------')
@@ -201,7 +201,7 @@ def unexpected_model(model_name):
 
 
 def get_insight_report(model):
-    """ Get the insight reports for brands and/or influencers connected to the given model. """
+    """Get the insight reports for brands and/or influencers connected to the given model. """
     model_name = model.__class__.__name__
     if model_name == 'User':
         header_row = [model.role, model.name]
@@ -219,7 +219,7 @@ def get_insight_report(model):
 
 
 def compute_A1(arr2d, start='A1', sheet='Sheet1'):
-    """ Determine A1 format for 2D-array input, on given sheet, starting at given cell.
+    """Determine A1 format for 2D-array input, on given sheet, starting at given cell.
         This algorithm assumes that exceeding 26 columns moves into the AA range and beyond.
         It is possible that Google Sheets only allows a max of 26 columns and 4011 rows.
     """
@@ -244,7 +244,7 @@ def compute_A1(arr2d, start='A1', sheet='Sheet1'):
 
 
 def add_page(sheet_rows, range_, sheet_id, service):
-    """ Add the sheet_rows data on the cells indicated by range for the given sheet id. """
+    """Add the sheet_rows data on the cells indicated by range for the given sheet id. """
     value_input_option = 'USER_ENTERED'  # 'RAW' | 'USER_ENTERED' | 'INPUT_VALUE_OPTION_UNSPECIFIED'
     insert_data_option = 'OVERWRITE'  # 'OVERWITE' | 'INSERT_ROWS'
     major_dimension = 'ROWS'  # 'ROWS' | 'COLUMNS'
@@ -273,7 +273,7 @@ def add_page(sheet_rows, range_, sheet_id, service):
 
 
 def update_sheet(model, id=SHARED_SHEET_ID, service=None):
-    """ Get the data we want from the model instance, then append it to the worksheet. """
+    """Get the data we want from the model instance, then append it to the worksheet. """
     app.logger.debug(f'================== update sheet {id} =======================')
     if not service:
         creds = get_creds(service_config['sheets'])

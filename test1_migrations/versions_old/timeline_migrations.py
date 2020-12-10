@@ -17,7 +17,7 @@ depends_on = None
 
 
 def _dev_encrypt():
-    """ Takes value in token field and saves in encrypt field, triggering the encryption process.
+    """Takes value in token field and saves in encrypt field, triggering the encryption process.
         Function is only for use by dev admin.
     """
     from .model_db import db, User

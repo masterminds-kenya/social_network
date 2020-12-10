@@ -26,7 +26,7 @@ FB_SCOPE = [
 
 
 def generate_app_access_token():
-    """ When we need an App access token instead of the app client secret. """
+    """When we need an App access token instead of the app client secret. """
     params = {'client_id': FB_CLIENT_ID, 'client_secret': FB_CLIENT_SECRET}
     params['grant_type'] = 'client_credentials'
     app.logger.info('----------- generate_app_access_token ----------------')
@@ -39,7 +39,7 @@ def generate_app_access_token():
 
 
 def inspect_access_token(input_token, fb_id=None, ig_id=None, app_access_token=None):
-    """ Confirm the access token is valid and belongs to this user. """
+    """Confirm the access token is valid and belongs to this user. """
     app_access_token = app_access_token or generate_app_access_token()
     params = {'input_token': input_token, 'access_token': app_access_token}
     res = requests.get(FB_INSPECT_TOKEN_URL, params=params).json()
@@ -65,7 +65,7 @@ def inspect_access_token(input_token, fb_id=None, ig_id=None, app_access_token=N
 
 
 def user_permissions(user, facebook=None, token=None):
-    """ Used by staff to check on what permissions a given user has granted to the platform application. """
+    """Used by staff to check on what permissions a given user has granted to the platform application. """
     if isinstance(user, (str, int)):
         user = User.query.get(user)
     if not isinstance(user, User):
@@ -202,7 +202,7 @@ def get_insight(user_id, first=1, influence_last=30*12, profile_last=30*3, ig_id
 
 
 def get_online_followers(user_id, ig_id=None, facebook=None):
-    """ Just want to get Facebook API response for online_followers for the maximum of the previous 30 days """
+    """Just want to get Facebook API response for online_followers for the maximum of the previous 30 days """
     app.logger.info('================ Get Online Followers data ================')
     ig_period, token = 'lifetime', ''
     metric = ','.join(OnlineFollowers.METRICS)
@@ -226,7 +226,7 @@ def get_online_followers(user_id, ig_id=None, facebook=None):
 
 
 def get_audience(user_id, ig_id=None, facebook=None):
-    """ Get the audience data for the (influencer or brand) user with given user_id """
+    """Get the audience data for the (influencer or brand) user with given user_id """
     app.logger.info('================ Get Audience Data ================')
     audience_metric = ','.join(Audience.METRICS)
     ig_period = 'lifetime'
@@ -254,7 +254,7 @@ def get_audience(user_id, ig_id=None, facebook=None):
 
 
 def get_basic_post(media_id, metrics=None, user_id=None, facebook=None, token=None):
-    """ Typically called by _get_posts_data_of_user, but also if we have a new Story Post while processing hooks. """
+    """Typically called by _get_posts_data_of_user, but also if we have a new Story Post while processing hooks. """
     empty_res = {'media_id': media_id, 'user_id': user_id, 'timestamp': str(dt.utcnow())}
     if not facebook and not token:
         if not user_id:
@@ -288,7 +288,7 @@ def get_basic_post(media_id, metrics=None, user_id=None, facebook=None, token=No
 
 
 def _get_posts_data_of_user(user_id, stories=True, ig_id=None, facebook=None):
-    """ Called by get_posts. Returns the API response data for posts on a single user. """
+    """Called by get_posts. Returns the API response data for posts on a single user. """
     user, token = None, None
     if isinstance(user_id, User):
         user = user_id
@@ -361,7 +361,7 @@ def get_posts(id_or_users, stories=True, ig_id=None, facebook=None):
 
 
 def get_fb_page_for_users_ig_account(user, ignore_current=False, facebook=None, token=None):
-    """ For a user with a known Instagram account, we can determine the related Facebook page. """
+    """For a user with a known Instagram account, we can determine the related Facebook page. """
     if not isinstance(user, User):
         raise Exception("get_fb_page_for_users_ig_account requires a User model instance as the first parameter. ")
     page = dict(zip(['id', 'token'], [getattr(user, 'page_id', None), getattr(user, 'page_token', None)]))
@@ -396,7 +396,7 @@ def get_fb_page_for_users_ig_account(user, ignore_current=False, facebook=None, 
 
 
 def install_app_on_user_for_story_updates(user_or_id, page=None, facebook=None, token=None):
-    """ Accurate Story Post metrics can be pushed to the Platform only if the App is installed on the related Page. """
+    """Accurate Story Post metrics can be pushed to the Platform only if the App is installed on the related Page. """
     if isinstance(user_or_id, User):
         user = user_or_id
         user_id = user.id
@@ -443,7 +443,7 @@ def install_app_on_user_for_story_updates(user_or_id, page=None, facebook=None, 
 
 
 def remove_app_on_user_for_story_updates(user_or_id, page=None, facebook=None, token=None):
-    """ This User is no longer having their Story Posts tracked, so uninstall the App on their related Page. """
+    """This User is no longer having their Story Posts tracked, so uninstall the App on their related Page. """
     if isinstance(user_or_id, User):
         user = user_or_id
         user_id = user.id
@@ -471,7 +471,7 @@ def remove_app_on_user_for_story_updates(user_or_id, page=None, facebook=None, t
 
 
 def get_ig_info(ig_id, facebook=None, token=None):
-    """ We already have their InstaGram Business Account id, but we need their IG username """
+    """We already have their InstaGram Business Account id, but we need their IG username """
     # Possible fields. Fields with asterisk (*) are public and can be returned by and edge using field expansion:
     # biography*, id*, ig_id, followers_count*, follows_count, media_count*, name,
     # profile_picture_url, username*, website*
@@ -564,7 +564,7 @@ def find_instagram_id(accounts, facebook=None, token=None):
 
 
 def onboard_login(mod):
-    """ Process the initiation of creating a new influencer or brand user with facebook authorization. """
+    """Process the initiation of creating a new influencer or brand user with facebook authorization. """
     callback = URL + '/callback/' + mod
     facebook = OAuth2Session(FB_CLIENT_ID, redirect_uri=callback, scope=FB_SCOPE)
     facebook = facebook_compliance_fix(facebook)  # we need to apply a fix for Facebook here
@@ -667,7 +667,7 @@ def user_update_on_login(user, data, ig_list):
 
 
 def onboard_existing(users, data, facebook=None):
-    """ Login an existing user. If multiple users under the same facebook id, return a list of users to switch to. """
+    """Login an existing user. If multiple users under the same facebook id, return a list of users to switch to. """
     login_user(users[0], force=True, remember=True)
     data = translate_api_user_token(data)
     missing_page_info = any(not u.page_id or not u.page_token for u in users)

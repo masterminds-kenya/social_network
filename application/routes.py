@@ -13,14 +13,14 @@ from .sheets import create_sheet, update_sheet, perm_add, perm_list, all_files
 
 @app.route('/')
 def home():
-    """ Default root route """
+    """Default root route """
     data = ''
     return render_template('index.html', data=data)
 
 
 @app.route('/signup', methods=['GET', 'POST'])
 def signup():
-    """ Using Flask-Login to create a new user (manager or admin) account """
+    """Using Flask-Login to create a new user (manager or admin) account """
     app.logger.info('--------- Sign Up User ------------')
     ignore = ['influencer', 'brand']
     signup_roles = [role for role in User.ROLES if role not in ignore]
@@ -62,7 +62,7 @@ def signup():
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
-    """ This the the manual login process. """
+    """This the the manual login process. """
     if request.method == 'POST':
         data = process_form('login', request)
         password = data.get('password', None)
@@ -109,7 +109,7 @@ def admin():
 @app.route('/<string:mod>/<int:id>/permissions')
 @staff_required()
 def permission_check(mod, id):
-    """ Used by admin to see what permissions a given user has granted the platform """
+    """Used by admin to see what permissions a given user has granted the platform """
     from pprint import pprint
 
     if mod_lookup(mod) != User:
@@ -127,7 +127,7 @@ def permission_check(mod, id):
 @app.route('/data/test')
 @admin_required()
 def test_method():
-    """ Temporary route and function for developer to test components. """
+    """Temporary route and function for developer to test components. """
     from pprint import pprint
 
     app.logger.info("========== Test Method for admin:  ==========")
@@ -142,7 +142,7 @@ def test_method():
 @app.route('/data/capture/<int:id>')
 @admin_required()
 def capture(id):
-    """ Manual call to capture the media files. Currently on an Admin function, to be updated later. """
+    """Manual call to capture the media files. Currently on an Admin function, to be updated later. """
     from .events import enqueue_capture
 
     post = Post.query.get(id)
@@ -164,7 +164,7 @@ def capture(id):
 @app.route('/<string:mod>/<int:id>/export', methods=['GET', 'POST'])
 @staff_required()
 def export(mod, id):
-    """ Export data to google sheet, generally for influencer or brand Users.
+    """Export data to google sheet, generally for influencer or brand Users.
         Was view results on GET and generate Sheet on POST .
     """
     app.logger.info(f"==== {mod} Create Sheet ====")
@@ -177,7 +177,7 @@ def export(mod, id):
 @app.route('/data/update/<string:mod>/<int:id>/<string:sheet_id>')
 @staff_required()
 def update_data(mod, id, sheet_id):
-    """ Update the given worksheet (sheet_id) data from the given Model indicated by mod and id. """
+    """Update the given worksheet (sheet_id) data from the given Model indicated by mod and id. """
     Model = mod_lookup(mod)
     model = Model.query.get(id)
     sheet = update_sheet(model, id=sheet_id)
@@ -187,7 +187,7 @@ def update_data(mod, id, sheet_id):
 @app.route('/data/permissions/<string:mod>/<int:id>/<string:sheet_id>', methods=['GET', 'POST'])
 @staff_required()
 def data_permissions(mod, id, sheet_id, perm_id=None):
-    """ Used for managing permissions for who has access to a worksheet """
+    """Used for managing permissions for who has access to a worksheet """
     app.logger.info(f'===== {mod} data permissions for sheet {sheet_id} ====')
     template = 'form_permission.html'
     sheet = perm_list(sheet_id)
@@ -211,7 +211,7 @@ def data_permissions(mod, id, sheet_id, perm_id=None):
 
 @app.route('/login/<string:mod>')
 def fb_login(mod):
-    """ Initiate the creation of a new Influencer or Brand, as indicated by 'mod' """
+    """Initiate the creation of a new Influencer or Brand, as indicated by 'mod' """
     app.logger.info(f'====================== NEW {mod} Account =========================')
     if app.config.get('LOCAL_ENV') is True:
         app.logger.error("Can not call the Facebook auth function when running locally. ")
@@ -223,7 +223,7 @@ def fb_login(mod):
 
 @app.route('/callback/<string:mod>')
 def callback(mod):
-    """ Handle the callback for Facebook authorization. Create new influencer or brand user as indicated by 'mod'. """
+    """Handle the callback for Facebook authorization. Create new influencer or brand user as indicated by 'mod'. """
     app.logger.info(f'================= Authorization Callback {mod}===================')
     view, data = onboarding(mod, request)
     if view == 'decide':
@@ -247,7 +247,7 @@ def callback(mod):
 @app.route('/<string:mod>/<int:id>/login_select', methods=['GET', 'POST'])
 @login_required
 def login_sel(mod, id):
-    """ An influencer or brand is logging in with an existing user account. """
+    """An influencer or brand is logging in with an existing user account. """
     user = User.query.get(id)
     message, url = '', url_for('home')
     if not user:
@@ -271,7 +271,7 @@ def login_sel(mod, id):
 @app.route('/<string:mod>/<int:id>/decide_new')
 @login_required
 def decide_new(mod, id):
-    """ An existing user is making an influencer or brand account with a different IG account. """
+    """An existing user is making an influencer or brand account with a different IG account. """
     from .api import onboard_new
 
     valid_mod = {'influencer', 'brand'}
@@ -303,7 +303,7 @@ def decide_new(mod, id):
 @app.route('/campaign/<int:id>/results', methods=['GET', 'POST'])
 @staff_required()
 def results(id):
-    """ Campaign Results View (on GET) or generate Worksheet report (on POST) """
+    """Campaign Results View (on GET) or generate Worksheet report (on POST) """
     view, mod, related = 'results', 'campaign', {}
     template = f"{view}_{mod}.html"
     campaign = Campaign.query.get(id)
@@ -319,14 +319,14 @@ def results(id):
 @app.route('/campaign/<int:id>/rejected', methods=['GET', 'POST'])
 @staff_required()
 def rejected_campaign(id):
-    """ For a given Campaign, show rejected posts (processed but not accepted posts). """
+    """For a given Campaign, show rejected posts (processed but not accepted posts). """
     return campaign(id, view='rejected')
 
 
 @app.route('/campaign/<int:id>/detail', methods=['GET', 'POST'])
 @staff_required()
 def detail_campaign(id):
-    """ For a given Campaign, show posts accepted as part of the Campaign. """
+    """For a given Campaign, show posts accepted as part of the Campaign. """
     return campaign(id, view='collected')
 
 
@@ -381,7 +381,7 @@ def all_posts():
 @app.route('/<string:mod>/<int:id>')
 @login_required
 def view(mod, id):
-    """ Used primarily for specific User or Brand views, but also any data model view except Campaign. """
+    """Used primarily for specific User or Brand views, but also any data model view except Campaign. """
     # if mod == 'campaign':
     #     return campaign(id)
     Model, model = mod_lookup(mod), None
@@ -423,7 +423,7 @@ def view(mod, id):
 @app.route('/<string:mod>/<int:id>/insights')
 @login_required
 def insights(mod, id):
-    """ For a given User (influencer or brand), show the account Insight data. """
+    """For a given User (influencer or brand), show the account Insight data. """
     if current_user.role not in ['admin', 'manager'] and current_user.id != id:
         flash("This was not a correct location. You are redirected to the home page. ")
         return redirect(url_for('home'))
@@ -471,7 +471,7 @@ def insights(mod, id):
 @app.route('/<string:mod>/<int:id>/audience')
 @login_required
 def new_audience(mod, id):
-    """ Get new audience data from API for either. Input mod for either User or Brand, with given id. """
+    """Get new audience data from API for either. Input mod for either User or Brand, with given id. """
     if current_user.role not in ['admin', 'manager'] and current_user.id != id:
         flash("This was not a correct location. You are redirected to the home page. ")
         return redirect(url_for('home'))
@@ -485,7 +485,7 @@ def new_audience(mod, id):
 @app.route('/<string:mod>/<int:id>/followers')
 @login_required
 def followers(mod, id):
-    """ Get 'online_followers' report """
+    """Get 'online_followers' report """
     if current_user.role not in ['admin', 'manager'] and current_user.id != id:
         flash("This was not a correct location. You are redirected to the home page. ")
         return redirect(url_for('home'))
@@ -499,7 +499,7 @@ def followers(mod, id):
 @app.route('/<string:mod>/<int:id>/fetch')
 @login_required
 def new_insight(mod, id):
-    """ Get new account insight data from API. Input mod for either User or Brand, with given id. """
+    """Get new account insight data from API. Input mod for either User or Brand, with given id. """
     if current_user.role not in ['admin', 'manager'] and current_user.id != id:
         flash("This was not a correct location. You are redirected to the home page. ")
         return redirect(url_for('home'))
@@ -515,7 +515,7 @@ def new_insight(mod, id):
 @app.route('/<string:mod>/<int:id>/posts')
 @login_required
 def new_post(mod, id):
-    """ Get new posts data from API. Input mod for either User or Brand, with a given id"""
+    """Get new posts data from API. Input mod for either User or Brand, with a given id"""
     if current_user.role not in ['admin', 'manager'] and current_user.id != id:
         flash("This was not a correct location. You are redirected to the home page. ")
         return redirect(url_for('home'))
@@ -530,7 +530,7 @@ def new_post(mod, id):
 @app.route('/<string:mod>/add', methods=['GET', 'POST'])
 @staff_required()
 def add(mod):
-    """ For a given data Model, as indicated by mod, add new data to DB. """
+    """For a given data Model, as indicated by mod, add new data to DB. """
     valid_mod = {'campaign', 'brand'}
     if mod not in valid_mod:
         app.logger.error(f"Unable to add {mod}. ")
@@ -542,7 +542,7 @@ def add(mod):
 @app.route('/<string:mod>/<int:id>/edit', methods=['GET', 'POST'])
 @login_required
 def edit(mod, id):
-    """ Modify the existing DB entry. Model indicated by mod, and provided record id. """
+    """Modify the existing DB entry. Model indicated by mod, and provided record id. """
     valid_mod = {'campaign'}.union(User.ROLES)
     if mod not in valid_mod:
         app.logger.error(f"Unable to edit {mod}. ")
@@ -556,7 +556,7 @@ def edit(mod, id):
 
 @app.route('/capture/report/', methods=['GET', 'POST'])
 def capture_report():
-    """ After the capture work is processed, the results are sent here to update the models. """
+    """After the capture work is processed, the results are sent here to update the models. """
     from pprint import pprint
 
     app.logger.info("======================== capture report route =============================")
@@ -583,7 +583,7 @@ def capture_report():
 
 @app.route('/post/hook/', methods=['GET', 'POST'])
 def hook():
-    """ Endpoint receives all webhook updates from Instagram/Facebook for Story Posts. """
+    """Endpoint receives all webhook updates from Instagram/Facebook for Story Posts. """
     app.logger.debug(f"========== The hook route has a {request.method} request ==========")
     if request.method == 'POST':
         signed = request.headers.get('X-Hub-Signature', '')
@@ -609,7 +609,7 @@ def hook():
 @app.route('/<string:mod>/<int:id>/delete', methods=['GET', 'POST'])
 @login_required
 def delete(mod, id):
-    """ Permanently remove from DB the record for Model indicated by mod and id. """
+    """Permanently remove from DB the record for Model indicated by mod and id. """
     if current_user.role not in ['admin', 'manager'] and (current_user.id != id or current_user.role != mod):
         message = "Something went wrong. Can not delete. Contact an admin or manager. "
         flash(message)
@@ -637,7 +637,7 @@ def delete(mod, id):
 @app.route('/<string:mod>/list')
 @login_required
 def all(mod):
-    """ List view for all data of Model, or Google Drive Files, as indicated by mod.
+    """List view for all data of Model, or Google Drive Files, as indicated by mod.
         Only admin & manager users are allowed to see the campaign list view.
         The list view for influencer and brand will redirect those user types to their profile.
         Otherwise, only admin & manager users can see these list views for brands or influencers.
@@ -671,7 +671,7 @@ def all(mod):
 # Catchall redirect route.
 @app.route('/<string:page_name>/')
 def render_static(page_name):
-    """ Catch all for undefined routes. Return the requested static page. """
+    """Catch all for undefined routes. Return the requested static page. """
     if page_name == 'favicon.ico':
         return redirect(url_for('static', filename='favicon.ico'))
     page_name += '.html' if page_name != 'robots.txt' else ''

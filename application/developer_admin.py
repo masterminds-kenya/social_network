@@ -9,7 +9,7 @@ from pprint import pprint
 
 
 def admin_view(data=None, files=None):
-    """ Platform Admin view to view links and actions unique to admin """
+    """Platform Admin view to view links and actions unique to admin """
     dev_email = ['hepcatchris@gmail.com', 'christopherlchapman42@gmail.com']
     dev = current_user.email in dev_email
     # files = None if app.config.get('LOCAL_ENV') else all_files()
@@ -82,7 +82,7 @@ def get_pages_for_users(overwrite=False, remove=False, active_campaigns=False, *
 @app.route('/subscribe/<string:group>')
 @staff_required()
 def subscribe_pages(group):
-    """ Used by admin to subscribe to all current platform user's facebook page, if they are not already subscribed. """
+    """Used by admin to subscribe to all current platform user's facebook page, if they are not already subscribed. """
 
     app.logger.info(f"=============== subscribe_pages: {group} ===============")
     if group == 'active':  # For every user in an active campaign, add them to db.session.info['subscribe_page'] set.
@@ -110,13 +110,13 @@ def subscribe_pages(group):
 @app.route('/<string:mod>/<int:id>/subscribe')
 @staff_required()
 def subscribe_page(mod, id):
-    """ NOT IMPLEMENTED. Used by admin manually subscribe to this user's facebook page. """
+    """NOT IMPLEMENTED. Used by admin manually subscribe to this user's facebook page. """
     pass
 
 
 @app.route('/deletion')
 def fb_delete():
-    """ NOT IMPLEMENTED.
+    """NOT IMPLEMENTED.
         Handle a Facebook Data Deletion Request
         More details: https://developers.facebook.com/docs/apps/delete-data
     """
@@ -208,7 +208,7 @@ def encrypt_token():
 
 
 def fix_defaults():
-    """ DEPRECATED. Temporary route and function for developer to test components. """
+    """DEPRECATED. Temporary route and function for developer to test components. """
     from .model_db import Post, OnlineFollowers, Insight
     p_keys = [*Post.METRICS['STORY'].union(Post.METRICS['VIDEO'])]  # All the integer Metrics requested from API.
     # not_needed_keys = ['comments_count', 'like_count', ]
@@ -245,7 +245,7 @@ def fix_defaults():
 @app.route('/data/load/')
 @admin_required()
 def load_user():
-    """ DEPRECATED. This is a temporary development function. Will be removed for production. """
+    """DEPRECATED. This is a temporary development function. Will be removed for production. """
     load()
     return redirect(url_for('all', mod='influencer'))
 
@@ -253,7 +253,7 @@ def load_user():
 @app.route('/data/<string:mod>/<int:id>')
 @admin_required()
 def backup_save(mod, id):
-    """ DEPRECATED. This is a temporary development function. Will be removed for production. """
+    """DEPRECATED. This is a temporary development function. Will be removed for production. """
     Model = mod_lookup(mod)
     count = save(mod, id, Model)
     message = f"We just backed up {count} {mod} model(s). "
@@ -265,7 +265,7 @@ def backup_save(mod, id):
 @app.route('/data/encrypt/')
 @admin_required()
 def encrypt():
-    """ DEPRECATED. This is a temporary development function. Will be removed for production. """
+    """DEPRECATED. This is a temporary development function. Will be removed for production. """
     message, success = encrypt_token()
     app.logger.info(message)
     if success:

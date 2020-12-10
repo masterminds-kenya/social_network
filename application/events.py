@@ -23,7 +23,7 @@ def session_user_subscribe(user, remove=False):
 
 @event.listens_for(User.page_token, 'set', retval=True)
 def handle_user_page(user, value, oldvalue, initiator):
-    """ Triggered when a value is being set for User.page_token """
+    """Triggered when a value is being set for User.page_token """
     app.logger.info(f"============ Listener page_token for {user} ============")
     if value in (None, ''):
         user.story_subscribed = False
@@ -38,7 +38,7 @@ def handle_user_page(user, value, oldvalue, initiator):
 @event.listens_for(Campaign.brands, "bulk_replace")
 @event.listens_for(Campaign.users, "bulk_replace")
 def handle_campaign_users(campaign, users, initiator):
-    """ Triggered when a User is associated with a Campaign. """
+    """Triggered when a User is associated with a Campaign. """
     app.logger.info(f"============ campaign related: {getattr(initiator, 'impl', initiator)} ============")
     oldvalue = getattr(campaign, initiator.key, None)
     # app.logger.info(f"Initiator Slots: {initiator.__slots__} ")  # ('impl', 'key', 'op', parent_token, ... ?)
@@ -54,7 +54,7 @@ def handle_campaign_users(campaign, users, initiator):
 
 @event.listens_for(Campaign.completed, 'set', retval=True)
 def handle_campaign_stories(campaign, value, oldvalue, initiator):
-    """ Triggered when a Campaign is marked completed. """
+    """Triggered when a Campaign is marked completed. """
     app.logger.info(f"************** Campaign Listener: {getattr(initiator, 'impl', initiator)} **************")
     if value == oldvalue:
         return value
@@ -75,7 +75,7 @@ def handle_campaign_stories(campaign, value, oldvalue, initiator):
 
 @event.listens_for(Post.media_type, 'set', retval=True)
 def enqueue_capture(model, value, oldvalue, initiator):
-    """ Triggered when a value is being set for Post.media_type. Can also be initiated as a manual request for a Post.
+    """Triggered when a value is being set for Post.media_type. Can also be initiated as a manual request for a Post.
         Unfortunately we can not be certain the other needed fields have been set for this Post model.
         To make sure this Post gets placed in the appropriate Task queue, it is stored with a key in the session.info.
         Another listener will see all Post models prepared for a Capture queue, and will assign them accordingly.
@@ -112,7 +112,7 @@ def enqueue_capture(model, value, oldvalue, initiator):
 
 @event.listens_for(db.session, 'before_flush')
 def process_session_before_flush(session, flush_context, instances):
-    """ During creation or modification of Post models, some may be marked for adding to a Capture queue. """
+    """During creation or modification of Post models, some may be marked for adding to a Capture queue. """
     app.logger.info("============ Process Session Before Flush ===============")
     stories_to_capture = session.info.get('story_capture', [])
     other_posts_to_capture = session.info.get('post_capture', [])
