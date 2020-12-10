@@ -7,7 +7,7 @@ The following, non-exhaustive references, where discovered and influenced choice
 The default service, set with the `app.yaml` file, is our deployed production site. The development site and code is being deployed to the `dev` service with the `dev.yaml` file. To create or update a service named `service_name`, we create a `service_name.yaml` file that has a line to set `service: service_name`. Then we run the command below.
 
 ``` Bash
-    gcloud app deploy [service_name.yaml]
+gcloud app deploy [service_name.yaml]
 ```
 
 If the service setting line is missing, then it assumes it is for the default service. The default service yaml file should be name `app.yaml`.
@@ -15,7 +15,7 @@ If the service setting line is missing, then it assumes it is for the default se
 To view logs of a service:
 
 ``` Bash
-    gcloud app logs tail -s [service_name]
+gcloud app logs tail -s [service_name]
 ```
 
 ## Useful SQL Queries
@@ -24,11 +24,15 @@ If using command line interface for MySQL, these can be helpful for looking for 
 
 ### Brands
 
+```SQL
 SELECT brand_id, users.name AS brand, page_id, story_subscribed, campaigns.name AS campaign_name, campaign_id, completed FROM users JOIN brand_campaigns ON users.id = brand_campaigns.brand_id JOIN campaigns ON campaigns.id = brand_campaigns.campaign_id WHERE completed = False ORDER BY story_subscribed, brand;
+```
 
 ### Influencers
 
+```SQL
 SELECT user_id, users.name AS influencer, page_id, story_subscribed, campaigns.name AS campaign_name, campaign_id, completed FROM users JOIN user_campaigns ON users.id = user_campaigns.user_id JOIN campaigns ON campaigns.id = user_campaigns.campaign_id WHERE completed = False ORDER BY story_subscribed, influencer;
+```
 
 ## Default Env Variables
 
