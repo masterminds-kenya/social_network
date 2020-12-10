@@ -662,9 +662,13 @@ def all(mod):
     else:
         Model = mod_lookup(mod)
         role = mod if Model == User else request.args.get('role', None)  # 'all', 'completed', ...
+        view = request.args.get('view', None)
         if Model == Campaign:
             view = role or 'active'
         models = db_all(Model=Model, role=role) if Model in (User, Campaign) else db_all(Model=Model)
+        if view and Model == User and view != 'all':
+            active_opt = True if view == 'active' else False
+            models = [ea for ea in models if ea.has_active() is active_opt]
     return render_template('list.html', mod=mod, data=models, view=view)
 
 
