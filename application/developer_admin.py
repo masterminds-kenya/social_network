@@ -62,7 +62,7 @@ def get_pages_for_users(overwrite=False, remove=False, active_campaigns=False, *
         elif page and active_campaigns and not user.story_subscribed:
             session_user_subscribe(user)
             old_notes = user.notes or ''
-            user.notes = old_notes + ' add story_metrics'
+            user.notes = old_notes + ' add story_insights'
             db.session.add(user)
             updates[user.id] = str(user)
     app.logger.info("---------- get_pages_for_users session ----------")
