@@ -222,7 +222,7 @@ def compute_A1(arr2d, start='A1', sheet='Sheet1'):
     """ Determine A1 format for 2D-array input, on given sheet, starting at given cell.
         This algorithm assumes that exceeding 26 columns moves into the AA range and beyond.
         It is possible that Google Sheets only allows a max of 26 columns and 4011 rows.
-     """
+    """
     row_count = len(arr2d)
     col_count = len(max(arr2d, key=len))
     # TODO: write regex that separates the letter and digit sections. 'A1' would have following result:

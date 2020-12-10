@@ -29,6 +29,7 @@ def init_app(app):
 
 
 def metric_clean(metric_string):
+    """Removes the 'carousel_album_' from the beginning of the string to ensure a consistant structure of metrics. """
     return re.sub('^carousel_album_', '', metric_string)
 
 
@@ -37,7 +38,7 @@ def clean(obj):
     if isinstance(obj, dt):
         return obj.isoformat()
     elif isinstance(obj, (list, tuple)):
-        current_app.logger.info(f"================= Clean for obj: {obj} ====================")
+        # current_app.logger.info(f"================= Clean for obj: {obj} ====================")
         ' | '.join(obj)
     # elif isinstance(obj, (list, tuple, set)):
     #     temp = []
@@ -68,6 +69,7 @@ def from_sql(row, related=False, safe=True):
 
 
 def fix_date(Model, data):
+    """Modify the dict with expected response from Graph API so the date is formatted as needed for the given Model. """
     datestring = ''
     if Model in {Insight, OnlineFollowers}:
         datestring = data.pop('end_time', None)
@@ -121,7 +123,7 @@ class User(UserMixin, db.Model):
     UNSAFE = {'password', 'token', 'token_expires', 'page_token', 'modified', 'created'}
 
     def __init__(self, *args, **kwargs):
-        temp_id = kwargs.pop('id', None)
+        temp_id = kwargs.pop('id', None)  # See if removing 'id' can be done earlier, where facebook_id' is set.
         kwargs['facebook_id'] = temp_id if 'facebook_id' not in kwargs else kwargs['facebook_id']
         kwargs['name'] = kwargs.pop('username', kwargs.get('name'))  # TODO: Confirm 'username' is no longer needed.
         kwargs = translate_api_user_token(kwargs)
@@ -323,7 +325,7 @@ class Audience(db.Model):
     UNSAFE = {''}
 
     def __init__(self, *args, **kwargs):
-        """ Clean out the not needed data from the API call. """
+        """Initializes the instance after cleaning out the not needed data from the API call. """
         kwargs = fix_date(Audience, kwargs)
         data, kwargs = kwargs.copy(), {}
         kwargs['recorded'] = data.get('recorded')
@@ -340,7 +342,7 @@ class Audience(db.Model):
 
 
 class Post(db.Model):
-    """ Instagram media that was posted by an influencer user """
+    """ Instagram media that was posted by an influencer or brand user """
     __tablename__ = 'posts'
 
     id = db.Column(db.Integer,          primary_key=True)
@@ -386,10 +388,12 @@ class Post(db.Model):
 
     @hybrid_property
     def saved_media(self):
+        """Returns the first listed url in _saved_media (after translating from json), or returns None if no value. """
         return None if self._saved_media is None else json.loads(self._saved_media)[0]
 
     @saved_media.setter
     def saved_media(self, saved_urls, display=0):
+        """Saves a list of url strings, with the one in the 'display' position as the canonical url. """
         if not isinstance(saved_urls, (list, tuple, type(None))):
             raise TypeError("The saved_media must be a list of strings for the urls, or None. ")
         if not isinstance(display, int):
@@ -407,6 +411,7 @@ class Post(db.Model):
 
     @saved_media_options.setter
     def saved_media_options(self, saved_urls):
+        """Saves a list of url strings, making the first the canonical url. """
         self.saved_media(saved_urls, display=0)
 
     def display(self):
@@ -586,6 +591,8 @@ class Campaign(db.Model):
 
 
 def db_create(data, Model=User):
+    """Creates a new model instance and returns a dictionary of its values. Used in add_edit, signup, & onboarding. """
+    model = None
     try:
         model = Model(**data)
         db.session.add(model)
@@ -613,12 +620,14 @@ def db_create(data, Model=User):
 
 
 def db_read(id, Model=User, related=False, safe=True):
+    """Returns a dictionary of a model instance, defaulting to safe to view output, with optional related fields. """
     model = Model.query.get(id)
     return from_sql(model, related=related, safe=safe) if model else None
 
 
 def db_update(data, id, related=False, Model=User):
-    # Any checkbox field should have been prepared by process_form()
+    """Updates a model, replacing related if in the update data, and returns a safe to view dict of the model.  """
+    # Any boolean field (as a checkbox in an HTML form) should have been prepared by process_form()
     # TODO: Look into using the method Model.update
     model = Model.query.get(id)
     associated = {name: data.pop(name) for name in model.__mapper__.relationships.keys() if data.get(name, None)}
@@ -654,6 +663,7 @@ def db_update(data, id, related=False, Model=User):
 
 
 def db_delete(id, Model=User):
+    """Deletes the given Model with the given 'id' from the database. """
     Model.query.filter_by(id=id).delete()
     db.session.commit()
 

@@ -81,6 +81,7 @@ def login():
 @app.route('/logout')
 @login_required
 def logout():
+    """Logs out current user and redirects them to the home page. """
     logout_user()
     flash("You are now logged out. ")
     return redirect(url_for('home'))
@@ -88,6 +89,7 @@ def logout():
 
 @app.route('/error', methods=['GET', 'POST'])
 def error():
+    """Error route. """
     err = request.form.get('data')
     app.logger.error(err)
     if not app.config.get('DEBUG'):
@@ -98,6 +100,7 @@ def error():
 @app.route('/admin')
 @admin_required()
 def admin():
+    """Admin page view, which may have some data or files to display as summary of work progress. """
     data = request.args.get('data', None)
     files = request.args.get('files', None)
     return admin_view(data=data, files=files)
@@ -352,6 +355,7 @@ def campaign(id, view='management'):
 
 @app.route('/all_posts')
 def all_posts():
+    """Used for daily downloads, or can be called manually by an admin (but not managers). """
     app.logger.info("===================== All Posts Process Run =====================")
     cron_run = request.headers.get('X-Appengine-Cron', None)
     admin_run = current_user.is_authenticated and current_user.role == 'admin'
