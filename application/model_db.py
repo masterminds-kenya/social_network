@@ -127,6 +127,15 @@ class User(UserMixin, db.Model):
         kwargs = translate_api_user_token(kwargs)
         super().__init__(*args, **kwargs)
 
+    def has_active(self, ignore=None):
+        """Returns boolean: True if associated to any currently active campaigns as either an Influencer or Brand. """
+        ignore = ignore or []
+        if not isinstance(ignore, (list, tuple, set)):
+            ignore = [ignore]
+        connected_campaigns = [ea for ea in self.campaigns + self.brand_campaigns if ea not in ignore]
+        has_active_campaign = any(ea.completed is False for ea in connected_campaigns)
+        return has_active_campaign
+
     def recent_insight(self, metrics):
         """ What is the most recent date that we collected the given insight metrics """
         if metrics == 'influence' or metrics == Insight.INFLUENCE_METRICS:
