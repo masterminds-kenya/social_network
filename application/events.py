@@ -16,60 +16,52 @@ def session_user_subscribe(user, remove=False):
         db.session.info[add].add(user)
     else:
         db.session.info[add] = {user, }
-    if remove in db.session.info:  # and user in db.session.info[remove]:
-        db.session.info[remove].discard(user)
+    if remove in db.session.info:
+        db.session.info[remove].discard(user)  # Ignored if not present in the set.
     return user
 
 
 @event.listens_for(User.page_token, 'set', retval=True)
 def handle_user_page(user, value, oldvalue, initiator):
-    """ Triggered when a value is being set for User.page_token """
-    # app.logger.info("============ The page_token listener function is running ============")
+    """Triggered when a value is being set for User.page_token """
+    app.logger.info(f"============ Listener page_token for {user} ============")
     if value in (None, ''):
         user.story_subscribed = False
         app.logger.info(f"Empty page_token for {user} user. Set story_subscribed to False. ")
         return None
-    connected_campaigns = user.campaigns + user.brand_campaigns
-    has_active_campaign = any(ea.completed is False for ea in connected_campaigns)
-    if has_active_campaign:
-        # app.logger.info(f"The {user} has an active campaign. Time to subscribe. ")
+    if user.has_active():
+        app.logger.info(f"The {user} has an active campaign. Set to subscribe. ")
         session_user_subscribe(user)
     return value
 
 
-# # # @event.listens_for(Campaign.brands, 'append', propagate=True)
-# @event.listens_for(Campaign.users, 'append', propagate=True)
-# def handle_campaign_users(campaign, users, initiator):
-#     """ Triggered when a User is associated with a Campaign. """
-#     app.logger.info("============ The campaign users function is running ============")
-#     app.logger.info(f"Campaign: {campaign} ")
-#     app.logger.info(f"Users: {users} ")
-#     app.logger.info(f"Initiator Dir: {dir(initiator)} ")
-#     app.logger.info("----------------------------------------")
-#     # app.logger.info(f"Campaign: {campaign} | Users: {users} ")
-#     # for user in users:
-#     #     if not user.story_subscribed and getattr(user, 'page_token', None):
-#     #         app.logger.info(f"The {user} has a token and needs to subscribe for campaign: {campaign} ")
-#     #         session_user_subscribe(user)
-#     #     else:
-#     #         app.logger.info(f"Triggered by campaign {campaign} the {user} is not being subscribed. ")
-#     return users
+@event.listens_for(Campaign.brands, "bulk_replace")
+@event.listens_for(Campaign.users, "bulk_replace")
+def handle_campaign_users(campaign, users, initiator):
+    """Triggered when a User is associated with a Campaign. """
+    app.logger.info(f"============ campaign related: {getattr(initiator, 'impl', initiator)} ============")
+    oldvalue = getattr(campaign, initiator.key, None)
+    # app.logger.info(f"Initiator Slots: {initiator.__slots__} ")  # ('impl', 'key', 'op', parent_token, ... ?)
+    oldset = set(oldvalue or [])
+    newset = set(users)
+    new_subscribes = [session_user_subscribe(u) for u in newset - oldset if not u.story_subscribed]
+    new_removes = [session_user_subscribe(u, remove=True) for u in oldset - newset if not u.has_active(campaign)]
+    app.logger.info(f"New Subscribe: {new_subscribes} ")
+    app.logger.info(f"New Removes:   {new_removes} ")
+    app.logger.info(f"--------- End related: {getattr(initiator, 'key', getattr(initiator, 'impl', 'XX'))} ---------")
+    return users
 
 
 @event.listens_for(Campaign.completed, 'set', retval=True)
 def handle_campaign_stories(campaign, value, oldvalue, initiator):
-    """ Triggered when a Campaign is marked completed. """
-    app.logger.info(f"========== Campaign Stories Listener: {getattr(initiator, 'impl', initiator)} ==========")
-    # initiator.op is the operation (set, append, delete, etc)
-    # initiator.impl and initiator.parent_token are the model & field trigger, initiator.op is the trigger operation.
-    # app.logger.info(f"Initiator Slots: {initiator.__slots__} ")
+    """Triggered when a Campaign is marked completed. """
+    app.logger.info(f"************** Campaign Listener: {getattr(initiator, 'impl', initiator)} **************")
     if value == oldvalue:
         return value
     related_users = getattr(campaign, 'users', []) + getattr(campaign, 'brands', [])
     for user in related_users:
         if value is True:
-            campaigns_done = (ea.completed for ea in user.brand_campaigns + user.campaigns if ea != campaign)
-            if user.story_subscribed and all(campaigns_done):
+            if user.story_subscribed and not user.has_active(campaign):
                 app.logger.info(f"The {user} is being removed for completed {campaign} ")
                 session_user_subscribe(user, remove=True)
         else:
@@ -77,13 +69,13 @@ def handle_campaign_stories(campaign, value, oldvalue, initiator):
             if has_token and not user.story_subscribed:
                 app.logger.info(f"The {user} is being subscribed for NOT completed {campaign} ")
                 session_user_subscribe(user)
-    app.logger.info("---------- Campaign Stories Listener DONE ----------")
+    app.logger.info("---------- Campaign Listener DONE ----------")
     return value
 
 
 @event.listens_for(Post.media_type, 'set', retval=True)
 def enqueue_capture(model, value, oldvalue, initiator):
-    """ Triggered when a value is being set for Post.media_type. Can also be initiated as a manual request for a Post.
+    """Triggered when a value is being set for Post.media_type. Can also be initiated as a manual request for a Post.
         Unfortunately we can not be certain the other needed fields have been set for this Post model.
         To make sure this Post gets placed in the appropriate Task queue, it is stored with a key in the session.info.
         Another listener will see all Post models prepared for a Capture queue, and will assign them accordingly.
@@ -120,7 +112,7 @@ def enqueue_capture(model, value, oldvalue, initiator):
 
 @event.listens_for(db.session, 'before_flush')
 def process_session_before_flush(session, flush_context, instances):
-    """ During creation or modification of Post models, some may be marked for adding to a Capture queue. """
+    """During creation or modification of Post models, some may be marked for adding to a Capture queue. """
     app.logger.info("============ Process Session Before Flush ===============")
     stories_to_capture = session.info.get('story_capture', [])
     other_posts_to_capture = session.info.get('post_capture', [])

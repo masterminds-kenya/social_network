@@ -1,7 +1,7 @@
 from os import environ
 
 # class Config:
-#     """ Flask configuration variables """
+#     """Flask configuration variables """
 SECRET_KEY = environ.get('SECRET_KEY')  # for session cookies & flash messages
 SESSION_COOKIE_SECURE = True
 REMEMBER_COOKIE_SECURE = True

@@ -29,15 +29,16 @@ def init_app(app):
 
 
 def metric_clean(metric_string):
+    """Removes the 'carousel_album_' from the beginning of the string to ensure a consistant structure of metrics. """
     return re.sub('^carousel_album_', '', metric_string)
 
 
 def clean(obj):
-    """ Make sure this obj is serializable. Datetime objects should be turned to strings. """
+    """Make sure this obj is serializable. Datetime objects should be turned to strings. """
     if isinstance(obj, dt):
         return obj.isoformat()
     elif isinstance(obj, (list, tuple)):
-        current_app.logger.info(f"================= Clean for obj: {obj} ====================")
+        # current_app.logger.info(f"================= Clean for obj: {obj} ====================")
         ' | '.join(obj)
     # elif isinstance(obj, (list, tuple, set)):
     #     temp = []
@@ -50,7 +51,7 @@ def clean(obj):
 
 
 def from_sql(row, related=False, safe=True):
-    """ Translates a SQLAlchemy model instance into a dictionary.
+    """Translates a SQLAlchemy model instance into a dictionary.
         Can return all properties, both column fields and properties declared by decorators.
         Will return ORM related fields unless 'related' is False.
         Will return only safe for viewing fields when 'safe' is True.
@@ -68,6 +69,7 @@ def from_sql(row, related=False, safe=True):
 
 
 def fix_date(Model, data):
+    """Modify the dict with expected response from Graph API so the date is formatted as needed for the given Model. """
     datestring = ''
     if Model in {Insight, OnlineFollowers}:
         datestring = data.pop('end_time', None)
@@ -89,9 +91,9 @@ def translate_api_user_token(data):
 
 
 class User(UserMixin, db.Model):
-    """ Data model for user (influencer or brand) accounts.
-        Assumes only 1 Instagram per user, and it must be a business account.
-        They must have a Facebook Page connected to their business Instagram account.
+    """Data model for user (influencer or brand) accounts.
+       Assumes only 1 Instagram per user, and it must be a business account.
+       They must have a Facebook Page connected to their business Instagram account.
     """
     ROLES = ('influencer', 'brand', 'manager', 'admin')
     __tablename__ = 'users'
@@ -121,14 +123,23 @@ class User(UserMixin, db.Model):
     UNSAFE = {'password', 'token', 'token_expires', 'page_token', 'modified', 'created'}
 
     def __init__(self, *args, **kwargs):
-        temp_id = kwargs.pop('id', None)
+        temp_id = kwargs.pop('id', None)  # See if removing 'id' can be done earlier, where facebook_id' is set.
         kwargs['facebook_id'] = temp_id if 'facebook_id' not in kwargs else kwargs['facebook_id']
         kwargs['name'] = kwargs.pop('username', kwargs.get('name'))  # TODO: Confirm 'username' is no longer needed.
         kwargs = translate_api_user_token(kwargs)
         super().__init__(*args, **kwargs)
 
+    def has_active(self, ignore=None):
+        """Returns boolean: True if associated to any currently active campaigns as either an Influencer or Brand. """
+        ignore = ignore or []
+        if not isinstance(ignore, (list, tuple, set)):
+            ignore = [ignore]
+        connected_campaigns = [ea for ea in self.campaigns + self.brand_campaigns if ea not in ignore]
+        has_active_campaign = any(ea.completed is False for ea in connected_campaigns)
+        return has_active_campaign
+
     def recent_insight(self, metrics):
-        """ What is the most recent date that we collected the given insight metrics """
+        """What is the most recent date that we collected the given insight metrics """
         if metrics == 'influence' or metrics == Insight.INFLUENCE_METRICS:
             metrics = list(Insight.INFLUENCE_METRICS)
         elif metrics == 'profile' or metrics == Insight.PROFILE_METRICS:
@@ -151,7 +162,7 @@ class User(UserMixin, db.Model):
         return date
 
     def export_posts(self):
-        """ Collect all posts for this user in a list of lists for populating a worksheet. """
+        """Collect all posts for this user in a list of lists for populating a worksheet. """
         # TODO: Use code similar to Campaign.export_posts() ?
         ignore = ['id', 'user_id']
         columns = [ea.name for ea in Post.__table__.columns if ea.name not in ignore]
@@ -159,7 +170,7 @@ class User(UserMixin, db.Model):
         return [columns, *data]
 
     def insight_report(self):
-        """ Collect all of the Insights (including OnlineFollowers) and prepare for data dump on a sheet """
+        """Collect all of the Insights (including OnlineFollowers) and prepare for data dump on a sheet """
         report = [
             [f"{self.role.capitalize()} Name", self.name],
             ["Notes", self.notes],
@@ -188,7 +199,7 @@ class User(UserMixin, db.Model):
         return report
 
     def insight_summary(self, label_only=False):
-        """ Used for Sheet report: giving summary stats of insight metrics for a Brand (or other user). """
+        """Used for Sheet report: giving summary stats of insight metrics for a Brand (or other user). """
         big_metrics = list(Insight.INFLUENCE_METRICS)
         big_stat = [('Median', median), ('Average', mean), ('StDev', stdev)]
         insight_labels = [f"{metric} {ea[0]}" for metric in big_metrics for ea in big_stat]
@@ -226,7 +237,7 @@ class User(UserMixin, db.Model):
 
 
 class DeletedUser:
-    """ Used as a placeholder for a user who has been deleted, but we still have data on their posts. """
+    """Used as a placeholder for a user who has been deleted, but we still have data on their posts. """
 
     def __init__(self):
         self.id = 'na'
@@ -242,7 +253,7 @@ class DeletedUser:
 
 
 class OnlineFollowers(db.Model):
-    """ Data model for 'online_followers' for a user (influencer or brand) """
+    """Data model for 'online_followers' for a user (influencer or brand) """
     COMPOSITE_UNIQUE = ('user_id', 'recorded', 'hour')
     __tablename__ = 'onlinefollowers'
     __table_args__ = (db.UniqueConstraint(*COMPOSITE_UNIQUE, name='uq_onlinefollowers_recorded_hour'),)
@@ -268,7 +279,7 @@ class OnlineFollowers(db.Model):
 
 
 class Insight(db.Model):
-    """ Data model for insights data on a (influencer or brand) user's account """
+    """Data model for insights data on a (influencer or brand) user's account """
     COMPOSITE_UNIQUE = ('user_id', 'recorded', 'name')
     __tablename__ = 'insights'
     __table_args__ = (db.UniqueConstraint(*COMPOSITE_UNIQUE, name='uq_insights_recorded_name'),)
@@ -297,7 +308,7 @@ class Insight(db.Model):
 
 
 class Audience(db.Model):
-    """ Data model for current information about the user's audience. """
+    """Data model for current information about the user's audience. """
     # TODO: If this data not taken over by Neo4j, then refactor to parse out the age groups and gender groups
     COMPOSITE_UNIQUE = ('user_id', 'recorded', 'name')
     __tablename__ = 'audiences'
@@ -314,7 +325,7 @@ class Audience(db.Model):
     UNSAFE = {''}
 
     def __init__(self, *args, **kwargs):
-        """ Clean out the not needed data from the API call. """
+        """Initializes the instance after cleaning out the not needed data from the API call. """
         kwargs = fix_date(Audience, kwargs)
         data, kwargs = kwargs.copy(), {}
         kwargs['recorded'] = data.get('recorded')
@@ -331,7 +342,7 @@ class Audience(db.Model):
 
 
 class Post(db.Model):
-    """ Instagram media that was posted by an influencer user """
+    """Instagram media that was posted by an influencer or brand user """
     __tablename__ = 'posts'
 
     id = db.Column(db.Integer,          primary_key=True)
@@ -377,10 +388,12 @@ class Post(db.Model):
 
     @hybrid_property
     def saved_media(self):
+        """Returns the first listed url in _saved_media (after translating from json), or returns None if no value. """
         return None if self._saved_media is None else json.loads(self._saved_media)[0]
 
     @saved_media.setter
     def saved_media(self, saved_urls, display=0):
+        """Saves a list of url strings, with the one in the 'display' position as the canonical url. """
         if not isinstance(saved_urls, (list, tuple, type(None))):
             raise TypeError("The saved_media must be a list of strings for the urls, or None. ")
         if not isinstance(display, int):
@@ -393,15 +406,16 @@ class Post(db.Model):
 
     @hybrid_property
     def saved_media_options(self):
-        """ Return the list of all saved_media url links. """
+        """Return the list of all saved_media url links. """
         return None if self._saved_media is None else json.loads(self._saved_media)
 
     @saved_media_options.setter
     def saved_media_options(self, saved_urls):
+        """Saves a list of url strings, making the first the canonical url. """
         self.saved_media(saved_urls, display=0)
 
     def display(self):
-        """ Since different media post types have different metrics, we only want to show the appropriate fields. """
+        """Since different media post types have different metrics, we only want to show the appropriate fields. """
         post = from_sql(self, related=True, safe=True)
         fields = {'id', 'user_id', 'saved_media', 'saved_media_options', 'capture_name', 'campaigns', 'processed'}
         fields.update(('recorded', 'modified'), Post.METRICS['basic'], Post.METRICS[post['media_type']])
@@ -446,7 +460,7 @@ processed_campaign = db.Table(
 
 
 class Campaign(db.Model):
-    """ Model to manage the Campaign relationship between influencers and brands """
+    """Model to manage the Campaign relationship between influencers and brands """
     __tablename__ = 'campaigns'
 
     id = db.Column(db.Integer,       primary_key=True)
@@ -468,7 +482,7 @@ class Campaign(db.Model):
         super().__init__(*args, **kwargs)
 
     def export_posts(self):
-        """ Used for Sheets Report, a top label row followed by rows of Posts data. """
+        """Used for Sheets Report, a top label row followed by rows of Posts data. """
         ignore = {'id', 'user_id'}
         ignore.update(Post.UNSAFE)
         ignore.update(Post.__mapper__.relationships.keys())  # TODO: Decide if we actually want to keep related models?
@@ -477,7 +491,7 @@ class Campaign(db.Model):
         return [properties, *data]
 
     def related_posts(self, view):
-        """ Used for the different campaign management views. """
+        """Used for the different campaign management views. """
         allowed_view_values = ('management', 'collected', 'rejected')
         if view not in allowed_view_values:
             raise ValueError(f"The passed parameter was {view} and did not match {allowed_view_values}. ")
@@ -503,7 +517,7 @@ class Campaign(db.Model):
         return related
 
     def get_results(self):
-        """ We want the datasets and summary statistics. Used for results view as preview before creating sheet. """
+        """We want the datasets and summary statistics. Used for results view as preview before creating sheet. """
         # when finished, related is a dictionary with the following format:
         # {media_type: {
         #               'posts': [],
@@ -577,6 +591,8 @@ class Campaign(db.Model):
 
 
 def db_create(data, Model=User):
+    """Creates a new model instance and returns a dictionary of its values. Used in add_edit, signup, & onboarding. """
+    model = None
     try:
         model = Model(**data)
         db.session.add(model)
@@ -604,12 +620,14 @@ def db_create(data, Model=User):
 
 
 def db_read(id, Model=User, related=False, safe=True):
+    """Returns a dictionary of a model instance, defaulting to safe to view output, with optional related fields. """
     model = Model.query.get(id)
     return from_sql(model, related=related, safe=safe) if model else None
 
 
 def db_update(data, id, related=False, Model=User):
-    # Any checkbox field should have been prepared by process_form()
+    """Updates a model, replacing related if in the update data, and returns a safe to view dict of the model.  """
+    # Any boolean field (as a checkbox in an HTML form) should have been prepared by process_form()
     # TODO: Look into using the method Model.update
     model = Model.query.get(id)
     associated = {name: data.pop(name) for name in model.__mapper__.relationships.keys() if data.get(name, None)}
@@ -645,12 +663,13 @@ def db_update(data, id, related=False, Model=User):
 
 
 def db_delete(id, Model=User):
+    """Deletes the given Model with the given 'id' from the database. """
     Model.query.filter_by(id=id).delete()
     db.session.commit()
 
 
 def db_all(Model=User, role=None):
-    """ Returns all of the records for the indicated Model, or for User Model returns either brands or influencers. """
+    """Returns all of the records for the indicated Model, or for User Model returns either brands or influencers. """
     query = Model.query
     if Model == User:
         role_type = role if role else 'influencer'
@@ -664,7 +683,7 @@ def db_all(Model=User, role=None):
 
 
 def create_many(dataset, Model=User):
-    """ Currently only used for temporary developer_admin function """
+    """Currently only used for temporary developer_admin function """
     all_results = []
     for data in dataset:
         model = Model(**data)
@@ -675,7 +694,7 @@ def create_many(dataset, Model=User):
 
 
 def db_create_or_update_many(dataset, user_id=None, Model=Post):
-    """ Create or Update if the record exists for all of the dataset list. Returns a list of Model objects. """
+    """Create or Update if the record exists for all of the dataset list. Returns a list of Model objects. """
     current_app.logger.info(f'============== Create or Update Many {Model.__name__} ====================')
     allowed_models = {Post, Insight, Audience, OnlineFollowers}
     if Model not in allowed_models:
@@ -760,7 +779,7 @@ def db_create_or_update_many(dataset, user_id=None, Model=Post):
 
 
 def _create_database():
-    """ May currently only work if we do not need to drop the tables before creating them """
+    """May currently only work if we do not need to drop the tables before creating them """
     app = Flask(__name__)
     app.config.from_pyfile('../config.py')
     init_app(app)

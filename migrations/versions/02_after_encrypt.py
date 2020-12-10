@@ -48,7 +48,7 @@ def upgrade():
 
 
 def downgrade():
-    """ If downgrading, after running this downgrade you will need to copy values from crypt to token. User model needs:
+    """If downgrading, after running this downgrade you will need to copy values from crypt to token. User model needs:
 
         token = db.Column(db.String(255),               index=False, unique=False, nullable=True)
         crypt = db.Column(EncryptedType(db.String(255), SECRET_KEY, AesEngine, 'pkcs5'))  # encrypt

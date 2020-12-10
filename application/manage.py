@@ -11,7 +11,7 @@ from .helper_functions import mod_lookup, make_missing_timestamp
 
 
 def check_hash(signed, payload):
-    """ Checks if the 'signed' value is a SHA1 hash made with our app secret and the given 'payload' """
+    """Checks if the 'signed' value is a SHA1 hash made with our app secret and the given 'payload' """
     pre, signed = signed.split('=', 1)
     if pre != 'sha1':
         app.logger.debug("Signed does not look right. ")
@@ -31,7 +31,7 @@ def check_hash(signed, payload):
 
 
 def update_campaign(campaign, request):
-    """ Handle adding or removing posts assigned to a campaign, as well as removing posts from the processing Queue. """
+    """Handle adding or removing posts assigned to a campaign, as well as removing posts from the processing Queue. """
     app.logger.info('=========== Update Campaign ==================')
     form_dict = request.form.to_dict(flat=True)
     # Radio Button | Management | Results | Manage Outcome  | Result Outcome
@@ -74,7 +74,7 @@ def update_campaign(campaign, request):
 
 
 def process_form(mod, request):
-    """ Take the request.form and return the appropriate data with modifications as needed for the Model. """
+    """Take the request.form and return the appropriate data with modifications as needed for the Model. """
     # If Model has relationship collections set in form, then we must capture these before flattening the input
     # I believe this is only needed for campaigns.
     save = {}
@@ -197,7 +197,7 @@ def add_edit(mod, id=None):
 
 
 def report_update(reports, Model):
-    """ Input is a list of dictionaries, with each being the update values to apply to the 'mod' Model. """
+    """Input is a list of dictionaries, with each being the update values to apply to the 'mod' Model. """
     message, results, had_error = '', [], False
     app.logger.info("===================== report update =====================")
     # TODO: CRITICAL before pushed to production. Confirm the the source of this update.
@@ -230,7 +230,7 @@ def report_update(reports, Model):
 
 
 def process_hook(req):
-    """ We have a confirmed authoritative update on subscribed data of a Story Post. """
+    """We have a confirmed authoritative update on subscribed data of a Story Post. """
     # req: {'object': 'page', 'entry': [{'id': <ig_id>, 'time': 0, 'changes': [{'field': 'name', 'value': 'newnam'}]}]}
     hook_data, data_count = defaultdict(list), 0
     for ea in req.get('entry', [{}]):

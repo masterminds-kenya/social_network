@@ -9,7 +9,7 @@ from pprint import pprint
 
 
 def admin_view(data=None, files=None):
-    """ Platform Admin view to view links and actions unique to admin """
+    """Platform Admin view to view links and actions unique to admin """
     dev_email = ['hepcatchris@gmail.com', 'christopherlchapman42@gmail.com']
     dev = current_user.email in dev_email
     # files = None if app.config.get('LOCAL_ENV') else all_files()
@@ -17,11 +17,11 @@ def admin_view(data=None, files=None):
 
 
 def get_pages_for_users(overwrite=False, remove=False, active_campaigns=False, **kwargs):
-    """ We need the page number and token in order to setup webhooks for story insights.
-        The subscribing to a user's page will be handled elsewhere, and
-        triggered by this function when it sets and commits the user.page_token value.
-        If remove is True, then User.story_subscribed is set to False,
-        - but is overridden for any user who has other active campaigns.
+    """We need the page number and token in order to setup webhooks for story insights.
+       The subscribing to a user's page will be handled elsewhere, and
+       triggered by this function when it sets and commits the user.page_token value.
+       If remove is True, then User.story_subscribed is set to False,
+       - but is overridden for any user who has other active campaigns.
     """
     updates = {}
     q = User.query.filter(User.instagram_id.isnot(None))
@@ -62,7 +62,7 @@ def get_pages_for_users(overwrite=False, remove=False, active_campaigns=False, *
         elif page and active_campaigns and not user.story_subscribed:
             session_user_subscribe(user)
             old_notes = user.notes or ''
-            user.notes = old_notes + ' add story_metrics'
+            user.notes = old_notes + ' add story_insights'
             db.session.add(user)
             updates[user.id] = str(user)
     app.logger.info("---------- get_pages_for_users session ----------")
@@ -82,7 +82,7 @@ def get_pages_for_users(overwrite=False, remove=False, active_campaigns=False, *
 @app.route('/subscribe/<string:group>')
 @staff_required()
 def subscribe_pages(group):
-    """ Used by admin to subscribe to all current platform user's facebook page, if they are not already subscribed. """
+    """Used by admin to subscribe to all current platform user's facebook page, if they are not already subscribed. """
 
     app.logger.info(f"=============== subscribe_pages: {group} ===============")
     if group == 'active':  # For every user in an active campaign, add them to db.session.info['subscribe_page'] set.
@@ -110,13 +110,13 @@ def subscribe_pages(group):
 @app.route('/<string:mod>/<int:id>/subscribe')
 @staff_required()
 def subscribe_page(mod, id):
-    """ NOT IMPLEMENTED. Used by admin manually subscribe to this user's facebook page. """
+    """NOT IMPLEMENTED. Used by admin manually subscribe to this user's facebook page. """
     pass
 
 
 @app.route('/deletion')
 def fb_delete():
-    """ NOT IMPLEMENTED.
+    """NOT IMPLEMENTED.
         Handle a Facebook Data Deletion Request
         More details: https://developers.facebook.com/docs/apps/delete-data
     """
@@ -134,9 +134,9 @@ USER_FILE = 'env/user_save.txt'
 
 
 def load():
-    """ DEPRECATED
-        Function is only for use by dev admin.
-        Takes users saved in text file and puts that data in the database.
+    """DEPRECATED
+       Function is only for use by dev admin.
+       Takes users saved in text file and puts that data in the database.
     """
     new_users = []
     app.logger.info('------- Load users from File ------------')
@@ -156,9 +156,9 @@ def load():
 
 
 def save(mod, id, Model):
-    """ DEPRECATED
-        Function is only for use by dev admin.
-        Takes users in the database and saves them in a text file to later be managed by the load function.
+    """DEPRECATED
+       Function is only for use by dev admin.
+       Takes users in the database and saves them in a text file to later be managed by the load function.
     """
     app.logger.info('------- Save User to File -------')
     if mod in {'brand', 'influencer', 'user'}:
@@ -179,9 +179,9 @@ def save(mod, id, Model):
 
 
 def encrypt_token():
-    """ DEPRECATED
-        Takes value in token field and saves in encrypt field, triggering the encryption process.
-        Function is only for use by dev admin.
+    """DEPRECATED
+       Takes value in token field and saves in encrypt field, triggering the encryption process.
+       Function is only for use by dev admin.
     """
     message, count = '', 0
     # q = User.query.filter(User.token is not None)
@@ -208,7 +208,7 @@ def encrypt_token():
 
 
 def fix_defaults():
-    """ DEPRECATED. Temporary route and function for developer to test components. """
+    """DEPRECATED. Temporary route and function for developer to test components. """
     from .model_db import Post, OnlineFollowers, Insight
     p_keys = [*Post.METRICS['STORY'].union(Post.METRICS['VIDEO'])]  # All the integer Metrics requested from API.
     # not_needed_keys = ['comments_count', 'like_count', ]
@@ -245,7 +245,7 @@ def fix_defaults():
 @app.route('/data/load/')
 @admin_required()
 def load_user():
-    """ DEPRECATED. This is a temporary development function. Will be removed for production. """
+    """DEPRECATED. This is a temporary development function. Will be removed for production. """
     load()
     return redirect(url_for('all', mod='influencer'))
 
@@ -253,7 +253,7 @@ def load_user():
 @app.route('/data/<string:mod>/<int:id>')
 @admin_required()
 def backup_save(mod, id):
-    """ DEPRECATED. This is a temporary development function. Will be removed for production. """
+    """DEPRECATED. This is a temporary development function. Will be removed for production. """
     Model = mod_lookup(mod)
     count = save(mod, id, Model)
     message = f"We just backed up {count} {mod} model(s). "
@@ -265,7 +265,7 @@ def backup_save(mod, id):
 @app.route('/data/encrypt/')
 @admin_required()
 def encrypt():
-    """ DEPRECATED. This is a temporary development function. Will be removed for production. """
+    """DEPRECATED. This is a temporary development function. Will be removed for production. """
     message, success = encrypt_token()
     app.logger.info(message)
     if success:

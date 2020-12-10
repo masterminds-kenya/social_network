@@ -8,7 +8,7 @@ import json
 
 
 def mod_lookup(mod):
-    """ Associate to the appropriate Model, or raise error if 'mod' is not an expected value """
+    """Associate to the appropriate Model, or raise error if 'mod' is not an expected value """
     if not isinstance(mod, str):
         raise TypeError("Expected a string input. ")
     lookup = {'insight': Insight, 'audience': Audience, 'post': Post, 'campaign': Campaign}
@@ -21,7 +21,7 @@ def mod_lookup(mod):
 
 
 def prep_ig_decide(data):
-    """ Some needed changes to prepare for the user to select amongst various Instagram accounts and data. """
+    """Some needed changes to prepare for the user to select amongst various Instagram accounts and data. """
     app.logger.info("Decide which IG account")
     ig_list = []
     for ig_info in data:
@@ -34,7 +34,7 @@ def prep_ig_decide(data):
 
 
 def staff_required(role=['admin', 'manager']):
-    """ This decorator will allow use to limit access to routes based on user role. """
+    """This decorator will allow use to limit access to routes based on user role. """
     def wrapper(fn):
         @wraps(fn)
         def decorated_view(*args, **kwargs):
@@ -46,7 +46,7 @@ def staff_required(role=['admin', 'manager']):
 
 
 def admin_required(role=['admin']):
-    """ This decorator will limit access to admin only """
+    """This decorator will limit access to admin only """
     # staff_required(role=role)
     def wrapper(fn):
         @wraps(fn)
@@ -59,7 +59,7 @@ def admin_required(role=['admin']):
 
 
 def self_or_staff_required(role=['admin', 'manager'], user=current_user):
-    """ This decorator limits access to staff or if the resource belongs to the current_user. """
+    """This decorator limits access to staff or if the resource belongs to the current_user. """
     def wrapper(fn):
         @wraps(fn)
         def decorated_view(*args, **kwargs):

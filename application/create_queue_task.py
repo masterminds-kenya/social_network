@@ -15,8 +15,8 @@ client = tasks_v2.CloudTasksClient()
 
 
 def _get_capture_queue(queue_name):
-    """ Creates or gets a queue for managing calls to the capture API to get the live images of a web page.
-        May need to refactor to Create or Update a queue.
+    """Creates or gets a queue for managing calls to the capture API to get the live images of a web page.
+       May need to refactor to Create or Update a queue.
     """
     if not queue_name:
         queue_name = 'test'
@@ -56,7 +56,7 @@ def _get_capture_queue(queue_name):
 
 
 def add_to_capture(post, queue_name='test-on-db-b', task_name=None, in_seconds=90):
-    """ Adds a task to a Capture Queue to send a POST request to the Capture API. Sets where the report is sent back """
+    """Adds a task to a Capture Queue to send a POST request to the Capture API. Sets where the report is sent back """
     mod = 'post'
     if not isinstance(task_name, (str, type(None))):
         raise TypeError("Usually the task_name for add_to_capture should be None, but should be a string if set. ")
