@@ -9,6 +9,7 @@ from .helper_functions import staff_required, admin_required, mod_lookup, prep_i
 from .manage import update_campaign, process_form, report_update, check_hash, add_edit, process_hook
 from .api import onboard_login, onboarding, get_insight, get_audience, get_posts, get_online_followers, user_permissions
 from .sheets import create_sheet, update_sheet, perm_add, perm_list, all_files
+from pprint import pprint
 
 
 @app.route('/')
@@ -110,16 +111,15 @@ def admin():
 @staff_required()
 def permission_check(mod, id):
     """Used by admin to see what permissions a given user has granted the platform """
-    from pprint import pprint
-
     if mod_lookup(mod) != User:
         flash("Not a valid mod value for this function. ")
         return redirect(request.referrer)
-    data = user_permissions(id)
+    user = User.query.get(id)
+    data = user_permissions(user)
     if not data:
         flash("Error in looking up permission granted by the user to the platform. ")
         return redirect(request.referrer)
-    app.logger.info('Got data back from user_permissions request. ')
+    app.logger.info(f"========== PERMISSION CHECK: {user} ===========")
     pprint(data)
     return render_template('view.html', mod=mod, data=data)
 
@@ -128,7 +128,6 @@ def permission_check(mod, id):
 @admin_required()
 def test_method():
     """Temporary route and function for developer to test components. """
-    from pprint import pprint
 
     app.logger.info("========== Test Method for admin:  ==========")
     info = get_daily_ig_accounts()
@@ -653,10 +652,7 @@ def all(mod):
                 return redirect(url_for('signup'))
         flash("It seems that is not a correct route. You are redirected to the home page. ")
         return redirect(url_for('home'))
-    # if mod not in ['campaign', *User.ROLES] and current_user.role != 'admin':
-    #     flash('It seems that is not a correct route. You are redirected to the home page.')
-    #     return redirect(url_for('home'))
-    view = None  # Possible values: 'all', 'completed', 'active', None
+    view = None  # Possible values: 'all', 'active', 'Not Active', 'completed', None
     if mod == 'file':
         models = all_files()
     else:

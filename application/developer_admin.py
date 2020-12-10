@@ -39,12 +39,9 @@ def get_pages_for_users(overwrite=False, remove=False, active_campaigns=False, *
         else:
             app.logger.error(f"Unsure how to filter for type {type(val)} for key: value of {key}: {val} ")
     users = q.all()
-    # app.logger.info("------------ get pages for filtered users ------------")
     if active_campaigns:
-        # app.logger.info(f"Only active users. Initial count: {len(users)} ")
-        users = [u for u in users if any(not ea.completed for ea in u.brand_campaigns + u.campaigns)]
-    # app.logger.info(users)
-    # app.logger.info("------------ end filtered users ------------")
+        users = [u for u in users if u.has_active()]
+        # users = [u for u in users if any(not ea.completed for ea in u.brand_campaigns + u.campaigns)]
     for user in users:
         page = get_fb_page_for_users_ig_account(user)
         if remove and user.story_subscribed:
@@ -65,17 +62,7 @@ def get_pages_for_users(overwrite=False, remove=False, active_campaigns=False, *
             user.notes = old_notes + ' add story_insights'
             db.session.add(user)
             updates[user.id] = str(user)
-    app.logger.info("---------- get_pages_for_users session ----------")
-    # pprint(db.session.__dict__)
-    # app.logger.info("----- Session.info -----")
-    app.logger.info(db.session.info)
-    app.logger.info("------------ Now commit ------------")
     db.session.commit()
-    # app.logger.info("---------- get_pages_for_users session AFTER commit ----------")
-    # pprint(db.session.__dict__)
-    # app.logger.info("----- Session.info -----")
-    # app.logger.info(db.session.info)
-    # app.logger.info("------------ End get_pages_for_users ------------")
     return updates
 
 
