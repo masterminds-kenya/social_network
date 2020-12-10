@@ -37,23 +37,29 @@ def handle_user_page(user, value, oldvalue, initiator):
     return value
 
 
-# # # @event.listens_for(Campaign.brands, 'append', propagate=True)
-# @event.listens_for(Campaign.users, 'append', propagate=True)
-# def handle_campaign_users(campaign, users, initiator):
-#     """ Triggered when a User is associated with a Campaign. """
-#     app.logger.info("============ The campaign users function is running ============")
-#     app.logger.info(f"Campaign: {campaign} ")
-#     app.logger.info(f"Users: {users} ")
-#     app.logger.info(f"Initiator Dir: {dir(initiator)} ")
-#     app.logger.info("----------------------------------------")
-#     # app.logger.info(f"Campaign: {campaign} | Users: {users} ")
-#     # for user in users:
-#     #     if not user.story_subscribed and getattr(user, 'page_token', None):
-#     #         app.logger.info(f"The {user} has a token and needs to subscribe for campaign: {campaign} ")
-#     #         session_user_subscribe(user)
-#     #     else:
-#     #         app.logger.info(f"Triggered by campaign {campaign} the {user} is not being subscribed. ")
-#     return users
+@event.listens_for(Campaign.brands, "bulk_replace")
+@event.listens_for(Campaign.users, "bulk_replace")
+def handle_campaign_users(campaign, users, initiator):
+    """ Triggered when a User is associated with a Campaign. """
+    app.logger.info(f"============ campaign relations: {getattr(initiator, 'impl', initiator)} ============")
+    oldvalue = getattr(campaign, initiator.key, None)
+    # app.logger.info(f"Initiator Slots: {initiator.__slots__} ")
+    # app.logger.info(f"Initiator impl: {getattr(initiator, 'impl', 'NOT FOUND')} ")
+    # app.logger.info(f"Initiator key: {getattr(initiator, 'key', 'NOT FOUND')} ")
+    # app.logger.info(f"Initiator op: {getattr(initiator, 'op', 'NOT FOUND')} ")
+    # app.logger.info(f"Initiator parent_token: {getattr(initiator, 'parent_token', 'NOT FOUND')} ")
+    # app.logger.info("----------------------------------------")
+    # app.logger.info(f"Campaign: {campaign} ")
+    # app.logger.info(f"New Value: {users} ")
+    # app.logger.info(f"Old Value: {oldvalue or 'NOT FOUND'} ")
+    oldset = set(oldvalue or [])
+    newset = set(users)
+    new_subscribes = [session_user_subscribe(u) for u in newset - oldset if not u.story_subscribed]
+    new_removes = [session_user_subscribe(u, remove=True) for u in oldset - newset if not u.has_active(campaign)]
+    app.logger.info(f"New Subscribe: {new_subscribes} ")
+    app.logger.info(f"New Removes:   {new_removes} ")
+    app.logger.info(f"------------ End relations: {getattr(initiator, 'key', initiator.impl)} ------------")
+    return users
 
 
 @event.listens_for(Campaign.completed, 'set', retval=True)
