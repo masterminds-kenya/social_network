@@ -16,7 +16,7 @@ def admin_view(data=None, files=None):
     return render_template('admin.html', dev=dev, data=data, files=files)
 
 
-def get_pages_for_users(overwrite=False, remove=False, active_campaigns=False, **kwargs):
+def get_pages_for_users(overwrite=False, remove=False, active_campaigns=None, **kwargs):
     """We need the page number and token in order to setup webhooks for story insights.
        The subscribing to a user's page will be handled elsewhere, and
        triggered by this function when it sets and commits the user.page_token value.
@@ -39,8 +39,8 @@ def get_pages_for_users(overwrite=False, remove=False, active_campaigns=False, *
         else:
             app.logger.error(f"Unsure how to filter for type {type(val)} for key: value of {key}: {val} ")
     users = q.all()
-    if active_campaigns:
-        users = [u for u in users if u.has_active()]
+    if active_campaigns is not None:  # True or False
+        users = [u for u in users if u.has_active() is active_campaigns]
         # users = [u for u in users if any(not ea.completed for ea in u.brand_campaigns + u.campaigns)]
     for user in users:
         page = get_fb_page_for_users_ig_account(user)
@@ -81,7 +81,8 @@ def subscribe_pages(group):
         'all': {'page_id': None, 'overwrite': True, },
         'token': {'page_token': None, 'overwrite': True, },
         'active': {'active_campaigns': True, 'overwrite': False, },
-        'remove': {'remove': True, 'overwrite': False, },
+        'remove': {'active_campaigns': False, 'remove': True, 'overwrite': False, },
+        # 'remove_all': {'remove': True, 'overwrite': False, },
         'all_force': {'overwrite': True, },
         'inactive_force': {'story_subscribed': 'IS NOT TRUE', 'overwrite': True, },
         'active_force': {'story_subscribed': True, 'overwrite': True, },
