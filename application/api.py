@@ -106,9 +106,9 @@ def user_permissions(user, facebook=None, token=None):
 
 
 def capture_media(post_or_posts, get_story_only):
-    """ DEPRECATED.
-        For a given Post or list of Post objects, call the API for capturing the images of that InstaGram page.
-        If get_story_only is True, then only process the Posts that have media_type equal to 'STORY'.
+    """DEPRECATED.
+       For a given Post or list of Post objects, call the API for capturing the images of that InstaGram page.
+       If get_story_only is True, then only process the Posts that have media_type equal to 'STORY'.
     """
     #  API URL format:
     #  /api/v1/post/
@@ -157,9 +157,9 @@ def capture_media(post_or_posts, get_story_only):
 
 
 def get_insight(user_id, first=1, influence_last=30*12, profile_last=30*3, ig_id=None, facebook=None):
-    """ Get the insight metrics for the User. Has default values, but can be called with custom durations.
-        It will check existing data to see how recently we have insight metrics for this user.
-        It will request results for the full duration, or since recent data, or a minimum of 30 days.
+    """Get the insight metrics for the User. Has default values, but can be called with custom durations.
+       It will check existing data to see how recently we have insight metrics for this user.
+       It will request results for the full duration, or since recent data, or a minimum of 30 days.
     """
     ig_period = 'day'
     results, token = [], ''
@@ -345,10 +345,10 @@ def _get_posts_data_of_user(user_id, stories=True, ig_id=None, facebook=None):
 
 
 def get_posts(id_or_users, stories=True, ig_id=None, facebook=None):
-    """ Input is a single entity or list of User instance(s), or User id(s).
-        Calls the API to get all of the Posts (with insights of Posts) of User(s).
-        Saves this data to the Database, creating or updating as needed.
-        Returns an array of the saved Post instances.
+    """Input is a single entity or list of User instance(s), or User id(s).
+       Calls the API to get all of the Posts (with insights of Posts) of User(s).
+       Saves this data to the Database, creating or updating as needed.
+       Returns an array of the saved Post instances.
     """
     if not isinstance(id_or_users, (list, tuple)):
         id_or_users = [id_or_users]
@@ -491,8 +491,8 @@ def get_ig_info(ig_id, facebook=None, token=None):
 
 
 def find_pages_for_fb_id(fb_id, facebook=None, token=None):
-    """ From a known facebook id, we can get a list of all pages the user has a role on via the accounts route.
-        Using technique from Graph API docs: https://developers.facebook.com/docs/graph-api/reference/v7.0/user/accounts
+    """From a known facebook id, we can get a list of all pages the user has a role on via the accounts route.
+       Using technique from Graph API docs: https://developers.facebook.com/docs/graph-api/reference/v7.0/user/accounts
     """
     url = f"https://graph.facebook.com/v7.0/{fb_id}/accounts"
     app.logger.info("========================== The find_pages_for_fb_id was called ==========================")
@@ -511,8 +511,8 @@ def find_pages_for_fb_id(fb_id, facebook=None, token=None):
 
 
 def find_instagram_id(accounts, facebook=None, token=None):
-    """ For an influencer or brand, we can discover all of their instagram business accounts they have.
-        This depends on them having their expected associated facebook page (for each).
+    """For an influencer or brand, we can discover all of their instagram business accounts they have.
+       This depends on them having their expected associated facebook page (for each).
     """
     if not facebook and not token:
         message = "This function requires at least one value for either 'facebook' or 'token' keyword arguments. "
@@ -580,9 +580,9 @@ def onboard_login(mod):
 
 
 def onboard_new(data, facebook=None, token=None):
-    """ Typically used for adding a user that does not have any accounts under their facebook id.
-        May also be used for a currently logged in user to create another account with a different Instagram account.
-        The user should be logged in before returning results, but only if valid Instagram account(s) are found.
+    """Typically used for adding a user that does not have any accounts under their facebook id.
+       May also be used for a currently logged in user to create another account with a different Instagram account.
+       The user should be logged in before returning results, but only if valid Instagram account(s) are found.
     """
     if not facebook and not token:
         message = "This function requires at least one value for either 'facebook' or 'token' keyword arguments. "
@@ -704,12 +704,12 @@ def onboard_existing(users, data, facebook=None):
 
 
 def onboarding(mod, request):
-    """ Verify the authorization request. Then either login or create the appropriate influencer or brand user.
-        The user should be logged in before the output is returned, but only if there are potential IG accounts.
-        Output: (view, data_list)
-        view can be one of: 'complete', 'decide', 'existing', 'not_found', 'error'.
-        data_list has dicts with keys: account_id, name, facebook_id, followers_count, media_count, page_id, page_token.
-        or data_list is the error response for error.
+    """Verify the authorization request. Then either login or create the appropriate influencer or brand user.
+       The user should be logged in before the output is returned, but only if there are potential IG accounts.
+       Output: (view, data_list)
+       view can be one of: 'complete', 'decide', 'existing', 'not_found', 'error'.
+       data_list has dicts with keys: account_id, name, facebook_id, followers_count, media_count, page_id, page_token.
+       or data_list is the error response for error.
     """
     callback = URL + '/callback/' + mod
     request_url = request.url.strip().rstrip('#_=_')

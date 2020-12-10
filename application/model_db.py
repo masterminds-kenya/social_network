@@ -91,9 +91,9 @@ def translate_api_user_token(data):
 
 
 class User(UserMixin, db.Model):
-    """ Data model for user (influencer or brand) accounts.
-        Assumes only 1 Instagram per user, and it must be a business account.
-        They must have a Facebook Page connected to their business Instagram account.
+    """Data model for user (influencer or brand) accounts.
+       Assumes only 1 Instagram per user, and it must be a business account.
+       They must have a Facebook Page connected to their business Instagram account.
     """
     ROLES = ('influencer', 'brand', 'manager', 'admin')
     __tablename__ = 'users'

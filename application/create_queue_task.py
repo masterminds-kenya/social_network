@@ -15,8 +15,8 @@ client = tasks_v2.CloudTasksClient()
 
 
 def _get_capture_queue(queue_name):
-    """ Creates or gets a queue for managing calls to the capture API to get the live images of a web page.
-        May need to refactor to Create or Update a queue.
+    """Creates or gets a queue for managing calls to the capture API to get the live images of a web page.
+       May need to refactor to Create or Update a queue.
     """
     if not queue_name:
         queue_name = 'test'

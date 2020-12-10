@@ -333,10 +333,10 @@ def detail_campaign(id):
 @app.route('/campaign/<int:id>', methods=['GET', 'POST'])
 @staff_required()
 def campaign(id, view='management'):
-    """ Defaults to management of assigning posts to a campaign.
-        When view is 'collected', user can review and re-assess posts already assigned to the campaign.
-        When view is 'rejected', user can re-assess posts previously marked as rejected.
-        On POST, updates the assigned media posts as indicated by the submitted form.
+    """Defaults to management of assigning posts to a campaign.
+       When view is 'collected', user can review and re-assess posts already assigned to the campaign.
+       When view is 'rejected', user can re-assess posts previously marked as rejected.
+       On POST, updates the assigned media posts as indicated by the submitted form.
      """
     mod = 'campaign'
     template, related = f"{mod}.html", {}

@@ -17,11 +17,11 @@ def admin_view(data=None, files=None):
 
 
 def get_pages_for_users(overwrite=False, remove=False, active_campaigns=False, **kwargs):
-    """ We need the page number and token in order to setup webhooks for story insights.
-        The subscribing to a user's page will be handled elsewhere, and
-        triggered by this function when it sets and commits the user.page_token value.
-        If remove is True, then User.story_subscribed is set to False,
-        - but is overridden for any user who has other active campaigns.
+    """We need the page number and token in order to setup webhooks for story insights.
+       The subscribing to a user's page will be handled elsewhere, and
+       triggered by this function when it sets and commits the user.page_token value.
+       If remove is True, then User.story_subscribed is set to False,
+       - but is overridden for any user who has other active campaigns.
     """
     updates = {}
     q = User.query.filter(User.instagram_id.isnot(None))
@@ -134,9 +134,9 @@ USER_FILE = 'env/user_save.txt'
 
 
 def load():
-    """ DEPRECATED
-        Function is only for use by dev admin.
-        Takes users saved in text file and puts that data in the database.
+    """DEPRECATED
+       Function is only for use by dev admin.
+       Takes users saved in text file and puts that data in the database.
     """
     new_users = []
     app.logger.info('------- Load users from File ------------')
@@ -156,9 +156,9 @@ def load():
 
 
 def save(mod, id, Model):
-    """ DEPRECATED
-        Function is only for use by dev admin.
-        Takes users in the database and saves them in a text file to later be managed by the load function.
+    """DEPRECATED
+       Function is only for use by dev admin.
+       Takes users in the database and saves them in a text file to later be managed by the load function.
     """
     app.logger.info('------- Save User to File -------')
     if mod in {'brand', 'influencer', 'user'}:
@@ -179,9 +179,9 @@ def save(mod, id, Model):
 
 
 def encrypt_token():
-    """ DEPRECATED
-        Takes value in token field and saves in encrypt field, triggering the encryption process.
-        Function is only for use by dev admin.
+    """DEPRECATED
+       Takes value in token field and saves in encrypt field, triggering the encryption process.
+       Function is only for use by dev admin.
     """
     message, count = '', 0
     # q = User.query.filter(User.token is not None)
