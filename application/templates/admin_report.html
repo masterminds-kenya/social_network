@@ -42,9 +42,9 @@
       <ul class="collapsible-content {{key}}">
         {% for ea in data[key] %}
         <li>
-          <a href="{{ url_for('view', mod='post', id=ea.id) }}"
-            ># {{ea.id}} {{ea.media_type}} posted on {{ea.recorded}}</a
-          >
+          <a href="{{ url_for('view', mod='post', id=ea.id) }}">
+            # {{ea.id}} {{ea.media_type}} posted on {{ea.recorded}}
+          </a>
         </li>
         {% endfor %}
       </ul>
@@ -60,23 +60,23 @@
   </ul>
 {% endblock data_view %}
 
-  {% block modify %}
-  {% if mod in ['permissions', ] %}
-  <h3>Change Data Actions</h3>
-  <ul>
-    <li>Placeholder for mod permissions. </li>
-    <li>CAREFUL BELOW!</li>
-    <li>Placeholder dangerous link. </li>
-  </ul>
-  {% endif %}
-  {% endblock modify %}
+{% block modify %}
+{% if mod in ['undefined', ] %}
+<h3>Change Data Actions</h3>
+<ul>
+  <li>Placeholder for mod permissions. </li>
+  <li>CAREFUL BELOW!</li>
+  <li>Placeholder dangerous link. </li>
+</ul>
+{% endif %}
+{% endblock modify %}
 
-  <ul>
-    <li><a href="{{ url_for('admin') }}">RETURN to Base Admin Page</a></li>
-    <li><a href="{{ url_for('all', mod='influencer') }}">Influencers</a></li>
-    <li><a href="{{ url_for('all', mod='brand') }}">Brands</a></li>
-    <li><a href="{{ url_for('all', mod='campaign') }}">Campaigns</a></li>
-  </ul>
+<ul>
+  <li><a href="{{ url_for('admin') }}">RETURN to Base Admin Page</a></li>
+  <li><a href="{{ url_for('all', mod='influencer') }}">Influencers</a></li>
+  <li><a href="{{ url_for('all', mod='brand') }}">Brands</a></li>
+  <li><a href="{{ url_for('all', mod='campaign') }}">Campaigns</a></li>
+</ul>
 
 </main>
 {% endblock content %}
