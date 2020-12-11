@@ -1,34 +1,39 @@
 {% extends "base.html" %}
 {% block head %}
-<title>Admin {{ mod|capitalize }} Report</title>
+<title>Admin {{ mod|capitalize }} Report {% if overview %}Overview{% endif %}</title>
 {% endblock %}
 {% block header %}
 {{ super() }}
+<h1>
+  {{ mod|capitalize }} Report
+  {% if overview %}
+  Overview
+  {% elif info.get('name') %}
+  for {{ info['name'] }}
+  {% endif %}
+</h1>
 {% endblock header %}
 
 {% block content %}
-
 <main>
-  <div class="intro">
-    <h2>
-      {{ mod|capitalize }} Report
-      {% if data.get('name') %}
-      for {{ data['name'] }}
-      {% else %}
-      Overview
-      {% endif %}
-    </h2>
-    {% if current_user.is_authenticated %}
-    <p class="platform-user-header">
-      Using the Platform as - {{ current_user.name }}
-    </p>
-    {% endif %}
-  </div>
 
-  {% block data_view %}
+{% block data_view %}
   <ul>
-  {% for key in data.keys() %}
-    {% if key == 'posts' and data[key]|length %}
+  {% for lbl in info.keys() %}
+    {% if overview %}
+    <li>
+      <input id="collapsible_{{lbl}}" class="toggle" type="checkbox" />
+      <label for="collapsible_{{lbl}}" class="lbl-toggle">
+        {{ lbl.name }}: {{ overview[lbl] }}
+      </label>
+      <ul class="collapsible-content {{lbl}}">
+        {% set data = info[lbl] %}
+        {% for key in data.keys() %}
+        <li>{% include 'data_expand.html' %}</li>
+        {% endfor %}
+      </ul>
+    </li>
+    {% elif lbl == 'posts' and info[lbl]|length %}
     <li>
       <input id="collapsible_{{key}}" class="toggle" type="checkbox" />
       <label for="collapsible_{{key}}" class="lbl-toggle">
@@ -45,24 +50,15 @@
       </ul>
     </li>
     {% else %}
-    <li>{{key}}:
-    {% if data[key] is iterable and data[key] is not string %}
-      {% if data[key]|length %}
-      <ul class="{{ key }}">
-        {% for ea in data[key] %}
-        <li>{{ ea }}</li>
-        {% endfor %}
-      </ul>{% else %}EMPTY NONE
-      {% endif %}
-    {% else %}
-      {{data[key]}}
-    {% endif %}
+    <li>
+      {% set key, data = lbl, info %}
+      {% include 'data_expand.html' %}
     </li>
     {% endif %}
   {% else %}<li>NO DATA</li>
   {% endfor %}
   </ul>
-  {% endblock data_view %}
+{% endblock data_view %}
 
   {% block modify %}
   {% if mod in ['permissions', ] %}
