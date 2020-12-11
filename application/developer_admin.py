@@ -86,8 +86,13 @@ def permission_check_many(**kwargs):
 @staff_required()
 def permission_report(group):
     """Collects and displays Permission Reports for platform users. """
+    id_list = request.args.get('ids', '').split(',')
     opts = {
-        'all': {}
+        'all': {},
+        'active': {'active_campaigns': True, },
+        'inactive': {'active_campaigns': False, },
+        'unsubscribed': {'story_subscribed': False, },
+        'listed': {'id': [] if id_list == [''] else [int(ea) for ea in id_list]},
     }
     data = permission_check_many(**opts[group])
     if not data:

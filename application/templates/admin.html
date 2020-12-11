@@ -38,15 +38,20 @@
   <li><a href="{{ url_for('all', mod='manager') }}">List Managers</a></li>
   <li><a href="{{ url_for('all', mod='admin')}}">List Admins</a></li>
   <li><a href="{{ url_for('all', mod='file') }}">Google Drive Files</a></li>
+  <li><a href="{{ url_for('admin') }}">RETURN to Base Admin Page (admin)</a></li>
 </ul>
 
-<h4>Reports</h4>
+<h4>Permission Reports</h4>
 <ul>
   <li><a href="{{ url_for('permission_report', group='all') }}">Permission Report: All</a></li>
+  <li><a href="{{ url_for('permission_report', group='active') }}">Permission Report: Active</a></li>
+  <li><a href="{{ url_for('permission_report', group='listed', ids='232,84') }}">Permission Report: Test</a></li>
+</ul>
+<h4>Page Subscribe</h4>
+<ul>
   <li><a href="{{ url_for('subscribe_pages', group='active') }}">Subscribe to active Users FB page</a></li>
   <li><a href="{{ url_for('subscribe_pages', group='remove') }}">Remove inactive Users FB page</a></li>
   <li><a href="{{ url_for('subscribe_pages', group='all') }}">Get all Users missing FB page</a></li>
-  <li><a href="{{ url_for('admin') }}">RETURN to Base Admin Page (admin)</a></li>
 </ul>
 <h4>Less Common Admin Functions</h4>
 <ul>
