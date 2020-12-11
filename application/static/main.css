@@ -404,7 +404,7 @@ input.toggle[type='checkbox'] {
 
 .lbl-toggle {
   display: block;
-  max-width: 26rem;
+  max-width: 30rem;
   /* font-family: monospace; */
   /* font-size: 110%; */
   /* text-transform: uppercase; */
@@ -440,7 +440,7 @@ input.toggle[type='checkbox'] {
 
 .collapsible-content {
   max-height: 0px;
-  max-width: 26rem;
+  max-width: 30rem;
   overflow: hidden;
   transition: max-height .25s ease-in-out;
   background: rgba(250, 224, 66, .2);
