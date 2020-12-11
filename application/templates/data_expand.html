@@ -1,0 +1,12 @@
+{{key}}:
+{% if data[key] is iterable and data[key] is not string %}
+  {% if data[key]|length %}
+  <ul class="{{ key }}">
+    {% for ea in data[key] %}
+    <li>{{ ea }}</li>
+    {% endfor %}
+  </ul>{% else %}EMPTY NONE
+  {% endif %}
+{% else %}
+  {{data[key]}}
+{% endif %}

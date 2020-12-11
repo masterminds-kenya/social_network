@@ -74,19 +74,7 @@ content %}
       {{key}}: {%if data[key] is none %} Not {% endif %} Known
     </li>
     {% else %}
-    <li>{{key}}:
-    {% if data[key] is iterable and data[key] is not string %}
-      {% if data[key]|length %}
-      <ul class="{{ key }}">
-        {% for ea in data[key] %}
-        <li>{{ ea }}</li>
-        {% endfor %}
-      </ul>{% else %}EMPTY NONE
-      {% endif %}
-    {% else %}
-      {{data[key]}}
-    {% endif %}
-    </li>
+    <li>{% include 'data_expand.html' %}</li>
     {% endif %}
   {% else %}<li>NO DATA</li>
   {% endfor %}
