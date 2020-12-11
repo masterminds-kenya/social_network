@@ -3,7 +3,7 @@ from flask_login import current_user
 import json
 from .helper_functions import staff_required, admin_required, mod_lookup
 from .model_db import Campaign, create_many, db_read, User, db
-from .api import get_ig_info, get_fb_page_for_users_ig_account, user_permissions
+from .api import get_ig_info, get_fb_page_for_users_ig_account, user_permissions, FB_CLIENT_APP_NAME
 from .events import handle_campaign_stories, session_user_subscribe
 from pprint import pprint
 
@@ -21,7 +21,32 @@ def admin_report_view(mod, info=None, overview=None, files=None):
     return render_template('admin_report.html', mod=mod, info=info, overview=overview, files=files)
 
 
-def get_pages_for_users(overwrite=False, remove=False, active_campaigns=None, **kwargs):
+def query_by_kwargs(query, Model=User, active_campaigns=None, **kwargs):
+    """Returns a query based on the given query and kwargs. """
+    q = query
+    for key, val in kwargs.items():
+        if isinstance(val, (list, tuple)):
+            q = q.filter(getattr(Model, key).in_(val))
+        elif isinstance(val, bool):
+            q = q.filter(getattr(Model, key).is_(val))
+        elif isinstance(val, type(None)) or val in ('IS NOT TRUE', 'IS NOT FALSE'):
+            if val is not None:
+                val = True if val == 'IS NOT TRUE' else False
+            q = q.filter(getattr(Model, key).isnot(val))
+        elif isinstance(val, (str, int, float)):
+            q = q.filter(getattr(Model, key) == val)
+        else:
+            app.logger.error(f"Unsure how to filter for type {type(val)} for key: value of {key}: {val} ")
+    result = None
+    if active_campaigns is not None:  # expected value True or False, left as None if not filtering by this.
+        if Model == User:
+            result = [u for u in q.all() if u.has_active() is active_campaigns]
+        elif Model == Campaign:
+            q = q.filter(Campaign.completed is False)
+    return result or q.all()
+
+
+def get_pages_for_users(overwrite=False, remove=False, **kwargs):
     """We need the page number and token in order to setup webhooks for story insights.
        The subscribing to a user's page will be handled elsewhere, and
        triggered by this function when it sets and commits the user.page_token value.
@@ -30,22 +55,8 @@ def get_pages_for_users(overwrite=False, remove=False, active_campaigns=None, **
     """
     updates = {}
     q = User.query.filter(User.instagram_id.isnot(None))
-    for key, val in kwargs.items():
-        if isinstance(val, (list, tuple)):
-            q = q.filter(getattr(User, key).in_(val))
-        elif isinstance(val, bool):
-            q = q.filter(getattr(User, key).is_(val))
-        elif isinstance(val, type(None)) or val in ('IS NOT TRUE', 'IS NOT FALSE'):
-            if val is not None:
-                val = True if val == 'IS NOT TRUE' else False
-            q = q.filter(getattr(User, key).isnot(val))
-        elif isinstance(val, (str, int, float)):
-            q = q.filter(getattr(User, key) == val)
-        else:
-            app.logger.error(f"Unsure how to filter for type {type(val)} for key: value of {key}: {val} ")
-    users = q.all()
-    if active_campaigns is not None:  # expected value True or False, left as None if not filtering by this.
-        users = [u for u in users if u.has_active() is active_campaigns]
+    users = query_by_kwargs(q, kwargs)
+    active_campaigns = kwargs.get('active_campaigns', None)
     for user in users:
         page = get_fb_page_for_users_ig_account(user)
         if remove and user.story_subscribed:
@@ -71,14 +82,12 @@ def get_pages_for_users(overwrite=False, remove=False, active_campaigns=None, **
 
 def permission_check_many(**kwargs):
     """Allows admin to check for problems with Graph API permissions on groups of users. """
-    # query = User.query
-    # if kwargs:
-    #     query = query.filter_by(**kwargs)
-    # query.filter(User.id < 85, User.story_subscribed is True)
-    results = {'bob': {'first': '1st', 'second': 2}, 'sue': {'first': 'first', 2: 'second'}}
-    # results = {}
-    # users = query.all()
-    # results = {user: user_permissions(user) for user in users}
+    query = User.query
+    if kwargs:
+        users = query_by_kwargs(query, **kwargs)
+    else:
+        users = query.filter(User.id == 232).all()
+    results = {user: user_permissions(user) for user in users}
     return results
 
 
