@@ -15,10 +15,10 @@ def admin_view(data=None, files=None):
     return render_template('admin.html', dev=dev, data=data, files=files)
 
 
-def admin_report_view(data=None, files=None):
+def admin_report_view(mod, info=None, overview=None, files=None):
     """Platform Admin view for larger report display. """
     # files = None if app.config.get('LOCAL_ENV') else all_files()
-    return render_template('admin_report.html', data=data, files=files)
+    return render_template('admin_report.html', mod=mod, info=info, overview=overview, files=files)
 
 
 def get_pages_for_users(overwrite=False, remove=False, active_campaigns=None, **kwargs):
@@ -92,10 +92,31 @@ def permission_report(group):
     data = permission_check_many(**opts[group])
     if not data:
         flash("Error in Permission Report - looking up permission granted by platform users. ")
-        # return redirect(request.referrer)
+        overview = None
     else:
         flash(f"Permission Report for {group} users, with {len(data)} results. ")
-    return admin_report_view(data=data)
+        overview = {}
+        for user, info in data.items():
+            user_keys = ['facebook_id', 'instagram_id', 'page_id', 'page_token']
+            needed = ', '.join(key for key in user_keys if not getattr(user, key, None))
+            if user.token:
+                err_str = 'Not Known'
+                keys = [(f'Permission for {FB_CLIENT_APP_NAME}', 'Platform'), ('Permissions Needed', 'Need')]
+                label_vals = []
+                for key, label in keys:
+                    val = str(info.get(key, ''))
+                    if val.startswith(err_str):
+                        val = err_str
+                    label_vals.append((label, val, ))
+                info_summary = [f"{k}: {v}" for k, v in label_vals if v]
+                if needed:
+                    info_summary.append(f"Missing: {needed}")
+            else:
+                info_summary = [f"Missing: {needed}"] if needed else []
+                info_summary.append('user token')
+            info_summary = ', '.join(info_summary)
+            overview[user] = info_summary
+    return admin_report_view('permissions', info=data, overview=overview)
 
 
 @app.route('/subscribe/<string:group>')
