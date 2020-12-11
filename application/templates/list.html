@@ -3,7 +3,7 @@
 {% endblock %} {% block content %}
 <main>
   <div class="intro">
-    <h2>{{ view|default('all')|capitalize }} {{ mod.capitalize() }}s</h2>
+    <h2>{{ view|default('all', true)|capitalize }} {{ mod|capitalize }}s</h2>
 
     {% if current_user.is_authenticated %}
     <p class="platform-user-header">
@@ -36,7 +36,7 @@
   <ul>
     <li>
       <a href="{{url_for('add', mod=mod)}}"
-        >Add {% if mod == 'influencer' %}Fake {%endif%}{{mod.capitalize()}}</a
+        >Add {% if mod == 'influencer' %}Fake {%endif%}{{mod|capitalize}}</a
       >
     </li>
     {% if mod == 'campaign' %}
@@ -44,6 +44,10 @@
     <li><a href="{{ url_for('all', mod='campaign', role='active') }}">View Active Campaigns (default)</a></li>
     <li><a href="{{ url_for('all', mod='campaign', role='completed') }}">View Completed Campaigns</a></li>
     <li><a href="{{ url_for('all', mod='campaign', role='all') }}">View Both Active and Completed Campaigns</a></li>
+    {% elif mod in ('influencer', 'brand') %}
+    <li><a href="{{ url_for('all', mod=mod, view='active') }}">View Active {{ mod|capitalize }}s</a></li>
+    <li><a href="{{ url_for('all', mod=mod, view='Not Active') }}">View Not Active {{ mod|capitalize }}s</a></li>
+    <li><a href="{{ url_for('all', mod=mod, view='all') }}">View All {{ mod|capitalize }}s (default)</a></li>
     {% endif %}
   </ul>
   {% endif %}

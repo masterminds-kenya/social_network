@@ -7,7 +7,7 @@ The following, non-exhaustive references, where discovered and influenced choice
 The default service, set with the `app.yaml` file, is our deployed production site. The development site and code is being deployed to the `dev` service with the `dev.yaml` file. To create or update a service named `service_name`, we create a `service_name.yaml` file that has a line to set `service: service_name`. Then we run the command below.
 
 ``` Bash
-    gcloud app deploy [service_name.yaml]
+gcloud app deploy [service_name.yaml]
 ```
 
 If the service setting line is missing, then it assumes it is for the default service. The default service yaml file should be name `app.yaml`.
@@ -15,20 +15,32 @@ If the service setting line is missing, then it assumes it is for the default se
 To view logs of a service:
 
 ``` Bash
-    gcloud app logs tail -s [service_name]
+gcloud app logs tail -s [service_name]
 ```
 
 ## Useful SQL Queries
 
 If using command line interface for MySQL, these can be helpful for looking for issues with story_metrics hooks/subscriptions and campaign completion status.
 
-### Brands
+### Users in active campaigns: first brands, then influencers
 
+```SQL
 SELECT brand_id, users.name AS brand, page_id, story_subscribed, campaigns.name AS campaign_name, campaign_id, completed FROM users JOIN brand_campaigns ON users.id = brand_campaigns.brand_id JOIN campaigns ON campaigns.id = brand_campaigns.campaign_id WHERE completed = False ORDER BY story_subscribed, brand;
-
-### Influencers
-
 SELECT user_id, users.name AS influencer, page_id, story_subscribed, campaigns.name AS campaign_name, campaign_id, completed FROM users JOIN user_campaigns ON users.id = user_campaigns.user_id JOIN campaigns ON campaigns.id = user_campaigns.campaign_id WHERE completed = False ORDER BY story_subscribed, influencer;
+```
+
+Or count of active campaigns per User (brands, then influencers)
+
+```SQL
+SELECT brand_id, users.name AS brand, page_id, story_subscribed, COUNT(campaign_id) FROM users JOIN brand_campaigns ON users.id = brand_campaigns.brand_id JOIN campaigns ON campaigns.id = brand_campaigns.campaign_id WHERE completed = False GROUP BY brand_id ORDER BY story_subscribed, brand;
+SELECT user_id, users.name AS influencer, page_id, story_subscribed, COUNT(campaign_id) FROM users JOIN user_campaigns ON users.id = user_campaigns.user_id JOIN campaigns ON campaigns.id = user_campaigns.campaign_id WHERE completed = False GROUP BY users.id ORDER BY story_subscribed, influencer;
+```
+
+### Users that story_subscribed is not False, but no campaigns: First non-brand, then non-influencer Users.
+
+```SQL
+SELECT users.id AS u_id, role, name, page_id, story_subscribed, campaign_id FROM users LEFT JOIN user_campaigns ON users.id = user_campaigns.user_id WHERE campaign_id IS NULL AND role != 'brand' AND story_subscribed IS NOT false ORDER BY story_subscribed, role, name; SELECT users.id AS u_id, role, name, page_id, story_subscribed, campaign_id FROM users LEFT JOIN brand_campaigns ON users.id = brand_campaigns.brand_id WHERE campaign_id IS NULL AND role != 'influencer' AND story_subscribed IS NOT false ORDER BY story_subscribed, role, name;
+```
 
 ## Default Env Variables
 

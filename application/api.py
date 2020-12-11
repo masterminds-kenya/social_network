@@ -11,6 +11,7 @@ from pprint import pprint
 URL = app.config.get('URL')
 CAPTURE_BASE_URL = app.config.get('CAPTURE_BASE_URL')
 FB_CLIENT_ID = app.config.get('FB_CLIENT_ID')
+FB_CLIENT_APP_NAME = app.config.get('FB_CLIENT_APP_NAME', 'Bacchus Influencer Platform')
 FB_CLIENT_SECRET = app.config.get('FB_CLIENT_SECRET')
 FB_AUTHORIZATION_BASE_URL = "https://www.facebook.com/dialog/oauth"
 FB_TOKEN_URL = "https://graph.facebook.com/oauth/access_token"
@@ -38,7 +39,31 @@ def generate_app_access_token():
     return token
 
 
-def inspect_access_token(input_token, fb_id=None, ig_id=None, app_access_token=None):
+def pretty_token_data(data, fb_id=None, ig_id=None, page_id=None, **kwargs):
+    """Takes the response from 'inspect_access_token' and adds useful key:values for reports. """
+    data = data.copy()  # TODO: Check if it should be a deepcopy?
+    val_name_pairs = zip((fb_id, ig_id, page_id), ('facebook_id', 'instagram_id', 'page_id'))
+    known_ids = {int(k): v for k, v in val_name_pairs if k is not None}
+    known_ids.update(kwargs)
+    app_match = True if int(data.get('app_id', 0)) == int(FB_CLIENT_ID) else False
+    data['app_connect'] = 'Not Found' if not app_match else data.get('is_valid', 'UNKNOWN')
+    if 'user_id' in data:
+        data_user_id = int(data.get('user_id', 0))
+        data['user_connect'] = known_ids.get(data_user_id, data_user_id)
+    scope_missing = set(FB_SCOPE)
+    for ea in data.get('scopes', []):
+        scope_missing.discard(ea)
+    data['scope_missing'] = scope_missing
+    if 'granular_scopes' in data:
+        scope_detail = data['granular_scopes']
+        for perm in scope_detail:
+            if 'target_ids' in perm:
+                perm['target_ids'] = [known_ids.get(int(ea), ea) for ea in perm['target_ids']]
+        data['scope_detail'] = scope_detail
+    return data
+
+
+def inspect_access_token(input_token, app_access_token=None):
     """Confirm the access token is valid and belongs to this user. """
     app_access_token = app_access_token or generate_app_access_token()
     params = {'input_token': input_token, 'access_token': app_access_token}
@@ -47,20 +72,8 @@ def inspect_access_token(input_token, fb_id=None, ig_id=None, app_access_token=N
         app.logger.info('---------------- Error in inspect_access_token response ----------------')
         err = res.get('error', 'Empty Error')
         app.logger.error(f"Error: {err} ")
-        return err
+        return res  # err
     data = res.get('data', {})
-    app_match = True if int(data.get('app_id', 0)) == int(FB_CLIENT_ID) else False
-    scope_missing = set(FB_SCOPE)
-    for ea in data.get('scopes', []):
-        scope_missing.discard(ea)
-    message = f"Is a Token for our App: {app_match} and "
-    message += 'IS VALID ' if data.get('is_valid') else 'is NOT valid '
-    message += 'Matches FB ID ' if str(data.get('user_id', '')) == str(fb_id) else ''
-    message += 'Matches IG ID ' if str(data.get('user_id', '')) == str(ig_id) else ''
-    message += f"Missing Scope: {scope_missing} " if scope_missing else ''
-    app.logger.info("================ inspect_access_token ================")
-    app.logger.info(message)
-    pprint(data)
     return data
 
 
@@ -76,7 +89,20 @@ def user_permissions(user, facebook=None, token=None):
         if not token:
             app.logger.error("We do not have a token for this user. ")
             return {}
-    data = {'id': user.id, 'name': f"{user.name} Permissions Granted"}
+    perm_info = {permission: False for permission in FB_SCOPE}  # Will be overwritten if later found as True
+    url = f"https://graph.facebook.com/{user.facebook_id}/permissions"
+    params = {}
+    if not facebook:
+        params['access_token'] = token
+    res = facebook.get(url, params=params).json() if facebook else requests.get(url, params=params).json()
+    if 'error' in res:
+        app.logger.info('---------------- Error in user_permissions response ----------------')
+        app.logger.error(f"Error: {res.get('error', 'Empty Error')} ")
+        return {}
+    res_data = res.get('data', [{}])
+    perm_info.update({ea.get('permission', ''): ea.get('status', '') for ea in res_data})
+
+    data = {'info': 'Permissions Report', 'id': user.id, 'name': user.name}
     keys = ['facebook_id', 'instagram_id', 'page_id', 'page_token']
     needed = ', '.join([key for key in keys if not getattr(user, key, None)])
     if user.story_subscribed is True:
@@ -86,22 +112,19 @@ def user_permissions(user, facebook=None, token=None):
     else:
         subscribed = "Have the account and page info, but NOT subscribed. "
     data['subscribed'] = subscribed
-    data.update({permission: False for permission in FB_SCOPE})
-    url = f"https://graph.facebook.com/{user.facebook_id}/permissions"
-    params = {}
-    if not facebook:
-        params['access_token'] = token
-    # TODO: Test facebook.get will work as written below.
-    res = facebook.get(url, params=params).json() if facebook else requests.get(url, params=params).json()
-    if 'error' in res:
-        app.logger.info('---------------- Error in user_permissions response ----------------')
-        app.logger.error(f"Error: {res.get('error', 'Empty Error')} ")
-        return {}
-    res_data = res.get('data', [{}])
-    data.update({ea.get('permission', ''): ea.get('status', '') for ea in res_data})
-    inspect = inspect_access_token(token, fb_id=getattr(user, 'facebook_id'), ig_id=getattr(user, 'instagram_id'))
-    if inspect:
-        app.logger.info('Got an inspect response. ')
+    data['facebook user permissions'] = ['{}: {}'.format(k, v) for k, v in perm_info.items()]
+
+    skipped_text = "Did not check due to lack of user token. "
+    inspect = inspect_access_token(token) if token else {'scope_missing': skipped_text, 'app_connect': skipped_text}
+    if 'error' not in inspect:
+        inspect = pretty_token_data(inspect, fb_id=user.facebook_id, ig_id=user.instagram_id, page_id=user.page_id)
+    missing_info = f"Not Known. Confirm {user.name} has approved the Facebook application: {FB_CLIENT_APP_NAME} "
+    data[f'Permission for {FB_CLIENT_APP_NAME}'] = inspect.get('app_connect', missing_info)
+    data['Matching ID'] = inspect.get('user_connect', None)
+    scope_missing = inspect.get('scope_missing', missing_info)  # default used only if received an error.
+    scope_missing = scope_missing if len(scope_missing) else 'ALL GOOD'
+    data['Permissions Needed'] = scope_missing
+    data['Permission Details'] = inspect.get('scope_detail', 'Not Available')
     return data
 
 

@@ -1,22 +1,52 @@
-from flask import redirect, render_template, url_for, flash, current_app as app
+from flask import redirect, render_template, url_for, flash, request, current_app as app
 from flask_login import current_user
 import json
 from .helper_functions import staff_required, admin_required, mod_lookup
 from .model_db import Campaign, create_many, db_read, User, db
-from .api import get_ig_info, get_fb_page_for_users_ig_account
+from .api import get_ig_info, get_fb_page_for_users_ig_account, user_permissions, FB_CLIENT_APP_NAME
 from .events import handle_campaign_stories, session_user_subscribe
 from pprint import pprint
 
 
 def admin_view(data=None, files=None):
-    """Platform Admin view to view links and actions unique to admin """
+    """Platform Admin view to display links and actions unique to admin """
     dev_email = ['hepcatchris@gmail.com', 'christopherlchapman42@gmail.com']
     dev = current_user.email in dev_email
-    # files = None if app.config.get('LOCAL_ENV') else all_files()
     return render_template('admin.html', dev=dev, data=data, files=files)
 
 
-def get_pages_for_users(overwrite=False, remove=False, active_campaigns=False, **kwargs):
+def admin_report_view(mod, info=None, overview=None, files=None):
+    """Platform Admin view for larger report display. """
+    # files = None if app.config.get('LOCAL_ENV') else all_files()
+    return render_template('admin_report.html', mod=mod, info=info, overview=overview, files=files)
+
+
+def query_by_kwargs(query, Model=User, active_campaigns=None, **kwargs):
+    """Returns a query based on the given query and kwargs. """
+    q = query
+    for key, val in kwargs.items():
+        if isinstance(val, (list, tuple)):
+            q = q.filter(getattr(Model, key).in_(val))
+        elif isinstance(val, bool):
+            q = q.filter(getattr(Model, key).is_(val))
+        elif isinstance(val, type(None)) or val in ('IS NOT TRUE', 'IS NOT FALSE'):
+            if val is not None:
+                val = True if val == 'IS NOT TRUE' else False
+            q = q.filter(getattr(Model, key).isnot(val))
+        elif isinstance(val, (str, int, float)):
+            q = q.filter(getattr(Model, key) == val)
+        else:
+            app.logger.error(f"Unsure how to filter for type {type(val)} for key: value of {key}: {val} ")
+    result = None
+    if active_campaigns is not None:  # expected value True or False, left as None if not filtering by this.
+        if Model == User:
+            result = [u for u in q.all() if u.has_active() is active_campaigns]
+        elif Model == Campaign:
+            q = q.filter(Campaign.completed is False)
+    return result or q.all()
+
+
+def get_pages_for_users(overwrite=False, remove=False, **kwargs):
     """We need the page number and token in order to setup webhooks for story insights.
        The subscribing to a user's page will be handled elsewhere, and
        triggered by this function when it sets and commits the user.page_token value.
@@ -25,33 +55,14 @@ def get_pages_for_users(overwrite=False, remove=False, active_campaigns=False, *
     """
     updates = {}
     q = User.query.filter(User.instagram_id.isnot(None))
-    for key, val in kwargs.items():
-        if isinstance(val, (list, tuple)):
-            q = q.filter(getattr(User, key).in_(val))
-        elif isinstance(val, bool):
-            q = q.filter(getattr(User, key).is_(val))
-        elif isinstance(val, type(None)) or val in ('IS NOT TRUE', 'IS NOT FALSE'):
-            if val is not None:
-                val = True if val == 'IS NOT TRUE' else False
-            q = q.filter(getattr(User, key).isnot(val))
-        elif isinstance(val, (str, int, float)):
-            q = q.filter(getattr(User, key) == val)
-        else:
-            app.logger.error(f"Unsure how to filter for type {type(val)} for key: value of {key}: {val} ")
-    users = q.all()
-    # app.logger.info("------------ get pages for filtered users ------------")
-    if active_campaigns:
-        # app.logger.info(f"Only active users. Initial count: {len(users)} ")
-        users = [u for u in users if any(not ea.completed for ea in u.brand_campaigns + u.campaigns)]
-    # app.logger.info(users)
-    # app.logger.info("------------ end filtered users ------------")
+    users = query_by_kwargs(q, kwargs)
+    active_campaigns = kwargs.get('active_campaigns', None)
     for user in users:
         page = get_fb_page_for_users_ig_account(user)
         if remove and user.story_subscribed:
-            # session_user_subscribe(user, remove=True)  # This would remove, even if they have other active campaigns.
-            user.story_subscribed = False  # Expected to be overridden at session commit if user has active campaigns.
+            session_user_subscribe(user, remove=True)  # Okay because we already filtered to users without has_active
             page_token = page.get('token', None) or getattr(user, 'page_token', None)
-            user.page_token = page_token  # Triggers checking for active Campaigns.
+            user.page_token = page_token  # Triggers checking for active Campaigns, and ensures a flush.
             db.session.add(user)
             updates[user.id] = str(user)
         if page and (overwrite or page.get('new_page')):
@@ -62,21 +73,67 @@ def get_pages_for_users(overwrite=False, remove=False, active_campaigns=False, *
         elif page and active_campaigns and not user.story_subscribed:
             session_user_subscribe(user)
             old_notes = user.notes or ''
-            user.notes = old_notes + ' add story_insights'
+            user.notes = old_notes + ' add story_insights'  # Ensures a flush.
             db.session.add(user)
             updates[user.id] = str(user)
-    app.logger.info("---------- get_pages_for_users session ----------")
-    # pprint(db.session.__dict__)
-    # app.logger.info("----- Session.info -----")
-    app.logger.info(db.session.info)
-    app.logger.info("------------ Now commit ------------")
     db.session.commit()
-    # app.logger.info("---------- get_pages_for_users session AFTER commit ----------")
-    # pprint(db.session.__dict__)
-    # app.logger.info("----- Session.info -----")
-    # app.logger.info(db.session.info)
-    # app.logger.info("------------ End get_pages_for_users ------------")
     return updates
+
+
+def permission_check_many(**kwargs):
+    """Allows admin to check for problems with Graph API permissions on groups of users. """
+    users = query_by_kwargs(User.query, **kwargs)
+    results = {user: user_permissions(user) for user in users}
+    return results
+
+
+def make_permission_overview(data):
+    """For a given permission report data, return an overview dict. """
+    overview = {}
+    for user, info in data.items():
+        user_keys = ['facebook_id', 'instagram_id', 'page_id', 'page_token']
+        needed = ', '.join(key for key in user_keys if not getattr(user, key, None))
+        if user.token:
+            err_str = 'Not Known'
+            keys = [(f'Permission for {FB_CLIENT_APP_NAME}', 'Platform'), ('Permissions Needed', 'Need')]
+            label_vals = []
+            for key, label in keys:
+                val = str(info.get(key, ''))
+                if val.startswith(err_str):
+                    val = err_str
+                label_vals.append((label, val, ))
+            info_summary = [f"{k}: {v}" for k, v in label_vals if v]
+            if needed:
+                info_summary.append(f"Missing: {needed}")
+        else:
+            info_summary = [f"Missing: {needed}"] if needed else []
+            info_summary.append('user token')
+        info_summary = ', '.join(info_summary)
+        attr = 'list' if info_summary.endswith('ALL GOOD') else 'error'
+        overview[user] = {'attr': attr, 'text': info_summary}
+    return overview
+
+
+@app.route('/report/<string:group>')
+@staff_required()
+def permission_report(group):
+    """Collects and displays Permission Reports for platform users. """
+    id_list = request.args.get('ids', '').split(',')
+    opts = {
+        'all': {},
+        'active': {'active_campaigns': True, },
+        'inactive': {'active_campaigns': False, },
+        'unsubscribed': {'story_subscribed': False, },
+        'listed': {'id': [] if id_list == [''] else [int(ea) for ea in id_list]},
+    }
+    data = permission_check_many(**opts[group])
+    if not data:
+        flash("Error in Permission Report - looking up permission granted by platform users. ")
+        overview = None
+    else:
+        flash(f"Permission Report for {group} users, with {len(data)} results. ")
+        overview = make_permission_overview(data)
+    return admin_report_view('permissions', info=data, overview=overview)
 
 
 @app.route('/subscribe/<string:group>')
@@ -94,7 +151,8 @@ def subscribe_pages(group):
         'all': {'page_id': None, 'overwrite': True, },
         'token': {'page_token': None, 'overwrite': True, },
         'active': {'active_campaigns': True, 'overwrite': False, },
-        'remove': {'remove': True, 'overwrite': False, },
+        'remove': {'active_campaigns': False, 'remove': True, 'overwrite': False, },
+        # 'remove_all': {'remove': True, 'overwrite': False, },
         'all_force': {'overwrite': True, },
         'inactive_force': {'story_subscribed': 'IS NOT TRUE', 'overwrite': True, },
         'active_force': {'story_subscribed': True, 'overwrite': True, },

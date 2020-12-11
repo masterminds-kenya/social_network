@@ -14,9 +14,8 @@
   </head>
   <body>
     <header id="header">
+      {% block header %}
       <nav>
-        {% block header %}
-
         <div class="header">
           <input class="menu-btn" type="checkbox" id="menu-btn" />
           <label class="menu-icon" for="menu-btn"
@@ -63,10 +62,14 @@
           {% endif %} -->
         </div>
       </nav>
-      {% endblock header %} {% with messages = get_flashed_messages() %} {% if
-      messages %} {% for message in messages %}
+      {% endblock header %}
+      {% with messages = get_flashed_messages() %}
+      {% if messages %}
+      {% for message in messages %}
       <h3>{{ message }}</h3>
-      {% endfor %} {% endif %} {% endwith %}
+      {% endfor %}
+      {% endif %}
+      {% endwith %}
     </header>
 
     {% block content %}

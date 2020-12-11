@@ -404,7 +404,7 @@ input.toggle[type='checkbox'] {
 
 .lbl-toggle {
   display: block;
-  max-width: 26rem;
+  max-width: 30rem;
   /* font-family: monospace; */
   /* font-size: 110%; */
   /* text-transform: uppercase; */
@@ -420,6 +420,24 @@ input.toggle[type='checkbox'] {
 
 .lbl-toggle:hover {
   color: #7C5A0B;
+}
+
+.lbl-toggle.error {
+  color: #222222;
+  background: #995555;
+}
+
+.lbl-toggle.error:hover {
+  background: #AA4444;
+}
+
+.lbl-toggle.list {
+  color: #555555;
+  background: #F0F4FF;
+}
+
+.lbl-toggle.list:hover {
+  background: #D0D4DF;
 }
 
 .lbl-toggle::before {
@@ -440,7 +458,7 @@ input.toggle[type='checkbox'] {
 
 .collapsible-content {
   max-height: 0px;
-  max-width: 26rem;
+  max-width: 30rem;
   overflow: hidden;
   transition: max-height .25s ease-in-out;
   background: rgba(250, 224, 66, .2);

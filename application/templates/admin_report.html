@@ -1,0 +1,82 @@
+{% extends "base.html" %}
+{% block head %}
+<title>Admin {{ mod|capitalize }} Report {% if overview %}Overview{% endif %}</title>
+{% endblock %}
+{% block header %}
+{{ super() }}
+<h1>
+  {{ mod|capitalize }} Report
+  {% if overview %}
+  Overview
+  {% elif info.get('name') %}
+  for {{ info['name'] }}
+  {% endif %}
+</h1>
+{% endblock header %}
+
+{% block content %}
+<main>
+
+{% block data_view %}
+  <ul>
+  {% for lbl in info.keys() %}
+    {% if overview %}
+    <li>
+      <input id="collapsible_{{lbl.name}}" class="toggle" type="checkbox" />
+      <label for="collapsible_{{lbl.name}}" class="lbl-toggle {{overview[lbl]['attr']}}">
+        {{ lbl.name }}: {{ overview[lbl]['text'] }}
+      </label>
+      <ul class="collapsible-content {{lbl.name}}">
+        {% set data = info[lbl] %}
+        {% for key in data.keys() %}
+        <li>{% include 'data_expand.html' %}</li>
+        {% endfor %}
+      </ul>
+    </li>
+    {% elif lbl == 'posts' and info[lbl]|length %}
+    <li>
+      <input id="collapsible_{{key}}" class="toggle" type="checkbox" />
+      <label for="collapsible_{{key}}" class="lbl-toggle">
+        {{ key }}: {{ data[key]|length }} total.
+      </label>
+      <ul class="collapsible-content {{key}}">
+        {% for ea in data[key] %}
+        <li>
+          <a href="{{ url_for('view', mod='post', id=ea.id) }}">
+            # {{ea.id}} {{ea.media_type}} posted on {{ea.recorded}}
+          </a>
+        </li>
+        {% endfor %}
+      </ul>
+    </li>
+    {% else %}
+    <li>
+      {% set key, data = lbl, info %}
+      {% include 'data_expand.html' %}
+    </li>
+    {% endif %}
+  {% else %}<li>NO DATA</li>
+  {% endfor %}
+  </ul>
+{% endblock data_view %}
+
+{% block modify %}
+{% if mod in ['undefined', ] %}
+<h3>Change Data Actions</h3>
+<ul>
+  <li>Placeholder for mod permissions. </li>
+  <li>CAREFUL BELOW!</li>
+  <li>Placeholder dangerous link. </li>
+</ul>
+{% endif %}
+{% endblock modify %}
+
+<ul>
+  <li><a href="{{ url_for('admin') }}">RETURN to Base Admin Page</a></li>
+  <li><a href="{{ url_for('all', mod='influencer') }}">Influencers</a></li>
+  <li><a href="{{ url_for('all', mod='brand') }}">Brands</a></li>
+  <li><a href="{{ url_for('all', mod='campaign') }}">Campaigns</a></li>
+</ul>
+
+</main>
+{% endblock content %}
