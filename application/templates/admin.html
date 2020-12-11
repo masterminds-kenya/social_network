@@ -42,6 +42,9 @@
 
 <h4>Less Common Admin Functions</h4>
 <ul>
+  <li><a href="{{ url_for('subscribe_pages', group='active') }}">Subscribe to active Users FB page</a></li>
+  <li><a href="{{ url_for('subscribe_pages', group='remove') }}">Remove inactive Users FB page</a></li>
+  <li><a href="{{ url_for('subscribe_pages', group='all') }}">Get all Users missing FB page</a></li>
   <li><a href="{{ url_for('render_static', page_name='test') }}">Test Styles Page</a></li>
   <li><a href="{{ url_for('all_posts') }}">Get new posts for ALL user accounts</a> (automatically run daily)</li>
   <li><a href="{{ url_for('all', mod='post') }}">List all Posts</a></li>
@@ -50,9 +53,6 @@
   {% if dev %}
   <li>Developer Only Functions - Potentially Dangerous</li>
   <li><a href="{{ url_for('add', mod='influencer') }}">Add Fake Influencer</a></li>
-  <li><a href="{{ url_for('subscribe_pages', group='all') }}">Get all Users missing FB page</a></li>
-  <li><a href="{{ url_for('subscribe_pages', group='active') }}">Subscribe to active Users FB page</a></li>
-  <li><a href="{{ url_for('subscribe_pages', group='remove') }}">Remove inactive Users FB page</a></li>
   <li><a href="{{ url_for('test_method') }}">Dev Test Method</a></li>
   <li><a href="{{ url_for('capture', id=378) }}">Capture Media Test Link</a></li>
   <li>Removed of Deprecated Functions (inactive function)</li>
