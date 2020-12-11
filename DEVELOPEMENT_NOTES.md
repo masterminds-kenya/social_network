@@ -22,16 +22,24 @@ gcloud app logs tail -s [service_name]
 
 If using command line interface for MySQL, these can be helpful for looking for issues with story_metrics hooks/subscriptions and campaign completion status.
 
-### Brands
+### Users in active campaigns: first brands, then influencers
 
 ```SQL
 SELECT brand_id, users.name AS brand, page_id, story_subscribed, campaigns.name AS campaign_name, campaign_id, completed FROM users JOIN brand_campaigns ON users.id = brand_campaigns.brand_id JOIN campaigns ON campaigns.id = brand_campaigns.campaign_id WHERE completed = False ORDER BY story_subscribed, brand;
+SELECT user_id, users.name AS influencer, page_id, story_subscribed, campaigns.name AS campaign_name, campaign_id, completed FROM users JOIN user_campaigns ON users.id = user_campaigns.user_id JOIN campaigns ON campaigns.id = user_campaigns.campaign_id WHERE completed = False ORDER BY story_subscribed, influencer;
 ```
 
-### Influencers
+Or count of active campaigns per User (brands, then influencers)
 
 ```SQL
-SELECT user_id, users.name AS influencer, page_id, story_subscribed, campaigns.name AS campaign_name, campaign_id, completed FROM users JOIN user_campaigns ON users.id = user_campaigns.user_id JOIN campaigns ON campaigns.id = user_campaigns.campaign_id WHERE completed = False ORDER BY story_subscribed, influencer;
+SELECT brand_id, users.name AS brand, page_id, story_subscribed, COUNT(campaign_id) FROM users JOIN brand_campaigns ON users.id = brand_campaigns.brand_id JOIN campaigns ON campaigns.id = brand_campaigns.campaign_id WHERE completed = False GROUP BY brand_id ORDER BY story_subscribed, brand;
+SELECT user_id, users.name AS influencer, page_id, story_subscribed, COUNT(campaign_id) FROM users JOIN user_campaigns ON users.id = user_campaigns.user_id JOIN campaigns ON campaigns.id = user_campaigns.campaign_id WHERE completed = False GROUP BY users.id ORDER BY story_subscribed, influencer;
+```
+
+### Users that story_subscribed is not False, but no campaigns: First non-brand, then non-influencer Users.
+
+```SQL
+SELECT users.id AS u_id, role, name, page_id, story_subscribed, campaign_id FROM users LEFT JOIN user_campaigns ON users.id = user_campaigns.user_id WHERE campaign_id IS NULL AND role != 'brand' AND story_subscribed IS NOT false ORDER BY story_subscribed, role, name; SELECT users.id AS u_id, role, name, page_id, story_subscribed, campaign_id FROM users LEFT JOIN brand_campaigns ON users.id = brand_campaigns.brand_id WHERE campaign_id IS NULL AND role != 'influencer' AND story_subscribed IS NOT false ORDER BY story_subscribed, role, name;
 ```
 
 ## Default Env Variables
