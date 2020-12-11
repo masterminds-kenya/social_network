@@ -1,19 +1,24 @@
-from flask import redirect, render_template, url_for, flash, current_app as app
+from flask import redirect, render_template, url_for, flash, request, current_app as app
 from flask_login import current_user
 import json
 from .helper_functions import staff_required, admin_required, mod_lookup
 from .model_db import Campaign, create_many, db_read, User, db
-from .api import get_ig_info, get_fb_page_for_users_ig_account
+from .api import get_ig_info, get_fb_page_for_users_ig_account, user_permissions
 from .events import handle_campaign_stories, session_user_subscribe
 from pprint import pprint
 
 
 def admin_view(data=None, files=None):
-    """Platform Admin view to view links and actions unique to admin """
+    """Platform Admin view to display links and actions unique to admin """
     dev_email = ['hepcatchris@gmail.com', 'christopherlchapman42@gmail.com']
     dev = current_user.email in dev_email
-    # files = None if app.config.get('LOCAL_ENV') else all_files()
     return render_template('admin.html', dev=dev, data=data, files=files)
+
+
+def admin_report_view(data=None, files=None):
+    """Platform Admin view for larger report display. """
+    # files = None if app.config.get('LOCAL_ENV') else all_files()
+    return render_template('admin_report.html', data=data, files=files)
 
 
 def get_pages_for_users(overwrite=False, remove=False, active_campaigns=None, **kwargs):
@@ -62,6 +67,35 @@ def get_pages_for_users(overwrite=False, remove=False, active_campaigns=None, **
             updates[user.id] = str(user)
     db.session.commit()
     return updates
+
+
+def permission_check_many(**kwargs):
+    """Allows admin to check for problems with Graph API permissions on groups of users. """
+    # query = User.query
+    # if kwargs:
+    #     query = query.filter_by(**kwargs)
+    # query.filter(User.id < 85, User.story_subscribed is True)
+    results = {'bob': {'first': '1st', 'second': 2}, 'sue': {'first': 'first', 2: 'second'}}
+    # results = {}
+    # users = query.all()
+    # results = {user: user_permissions(user) for user in users}
+    return results
+
+
+@app.route('/report/<string:group>')
+@staff_required()
+def permission_report(group):
+    """Collects and displays Permission Reports for platform users. """
+    opts = {
+        'all': {}
+    }
+    data = permission_check_many(**opts[group])
+    if not data:
+        flash("Error in Permission Report - looking up permission granted by platform users. ")
+        # return redirect(request.referrer)
+    else:
+        flash(f"Permission Report for {group} users, with {len(data)} results. ")
+    return admin_report_view(data=data)
 
 
 @app.route('/subscribe/<string:group>')
