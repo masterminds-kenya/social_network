@@ -89,16 +89,6 @@ def user_permissions(user, facebook=None, token=None):
         if not token:
             app.logger.error("We do not have a token for this user. ")
             return {}
-    data = {'info': 'Permissions Report', 'id': user.id, 'name': user.name}
-    keys = ['facebook_id', 'instagram_id', 'page_id', 'page_token']
-    needed = ', '.join([key for key in keys if not getattr(user, key, None)])
-    if user.story_subscribed is True:
-        subscribed = True
-    elif len(needed):
-        subscribed = f"False, need {needed} "
-    else:
-        subscribed = "Have the account and page info, but NOT subscribed. "
-    data['subscribed'] = subscribed
     perm_info = {permission: False for permission in FB_SCOPE}  # Will be overwritten if later found as True
     url = f"https://graph.facebook.com/{user.facebook_id}/permissions"
     params = {}
@@ -111,6 +101,17 @@ def user_permissions(user, facebook=None, token=None):
         return {}
     res_data = res.get('data', [{}])
     perm_info.update({ea.get('permission', ''): ea.get('status', '') for ea in res_data})
+
+    data = {'info': 'Permissions Report', 'id': user.id, 'name': user.name}
+    keys = ['facebook_id', 'instagram_id', 'page_id', 'page_token']
+    needed = ', '.join([key for key in keys if not getattr(user, key, None)])
+    if user.story_subscribed is True:
+        subscribed = True
+    elif len(needed):
+        subscribed = f"False, need {needed} "
+    else:
+        subscribed = "Have the account and page info, but NOT subscribed. "
+    data['subscribed'] = subscribed
     data['facebook user permissions'] = ['{}: {}'.format(k, v) for k, v in perm_info.items()]
 
     skipped_text = "Did not check due to lack of user token. "
@@ -123,7 +124,7 @@ def user_permissions(user, facebook=None, token=None):
     scope_missing = inspect.get('scope_missing', missing_info)  # default used only if received an error.
     scope_missing = scope_missing if len(scope_missing) else 'ALL GOOD'
     data['Permissions Needed'] = scope_missing
-    data['Permission Details'] = inspect.get('scope_detail', 'NA')
+    data['Permission Details'] = inspect.get('scope_detail', 'Not Available')
     return data
 
 
