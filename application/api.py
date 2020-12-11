@@ -38,7 +38,31 @@ def generate_app_access_token():
     return token
 
 
-def inspect_access_token(input_token, fb_id=None, ig_id=None, app_access_token=None):
+def pretty_token_data(data, fb_id=None, ig_id=None, page_id=None, **kwargs):
+    """Takes the response from 'inspect_access_token' and adds useful key:values for reports. """
+    data = data.copy()  # TODO: Check if it should be a deepcopy?
+    val_name_pairs = zip((fb_id, ig_id, page_id), ('facebook_id', 'instagram_id', 'page_id'))
+    known_ids = {int(k): v for k, v in val_name_pairs if k is not None}
+    known_ids.update(kwargs)
+    app_match = True if int(data.get('app_id', 0)) == int(FB_CLIENT_ID) else False
+    data['app_connect'] = 'Not Found' if not app_match else data.get('is_valid', 'UNKNOWN')
+    if 'user_id' in data:
+        data_user_id = int(data.get('user_id', 0))
+        data['user_connect'] = known_ids.get(data_user_id, data_user_id)
+    scope_missing = set(FB_SCOPE)
+    for ea in data.get('scopes', []):
+        scope_missing.discard(ea)
+    data['scope_missing'] = scope_missing
+    if 'granular_scopes' in data:
+        scope_detail = data['granular_scopes']
+        for perm in scope_detail:
+            if 'target_ids' in perm:
+                perm['target_ids'] = [known_ids.get(int(ea), ea) for ea in perm['target_ids']]
+        data['scope_detail'] = scope_detail
+    return data
+
+
+def inspect_access_token(input_token, app_access_token=None):
     """Confirm the access token is valid and belongs to this user. """
     app_access_token = app_access_token or generate_app_access_token()
     params = {'input_token': input_token, 'access_token': app_access_token}
@@ -47,20 +71,8 @@ def inspect_access_token(input_token, fb_id=None, ig_id=None, app_access_token=N
         app.logger.info('---------------- Error in inspect_access_token response ----------------')
         err = res.get('error', 'Empty Error')
         app.logger.error(f"Error: {err} ")
-        return err
+        return res  # err
     data = res.get('data', {})
-    app_match = True if int(data.get('app_id', 0)) == int(FB_CLIENT_ID) else False
-    scope_missing = set(FB_SCOPE)
-    for ea in data.get('scopes', []):
-        scope_missing.discard(ea)
-    message = f"Is a Token for our App: {app_match} and "
-    message += 'IS VALID ' if data.get('is_valid') else 'is NOT valid '
-    message += 'Matches FB ID ' if str(data.get('user_id', '')) == str(fb_id) else ''
-    message += 'Matches IG ID ' if str(data.get('user_id', '')) == str(ig_id) else ''
-    message += f"Missing Scope: {scope_missing} " if scope_missing else ''
-    app.logger.info("================ inspect_access_token ================")
-    app.logger.info(message)
-    pprint(data)
     return data
 
 
