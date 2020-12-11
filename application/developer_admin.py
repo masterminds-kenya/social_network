@@ -82,11 +82,7 @@ def get_pages_for_users(overwrite=False, remove=False, **kwargs):
 
 def permission_check_many(**kwargs):
     """Allows admin to check for problems with Graph API permissions on groups of users. """
-    query = User.query
-    if kwargs:
-        users = query_by_kwargs(query, **kwargs)
-    else:
-        users = query.filter(User.id == 232).all()
+    users = query_by_kwargs(User.query, **kwargs)
     results = {user: user_permissions(user) for user in users}
     return results
 
