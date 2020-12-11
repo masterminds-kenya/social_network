@@ -16,13 +16,14 @@ content %}
     </p>
     {% endif %}
   </div>
+
   {% block data_view %}
   <ul>
-    {% for key in data.keys() %} {% if key == 'insights' and data[key]|length %}
+  {% for key in data.keys() %}
+    {% if key == 'insights' and data[key]|length %}
     <li>
       <a href="{{ url_for('insights', mod=mod, id=data['id']) }}"
-        >See Insights</a
-      >
+        >See Insights</a>
     </li>
     {% elif key == 'aud_count' %}
     <li>
@@ -69,74 +70,52 @@ content %}
       </ul>
     </li>
     {% elif key in ['facebook_id', 'instagram_id'] %}
-    <li>{{key}}: {%if data[key] is none %} Not {% endif %} Known</li>
-    {% else %}
     <li>
-      {{key}}: {% if data[key] is iterable and data[key] is not string %} {% if
-      data[key]|length %}
+      {{key}}: {%if data[key] is none %} Not {% endif %} Known
+    </li>
+    {% else %}
+    <li>{{key}}:
+    {% if data[key] is iterable and data[key] is not string %}
+      {% if data[key]|length %}
       <ul class="{{ key }}">
         {% for ea in data[key] %}
         <li>{{ ea }}</li>
         {% endfor %}
-      </ul>
-      {% else %} EMPTY NONE {% endif %} {% else %} {{data[key]}} {% endif %}
+      </ul>{% else %}EMPTY NONE
+      {% endif %}
+    {% else %}
+      {{data[key]}}
+    {% endif %}
     </li>
-    {% endif %} {% else %}
-    <li>NO DATA</li>
-    {% endfor %}
+    {% endif %}
+  {% else %}<li>NO DATA</li>
+  {% endfor %}
   </ul>
-  {% endblock data_view %} {% block modify %} {% if mod in ['influencer',
-  'brand', 'admin', 'manager', 'campaign', 'insight', 'audience'] %}
+  {% endblock data_view %}
+
+  {% block modify %}
+  {% if mod in ['influencer', 'brand', 'admin', 'manager', 'campaign', 'insight', 'audience'] %}
   <h3>Change Data Actions</h3>
   <ul>
     {% if mod in ['influencer', 'brand'] and data['instagram_id'] %}
-    <li>
-      <a href="{{ url_for('new_post', mod=mod, id=data['id']) }}"
-        >Get New Media / Posts</a
-      >
-    </li>
-    <li>
-      <a href="{{ url_for('new_insight', mod=mod, id=data['id']) }}"
-        >Get New {{mod|title}} Insights</a
-      >
-    </li>
-    <li>
-      <a href="{{ url_for('new_audience', mod=mod, id=data['id']) }}"
-        >Get New Audience Data</a
-      >
-    </li>
+    <li><a href="{{ url_for('new_post', mod=mod, id=data['id']) }}">Get New Media / Posts</a></li>
+    <li><a href="{{ url_for('new_insight', mod=mod, id=data['id']) }}">Get New {{mod|title}} Insights</a></li>
+    <li><a href="{{ url_for('new_audience', mod=mod, id=data['id']) }}">Get New Audience Data</a></li>
     {% endif %}
     <li>CAREFUL BELOW!</li>
     <li>
-      <a href="{{ url_for('decide_new', mod=mod, id=data['id']) }}"
-        >Create Account using a different Instagram account</a
-      >
+      <a href="{{url_for('decide_new', mod=mod, id=data['id'])}}">Create Account with a different Instagram account</a>
     </li>
-    <li>
-      <a href="{{ url_for('edit', mod=mod, id=data['id']) }}"
-        >Update {{ mod|title }}</a
-      >
-    </li>
-    {% if current_user.role == 'admin' or (current_user['id'] == data['id'] and
-    current_user.role == mod) %}
-    <li>
-      <a href="{{ url_for('delete', mod=mod, id=data['id']) }}"
-        >Delete {{ mod|title }}</a
-      >
-    </li>
-    {% endif %} {% if current_user.role == 'admin' %}
-    <li>
-      <a href="{{ url_for('permission_check', mod=mod, id=data['id'])}}"
-        >View permissions granted to Platform</a
-      >
-    </li>
-    <li>
-      <a href="{{ url_for('export', mod=mod, id=data['id'])}}"
-        >Export Data to a Google Sheet</a
-      >
-    </li>
+    <li><a href="{{ url_for('edit', mod=mod, id=data['id']) }}">Update {{ mod|title }}</a></li>
+    {% if current_user.role == 'admin' or (current_user['id'] == data['id'] and current_user.role == mod) %}
+    <li><a href="{{ url_for('delete', mod=mod, id=data['id']) }}">Delete {{ mod|title }}</a></li>
+    {% endif %}
+    {% if current_user.role == 'admin' %}
+    <li><a href="{{ url_for('permission_check', mod=mod, id=data['id'])}}">View permissions granted to Platform</a></li>
+    <li><a href="{{ url_for('export', mod=mod, id=data['id'])}}">Export Data to a Google Sheet</a></li>
     {% endif %}
   </ul>
-  {% endif %} {% endblock modify %}
+  {% endif %}
+  {% endblock modify %}
 </main>
 {% endblock content %}
