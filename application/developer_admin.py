@@ -39,16 +39,14 @@ def get_pages_for_users(overwrite=False, remove=False, active_campaigns=None, **
         else:
             app.logger.error(f"Unsure how to filter for type {type(val)} for key: value of {key}: {val} ")
     users = q.all()
-    if active_campaigns is not None:  # True or False
+    if active_campaigns is not None:  # expected value True or False, left as None if not filtering by this.
         users = [u for u in users if u.has_active() is active_campaigns]
-        # users = [u for u in users if any(not ea.completed for ea in u.brand_campaigns + u.campaigns)]
     for user in users:
         page = get_fb_page_for_users_ig_account(user)
         if remove and user.story_subscribed:
-            # session_user_subscribe(user, remove=True)  # This would remove, even if they have other active campaigns.
-            user.story_subscribed = False  # Expected to be overridden at session commit if user has active campaigns.
+            session_user_subscribe(user, remove=True)  # Okay because we already filtered to users without has_active
             page_token = page.get('token', None) or getattr(user, 'page_token', None)
-            user.page_token = page_token  # Triggers checking for active Campaigns.
+            user.page_token = page_token  # Triggers checking for active Campaigns, and ensures a flush.
             db.session.add(user)
             updates[user.id] = str(user)
         if page and (overwrite or page.get('new_page')):
@@ -59,7 +57,7 @@ def get_pages_for_users(overwrite=False, remove=False, active_campaigns=None, **
         elif page and active_campaigns and not user.story_subscribed:
             session_user_subscribe(user)
             old_notes = user.notes or ''
-            user.notes = old_notes + ' add story_insights'
+            user.notes = old_notes + ' add story_insights'  # Ensures a flush.
             db.session.add(user)
             updates[user.id] = str(user)
     db.session.commit()
