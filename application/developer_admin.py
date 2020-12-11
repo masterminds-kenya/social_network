@@ -87,6 +87,32 @@ def permission_check_many(**kwargs):
     return results
 
 
+def make_permission_overview(data):
+    """For a given permission report data, return an overview dict. """
+    overview = {}
+    for user, info in data.items():
+        user_keys = ['facebook_id', 'instagram_id', 'page_id', 'page_token']
+        needed = ', '.join(key for key in user_keys if not getattr(user, key, None))
+        if user.token:
+            err_str = 'Not Known'
+            keys = [(f'Permission for {FB_CLIENT_APP_NAME}', 'Platform'), ('Permissions Needed', 'Need')]
+            label_vals = []
+            for key, label in keys:
+                val = str(info.get(key, ''))
+                if val.startswith(err_str):
+                    val = err_str
+                label_vals.append((label, val, ))
+            info_summary = [f"{k}: {v}" for k, v in label_vals if v]
+            if needed:
+                info_summary.append(f"Missing: {needed}")
+        else:
+            info_summary = [f"Missing: {needed}"] if needed else []
+            info_summary.append('user token')
+        info_summary = ', '.join(info_summary)
+        overview[user] = info_summary
+    return overview
+
+
 @app.route('/report/<string:group>')
 @staff_required()
 def permission_report(group):
@@ -105,27 +131,7 @@ def permission_report(group):
         overview = None
     else:
         flash(f"Permission Report for {group} users, with {len(data)} results. ")
-        overview = {}
-        for user, info in data.items():
-            user_keys = ['facebook_id', 'instagram_id', 'page_id', 'page_token']
-            needed = ', '.join(key for key in user_keys if not getattr(user, key, None))
-            if user.token:
-                err_str = 'Not Known'
-                keys = [(f'Permission for {FB_CLIENT_APP_NAME}', 'Platform'), ('Permissions Needed', 'Need')]
-                label_vals = []
-                for key, label in keys:
-                    val = str(info.get(key, ''))
-                    if val.startswith(err_str):
-                        val = err_str
-                    label_vals.append((label, val, ))
-                info_summary = [f"{k}: {v}" for k, v in label_vals if v]
-                if needed:
-                    info_summary.append(f"Missing: {needed}")
-            else:
-                info_summary = [f"Missing: {needed}"] if needed else []
-                info_summary.append('user token')
-            info_summary = ', '.join(info_summary)
-            overview[user] = info_summary
+        overview = make_permission_overview(data)
     return admin_report_view('permissions', info=data, overview=overview)
 
 
