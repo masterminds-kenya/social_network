@@ -22,11 +22,11 @@
   {% for lbl in info.keys() %}
     {% if overview %}
     <li>
-      <input id="collapsible_{{lbl}}" class="toggle" type="checkbox" />
-      <label for="collapsible_{{lbl}}" class="lbl-toggle">
-        {{ lbl.name }}: {{ overview[lbl] }}
+      <input id="collapsible_{{lbl.name}}" class="toggle" type="checkbox" />
+      <label for="collapsible_{{lbl.name}}" class="lbl-toggle {{overview[lbl]['attr']}}">
+        {{ lbl.name }}: {{ overview[lbl]['text'] }}
       </label>
-      <ul class="collapsible-content {{lbl}}">
+      <ul class="collapsible-content {{lbl.name}}">
         {% set data = info[lbl] %}
         {% for key in data.keys() %}
         <li>{% include 'data_expand.html' %}</li>

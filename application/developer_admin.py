@@ -109,7 +109,8 @@ def make_permission_overview(data):
             info_summary = [f"Missing: {needed}"] if needed else []
             info_summary.append('user token')
         info_summary = ', '.join(info_summary)
-        overview[user] = info_summary
+        attr = 'list' if info_summary.endswith('ALL GOOD') else 'error'
+        overview[user] = {'attr': attr, 'text': info_summary}
     return overview
 
 

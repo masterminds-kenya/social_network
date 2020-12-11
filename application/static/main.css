@@ -422,6 +422,24 @@ input.toggle[type='checkbox'] {
   color: #7C5A0B;
 }
 
+.lbl-toggle.error {
+  color: #222222;
+  background: #995555;
+}
+
+.lbl-toggle.error:hover {
+  background: #AA4444;
+}
+
+.lbl-toggle.list {
+  color: #555555;
+  background: #F0F4FF;
+}
+
+.lbl-toggle.list:hover {
+  background: #D0D4DF;
+}
+
 .lbl-toggle::before {
   content: ' ';
   display: inline-block;
