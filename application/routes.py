@@ -357,19 +357,19 @@ def all_posts():
     """Used for daily downloads, or can be called manually by an admin (but not managers). """
     app.logger.info("===================== All Posts Process Run =====================")
     cron_run = request.headers.get('X-Appengine-Cron', None)
-    admin_run = current_user.is_authenticated and current_user.role == 'admin'
-    if not cron_run and not admin_run:
-        message = "All posts was run by something other than cron job or admin link. "
-        flash(message)
-        app.logger.error(message)
-        return redirect(url_for('error'))
+    if not cron_run:
+        if not current_user.is_authenticated and current_user.role == 'admin':
+            message = "This is not a valid user route. Contact an Admin to help resolve this problem. "
+            flash(message)
+            app.logger.error(message)
+            return redirect(url_for('error'))
     all_ig = get_daily_ig_accounts()
     saved = get_posts(all_ig)
     message = f"Got all posts for {len(all_ig)} users, for a total of {len(saved)} posts. "
     if cron_run:
-        message += "Cron job completed. "
+        # message += "Cron job completed. "
         response = json.dumps({'User_num': len(all_ig), 'Post_num': len(saved), 'message': message, 'status_code': 200})
-    else:  # admin_run is True
+    else:  # Process run by an admin.
         message += "Admin requested getting posts for all users. "
         flash(message)
         response = redirect(url_for('admin'))
