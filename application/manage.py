@@ -243,7 +243,7 @@ def process_hook(req):
             hook_data[rec.get('field', '')].append(val)
             data_count += 1
     insight_count = len(hook_data.get('story_insights', []))
-    data_log = f"{insight_count} stories"
+    data_log = f"{insight_count} story"
     if data_count != insight_count:
         data_log += f", {data_count} total"
     # app.logger.info(f"============ PROCESS HOOK: {data_log} ============")
@@ -274,7 +274,7 @@ def process_hook(req):
             #     message += f"Test update, added to user # {user_id} "
             # else:
             user = User.query.filter_by(instagram_id=ig_id).first()  # returns None if not found.
-            if not user or not getattr(user, 'story_subscribed', None):
+            if not user or not user.has_active():
                 data_log += f", for {user or 'not-found-user'} SKIP"
                 skipped += 1
                 # message += f"STORY post for {user or 'not-found-user'} NOT TRACKED \n"
@@ -306,5 +306,5 @@ def process_hook(req):
     else:
         message += "No needed record updates. "
         response_code = 200
-    app.logger.info(f"======== PROCESS HOOK: {data_log} ========")
+    app.logger.info(f"===== PROCESS HOOK: {data_log} =====")
     return message, response_code
