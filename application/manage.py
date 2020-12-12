@@ -282,6 +282,8 @@ def process_hook(req):
             user_id = getattr(user, 'id', None)
             timestamp = make_missing_timestamp()  # timestamp = str(dt.utcnow() - 1 day)
             story.update(media_id=media_id, user_id=user_id, timestamp=timestamp)
+            if 'caption' not in story:
+                story['caption'] = 'INSIGHTS_CREATED'
             message += f"STORY post CREATE for user: {user_id} | Timestamp: {timestamp} \n"
             model = Post(**story)
             new += 1
