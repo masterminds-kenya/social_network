@@ -95,10 +95,10 @@ def make_permission_overview(data):
         needed = ', '.join(key for key in user_keys if not getattr(user, key, None))
         if user.token:
             err_str = 'Not Known'
-            keys = [(f'Permission for {FB_CLIENT_APP_NAME}', 'Platform'), ('Permissions Needed', 'Need')]
+            keys = [(f'Permission for {FB_CLIENT_APP_NAME}', 'Platform'), ('Permissions Needed', 'Need Scope')]
             label_vals = []
             for key, label in keys:
-                val = info.get(key, '')
+                val = json.loads(info.get(key, ''))
                 if isinstance(val, (list, tuple)):
                     val = ', '.join(val)
                 elif val is None:
