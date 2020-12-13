@@ -77,7 +77,7 @@ def inspect_access_token(input_token, app_access_token=None):
     return data
 
 
-def user_permissions(user, facebook=None, token=None):
+def user_permissions(user, facebook=None, token=None, app_access_token=None):
     """Used by staff to check on what permissions a given user has granted to the platform application. """
     if isinstance(user, (str, int)):
         user = User.query.get(user)
@@ -113,11 +113,13 @@ def user_permissions(user, facebook=None, token=None):
         subscribed = "Have the account and page info, but NOT subscribed. "
     data['subscribed'] = subscribed
     data['facebook user permissions'] = ['{}: {}'.format(k, v) for k, v in perm_info.items()]
-
-    skipped_text = "Did not check due to lack of user token. "
-    inspect = inspect_access_token(token) if token else {'scope_missing': skipped_text, 'app_connect': skipped_text}
-    if 'error' not in inspect:
-        inspect = pretty_token_data(inspect, fb_id=user.facebook_id, ig_id=user.instagram_id, page_id=user.page_id)
+    if token:
+        inspect = inspect_access_token(token, app_access_token)
+        if 'error' not in inspect:
+            inspect = pretty_token_data(inspect, fb_id=user.facebook_id, ig_id=user.instagram_id, page_id=user.page_id)
+    else:
+        skipped_text = "Did not check due to lack of user token. "
+        inspect = {'scope_missing': skipped_text, 'app_connect': skipped_text}
     missing_info = f"Not Known. Confirm {user.name} has approved the Facebook application: {FB_CLIENT_APP_NAME} "
     data[f'Permission for {FB_CLIENT_APP_NAME}'] = inspect.get('app_connect', missing_info)
     data['Matching ID'] = inspect.get('user_connect', None)

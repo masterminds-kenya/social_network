@@ -98,36 +98,37 @@ def get_daily_ig_accounts(active=True, camp=True, camp_only=False):
 def get_test_ig(version):
     """Trying a few structures to test their speed. """
     # results = {'version': ('query', 'query_result', 'duration')}
+    results = (None, None, 0, 0)
     if version == 'a':
         start = time()
-        users = User.query.filter(User.has_active_special == True)
+        users = User.query.filter(User.has_active_all.is_(True))
         result = users.all()
         end = time()
         results = (users, result, len(result), end - start, )
-    elif version == 'b':
-        start = time()
-        users = User.query.filter(User.has_active_special is True)
-        result = users.all()
-        end = time()
-        results = (users, result, len(result), end - start, )
-    elif version == 'c':
-        start = time()
-        users = User.query.filter(User.has_active_special.is_(True))
-        result = users.all()
-        end = time()
-        results = (users, result, len(result), end - start, )
-    elif version == 'd':
-        start = time()
-        users = User.query.filter(User.has_active_connect.is_(True))
-        result = users.all()
-        end = time()
-        results = (users, result, len(result), end - start, )
-    elif version == 'e':
-        start = time()
-        users = User.query.filter(User.has_active_now.is_(True))
-        result = users.all()
-        end = time()
-        results = (users, result, len(result), end - start, )
+    # elif version == 'b':
+    #     start = time()
+    #     users = User.query.filter(User.has_active_special is True)
+    #     result = users.all()
+    #     end = time()
+    #     results = (users, result, len(result), end - start, )
+    # elif version == 'c':
+    #     start = time()
+    #     users = User.query.filter(User.has_active_special.is_(True))
+    #     result = users.all()
+    #     end = time()
+    #     results = (users, result, len(result), end - start, )
+    # elif version == 'd':
+    #     start = time()
+    #     users = User.query.filter(User.has_active_connect.is_(True))
+    #     result = users.all()
+    #     end = time()
+    #     results = (users, result, len(result), end - start, )
+    # elif version == 'e':
+    #     start = time()
+    #     users = User.query.filter(User.has_active_now.is_(True))
+    #     result = users.all()
+    #     end = time()
+    #     results = (users, result, len(result), end - start, )
 
     # start_a = time()
     # active_i = User.query.join(user_campaign).join(Campaign).filter(Campaign.completed is False)
