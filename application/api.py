@@ -325,14 +325,15 @@ def _get_posts_data_of_user(user_id, stories=True, ig_id=None, facebook=None):
     if isinstance(user_id, User):
         user = user_id
         user_id = user.id
-    if isinstance(user_id, (int, str)):
-        pass
+    elif isinstance(user_id, (int, str)):
+        user_id = int(user_id)
+        user = User.query.get(user_id)
     else:
         raise TypeError(f"Expected an id or instance of User, but got {type({user_id})}: {user_id} ")
     if not facebook or not ig_id:
-        user = user or User.query.get(user_id)
-        ig_id, token = getattr(user, 'instagram_id', None), getattr(user, 'token', None)
-    app.logger.info(f"==================== Get Posts on User {user_id} ====================")
+        # user = user or User.query.get(user_id)
+        ig_id, token = user.instagram_id, user.token
+    # app.logger.info(f"==================== Get Posts on User {user_id} ====================")
     if stories:
         url = f"https://graph.facebook.com/{ig_id}/stories"
         story_res = facebook.get(url).json() if facebook else requests.get(f"{url}?access_token={token}").json()
@@ -543,7 +544,7 @@ def find_pages_for_fb_id(fb_id, facebook=None, token=None):
     return res
 
 
-def find_instagram_id(accounts, facebook=None, token=None):
+def find_instagram_id(accounts, facebook=None, token=None, app_token=None):
     """For an influencer or brand, we can discover all of their instagram business accounts they have.
        This depends on them having their expected associated facebook page (for each).
     """
@@ -577,7 +578,7 @@ def find_instagram_id(accounts, facebook=None, token=None):
                 elif err == 100:
                     err = 200
                     app.logger.info("Will use a generated app token. ")
-                    req_token = generate_app_access_token()
+                    req_token = app_token or generate_app_access_token()
                 else:
                     app.logger.info("Tried page token, user token, and generated token. All have failed. ")
                     err = 1

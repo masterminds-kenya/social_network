@@ -4,7 +4,7 @@ from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.hybrid import hybrid_property
 from sqlalchemy.dialects.mysql import BIGINT
-from sqlalchemy import or_, and_, desc  # , select, func
+from sqlalchemy import or_, desc  # , and_, select, func
 from sqlalchemy_utils import EncryptedType  # encrypt
 from sqlalchemy_utils.types.encrypted.encrypted_type import AesEngine  # encrypt
 from cryptography.fernet import Fernet  # noqa: F401  # TODO: Is this needed here? # encrypt
