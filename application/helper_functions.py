@@ -2,8 +2,9 @@ from flask import current_app as app
 from functools import wraps
 from flask_login import current_user
 from sqlalchemy import or_
-from .model_db import User, Insight, Audience, Post, Campaign
+from .model_db import User, Insight, Audience, Post, Campaign, db
 from datetime import timedelta, datetime as dt
+from time import time
 import json
 
 
@@ -70,13 +71,32 @@ def self_or_staff_required(role=['admin', 'manager'], user=current_user):
     return wrapper
 
 
-def get_daily_ig_accounts(active=True):
+def get_daily_ig_accounts(active=True, camp=True, camp_only=False):
     """Returns a list of users that should have up-to-date tracking of their daily IG media posts. """
+    if camp_only:
+        # camps = Campaign.query.filter_by(completed=False).all()
+        db.session.query(Campaign)
+        return None
     users = User.query.filter(User.instagram_id.isnot(None))
     if active:
-        is_active = Campaign.completed.is_(False)
-        users = users.filter(or_(User.campaigns.any(is_active), User.brand_campaigns.any(is_active)))
-    return users.all()
+        if camp:
+            is_active = Campaign.completed.is_(False)
+            users = users.filter(or_(User.campaigns.any(is_active), User.brand_campaigns.any(is_active)))
+            users = users.all()
+        else:
+            users = [u for u in users.all() if u.has_active()]
+    else:
+        users = users.all()
+    return users
+
+
+def timeit(func, *args, **kwargs):
+    """Determines the process time of the given callable when it is passed the given args and kwargs. """
+    start = time()
+    result = func(*args, **kwargs)
+    end = time()
+    dur = end - start
+    return result, dur
 
 
 def make_missing_timestamp():
