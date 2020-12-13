@@ -71,28 +71,13 @@ def self_or_staff_required(role=['admin', 'manager'], user=current_user):
     return wrapper
 
 
-def get_daily_ig_accounts(active=True, camp=True, camp_only=False):
+def get_daily_ig_accounts(active=True):
     """Returns a list of users that should have up-to-date tracking of their daily IG media posts. """
-    if camp_only:
-        # camps = Campaign.query.filter_by(completed=False).all()
-        db.session.query(Campaign)
-        return None
     users = User.query.filter(User.instagram_id.isnot(None))
     if active:
-        if camp == 'joins':
-            active_i = User.query.join(user_campaign).join(Campaign).filter(Campaign.completed is False)
-            active_b = User.query.join(brand_campaign).join(Campaign).filter(Campaign.completed is False)
-            users = active_i.union(active_b)
-            users = users.all()
-        if camp:
-            is_active = Campaign.completed.is_(False)
-            users = users.filter(or_(User.campaigns.any(is_active), User.brand_campaigns.any(is_active)))
-            users = users.all()
-        else:
-            users = [u for u in users.all() if u.has_active()]
-    else:
-        users = users.all()
-    return users
+        is_active = Campaign.completed.is_(False)
+        users = users.filter(or_(User.campaigns.any(is_active), User.brand_campaigns.any(is_active)))
+    return users.all()
 
 
 def get_test_ig(version):
