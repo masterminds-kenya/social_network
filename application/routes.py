@@ -366,13 +366,15 @@ def all_posts():
     all_ig = get_daily_ig_accounts()
     saved = get_posts(all_ig)
     message = f"Got all posts for {len(all_ig)} users, for a total of {len(saved)} posts. "
+    response = {'User_num': len(all_ig), 'Post_num': len(saved), 'message': message, 'status_code': 200}
     if cron_run:
         # message += "Cron job completed. "
-        response = json.dumps({'User_num': len(all_ig), 'Post_num': len(saved), 'message': message, 'status_code': 200})
+        response = json.dumps(response)
     else:  # Process run by an admin.
         message += "Admin requested getting posts for all users. "
         flash(message)
-        response = redirect(url_for('admin'))
+        response = admin_view(data=response)
+        # response = redirect(url_for('admin'))
     app.logger.info(message)
     return response
 
