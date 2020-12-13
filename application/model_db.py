@@ -131,11 +131,19 @@ class User(UserMixin, db.Model):
 
     def has_active(self, ignore=None):
         """Returns boolean: True if associated to any currently active campaigns as either an Influencer or Brand. """
-        ignore = ignore or []
-        if not isinstance(ignore, (list, tuple, set)):
-            ignore = [ignore]
-        connected_campaigns = [ea for ea in self.campaigns + self.brand_campaigns if ea not in ignore]
-        has_active_campaign = any(ea.completed is False for ea in connected_campaigns)
+        if self.role == 'influencer':
+            connected_campaigns = self.campaigns
+        elif self.role == 'brand':
+            connected_campaigns = self.brand_campaigns
+        else:
+            return False
+        if isinstance(ignore, (list, tuple)):
+            ignore = set(ignore)
+        elif not isinstance(ignore, set):
+            ignore = set((ignore, ) if ignore else '')
+        has_active_campaign = any(ea.completed is False for ea in connected_campaigns if ea not in ignore)
+        # connected_campaigns = [ea for ea in self.campaigns + self.brand_campaigns if ea not in ignore]
+        # has_active_campaign = any(ea.completed is False for ea in connected_campaigns)
         return has_active_campaign
 
     def recent_insight(self, metrics):
@@ -597,7 +605,7 @@ class Campaign(db.Model):
 
     def __repr__(self):
         name = self.name if self.name else self.id
-        return '<Campaign: {} | {} Brands | {} Influencers >'.format(name, len(self.brands), len(self.influencers))
+        return '<Campaign: {} | {} Brands | {} Influencers >'.format(name, len(self.brands), len(self.users))
 
 
 def db_create(data, Model=User):
