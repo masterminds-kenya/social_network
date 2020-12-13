@@ -3,7 +3,8 @@ from flask_login import current_user
 import json
 from .helper_functions import staff_required, admin_required, mod_lookup
 from .model_db import Campaign, create_many, db_read, User, db
-from .api import get_ig_info, get_fb_page_for_users_ig_account, user_permissions, FB_CLIENT_APP_NAME
+from .api import get_ig_info, get_fb_page_for_users_ig_account, user_permissions, generate_app_access_token
+from .api import FB_CLIENT_APP_NAME
 from .events import handle_campaign_stories, session_user_subscribe
 from pprint import pprint
 
@@ -83,7 +84,8 @@ def get_pages_for_users(overwrite=False, remove=False, **kwargs):
 def permission_check_many(**kwargs):
     """Allows admin to check for problems with Graph API permissions on groups of users. """
     users = query_by_kwargs(User.query, **kwargs)
-    results = {user: user_permissions(user) for user in users}
+    app_access_token = generate_app_access_token()
+    results = {user: user_permissions(user, app_access_token=app_access_token) for user in users}
     return results
 
 

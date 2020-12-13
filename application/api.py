@@ -77,7 +77,7 @@ def inspect_access_token(input_token, app_access_token=None):
     return data
 
 
-def user_permissions(user, facebook=None, token=None):
+def user_permissions(user, facebook=None, token=None, app_access_token=None):
     """Used by staff to check on what permissions a given user has granted to the platform application. """
     if isinstance(user, (str, int)):
         user = User.query.get(user)
@@ -113,11 +113,13 @@ def user_permissions(user, facebook=None, token=None):
         subscribed = "Have the account and page info, but NOT subscribed. "
     data['subscribed'] = subscribed
     data['facebook user permissions'] = ['{}: {}'.format(k, v) for k, v in perm_info.items()]
-
-    skipped_text = "Did not check due to lack of user token. "
-    inspect = inspect_access_token(token) if token else {'scope_missing': skipped_text, 'app_connect': skipped_text}
-    if 'error' not in inspect:
-        inspect = pretty_token_data(inspect, fb_id=user.facebook_id, ig_id=user.instagram_id, page_id=user.page_id)
+    if token:
+        inspect = inspect_access_token(token, app_access_token)
+        if 'error' not in inspect:
+            inspect = pretty_token_data(inspect, fb_id=user.facebook_id, ig_id=user.instagram_id, page_id=user.page_id)
+    else:
+        skipped_text = "Did not check due to lack of user token. "
+        inspect = {'scope_missing': skipped_text, 'app_connect': skipped_text}
     missing_info = f"Not Known. Confirm {user.name} has approved the Facebook application: {FB_CLIENT_APP_NAME} "
     data[f'Permission for {FB_CLIENT_APP_NAME}'] = inspect.get('app_connect', missing_info)
     data['Matching ID'] = inspect.get('user_connect', None)
@@ -278,17 +280,23 @@ def get_audience(user_id, ig_id=None, facebook=None):
 
 def get_basic_post(media_id, metrics=None, user_id=None, facebook=None, token=None):
     """Typically called by _get_posts_data_of_user, but also if we have a new Story Post while processing hooks. """
-    empty_res = {'media_id': media_id, 'user_id': user_id, 'timestamp': str(dt.utcnow())}
-    if not facebook and not token:
-        if not user_id:
-            message = "The get_basic_post must have at least one of 'user_id', 'facebook', or 'token' values. "
-            app.logger.debug(message)
-            raise Exception(message)
+    user = None
+    if isinstance(user_id, User):
+        user = user_id
+        user_id = user.id
+        token = token if token and not facebook else user.token
+    elif isinstance(user_id, (int, str)) and not facebook and not token:
+        user_id = int(user_id)
         user = User.query.get(user_id)
         token = getattr(user, 'token', None)
-        if not token:
+    empty_res = {'media_id': media_id, 'user_id': user_id, 'timestamp': str(dt.utcnow())}
+    if not facebook and not token:
+        if user:
             message = "Unable to locate user token value. User should login with Facebook and authorize permissions. "
-            return empty_res
+        else:
+            message = "The get_basic_post must have at least one of 'user_id', 'facebook', or 'token' values. "
+        app.logger.error(message)  # raise Exception(message)
+        return empty_res
     if not metrics:
         metrics = ','.join(Post.METRICS.get('basic'))
     url = f"https://graph.facebook.com/{media_id}?fields={metrics}"
@@ -316,21 +324,20 @@ def _get_posts_data_of_user(user_id, stories=True, ig_id=None, facebook=None):
     if isinstance(user_id, User):
         user = user_id
         user_id = user.id
-    if isinstance(user_id, (int, str)):
-        pass
+    elif isinstance(user_id, (int, str)):
+        user_id = int(user_id)
+        user = User.query.get(user_id)
     else:
         raise TypeError(f"Expected an id or instance of User, but got {type({user_id})}: {user_id} ")
     if not facebook or not ig_id:
-        user = user or User.query.get(user_id)
-        ig_id, token = getattr(user, 'instagram_id', None), getattr(user, 'token', None)
-    app.logger.info(f"==================== Get Posts on User {user_id} ====================")
+        ig_id, token = user.instagram_id, user.token
+    # app.logger.info(f"==================== Get Posts on User {user_id} ====================")
     if stories:
         url = f"https://graph.facebook.com/{ig_id}/stories"
         story_res = facebook.get(url).json() if facebook else requests.get(f"{url}?access_token={token}").json()
         stories = story_res.get('data')
         if not isinstance(stories, list) or 'error' in story_res:
             app.logger.error('Stories Error: ', story_res.get('error', 'NA'))
-            # return []
     if not isinstance(stories, list):
         stories = []
     story_ids = set([ea.get('id') for ea in stories])
@@ -340,14 +347,14 @@ def _get_posts_data_of_user(user_id, stories=True, ig_id=None, facebook=None):
     if not isinstance(media, list):
         app.logger.error('Error: ', response.get('error', 'NA'))
         media = []
-        # return []
     media.extend(stories)
     # app.logger.info(f"------ Looking up a total of {len(media)} Media Posts, including {len(stories)} Stories ------")
     post_metrics = {key: ','.join(val) for (key, val) in Post.METRICS.items()}
     results = []
     for post in media:
         media_id = post.get('id')
-        res = get_basic_post(media_id, metrics=post_metrics['basic'], user_id=user_id, facebook=facebook, token=token)
+        res = get_basic_post(media_id, metrics=post_metrics['basic'], user_id=user, facebook=facebook, token=token)
+        media_type = res.get('media_type', '')
         media_type = 'STORY' if media_id in story_ids else res.get('media_type')
         res['media_type'] = media_type
         metrics = post_metrics.get(media_type, post_metrics['insight'])
@@ -358,7 +365,7 @@ def _get_posts_data_of_user(user_id, stories=True, ig_id=None, facebook=None):
         insights = res_insight.get('data')
         if insights:
             temp = {ea.get('name'): ea.get('values', [{'value': 0}])[0].get('value', 0) for ea in insights}
-            if media_type == 'CAROUSEL_ALBUM':
+            if media_type in ('CAROUSEL_ALBUM', 'STORY'):
                 temp = {metric_clean(key): val for key, val in temp.items()}
             res.update(temp)
         else:
@@ -406,7 +413,6 @@ def get_fb_page_for_users_ig_account(user, ignore_current=False, facebook=None, 
         params = {'fields': 'accounts'}
         if not facebook:
             params['access_token'] = token
-        # TODO: Test facebook.post will work as written below.
         res = facebook.post(url, params=params).json() if facebook else requests.post(url, params=params).json()
         pprint(res)
         accounts = res.pop('accounts', None)
@@ -518,7 +524,7 @@ def find_pages_for_fb_id(fb_id, facebook=None, token=None):
        Using technique from Graph API docs: https://developers.facebook.com/docs/graph-api/reference/v7.0/user/accounts
     """
     url = f"https://graph.facebook.com/v7.0/{fb_id}/accounts"
-    app.logger.info("========================== The find_pages_for_fb_id was called ==========================")
+    # app.logger.info("========================== The find_pages_for_fb_id was called ==========================")
     if not facebook and not token:
         message = "This function requires at least one value for either 'facebook' or 'token' keyword arguments. "
         app.logger.error(message)
@@ -533,15 +539,14 @@ def find_pages_for_fb_id(fb_id, facebook=None, token=None):
     return res
 
 
-def find_instagram_id(accounts, facebook=None, token=None):
+def find_instagram_id(accounts, facebook=None, token=None, app_token=None):
     """For an influencer or brand, we can discover all of their instagram business accounts they have.
        This depends on them having their expected associated facebook page (for each).
     """
     if not facebook and not token:
         message = "This function requires at least one value for either 'facebook' or 'token' keyword arguments. "
         app.logger.error(message)
-        return []
-        # raise Exception(message)
+        return []  # raise Exception(message)
     if not accounts or 'data' not in accounts:
         message = f"No pages found from accounts data: {accounts}. "
         app.logger.info(message)
@@ -567,7 +572,7 @@ def find_instagram_id(accounts, facebook=None, token=None):
                 elif err == 100:
                     err = 200
                     app.logger.info("Will use a generated app token. ")
-                    req_token = generate_app_access_token()
+                    req_token = app_token or generate_app_access_token()
                 else:
                     app.logger.info("Tried page token, user token, and generated token. All have failed. ")
                     err = 1
@@ -610,8 +615,7 @@ def onboard_new(data, facebook=None, token=None):
     if not facebook and not token:
         message = "This function requires at least one value for either 'facebook' or 'token' keyword arguments. "
         app.logger.error(message)
-        return ('not_found', [])
-        # raise Exception(message)
+        return ('not_found', [])  # raise Exception(message)
     fb_id = data.get('facebook_id', '')
     accounts = data.pop('accounts', None) or find_pages_for_fb_id(fb_id, facebook=facebook, token=token)
     ig_list = find_instagram_id(accounts, facebook=facebook, token=token)

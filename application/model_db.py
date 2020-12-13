@@ -4,7 +4,7 @@ from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.hybrid import hybrid_property
 from sqlalchemy.dialects.mysql import BIGINT
-from sqlalchemy import or_, desc
+from sqlalchemy import or_, desc  # , and_, select, func
 from sqlalchemy_utils import EncryptedType  # encrypt
 from sqlalchemy_utils.types.encrypted.encrypted_type import AesEngine  # encrypt
 from cryptography.fernet import Fernet  # noqa: F401  # TODO: Is this needed here? # encrypt
@@ -129,19 +129,106 @@ class User(UserMixin, db.Model):
         kwargs = translate_api_user_token(kwargs)
         super().__init__(*args, **kwargs)
 
-    def has_active(self, ignore=None):
-        """Returns boolean: True if associated to any currently active campaigns as either an Influencer or Brand. """
+    @property
+    def connected_campaigns(self):
+        """Returns the campaigns or brand_campaigns for influencer or brand, respectively, or empty list otherwise. """
         if self.role == 'influencer':
-            connected_campaigns = self.campaigns
+            return self.campaigns
         elif self.role == 'brand':
-            connected_campaigns = self.brand_campaigns
-        else:
-            return False
+            return self.brand_campaigns
+        return []
+
+    # @hybrid_property
+    # def is_connector(self):
+    #     """Returns boolean: True if user has instagram_id and is an influencer or brand user. """
+    #     return self.role in ('influencer', 'brand') and self.instagram_id is not None
+
+    # @is_connector.expression
+    # def is_connector(cls):
+    #     return and_(cls.role.in_(['influencer', 'brand']), cls.instagram_id.is_not(None))
+
+    # # @is_connector.expression
+    # # def has_active_all(cls):
+    # #     is_active = Campaign.completed.is_(False)
+    # #     return and_(cls.role.in_('influencer', 'brand'), or_(cls.campaign(is_active), cls.brand_campaign(is_active)))
+
+    @hybrid_property
+    def has_active_all(self):
+        """Returns boolean: True if associated to any currently active campaigns as either an Influencer or Brand. """
+        has_influence = self.role == 'influencer' and any(ea.completed is False for ea in self.campaigns)
+        has_brand = self.role == 'brand' and any(ea.completed is False for ea in self.brand_campaigns)
+        return has_influence or has_brand
+
+    # @has_active_all.expression
+    # def has_active_all(cls):
+    #     is_active = Campaign.completed.is_(False)
+    #     # return cls.connected_campaigns.any(is_active)
+    #     if cls.role == 'influencer':
+    #         return cls.campaign.any(is_active)
+    #     elif cls.role == 'brand':
+    #         return cls.brand_campaign.any(is_active)
+    #     return False
+        # users_z = User.query.filter(User.instagram_id.isnot(None), (or_(User.campaigns.any(is_active), User.brand_campaigns.any(is_active))))
+
+    # @hybrid_property
+    # def active_all(self):
+    #     """Returns boolean: True if associated to any currently active campaigns as either an Influencer or Brand. """
+    #     has_influence = self.role == 'influencer' and any(ea.completed is False for ea in self.campaigns)
+    #     has_brand = self.role == 'brand' and any(ea.completed is False for ea in self.brand_campaigns)
+    #     return has_influence or has_brand
+
+    # @active_all.expression
+    # def active_all(cls):
+    #     if cls.role not in ('influencer', 'brand'):
+    #         return False
+    #     is_active = Campaign.completed.is_(False)
+    #     active = User.campaigns.any(is_active) if cls.role == 'influencer' else User.campaigns.any(is_active)
+    #     # users_z = User.query.filter(User.instagram_id.isnot(None), (or_(User.campaigns.any(is_active), User.brand_campaigns.any(is_active))))
+    #     return active
+
+    # @hybrid_property
+    # def has_active_special(self):
+    #     """Returns boolean: True if associated to any currently active campaigns as either an Influencer or Brand. """
+    #     has_influence = self.role == 'influencer' and any(ea.completed is False for ea in self.campaigns)
+    #     has_brand = self.role == 'brand' and any(ea.completed is False for ea in self.brand_campaigns)
+    #     return has_influence or has_brand
+
+    # @hybrid_property
+    # def has_active_connect(self):
+    #     """Returns boolean: True if associated to any currently active campaigns as either an Influencer or Brand. """
+    #     connected = self.connected_campaigns
+    #     has_active_campaign = any(ea.completed is False for ea in connected)
+    #     return has_active_campaign
+
+    # @hybrid_property
+    # def has_active_now(self):
+    #     """Returns boolean: True if associated to any currently active campaigns as either an Influencer or Brand. """
+    #     if self.role == 'influencer':
+    #         active = any(ea.completed is False for ea in self.campaigns)
+    #     elif self.role == 'brand':
+    #         active = any(ea.completed is False for ea in self.brand_campaigns)
+    #     else:
+    #         active = False
+    #     return active
+
+    # @has_active_special.expression
+    # def has_active_special(cls):
+    #     has_infuence = cls.role == 'influencer' and select().join(user_campaign).join(Campaign)
+    #     pass
+
+    def has_active(self, ignore=[]):
+        """Returns boolean: Similar to has_active_all, but if the ignore Campaigns(s) are not currently active. """
+        # TODO: Turn into a hybrid_property for ignore=None, and a hybrid_method for ignore version?
+        if not ignore:
+            return self.has_active_all()
+        connected = self.connected_campaigns
+        # if not isinstance(ignore, (list, tuple, set)):
+        #     ignore = (ignore, ) if ignore else []
         if isinstance(ignore, (list, tuple)):
             ignore = set(ignore)
         elif not isinstance(ignore, set):
             ignore = set((ignore, ) if ignore else '')
-        has_active_campaign = any(ea.completed is False for ea in connected_campaigns if ea not in ignore)
+        has_active_campaign = any(ea.completed is False for ea in connected if ea not in ignore)
         # connected_campaigns = [ea for ea in self.campaigns + self.brand_campaigns if ea not in ignore]
         # has_active_campaign = any(ea.completed is False for ea in connected_campaigns)
         return has_active_campaign
