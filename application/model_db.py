@@ -230,7 +230,8 @@ class User(UserMixin, db.Model):
         return report
 
     def __str__(self):
-        return f"{self.role} - {self.name}"
+        # return f"{self.role} - {self.name}"
+        return self.name or f"{self.role}: {self.id}"
 
     def __repr__(self):
         return '<User - {}: {}>'.format(self.role, self.name)
@@ -246,7 +247,8 @@ class DeletedUser:
         super().__init__()
 
     def __str__(self):
-        return f"{self.role} - {self.name}"
+        # return f"{self.role} - {self.name}"
+        return self.name
 
     def __repr__(self):
         return '<User - {}: {}>'.format(self.role, self.name)
@@ -301,10 +303,10 @@ class Insight(db.Model):
         super().__init__(*args, **kwargs)
 
     def __str__(self):
-        return f"{self.user} Insight - {self.name} on {self.recorded}"
+        return f"Insight - {self.name} on {self.recorded} User: {self.user_id}"
 
     def __repr__(self):
-        return '<Insight: {} | User: {} | Date: {} >'.format(self.name, self.user, self.recorded)
+        return '<Insight: {} | User: {} | Date: {} >'.format(self.name, self.user_id, self.recorded)
 
 
 class Audience(db.Model):
@@ -335,10 +337,10 @@ class Audience(db.Model):
         super().__init__(*args, **kwargs)
 
     def __str__(self):
-        return f"{self.user} Audience - {self.name} on {self.recorded}"
+        return f"Audience - {self.name} on {self.recorded} User: {self.user_id}"
 
     def __repr__(self):
-        return '<Audience {} | Date: {} >'.format(self.name, self.recorded)
+        return '<Audience {} | User: | Date: {} >'.format(self.name, self.user_id, self.recorded)
 
 
 class Post(db.Model):
@@ -424,10 +426,10 @@ class Post(db.Model):
         return {key: val for (key, val) in post.items() if key in fields}
 
     def __str__(self):
-        return f"{self.user} {self.media_type} Post on {self.recorded}"
+        return f"{self.media_type} Post on {self.recorded} User: {self.user_id}"
 
     def __repr__(self):
-        return '< {} Post | User: {} | Recorded: {} >'.format(self.media_type, self.user, self.recorded)
+        return '< {} Post | User: {} | Recorded: {} >'.format(self.media_type, self.user_id, self.recorded)
 
 
 user_campaign = db.Table(
@@ -581,13 +583,21 @@ class Campaign(db.Model):
 
     def __str__(self):
         name = self.name if self.name else str(self.id)
-        brands = ', '.join([brand.name for brand in self.brands]) if self.brands else 'NA'
-        return f"Campaign: {name} with Brand(s): {brands}. "
+        brand_count = len(self.brands)
+        if brand_count > 2:
+            brands = f"{brand_count} Brands"
+        else:
+            brands = ', '.join(brand.name for brand in self.brands) if self.brands else 'NA'
+        influencer_count = len(self.users)
+        if influencer_count > 2:
+            influencers = f"{influencer_count} Influencers"
+        else:
+            influencers = ', '.join(user.name for user in self.users) if self.users else 'NA'
+        return f"{name} with {brands} and {influencers}"
 
     def __repr__(self):
         name = self.name if self.name else self.id
-        brands = ', '.join([brand.name for brand in self.brands]) if self.brands else 'NA'
-        return '<Campaign: {} | Brands: {} >'.format(name, brands)
+        return '<Campaign: {} | {} Brands | {} Influencers >'.format(name, len(self.brands), len(self.influencers))
 
 
 def db_create(data, Model=User):
