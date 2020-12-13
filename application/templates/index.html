@@ -1,4 +1,8 @@
-{% extends "base.html" %} {% block header %} {{ super() }} {% endblock header %}
+{% extends "base.html" %}
+{% block header %}
+{{ super() }}
+{% endblock header %}
+
 {% block content %}
 
 <main>
@@ -44,12 +48,9 @@
         account and permissions.
       </p>
       <p class="join">
-        <a
-          class="fb-login"
-          id="influencer-join"
-          href="{{ url_for('fb_login', mod='influencer') }}"
-          >Continue with Facebook</a
-        >
+        <a class="fb-login" id="influencer-join" href="{{ url_for('fb_login', mod='influencer') }}">
+          Continue with Facebook
+        </a>
         <!-- <label for="influencer-join">as an Influencer</label> -->
       </p>
       <p>
@@ -72,12 +73,9 @@
         Instagram account can be created by a platform admin or manager.
       </p>
       <p class="join">
-        <a
-          class="fb-login"
-          id="brand-join"
-          href="{{ url_for('fb_login', mod='brand') }}"
-          >Continue with Facebook</a
-        >
+        <a class="fb-login" id="brand-join" href="{{ url_for('fb_login', mod='brand') }}">
+          Continue with Facebook
+        </a>
         <!-- <label for="brand-join">as a Brand</label> -->
       </p>
       <p>
@@ -98,24 +96,13 @@
         data on this platform to manage and generate reports. These reports are
         delivered to influencers and brands for campaigns they are involved
         with, to better understand campaign performance. View the
-        <a href="{{ url_for('render_static', page_name='privacy') }}"
-          >Privacy Policy</a
-        >
-        and
-        <a href="{{ url_for('render_static', page_name='tos') }}"
-          >Terms of Service</a
-        >
-        for more details. In general, data that is collected for campaigns
-        include:
+        <a href="{{ url_for('render_static', page_name='privacy') }}">Privacy Policy</a>
+        and <a href="{{ url_for('render_static', page_name='tos') }}">Terms of Service</a>
+        for more details. In general, data that is collected for campaigns include:
       </p>
       <ul>
-        <li>
-          Media posts and associated metrics such as impressions, likes, and
-          reach
-        </li>
-        <li>
-          Account Insights such as follower city and active follower count
-        </li>
+        <li>Media posts and associated metrics such as impressions, likes, and reach</li>
+        <li>Account Insights such as follower city and active follower count</li>
         <li>
           Collecting this data and storing in campaigns (collection of multiple
           posts) alleviates the manual sending of each media posts metrics, and

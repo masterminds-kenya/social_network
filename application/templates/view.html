@@ -69,9 +69,12 @@ content %}
         {% endfor %}
       </ul>
     </li>
-    {% elif key in ['facebook_id', 'instagram_id'] %}
+    {% elif key in ('facebook_id', 'instagram_id', 'page_id') %}
     <li>
       {{key}}: {%if data[key] is none %} Not {% endif %} Known
+      {% if key == 'page_id' and data[key] %}
+      <a href="https://www.facebook.com/{{data[key]}}">Professional Facebook Page<a>
+      {% endif %}
     </li>
     {% else %}
     <li>{% include 'data_expand.html' %}</li>

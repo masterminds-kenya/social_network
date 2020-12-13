@@ -1,10 +1,11 @@
-{% extends "base.html" %} {% block head %}
+{% extends "base.html" %}
+{% block head %}
 <title>{{ mod.capitalize() }}s</title>
-{% endblock %} {% block content %}
+{% endblock %}
+{% block content %}
 <main>
   <div class="intro">
     <h2>{{ view|default('all', true)|capitalize }} {{ mod|capitalize }}s</h2>
-
     {% if current_user.is_authenticated %}
     <p class="platform-user-header">
       Using the Platform as - {{ current_user.name }}
@@ -12,42 +13,40 @@
     {% endif %}
   </div>
   <ul>
-    {% for datum in data %} {% if mod == 'file' %}
+  {% for datum in data %}
+    {% if mod == 'file' %}
     <li>
       {{ datum['name'] }} |
-      <a
-        href="{{ url_for('data_permissions', mod='admin', id=datum['admin_id'], sheet_id=datum['id']) }}"
-      >
+      <a href="{{ url_for('data_permissions', mod='admin', id=datum['admin_id'], sheet_id=datum['id']) }}">
         Edit Permissions
-      </a>
-      |
+      </a> |
       <a href="{{ datum['link'] }}">View {{ datum['type'] }}</a>
     </li>
     {% else %}
     <li>
       <a href="{{ url_for('view', mod=mod, id=datum.id) }}">{{ datum }}</a>
     </li>
-    {% endif %} {% else %}
+    {% endif %}
+  {% else %}
     <li>Currently None</li>
-    {% endfor %}
+  {% endfor %}
   </ul>
   {% if mod != 'files' %}
   <h3>Other Options</h3>
   <ul>
     <li>
-      <a href="{{url_for('add', mod=mod)}}"
-        >Add {% if mod == 'influencer' %}Fake {%endif%}{{mod|capitalize}}</a
-      >
+      <a href="{{url_for('add', mod=mod)}}">
+        Add {% if mod == 'influencer' %}Fake {%endif%}{{mod|capitalize}}</a>
     </li>
     {% if mod == 'campaign' %}
     <li><a href="{{ url_for('add', mod='brand')}}">Add Brand</a></li>
-    <li><a href="{{ url_for('all', mod='campaign', role='active') }}">View Active Campaigns (default)</a></li>
-    <li><a href="{{ url_for('all', mod='campaign', role='completed') }}">View Completed Campaigns</a></li>
-    <li><a href="{{ url_for('all', mod='campaign', role='all') }}">View Both Active and Completed Campaigns</a></li>
+    <li><a href="{{ url_for('all', mod='campaign', role='active') }}">Active Campaigns (default)</a></li>
+    <li><a href="{{ url_for('all', mod='campaign', role='completed') }}">Completed Campaigns</a></li>
+    <li><a href="{{ url_for('all', mod='campaign', role='all') }}">Both Active and Completed Campaigns</a></li>
     {% elif mod in ('influencer', 'brand') %}
-    <li><a href="{{ url_for('all', mod=mod, view='active') }}">View Active {{ mod|capitalize }}s</a></li>
-    <li><a href="{{ url_for('all', mod=mod, view='Not Active') }}">View Not Active {{ mod|capitalize }}s</a></li>
-    <li><a href="{{ url_for('all', mod=mod, view='all') }}">View All {{ mod|capitalize }}s (default)</a></li>
+    <li><a href="{{ url_for('all', mod=mod, view='active') }}">Active {{ mod|capitalize }}s</a></li>
+    <li><a href="{{ url_for('all', mod=mod, view='Not Active') }}">Not Active {{ mod|capitalize }}s</a></li>
+    <li><a href="{{ url_for('all', mod=mod, view='all') }}">All {{ mod|capitalize }}s (default)</a></li>
     {% endif %}
   </ul>
   {% endif %}

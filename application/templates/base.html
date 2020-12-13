@@ -18,37 +18,27 @@
       <nav>
         <div class="header">
           <input class="menu-btn" type="checkbox" id="menu-btn" />
-          <label class="menu-icon" for="menu-btn"
-            ><span class="navicon"></span
-          ></label>
-
+          <label class="menu-icon" for="menu-btn">
+            <span class="navicon"></span>
+          </label>
           <div class="header-logo">
-            <img
-              src="/static/Bacchus_Logo_Black.png"
-              alt="logo"
-              class="logo"
-            />
+            <img src="/static/Bacchus_Logo_Black.png" alt="logo" class="logo" />
             <h1>Influencer Platform</h1>
           </div>
           <ul class="menu">
             <li><a href="{{ url_for('home') }}">Home</a></li>
-            <li>
-              <a href="{{ url_for('all', mod='influencer') }}">Influencers</a>
-            </li>
+            <li><a href="{{ url_for('all', mod='influencer') }}">Influencers</a></li>
             <li><a href="{{ url_for('all', mod='brand') }}">Brands</a></li>
             {% if current_user.role in ['admin', 'manager'] %}
+            <li><a href="{{ url_for('all', mod='campaign') }}">Campaigns</a></li>
             <li>
-              <a href="{{ url_for('all', mod='campaign') }}">Campaigns</a>
+              <a href="{{ url_for('view', mod=current_user.role, id=current_user.id) }}">Profile</a>
             </li>
-            <li>
-              <a
-                href="{{ url_for('view', mod=current_user.role, id=current_user.id) }}"
-                >Profile</a
-              >
-            </li>
-            {% endif %} {% if current_user.role == 'admin' %}
+            {% endif %}
+            {% if current_user.role == 'admin' %}
             <li><a href="{{ url_for('admin') }}">Admin Page</a></li>
-            {% endif %} {% if current_user.is_authenticated %}
+            {% endif %}
+            {% if current_user.is_authenticated %}
             <li><a href="{{ url_for('logout') }}">Logout</a></li>
             {% else %}
             <li><a href="{{ url_for('login') }}">Login</a></li>
@@ -81,13 +71,8 @@
     <footer>
       <p>
         <a href="{{ url_for('home')}}">Home</a> |
-        <a href="{{ url_for('render_static', page_name='privacy') }}"
-          >Privacy</a
-        >
-        |
-        <a href="{{ url_for('render_static', page_name='tos') }}"
-          >Terms of Service</a
-        >
+        <a href="{{ url_for('render_static', page_name='privacy') }}">Privacy</a> |
+        <a href="{{ url_for('render_static', page_name='tos') }}">Terms of Service</a>
       </p>
     </footer>
 
