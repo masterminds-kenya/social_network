@@ -280,17 +280,24 @@ def get_audience(user_id, ig_id=None, facebook=None):
 
 def get_basic_post(media_id, metrics=None, user_id=None, facebook=None, token=None):
     """Typically called by _get_posts_data_of_user, but also if we have a new Story Post while processing hooks. """
-    empty_res = {'media_id': media_id, 'user_id': user_id, 'timestamp': str(dt.utcnow())}
-    if not facebook and not token:
-        if not user_id:
-            message = "The get_basic_post must have at least one of 'user_id', 'facebook', or 'token' values. "
-            app.logger.debug(message)
-            raise Exception(message)
+    user = None
+    if isinstance(user_id, User):
+        user = user_id
+        user_id = user.id
+        token = token if token and not facebook else user.token
+    elif isinstance(user_id, (int, str)) and not facebook and not token:
+        user_id = int(user_id)
         user = User.query.get(user_id)
         token = getattr(user, 'token', None)
-        if not token:
+    empty_res = {'media_id': media_id, 'user_id': user_id, 'timestamp': str(dt.utcnow())}
+    if not facebook and not token:
+        if user:
             message = "Unable to locate user token value. User should login with Facebook and authorize permissions. "
-            return empty_res
+        else:
+            message = "The get_basic_post must have at least one of 'user_id', 'facebook', or 'token' values. "
+        app.logger.error(message)
+        # raise Exception(message)
+        return empty_res
     if not metrics:
         metrics = ','.join(Post.METRICS.get('basic'))
     url = f"https://graph.facebook.com/{media_id}?fields={metrics}"
@@ -349,7 +356,8 @@ def _get_posts_data_of_user(user_id, stories=True, ig_id=None, facebook=None):
     results = []
     for post in media:
         media_id = post.get('id')
-        res = get_basic_post(media_id, metrics=post_metrics['basic'], user_id=user_id, facebook=facebook, token=token)
+        res = get_basic_post(media_id, metrics=post_metrics['basic'], user_id=user, facebook=facebook, token=token)
+        media_type = res.get('media_type', '')
         media_type = 'STORY' if media_id in story_ids else res.get('media_type')
         res['media_type'] = media_type
         metrics = post_metrics.get(media_type, post_metrics['insight'])
