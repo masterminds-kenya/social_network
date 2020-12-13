@@ -368,7 +368,7 @@ def _get_posts_data_of_user(user_id, stories=True, ig_id=None, facebook=None):
         insights = res_insight.get('data')
         if insights:
             temp = {ea.get('name'): ea.get('values', [{'value': 0}])[0].get('value', 0) for ea in insights}
-            if media_type == 'CAROUSEL_ALBUM':
+            if media_type in ('CAROUSEL_ALBUM', 'STORY'):
                 temp = {metric_clean(key): val for key, val in temp.items()}
             res.update(temp)
         else:
