@@ -220,7 +220,7 @@ class User(UserMixin, db.Model):
         """Returns boolean: Similar to has_active_all, but if the ignore Campaigns(s) are not currently active. """
         # TODO: Turn into a hybrid_property for ignore=None, and a hybrid_method for ignore version?
         if not ignore:
-            return self.has_active_all()
+            return self.has_active_all
         connected = self.connected_campaigns
         # if not isinstance(ignore, (list, tuple, set)):
         #     ignore = (ignore, ) if ignore else []

@@ -41,7 +41,7 @@ def query_by_kwargs(query, Model=User, active_campaigns=None, **kwargs):
     result = None
     if active_campaigns is not None:  # expected value True or False, left as None if not filtering by this.
         if Model == User:
-            result = [u for u in q.all() if u.has_active() is active_campaigns]
+            result = [u for u in q.all() if u.has_active_all is active_campaigns]
         elif Model == Campaign:
             q = q.filter(Campaign.completed is False)
     return result or q.all()

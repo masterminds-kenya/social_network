@@ -274,7 +274,7 @@ def process_hook(req):
             #     message += f"Test update, added to user # {user_id} "
             # else:
             user = User.query.filter_by(instagram_id=ig_id).first()  # returns None if not found.
-            if not user or not user.has_active():
+            if not user or not user.has_active_all:
                 data_log += f", for {user or 'not-found-user'} SKIP"
                 skipped += 1
                 # message += f"STORY post for {user or 'not-found-user'} NOT TRACKED \n"

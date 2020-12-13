@@ -666,7 +666,7 @@ def all(mod):
         models = db_all(Model=Model, role=role) if Model in (User, Campaign) else db_all(Model=Model)
         if view and Model == User and view != 'all':
             active_opt = True if view == 'active' else False
-            models = [ea for ea in models if ea.has_active() is active_opt]
+            models = [ea for ea in models if ea.has_active_all is active_opt]
     return render_template('list.html', mod=mod, data=models, view=view)
 
 

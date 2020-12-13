@@ -29,7 +29,7 @@ def handle_user_page(user, value, oldvalue, initiator):
         user.story_subscribed = False
         app.logger.info(f"Empty page_token for {user} user. Set story_subscribed to False. ")
         return None
-    if user.has_active():
+    if user.has_active_all:
         app.logger.info(f"The {user} has an active campaign. Set to subscribe. ")
         session_user_subscribe(user)
     return value
