@@ -295,8 +295,7 @@ def get_basic_post(media_id, metrics=None, user_id=None, facebook=None, token=No
             message = "Unable to locate user token value. User should login with Facebook and authorize permissions. "
         else:
             message = "The get_basic_post must have at least one of 'user_id', 'facebook', or 'token' values. "
-        app.logger.error(message)
-        # raise Exception(message)
+        app.logger.error(message)  # raise Exception(message)
         return empty_res
     if not metrics:
         metrics = ','.join(Post.METRICS.get('basic'))
@@ -331,7 +330,6 @@ def _get_posts_data_of_user(user_id, stories=True, ig_id=None, facebook=None):
     else:
         raise TypeError(f"Expected an id or instance of User, but got {type({user_id})}: {user_id} ")
     if not facebook or not ig_id:
-        # user = user or User.query.get(user_id)
         ig_id, token = user.instagram_id, user.token
     # app.logger.info(f"==================== Get Posts on User {user_id} ====================")
     if stories:
@@ -340,7 +338,6 @@ def _get_posts_data_of_user(user_id, stories=True, ig_id=None, facebook=None):
         stories = story_res.get('data')
         if not isinstance(stories, list) or 'error' in story_res:
             app.logger.error('Stories Error: ', story_res.get('error', 'NA'))
-            # return []
     if not isinstance(stories, list):
         stories = []
     story_ids = set([ea.get('id') for ea in stories])
@@ -350,7 +347,6 @@ def _get_posts_data_of_user(user_id, stories=True, ig_id=None, facebook=None):
     if not isinstance(media, list):
         app.logger.error('Error: ', response.get('error', 'NA'))
         media = []
-        # return []
     media.extend(stories)
     # app.logger.info(f"------ Looking up a total of {len(media)} Media Posts, including {len(stories)} Stories ------")
     post_metrics = {key: ','.join(val) for (key, val) in Post.METRICS.items()}
@@ -417,7 +413,6 @@ def get_fb_page_for_users_ig_account(user, ignore_current=False, facebook=None, 
         params = {'fields': 'accounts'}
         if not facebook:
             params['access_token'] = token
-        # TODO: Test facebook.post will work as written below.
         res = facebook.post(url, params=params).json() if facebook else requests.post(url, params=params).json()
         pprint(res)
         accounts = res.pop('accounts', None)
@@ -529,7 +524,7 @@ def find_pages_for_fb_id(fb_id, facebook=None, token=None):
        Using technique from Graph API docs: https://developers.facebook.com/docs/graph-api/reference/v7.0/user/accounts
     """
     url = f"https://graph.facebook.com/v7.0/{fb_id}/accounts"
-    app.logger.info("========================== The find_pages_for_fb_id was called ==========================")
+    # app.logger.info("========================== The find_pages_for_fb_id was called ==========================")
     if not facebook and not token:
         message = "This function requires at least one value for either 'facebook' or 'token' keyword arguments. "
         app.logger.error(message)
@@ -551,8 +546,7 @@ def find_instagram_id(accounts, facebook=None, token=None, app_token=None):
     if not facebook and not token:
         message = "This function requires at least one value for either 'facebook' or 'token' keyword arguments. "
         app.logger.error(message)
-        return []
-        # raise Exception(message)
+        return []  # raise Exception(message)
     if not accounts or 'data' not in accounts:
         message = f"No pages found from accounts data: {accounts}. "
         app.logger.info(message)
@@ -621,8 +615,7 @@ def onboard_new(data, facebook=None, token=None):
     if not facebook and not token:
         message = "This function requires at least one value for either 'facebook' or 'token' keyword arguments. "
         app.logger.error(message)
-        return ('not_found', [])
-        # raise Exception(message)
+        return ('not_found', [])  # raise Exception(message)
     fb_id = data.get('facebook_id', '')
     accounts = data.pop('accounts', None) or find_pages_for_fb_id(fb_id, facebook=facebook, token=token)
     ig_list = find_instagram_id(accounts, facebook=facebook, token=token)

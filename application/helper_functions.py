@@ -2,7 +2,7 @@ from flask import current_app as app
 from functools import wraps
 from flask_login import current_user
 from sqlalchemy import or_
-from .model_db import User, Insight, Audience, Post, Campaign, user_campaign, brand_campaign, db
+from .model_db import User, Insight, Audience, Post, Campaign, db  # , user_campaign, brand_campaign,
 from datetime import timedelta, datetime as dt
 from time import time
 import json
@@ -13,7 +13,6 @@ def mod_lookup(mod):
     if not isinstance(mod, str):
         raise TypeError("Expected a string input. ")
     lookup = {'insight': Insight, 'audience': Audience, 'post': Post, 'campaign': Campaign}
-    # 'onlinefollowers': OnlineFollowers,
     lookup.update({role: User for role in User.ROLES})
     Model = lookup.get(mod, None)
     if not Model:
