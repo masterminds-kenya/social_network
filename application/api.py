@@ -278,15 +278,15 @@ def get_audience(user_id, ig_id=None, facebook=None):
     return db_create_or_update_many(results, user_id=user_id, Model=Audience)
 
 
-def get_basic_post(media_id, metrics=None, user_id=None, facebook=None, token=None):
-    """Typically called by _get_posts_data_of_user, but also if we have a new Story Post while processing hooks. """
-    user = None
-    if isinstance(user_id, User):
-        user = user_id
+def get_basic_post(media_id, metrics=None, id_or_user=None, facebook=None, token=None):
+    """Typically called by _get_posts_data_of_user. The user_id parameter can be a user instance or user_id. """
+    user, user_id = None, None
+    if isinstance(id_or_user, User):
+        user = id_or_user
         user_id = user.id
         token = token if token and not facebook else user.token
-    elif isinstance(user_id, (int, str)) and not facebook and not token:
-        user_id = int(user_id)
+    elif isinstance(id_or_user, (int, str)) and not facebook and not token:
+        user_id = int(id_or_user)
         user = User.query.get(user_id)
         token = getattr(user, 'token', None)
     empty_res = {'media_id': media_id, 'user_id': user_id, 'timestamp': str(dt.utcnow())}
@@ -310,7 +310,7 @@ def get_basic_post(media_id, metrics=None, user_id=None, facebook=None, token=No
         return empty_res
     if 'error' in res:
         app.logger.info('------------- Error in get_basic_post FB API response -------------')
-        app.logger.error(f"User: {user_id} | Media: {media_id} | Error: {res.get('error', 'Empty Error')} ")
+        app.logger.error(f"User: {id_or_user} | Media: {media_id} | Error: {res.get('error', 'Empty Error')} ")
         return empty_res
     res['media_id'] = res.pop('id', media_id)
     if user_id:
@@ -318,19 +318,21 @@ def get_basic_post(media_id, metrics=None, user_id=None, facebook=None, token=No
     return res
 
 
-def _get_posts_data_of_user(user_id, stories=True, ig_id=None, facebook=None):
+def _get_posts_data_of_user(id_or_user, stories=True, ig_id=None, facebook=None):
     """Called by get_posts. Returns the API response data for posts on a single user. """
-    user, token = None, None
-    if isinstance(user_id, User):
-        user = user_id
+    user, user_id, token = None, None, None
+    if isinstance(id_or_user, User):
+        user = id_or_user
         user_id = user.id
-    elif isinstance(user_id, (int, str)):
-        user_id = int(user_id)
+    elif isinstance(id_or_user, (int, str)):
+        user_id = int(id_or_user)
         user = User.query.get(user_id)
+        id_or_user = user
     else:
-        raise TypeError(f"Expected an id or instance of User, but got {type({user_id})}: {user_id} ")
+        raise TypeError(f"Expected an id or instance of User, but got {type({id_or_user})}: {id_or_user} ")
     if not facebook or not ig_id:
-        ig_id, token = user.instagram_id, user.token
+        ig_id = ig_id or user.instagram_id
+        token = user.token
     # app.logger.info(f"==================== Get Posts on User {user_id} ====================")
     if stories:
         url = f"https://graph.facebook.com/{ig_id}/stories"
@@ -353,7 +355,7 @@ def _get_posts_data_of_user(user_id, stories=True, ig_id=None, facebook=None):
     results = []
     for post in media:
         media_id = post.get('id')
-        res = get_basic_post(media_id, metrics=post_metrics['basic'], user_id=user, facebook=facebook, token=token)
+        res = get_basic_post(media_id, metrics=post_metrics['basic'], id_or_user=user, facebook=facebook, token=token)
         media_type = 'STORY' if media_id in story_ids else res.get('media_type', '')
         res['media_type'] = media_type
         metrics = post_metrics.get(media_type, post_metrics['insight'])
