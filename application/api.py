@@ -305,8 +305,8 @@ def get_basic_post(media_id, metrics=None, user_id=None, facebook=None, token=No
     except Exception as e:
         auth = 'facebook' if facebook else 'token' if token else 'none'
         app.logger.info('------------- Error in get_basic_post FB API response -------------')
-        app.logger.debug(f"API fail for Post with media_id {media_id} | Auth: {auth} ")
-        app.logger.info(e)
+        app.logger.error(f"API fail for Post with media_id {media_id} | Auth: {auth} ")
+        app.logger.exception(e)
         return empty_res
     if 'error' in res:
         app.logger.info('------------- Error in get_basic_post FB API response -------------')
@@ -340,7 +340,7 @@ def _get_posts_data_of_user(user_id, stories=True, ig_id=None, facebook=None):
             app.logger.error('Stories Error: ', story_res.get('error', 'NA'))
     if not isinstance(stories, list):
         stories = []
-    story_ids = set([ea.get('id') for ea in stories])
+    story_ids = set(ea.get('id') for ea in stories)
     url = f"https://graph.facebook.com/{ig_id}/media"
     response = facebook.get(url).json() if facebook else requests.get(f"{url}?access_token={token}").json()
     media = response.get('data')
@@ -354,8 +354,7 @@ def _get_posts_data_of_user(user_id, stories=True, ig_id=None, facebook=None):
     for post in media:
         media_id = post.get('id')
         res = get_basic_post(media_id, metrics=post_metrics['basic'], user_id=user, facebook=facebook, token=token)
-        media_type = res.get('media_type', '')
-        media_type = 'STORY' if media_id in story_ids else res.get('media_type')
+        media_type = 'STORY' if media_id in story_ids else res.get('media_type', '')
         res['media_type'] = media_type
         metrics = post_metrics.get(media_type, post_metrics['insight'])
         if metrics == post_metrics['insight']:
@@ -365,7 +364,7 @@ def _get_posts_data_of_user(user_id, stories=True, ig_id=None, facebook=None):
         insights = res_insight.get('data')
         if insights:
             temp = {ea.get('name'): ea.get('values', [{'value': 0}])[0].get('value', 0) for ea in insights}
-            if media_type in ('CAROUSEL_ALBUM', 'STORY'):
+            if media_type == 'CAROUSEL_ALBUM':
                 temp = {metric_clean(key): val for key, val in temp.items()}
             res.update(temp)
         else:
