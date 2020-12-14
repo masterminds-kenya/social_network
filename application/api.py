@@ -23,7 +23,14 @@ FB_SCOPE = [
     'instagram_manage_insights',
     'pages_manage_metadata',
     # 'manage_pages'  # Deprecated. Now using pages_read_engagement (v7.0), 'pages_manage_metadata' for later.
-        ]
+    ]
+METRICS = {
+    OnlineFollowers: ','.join(OnlineFollowers.METRICS),
+    Audience: ','.join(Audience.METRICS),
+    Insight: {'influence': ','.join(Insight.INFLUENCE_METRICS), 'profile': ','.join(Insight.PROFILE_METRICS)},
+    Post: {key: ','.join(val) for key, val in Post.METRICS.items()},
+    # Keys in Post: basic, insight, IMAGE, VIDEO, CAROUSEL_ALBUM, STORY
+    }
 
 # TODO: CRITICAL All API calls need to handle pagination results.
 
@@ -207,9 +214,9 @@ def get_insight(user_id, first=1, influence_last=30*12, profile_last=30*3, ig_id
     app.logger.info("------------ Get Insight: Influence, Profile ------------")
     app.logger.debug(influence_last)
     app.logger.debug(profile_last)
-    for insight_metrics, last in [(Insight.INFLUENCE_METRICS, influence_last), (Insight.PROFILE_METRICS, profile_last)]:
-        metric = ','.join(insight_metrics)
-        for i in range(first, last + 2 - 30, 30):
+
+    for metric, last in zip(METRICS[Insight].values(), (influence_last, profile_last)):
+        for i in range(first, last + first + 1 - 30, 30):
             until = now - timedelta(days=i)
             since = until - timedelta(days=30)
             url = "https://graph.facebook.com"
@@ -234,7 +241,7 @@ def get_online_followers(user_id, ig_id=None, facebook=None):
     """Just want to get Facebook API response for online_followers for the maximum of the previous 30 days. """
     # app.logger.info('================ Get Online Followers data ================')
     ig_period, token = 'lifetime', ''
-    metric = ','.join(OnlineFollowers.METRICS)
+    metric = METRICS[OnlineFollowers]
     if not facebook or not ig_id:
         user = User.query.get(user_id)
         ig_id = ig_id or user.instagram_id
@@ -260,7 +267,8 @@ def get_online_followers(user_id, ig_id=None, facebook=None):
 def get_audience(user_id, ig_id=None, facebook=None):
     """Get the audience data for the (influencer or brand) user with given user_id """
     # app.logger.info('================ Get Audience Data ================')
-    audience_metric = ','.join(Audience.METRICS)
+    # TODO Priority 2: Is pagination a concern?
+    metric = METRICS[Audience]
     ig_period = 'lifetime'
     results, token = [], ''
     if not facebook or not ig_id:
@@ -306,7 +314,7 @@ def get_basic_post(media_id, metrics=None, id_or_user=None, facebook=None, token
         app.logger.error(message)  # raise Exception(message)
         return empty_res
     if not metrics:
-        metrics = ','.join(Post.METRICS.get('basic'))
+        metrics = METRICS[Post]['basic']
     url = f"https://graph.facebook.com/{media_id}?fields={metrics}"
     try:
         res = facebook.get(url).json() if facebook else requests.get(f"{url}&access_token={token}").json()
@@ -359,7 +367,7 @@ def _get_posts_data_of_user(id_or_user, stories=True, ig_id=None, facebook=None)
         media = []
     media.extend(stories)
     # app.logger.info(f"------ Looking up a total of {len(media)} Media Posts, including {len(stories)} Stories ------")
-    post_metrics = {key: ','.join(val) for (key, val) in Post.METRICS.items()}
+    post_metrics = METRICS[Post]
     results = []
     for post in media:
         media_id = post.get('id')
