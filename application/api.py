@@ -377,6 +377,7 @@ def _get_posts_data_of_user(id_or_user, stories=True, ig_id=None, facebook=None)
 
 def get_posts(id_or_users, stories=True, ig_id=None, facebook=None):
     """Input is a single entity or list of User instance(s), or User id(s).
+       Likely called by 'all_posts' for daily download or 'new_post' for a specific user.
        Calls the API to get all of the Posts (with insights of Posts) of User(s).
        Saves this data to the Database, creating or updating as needed.
        Returns an array of the saved Post instances.

@@ -516,7 +516,7 @@ def new_insight(mod, id):
 @app.route('/<string:mod>/<int:id>/posts')
 @login_required
 def new_post(mod, id):
-    """Get new posts data from API. Input mod for either User or Brand, with a given id"""
+    """Get new posts data from API for a given user. Input mod for either User or Brand, with a given id. """
     if current_user.role not in ['admin', 'manager'] and current_user.id != id:
         flash("This was not a correct location. You are redirected to the home page. ")
         return redirect(url_for('home'))
