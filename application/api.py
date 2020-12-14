@@ -4,8 +4,9 @@ from datetime import timedelta  # , datetime as dt
 import requests
 from requests_oauthlib import OAuth2Session
 from requests_oauthlib.compliance_fixes import facebook_compliance_fix
-from .model_db import translate_api_user_token, db_create, db_read, db_create_or_update_many, db
+from .model_db import translate_api_user_token, db_create, db_create_or_update_many, db  # , db_read,
 from .model_db import metric_clean, Insight, Audience, Post, OnlineFollowers, User  # , Campaign
+from .helper_functions import make_missing_timestamp
 from pprint import pprint
 
 URL = app.config.get('URL')
@@ -219,10 +220,10 @@ def get_insight(user_id, first=1, influence_last=30*12, profile_last=30*3, ig_id
         for i in range(first, last + first + 1 - 30, 30):
             until = now - timedelta(days=i)
             since = until - timedelta(days=30)
-            url = "https://graph.facebook.com"
-            url += f"/{ig_id}/insights?metric={metric}&period={ig_period}&since={since}&until={until}"
+            url = f"https://graph.facebook.com/{ig_id}/insights"
+            url += f"?metric={metric}&period={ig_period}&since={since}&until={until}"
             response = facebook.get(url).json() if facebook else requests.get(f"{url}&access_token={token}").json()
-            insights = response.get('data')
+            insights = response.get('data', None)
             if not insights:
                 app.logger.error('Error: ', response.get('error'))
                 return None
@@ -272,9 +273,11 @@ def get_audience(user_id, ig_id=None, facebook=None):
     ig_period = 'lifetime'
     results, token = [], ''
     if not facebook or not ig_id:
-        model = db_read(user_id, safe=False)
-        ig_id, token = model.get('instagram_id'), model.get('token')
-    url = f"https://graph.facebook.com/{ig_id}/insights?metric={audience_metric}&period={ig_period}"
+        user = User.query.get(user_id)
+        ig_id = ig_id or user.instagram_id
+        token = user.token
+    url = f"https://graph.facebook.com/{ig_id}/insights"
+    url += f"?metric={metric}&period={ig_period}"
     audience = facebook.get(url).json() if facebook else requests.get(f"{url}&access_token={token}").json()
     if not audience.get('data'):
         app.logger.error(f"Error: {audience.get('error')}")
@@ -299,7 +302,7 @@ def get_basic_post(media_id, metrics=None, id_or_user=None, facebook=None, token
     if isinstance(id_or_user, User):
         user = id_or_user
         user_id = user.id
-        token = token if token and not facebook else user.token
+        token = token if token or facebook else user.token
     elif isinstance(id_or_user, (int, str)) and not facebook and not token:
         user_id = int(id_or_user)
         user = User.query.get(user_id)
@@ -427,12 +430,12 @@ def get_fb_page_for_users_ig_account(user, ignore_current=False, facebook=None, 
                 app.logger.error(message)
                 return None
         url = f"https://graph.facebook.com/{fb_id}"
-        app.logger.info(f"========== get_fb_page_for_users_ig_account {user} ==========")
+        # app.logger.info(f"========== get_fb_page_for_users_ig_account {user} ==========")
         params = {'fields': 'accounts'}
         if not facebook:
             params['access_token'] = token
         res = facebook.post(url, params=params).json() if facebook else requests.post(url, params=params).json()
-        pprint(res)
+        # pprint(res)
         accounts = res.pop('accounts', None)
         ig_list = find_instagram_id(accounts, facebook=facebook, token=token)
         matching_ig = [ig_info for ig_info in ig_list if int(ig_info.get('id', 0)) == ig_id]
@@ -567,7 +570,7 @@ def find_instagram_id(accounts, facebook=None, token=None, app_token=None):
         return []  # raise Exception(message)
     if not accounts or 'data' not in accounts:
         message = f"No pages found from accounts data: {accounts}. "
-        app.logger.info(message)
+        app.logger.error(message)
         return []
     if 'paging' in accounts:
         app.logger.info(f"Have paging in accounts: {accounts['paging']} ")
@@ -787,11 +790,11 @@ def onboarding(mod, request):
     data['token'] = token
     fb_id = data.get('id', None)  # TODO: Change to .pop once confirmed elsewhere always looks for 'facebook_id'.
     data['facebook_id'] = fb_id
-    app.logger.info('================ Prepared Data and Users ================')
-    app.logger.info(data)
+    # app.logger.info('================ Prepared Data and Users ================')
+    # app.logger.info(data)
     users = User.query.filter(User.facebook_id == fb_id).all() if fb_id else None
-    app.logger.info(users)
-    app.logger.info('=========================================================')
+    # app.logger.info(users)
+    # app.logger.info('=========================================================')
     if users:
         return onboard_existing(users, data, facebook=facebook)
     else:
