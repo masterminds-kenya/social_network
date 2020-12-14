@@ -331,7 +331,10 @@ def get_basic_post(media_id, metrics=None, id_or_user=None, facebook=None, token
         app.logger.info('------------- Error in get_basic_post FB API response -------------')
         app.logger.error(f"User: {id_or_user} | Media: {media_id} | Error: {res.get('error', 'Empty Error')} ")
         return empty_res
-    res['media_id'] = res.pop('id', media_id)
+    res_media_id = res.pop('id', '')
+    if res_media_id != media_id:
+        app.logger.error(f"Mismatch media_id: Request {media_id} | Response {res_media_id} ")
+    res['media_id'] = media_id
     if user_id:
         res['user_id'] = user_id
     return res
