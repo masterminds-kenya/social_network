@@ -1,6 +1,6 @@
 from flask import session, current_app as app
 from flask_login import login_user, logout_user, current_user
-from datetime import timedelta, datetime as dt
+from datetime import timedelta  # , datetime as dt
 import requests
 from requests_oauthlib import OAuth2Session
 from requests_oauthlib.compliance_fixes import facebook_compliance_fix
@@ -195,7 +195,7 @@ def get_insight(user_id, first=1, influence_last=30*12, profile_last=30*3, ig_id
     if not facebook or not ig_id:
         ig_id = ig_id or user.instagram_id
         token = user.token
-    now = dt.utcnow()
+    now = make_missing_timestamp(0)
     influence_date = user.recent_insight('influence')
     profile_date = user.recent_insight('profile')
     if influence_date:
@@ -236,11 +236,14 @@ def get_online_followers(user_id, ig_id=None, facebook=None):
     ig_period, token = 'lifetime', ''
     metric = ','.join(OnlineFollowers.METRICS)
     if not facebook or not ig_id:
-        model = db_read(user_id, safe=False)
-        ig_id, token = model.get('instagram_id'), model.get('token')
-    until = dt.utcnow() - timedelta(days=1)
-    since = until - timedelta(days=30)
-    url = f"https://graph.facebook.com/{ig_id}/insights?metric={metric}&period={ig_period}&since={since}&until={until}"
+        user = User.query.get(user_id)
+        ig_id = ig_id or user.instagram_id
+        token = user.token
+    start_days_ago = 1
+    until = make_missing_timestamp(start_days_ago)
+    since = make_missing_timestamp(start_days_ago + 30)
+    url = f"https://graph.facebook.com/{ig_id}/insights"
+    url += f"?metric={metric}&period={ig_period}&since={since}&until={until}"
     response = facebook.get(url).json() if facebook else requests.get(f"{url}&access_token={token}").json()
     data = response.get('data')
     if not data:
@@ -293,7 +296,8 @@ def get_basic_post(media_id, metrics=None, id_or_user=None, facebook=None, token
         user_id = int(id_or_user)
         user = User.query.get(user_id)
         token = getattr(user, 'token', None)
-    empty_res = {'media_id': media_id, 'user_id': user_id, 'timestamp': str(dt.utcnow())}
+    timestamp = str(make_missing_timestamp(0))
+    empty_res = {'media_id': media_id, 'user_id': user_id, 'timestamp': timestamp, 'caption': 'NO_CREDENTIALS'}
     if not facebook and not token:
         if user:
             message = "Unable to locate user token value. User should login with Facebook and authorize permissions. "
@@ -518,7 +522,7 @@ def get_ig_info(ig_id, facebook=None, token=None):
         raise ValueError(logstring)
     url = f"https://graph.facebook.com/v4.0/{ig_id}?fields={fields}"
     res = facebook.get(url).json() if facebook else requests.get(f"{url}&access_token={token}").json()
-    end_time = dt.utcnow().isoformat(timespec='seconds') + '+0000'
+    end_time = make_missing_timestamp(0).isoformat(timespec='seconds') + '+0000'
     for name in Audience.IG_DATA:  # {'media_count', 'followers_count'}
         res[name] = {'end_time': end_time, 'value': res.get(name)}
     res['name'] = res.pop('username', res.get('name', ''))
