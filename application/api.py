@@ -322,14 +322,16 @@ def get_basic_post(media_id, metrics=None, id_or_user=None, facebook=None, token
     try:
         res = facebook.get(url).json() if facebook else requests.get(f"{url}&access_token={token}").json()
     except Exception as e:
-        auth = 'facebook' if facebook else 'token' if token else 'none'
+        auth = 'FACEBOOK' if facebook else 'TOKEN' if token else 'NONE'
         app.logger.info('------------- Error in get_basic_post FB API response -------------')
         app.logger.error(f"API fail for Post with media_id {media_id} | Auth: {auth} ")
         app.logger.exception(e)
+        empty_res['caption'] = 'AUTH_' + auth
         return empty_res
     if 'error' in res:
         app.logger.info('------------- Error in get_basic_post FB API response -------------')
         app.logger.error(f"User: {id_or_user} | Media: {media_id} | Error: {res.get('error', 'Empty Error')} ")
+        empty_res['caption'] = 'API_ERROR'
         return empty_res
     res_media_id = res.pop('id', '')
     if res_media_id != media_id:
