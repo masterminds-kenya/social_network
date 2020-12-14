@@ -11,6 +11,9 @@ from .api import onboard_login, onboarding, get_insight, get_audience, get_posts
 from .sheets import create_sheet, update_sheet, perm_add, perm_list, all_files
 from pprint import pprint
 
+# Sentinels for errors recorded on the Post.caption field.
+caption_errors = ['NO_CREDENTIALS', 'AUTH_FACEBOOK', 'AUTH_TOKEN', 'AUTH_NONE', 'API_ERROR', 'INSIGHTS_CREATED']
+
 
 @app.route('/')
 def home():
@@ -346,7 +349,7 @@ def campaign(id, view='management'):
         if not success:
             app.logger.error("Update Campaign Failed. ")
     related = campaign.related_posts(view)
-    return render_template(template, mod=mod, view=view, data=campaign, related=related)
+    return render_template(template, mod=mod, view=view, data=campaign, related=related, caption_errors=caption_errors)
 
 # ########## End of Campaign Views ############
 # ########## The following are for general Views ############
