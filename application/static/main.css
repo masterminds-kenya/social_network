@@ -397,6 +397,10 @@ strong {
   order: 3;
 }
 
+section.campaign_posts .error {
+  color: #4444;
+  background: #995555;
+}
 /* .wrap-collapsible { margin-bottom: 1.2rem 0; } */
 input.toggle[type='checkbox'] {
   display: none;

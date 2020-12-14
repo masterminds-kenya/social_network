@@ -11,6 +11,9 @@ from .api import onboard_login, onboarding, get_insight, get_audience, get_posts
 from .sheets import create_sheet, update_sheet, perm_add, perm_list, all_files
 from pprint import pprint
 
+# Sentinels for errors recorded on the Post.caption field.
+caption_errors = ['NO_CREDENTIALS', 'AUTH_FACEBOOK', 'AUTH_TOKEN', 'AUTH_NONE', 'API_ERROR', 'INSIGHTS_CREATED']
+
 
 @app.route('/')
 def home():
@@ -346,7 +349,7 @@ def campaign(id, view='management'):
         if not success:
             app.logger.error("Update Campaign Failed. ")
     related = campaign.related_posts(view)
-    return render_template(template, mod=mod, view=view, data=campaign, related=related)
+    return render_template(template, mod=mod, view=view, data=campaign, related=related, caption_errors=caption_errors)
 
 # ########## End of Campaign Views ############
 # ########## The following are for general Views ############
@@ -516,7 +519,7 @@ def new_insight(mod, id):
 @app.route('/<string:mod>/<int:id>/posts')
 @login_required
 def new_post(mod, id):
-    """Get new posts data from API. Input mod for either User or Brand, with a given id"""
+    """Get new posts data from API for a given user. Input mod for either User or Brand, with a given id. """
     if current_user.role not in ['admin', 'manager'] and current_user.id != id:
         flash("This was not a correct location. You are redirected to the home page. ")
         return redirect(url_for('home'))
@@ -666,7 +669,7 @@ def all(mod):
         models = db_all(Model=Model, role=role) if Model in (User, Campaign) else db_all(Model=Model)
         if view and Model == User and view != 'all':
             active_opt = True if view == 'active' else False
-            models = [ea for ea in models if ea.has_active() is active_opt]
+            models = [ea for ea in models if ea.has_active_all is active_opt]
     return render_template('list.html', mod=mod, data=models, view=view)
 
 

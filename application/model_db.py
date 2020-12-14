@@ -220,7 +220,7 @@ class User(UserMixin, db.Model):
         """Returns boolean: Similar to has_active_all, but if the ignore Campaigns(s) are not currently active. """
         # TODO: Turn into a hybrid_property for ignore=None, and a hybrid_method for ignore version?
         if not ignore:
-            return self.has_active_all()
+            return self.has_active_all
         connected = self.connected_campaigns
         # if not isinstance(ignore, (list, tuple, set)):
         #     ignore = (ignore, ) if ignore else []
@@ -566,8 +566,8 @@ class Campaign(db.Model):
     notes = db.Column(db.String(191), index=False, unique=False, nullable=True)
     modified = db.Column(db.DateTime, index=False, unique=False, nullable=False, default=dt.utcnow, onupdate=dt.utcnow)
     created = db.Column(db.DateTime,  index=False, unique=False, nullable=False, default=dt.utcnow)
-    users = db.relationship('User',    lazy='joined',             secondary=user_campaign, backref='campaigns')
-    brands = db.relationship('User',   lazy='joined',             secondary=brand_campaign, backref='brand_campaigns')
+    users = db.relationship('User',   lazy='joined',             secondary=user_campaign, backref='campaigns')
+    brands = db.relationship('User',  lazy='joined',             secondary=brand_campaign, backref='brand_campaigns')
     posts = db.relationship('Post',     order_by='Post.recorded', secondary=post_campaign, backref='campaigns')
     processed = db.relationship('Post', order_by='Post.recorded', secondary=processed_campaign, backref='processed')
     # TODO: Method so posts, and rejected (subset of processed) can be grouped by user and then sorted by recorded.

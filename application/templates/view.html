@@ -49,9 +49,9 @@ content %}
       <ul class="collapsible-content {{key}}">
         {% for ea in data[key] %}
         <li>
-          <a href="{{ url_for('view', mod='post', id=ea.id) }}"
-            ># {{ea.id}} {{ea.media_type}} posted on {{ea.recorded}}</a
-          >
+          <a href="{{ url_for('view', mod='post', id=ea.id) }}">
+            # {{ea.id}} {{ea.media_type}} posted on {{ea.recorded}}
+          </a>
         </li>
         {% endfor %}
       </ul>
@@ -63,8 +63,8 @@ content %}
         {% for ea in data[key] %}
         <li>
           <a href="{{ url_for('view', mod='audience', id=ea.id) }}">
-            {{ ea.name }} as of {{ea.recorded}}</a
-          >
+            {{ ea.name }} as of {{ea.recorded}}
+          </a>
         </li>
         {% endfor %}
       </ul>
