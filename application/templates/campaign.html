@@ -49,14 +49,20 @@
 {% endif %}
 {% endif %} -->
 
-{% endblock header %} {% block content %}
+{% endblock header %}
+{% block content %}
 <main>
   <div class="intro">
     <h2>
-      {{ mod|title }} {{ view|title }} - {{ data.name|title|e if data.name else
-      data.id }} {% if data.brands|length > 1 %} - {{ data.brands|join(", ")|e
-      }} {% elif data.brands|length > 0 %} - {{ data.brands[0]|e }} {% else %} -
-      Unassigned Brands {% endif %}
+      {{ mod|title }} {{ view|title }}
+      - {{ data.name|title|e if data.name else data.id }}
+      {% if data.brands|length > 1 %}
+      - {{ data.brands|join(", ")|e}}
+      {% elif data.brands|length > 0 %}
+      - {{ data.brands[0]|e }}
+      {% else %}
+      - Unassigned Brands
+      {% endif %}
     </h2>
     {% if current_user.is_authenticated %}
     <p class="platform-user-header">
@@ -65,60 +71,48 @@
     {% endif %}
 
     <p>
-      {% if view != 'management' %}<a
-        href="{{url_for('view', mod=mod, id=data.id)}}"
-        >Campaign Management</a
-      >
-      | {% endif %} {% if view != 'collected' %}<a
-        href="{{url_for('detail_campaign', id=data.id)}}"
-        >Collected Posts</a
-      >
-      | {% endif %} {% if view != 'rejected' %}<a
-        href="{{url_for('rejected_campaign', id=data.id)}}"
-        >Rejected Posts</a
-      >
-      | {% endif %} {% if view != 'results' %}<a
-        href="{{url_for('results', id=data.id)}}"
-        >Campaign Results</a
-      >
-      | {% endif %} Last Updated on {{data.modified}} | {%if completed%}Finished
-      Campaign{%else%}Active Campaign{%endif%} |
-      <a href="{{ url_for('edit', mod=mod, id=data.id) }}"
-        >Change Campaign Settings</a
-      >
+      {% if view != 'management' %}
+      <a href="{{url_for('view', mod=mod, id=data.id)}}">Campaign Management</a> |
+      {% endif %}
+      {% if view != 'collected' %}
+      <a href="{{url_for('detail_campaign', id=data.id)}}">Collected Posts</a> |
+      {% endif %}
+      {% if view != 'rejected' %}
+      <a href="{{url_for('rejected_campaign', id=data.id)}}">Rejected Posts</a> |
+      {% endif %}
+      {% if view != 'results' %}
+      <a href="{{url_for('results', id=data.id)}}">Campaign Results</a> |
+      {% endif %}
+      Last Updated on {{data.modified}} |
+      {%if completed%} Finished Campaign{%else%} Active Campaign{%endif%} |
+      <a href="{{ url_for('edit', mod=mod, id=data.id) }}">Change Campaign Settings</a>
       <br /><strong>Notes: </strong> {{ data.notes|e }}
     </p>
     {% if data.brands|length < 1 %}
     <p>
       There are no Brands associated with this campaign! You probably want to
-      <a href="{{url_for('edit', mod=mod, id=data.id)}}"
-        >Change Campaign Settings</a
-      >
+      <a href="{{url_for('edit', mod=mod, id=data.id)}}">Change Campaign Settings</a>
     </p>
-    {% endif %} {% if data.users|length < 1 %}
+    {% endif %}
+    {% if data.users|length < 1 %}
     <h2>No Influencers assigned in Campaign</h2>
     <p>
       You probably want to
-      <a href="{{url_for('edit', mod=mod, id=data.id)}}"
-        >Change Campaign Settings</a
-      >
+      <a href="{{url_for('edit', mod=mod, id=data.id)}}">Change Campaign Settings</a>
     </p>
-    {% else %} {% if view == 'management' %}
+    {% elif view == 'management' %}
     <ul>
       {% for user in data.users %}
       <li>
-        <strong>{{ user.name }}</strong> | posts last retrieved on
-        {{user.modified}} |
-        <a href="{{ url_for('new_post', mod='influencer', id=user.id) }}"
-          >retrieve new {{user.name}} posts</a
-        >
+        <strong>{{ user.name }}</strong> |
+        <a href="{{ url_for('new_post', mod='influencer', id=user.id) }}">retrieve new {{user.name}} posts</a>
         <br />
       </li>
       {% else %}
       <li>No associated Influencers found</li>
       {% endfor %}
     </ul>
-    {% endif %} {% endif %}
+    {% endif %}
   </div>
 
   {% for user in related.keys() %}
@@ -133,56 +127,66 @@
           {% if post.media_type == 'STORY' %}
           <p>
             {% if post.saved_media %}
-            <a href="{{post.saved_media}}"
-              >{{post.media_type}} | {{post.recorded}}</a
-            >
-            || {% else %}
-            <a href="{{post.permalink}}"
-              >{{post.media_type}} | {{post.recorded}}</a
-            >
-            || {% endif %} Other images available as authoritative view.
-            <a href="{{ url_for('view', mod='post', id=post.id) }}"
-              >Update selected image</a
-            >
+            <a href="{{post.saved_media}}">{{post.media_type}} | {{post.recorded}}</a> ||
+            {% else %}
+            <a href="{{post.permalink}}">{{post.media_type}} | {{post.recorded}}</a> ||
+            {% endif %}
+            Other images available as authoritative view.
+            <a href="{{ url_for('view', mod='post', id=post.id) }}">Update selected image</a>
             (not yet available).
           </p>
           {% else %}
           <p>
-            <a href="{{post.permalink}}"
-              >{{post.media_type}} | {{post.recorded}}</a
-            >
+            <a href="{{post.permalink}}">{{post.media_type}} | {{post.recorded}}</a>
           </p>
           {% endif %}
-          <p>{{ post.caption|e }}</p>
+          {% if caption_errors and post.caption in caption_errors %}
+          <p class="error {{ post.caption|e }}">No Caption. Error Code:
+          {% else %}
+          <p>
+          {% endif %}
+            {{ post.caption|e }}
+          </p>
         </article>
         <div class="metrics">
-          {% if view == 'collected' %}
+        {% if view == 'collected' %}
           <ul>
-            {% for key, val in post.items() %} {% if key not in ['id',
-            'user_id', 'recorded', 'permalink', 'media_type', 'caption',
-            'processed', 'campaigns'] %}
+          {% for key, val in post.items() %}
+            {% if key not in ['id', 'user_id', 'recorded', 'permalink',
+              'media_type', 'caption', 'processed', 'campaigns'] %}
             <li>{{key|title}}: {{val}}</li>
-            {% endif %} {% endfor %}
+            {% endif %}
+          {% endfor %}
           </ul>
-          {% endif %}
+        {% endif %}
         </div>
         <div class="form-group">
           <label for="accept_{{post.id}}">
-            <input type="radio" id="accept_{{post.id}}"
-            name="assign_{{post.id}}" {% if view == 'management' or view ==
-            'rejected' %} value="{{data.id}}" {% elif view == 'collected' %}
-            value="0" checked {% endif %} > Accept
+            <input type="radio" id="accept_{{post.id}}" name="assign_{{post.id}}"
+            {% if view in ('management', 'rejected') %}
+              value="{{data.id}}"
+            {% elif view == 'collected' %}
+              value="0" checked
+            {% endif %}
+            > Accept
           </label>
           <label for="reject_{{post.id}}">
-            <input type="radio" id="reject_{{post.id}}"
-            name="assign_{{post.id}}" {% if view == 'rejected' %} value="0"
-            checked {% else %} value="-1" {% endif %} > Reject
+            <input type="radio" id="reject_{{post.id}}" name="assign_{{post.id}}"
+            {% if view == 'rejected' %}
+              value="0" checked
+            {% else %}
+              value="-1"
+            {% endif %}
+            > Reject
           </label>
           <label for="ignore_{{post.id}}">
-            <input type="radio" id="ignore_{{post.id}}"
-            name="assign_{{post.id}}" {% if view == 'management' %} value="0"
-            checked {% elif view == 'collected' or view == 'rejected' %}
-            value="-2" {% endif %} > Undecided
+            <input type="radio" id="ignore_{{post.id}}" name="assign_{{post.id}}"
+            {% if view == 'management' %}
+              value="0" checked
+            {% elif view == 'collected' or view == 'rejected' %}
+              value="-2"
+            {% endif %}
+              > Undecided
           </label>
         </div>
         <hr />
@@ -191,16 +195,15 @@
       <section class="campaign_posts">
         <p>No Posts Found. You may need to retrieve new posts.</p>
       </section>
-      {% endfor %} {% if related[user]|length < 1 %} {% if view=='management' %}
-      <p>
-        <a href="{{ url_for('new_post', mod='influencer', id=user.id) }}"
-          >retrieve new {{user.name}} posts</a
-        >
-      </p>
-      {% endif %} {% else %}
-      <button type="submit" value="Confirm Assignments">
-        Confirm Assignments
-      </button>
+      {% endfor %}
+      {% if related[user]|length < 1 %}
+        {% if view=='management' %}
+        <p>
+          <a href="{{ url_for('new_post', mod='influencer', id=user.id) }}">retrieve new {{user.name}} posts</a>
+        </p>
+        {% endif %}
+      {% else %}
+        <button type="submit" value="Confirm Assignments">Confirm Assignments</button>
       {% endif %}
     </form>
   </div>
