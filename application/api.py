@@ -89,6 +89,7 @@ def inspect_access_token(input_token, app_access_token=None):
 
 def user_permissions(id_or_user, facebook=None, token=None, app_access_token=None):
     """Used by staff to check on what permissions a given user has granted to the platform application. """
+    # TODO UNLIKELY: Is pagination a concern?
     user = id_or_user
     if isinstance(user, (str, int)):
         user = User.query.get(user)
@@ -197,6 +198,7 @@ def get_insight(user_id, first=1, influence_last=30*12, profile_last=30*3, ig_id
        It will check existing data to see how recently we have insight metrics for this user.
        It will request results for the full duration, or since recent data, or a minimum of 30 days.
     """
+    # TODO Priority 2: Is pagination a concern?
     ig_period = 'day'
     results, token = [], ''
     user = User.query.get(user_id)
@@ -241,6 +243,7 @@ def get_insight(user_id, first=1, influence_last=30*12, profile_last=30*3, ig_id
 def get_online_followers(user_id, ig_id=None, facebook=None):
     """Just want to get Facebook API response for online_followers for the maximum of the previous 30 days. """
     # app.logger.info('================ Get Online Followers data ================')
+    # TODO Priority 2: Is pagination a concern?
     ig_period, token = 'lifetime', ''
     metric = METRICS[OnlineFollowers]
     if not facebook or not ig_id:
@@ -297,8 +300,12 @@ def get_audience(user_id, ig_id=None, facebook=None):
 
 
 def get_basic_post(media_id, metrics=None, id_or_user=None, facebook=None, token=None):
-    """Typically called by _get_posts_data_of_user. The user_id parameter can be a user instance or user_id. """
-    user, user_id = None, None
+    """Returns API results of IG media posts content. Typically called by _get_posts_data_of_user.
+    The user_id parameter can be a user instance or user_id.
+    If there are issues in the data collection, sentinel values are saved in the 'caption' field.
+    """
+    # TODO: Is pagination a concern?
+    user, user_id = None, id_or_user
     if isinstance(id_or_user, User):
         user = id_or_user
         user_id = user.id
@@ -344,6 +351,7 @@ def get_basic_post(media_id, metrics=None, id_or_user=None, facebook=None, token
 
 def _get_posts_data_of_user(id_or_user, stories=True, ig_id=None, facebook=None):
     """Called by get_posts. Returns the API response data for posts on a single user. """
+    # TODO: Is pagination a concern?
     user, user_id, token = None, None, None
     if isinstance(id_or_user, User):
         user = id_or_user
@@ -418,6 +426,7 @@ def get_posts(id_or_users, stories=True, ig_id=None, facebook=None):
 
 def get_fb_page_for_users_ig_account(user, ignore_current=False, facebook=None, token=None):
     """For a user with a known Instagram account, we can determine the related Facebook page. """
+    # TODO: Is pagination a concern?
     if not isinstance(user, User):
         raise Exception("get_fb_page_for_users_ig_account requires a User model instance as the first parameter. ")
     page = dict(zip(['id', 'token'], [getattr(user, 'page_id', None), getattr(user, 'page_token', None)]))
@@ -452,6 +461,7 @@ def get_fb_page_for_users_ig_account(user, ignore_current=False, facebook=None, 
 
 def install_app_on_user_for_story_updates(id_or_user, page=None, facebook=None, token=None):
     """Accurate Story Post metrics can be pushed to the Platform only if the App is installed on the related Page. """
+    # TODO: Is pagination a concern?
     if isinstance(id_or_user, User):
         user = id_or_user
         user_id = user.id
@@ -530,6 +540,7 @@ def get_ig_info(ig_id, facebook=None, token=None):
     # Possible fields. Fields with asterisk (*) are public and can be returned by and edge using field expansion:
     # biography*, id*, ig_id, followers_count*, follows_count, media_count*, name,
     # profile_picture_url, username*, website*
+    # TODO: Is pagination a concern?
     fields = ','.join(['username', *Audience.IG_DATA])  # 'media_count', 'followers_count'
     app.logger.info('============ Get IG Info ===================')
     if not token and not facebook:
@@ -549,6 +560,7 @@ def find_pages_for_fb_id(fb_id, facebook=None, token=None):
     """From a known facebook id, we can get a list of all pages the user has a role on via the accounts route.
        Using technique from Graph API docs: https://developers.facebook.com/docs/graph-api/reference/v7.0/user/accounts
     """
+    # TODO Priority 2: CHECK FOR PAGINATION
     url = f"https://graph.facebook.com/v7.0/{fb_id}/accounts"
     # app.logger.info("========================== The find_pages_for_fb_id was called ==========================")
     if not facebook and not token:
@@ -569,6 +581,7 @@ def find_instagram_id(accounts, facebook=None, token=None, app_token=None):
     """For an influencer or brand, we can discover all of their instagram business accounts they have.
        This depends on them having their expected associated facebook page (for each).
     """
+    # TODO: Handle pagination results on 'accounts' of FB Pages? Unlikely issue for instagram_business_account request.
     if not facebook and not token:
         message = "This function requires at least one value for either 'facebook' or 'token' keyword arguments. "
         app.logger.error(message)
@@ -786,7 +799,9 @@ def onboarding(mod, request):
     if 'error' in token:
         app.logger.info(token['error'])
         return ('error', token['error'])
-    facebook_user_data = facebook.get("https://graph.facebook.com/me?fields=id,accounts").json()
+    url = "https://graph.facebook.com/me?fields=id,accounts"  # For FB Pages.
+    facebook_user_data = facebook.get(url).json()  # Docs don't mention pagination, imply not a concern yet.
+    # TODO UNLIKELY?: Is pagination a concern?
     if 'error' in facebook_user_data:
         app.logger.info(facebook_user_data['error'])
         return ('error', facebook_user_data['error'])

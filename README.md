@@ -116,6 +116,7 @@ When looking at techniques and Documentation, be careful and **DO NOT USE** the 
   - `instagram_graph_user_profile` permission allows your app to read the app user's profile.
 
 The following includes links and critical requirements.
+TODO CRITICAL: For all Graph API results, the BIP App must handle pagination results in the response.
 
 - [Instagram Graph API](https://developers.facebook.com/docs/instagram-api)
   - Limitations
