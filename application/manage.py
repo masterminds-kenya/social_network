@@ -242,13 +242,15 @@ def process_hook(req):
             val.update({'ig_id': ea.get('id')})
             hook_data[rec.get('field', '')].append(val)
             data_count += 1
-    insight_count = len(hook_data.get('story_insights', []))
+    story_insights = hook_data.get('story_insights', [])
+    insight_count = len(story_insights)
     data_log = f"{insight_count} story"
     if data_count != insight_count:
         data_log += f", {data_count} total"
     # app.logger.info(f"============ PROCESS HOOK: {data_log} ============")
+    timestamp = str(make_missing_timestamp(1))  # timestamp = str(dt.utcnow() - 1 day)
     total, new, modified, skipped, message = 0, 0, 0, 0, ''
-    for story in hook_data['story_insights']:
+    for story in story_insights:
         story['media_type'] = 'STORY'
         media_id = story.pop('media_id', None)  # Will be put back if creating, but already exists if updating.
         ig_id = story.pop('ig_id', None)  # Used to find the user if creating.
@@ -257,8 +259,8 @@ def process_hook(req):
             missed = 'media_id ' if not media_id else 'ig_id'
             missed = 'media_id AND ig_id' if not media_id and not ig_id else missed
             message += f"story_insights missing: {missed} " + '\n'
-            app.logger.info(story)
-            app.logger.info(f"---------- media_id: {media_id} | ig_id: {ig_id} | SKIP BAD {missed} ----------")
+            app.logger.error(story)
+            app.logger.error(f"---------- media_id: {media_id} | ig_id: {ig_id} | SKIP BAD {missed} ----------")
             continue
         model = Post.query.filter_by(media_id=media_id).first()  # Returns none if not in DB
         if model:
@@ -277,10 +279,8 @@ def process_hook(req):
             if not user or not user.has_active_all:
                 data_log += f", for {user or 'not-found-user'} SKIP"
                 skipped += 1
-                # message += f"STORY post for {user or 'not-found-user'} NOT TRACKED \n"
                 continue
-            user_id = getattr(user, 'id', None)
-            timestamp = make_missing_timestamp()  # timestamp = str(dt.utcnow() - 1 day)
+            user_id = user.id
             story.update(media_id=media_id, user_id=user_id, timestamp=timestamp)
             if 'caption' not in story:
                 story['caption'] = 'INSIGHTS_CREATED'
