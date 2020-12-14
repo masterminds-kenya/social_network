@@ -195,7 +195,9 @@ def timeit(func, *args, **kwargs):
     return result, dur
 
 
-def make_missing_timestamp():
-    """Returns a string representing a timestamp that is from 24 hours before now in UTC. """
-    result = dt.utcnow() - timedelta(days=1)
-    return str(result)
+def make_missing_timestamp(days_ago=0):
+    """Returns a timestamp that is the given number of days in the past from now in UTC. """
+    result = dt.utcnow()
+    if days_ago:
+        result -= timedelta(days=days_ago)
+    return result
