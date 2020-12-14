@@ -79,9 +79,9 @@ def inspect_access_token(input_token, app_access_token=None):
     return data
 
 
-def user_permissions(user_or_id, facebook=None, token=None, app_access_token=None):
+def user_permissions(id_or_user, facebook=None, token=None, app_access_token=None):
     """Used by staff to check on what permissions a given user has granted to the platform application. """
-    user = user_or_id
+    user = id_or_user
     if isinstance(user, (str, int)):
         user = User.query.get(user)
     if not isinstance(user, User):
@@ -430,13 +430,13 @@ def get_fb_page_for_users_ig_account(user, ignore_current=False, facebook=None, 
     return page if success else None
 
 
-def install_app_on_user_for_story_updates(user_or_id, page=None, facebook=None, token=None):
+def install_app_on_user_for_story_updates(id_or_user, page=None, facebook=None, token=None):
     """Accurate Story Post metrics can be pushed to the Platform only if the App is installed on the related Page. """
-    if isinstance(user_or_id, User):
-        user = user_or_id
+    if isinstance(id_or_user, User):
+        user = id_or_user
         user_id = user.id
-    elif isinstance(user_or_id, (int, str)):
-        user_id = int(user_or_id)
+    elif isinstance(id_or_user, (int, str)):
+        user_id = int(id_or_user)
         user = User.query.get(user_id)
     else:
         raise ValueError('Input must be either a User model or an id for a User. ')
@@ -477,13 +477,13 @@ def install_app_on_user_for_story_updates(user_or_id, page=None, facebook=None, 
     return res.get('success', False)
 
 
-def remove_app_on_user_for_story_updates(user_or_id, page=None, facebook=None, token=None):
+def remove_app_on_user_for_story_updates(id_or_user, page=None, facebook=None, token=None):
     """This User is no longer having their Story Posts tracked, so uninstall the App on their related Page. """
-    if isinstance(user_or_id, User):
-        user = user_or_id
+    if isinstance(id_or_user, User):
+        user = id_or_user
         user_id = user.id
-    elif isinstance(user_or_id, (int, str)):
-        user_id = int(user_or_id)
+    elif isinstance(id_or_user, (int, str)):
+        user_id = int(id_or_user)
         user = User.query.get(user_id)
     else:
         raise ValueError('Input must be either a User model or an id for a User. ')
