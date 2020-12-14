@@ -25,15 +25,17 @@ FB_SCOPE = [
     # 'manage_pages'  # Deprecated. Now using pages_read_engagement (v7.0), 'pages_manage_metadata' for later.
         ]
 
+# TODO: CRITICAL All API calls need to handle pagination results.
+
 
 def generate_app_access_token():
-    """When we need an App access token instead of the app client secret. """
+    """When an App access token (as proof the request is from BIP App) is needed instead of the app client secret. """
     params = {'client_id': FB_CLIENT_ID, 'client_secret': FB_CLIENT_SECRET}
     params['grant_type'] = 'client_credentials'
     app.logger.info('----------- generate_app_access_token ----------------')
     res = requests.get(FB_TOKEN_URL, params=params).json()
     if 'error' in res:
-        app.logger.debug('Got an error in generate_app_access_token')
+        app.logger.info('Got an error in generate_app_access_token')
         app.logger.error(res.get('error', 'Empty Error'))
     token = res.get('access_token', '')
     return token
@@ -77,19 +79,20 @@ def inspect_access_token(input_token, app_access_token=None):
     return data
 
 
-def user_permissions(user, facebook=None, token=None, app_access_token=None):
+def user_permissions(user_or_id, facebook=None, token=None, app_access_token=None):
     """Used by staff to check on what permissions a given user has granted to the platform application. """
+    user = user_or_id
     if isinstance(user, (str, int)):
         user = User.query.get(user)
     if not isinstance(user, User):
         app.logger.error("Expected a valid User instance, or id of one, for user_permissions check. ")
         return {}
     if not facebook and not token:
-        token = getattr(user, 'token', None)
+        token = user.token
         if not token:
             app.logger.error("We do not have a token for this user. ")
             return {}
-    perm_info = {permission: False for permission in FB_SCOPE}  # Will be overwritten if later found as True
+    perm_info = {permission: False for permission in FB_SCOPE}  # Each will be overwritten if later found as True
     url = f"https://graph.facebook.com/{user.facebook_id}/permissions"
     params = {}
     if not facebook:
@@ -103,8 +106,8 @@ def user_permissions(user, facebook=None, token=None, app_access_token=None):
     perm_info.update({ea.get('permission', ''): ea.get('status', '') for ea in res_data})
 
     data = {'info': 'Permissions Report', 'id': user.id, 'name': user.name}
-    keys = ['facebook_id', 'instagram_id', 'page_id', 'page_token']
-    needed = ', '.join([key for key in keys if not getattr(user, key, None)])
+    keys = ('facebook_id', 'instagram_id', 'page_id', 'page_token', )
+    needed = ', '.join(key for key in keys if not getattr(user, key, None))
     if user.story_subscribed is True:
         subscribed = True
     elif len(needed):
@@ -190,7 +193,8 @@ def get_insight(user_id, first=1, influence_last=30*12, profile_last=30*3, ig_id
     results, token = [], ''
     user = User.query.get(user_id)
     if not facebook or not ig_id:
-        ig_id, token = getattr(user, 'instagram_id', None), getattr(user, 'token', None)
+        ig_id = ig_id or user.instagram_id
+        token = user.token
     now = dt.utcnow()
     influence_date = user.recent_insight('influence')
     profile_date = user.recent_insight('profile')
@@ -227,8 +231,8 @@ def get_insight(user_id, first=1, influence_last=30*12, profile_last=30*3, ig_id
 
 
 def get_online_followers(user_id, ig_id=None, facebook=None):
-    """Just want to get Facebook API response for online_followers for the maximum of the previous 30 days """
-    app.logger.info('================ Get Online Followers data ================')
+    """Just want to get Facebook API response for online_followers for the maximum of the previous 30 days. """
+    # app.logger.info('================ Get Online Followers data ================')
     ig_period, token = 'lifetime', ''
     metric = ','.join(OnlineFollowers.METRICS)
     if not facebook or not ig_id:
@@ -252,7 +256,7 @@ def get_online_followers(user_id, ig_id=None, facebook=None):
 
 def get_audience(user_id, ig_id=None, facebook=None):
     """Get the audience data for the (influencer or brand) user with given user_id """
-    app.logger.info('================ Get Audience Data ================')
+    # app.logger.info('================ Get Audience Data ================')
     audience_metric = ','.join(Audience.METRICS)
     ig_period = 'lifetime'
     results, token = [], ''
