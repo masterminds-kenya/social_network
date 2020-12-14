@@ -106,6 +106,43 @@ In order for our platform to get the most accurate Story metrics, the following 
 - ? Old: The user must grant `manage_pages` as requested in onboarding?
 - ? The user must grant `pages_read_engagement` as requested in onboarding?
 
+## Requirements, and links to Graph API Permissions and Structures
+
+When looking at techniques and Documentation, be careful and **DO NOT USE** the Instagram Basic Display API, it is an incorrect source. Make sure to **USE Instagram Graph API** for documentation (links below).
+
+- [Instagram Basic Display API](https://developers.facebook.com/docs/instagram-basic-display-api/overview/permissions#instagram-graph-user-media)
+  - "Apps designated as Business apps are not supported. If your app is a Business app use the Instagram Graph API instead, or create a new, non-Business app." [AppTypes](https://developers.facebook.com/docs/instagram-basic-display-api/overview#instagram-user-access-tokens)
+  - `instagram_graph_user_media` allows reading Media node (for an image, video, or album) and edges.
+  - `instagram_graph_user_profile` permission allows your app to read the app user's profile.
+
+The following includes links and critical requirements.
+
+- [Instagram Graph API](https://developers.facebook.com/docs/instagram-api)
+  - Limitations
+    - Not for IG consumer accounts, only for Business or Creator Instagram accounts
+    - IGTV and Reels are not supported.
+    - Ordering results is not supported.
+    - All endpoints support cursor-based pagination.
+    - Only User Insights edge supports time-based pagination.
+  - [Overview](https://developers.facebook.com/docs/instagram-api/overview)
+    - Users & Tokens: handled indirectly through Facebook accounts.
+      - They must have an IG Professional account, connected to a Facebook account (our App needs FB login).
+      - They must have a Facebook Page connected to the Instagram Professional account.
+      - The must have [Page subscriptions enabled](https://developers.facebook.com/docs/instagram-api/guides/docs/instagram-api/guides/webhooks#step-2--enable-page-subscriptions) Note: broken link provided by Docs.
+      - Their Facebook login must be able to perform admin-equivalent Tasks on that FB Page.
+      - [Admin-equivalent Tasks](https://developers.facebook.com/docs/instagram-api/overview#tasks)
+      - Not [Business Manager System Users](https://developers.facebook.com/docs/marketing-api/system-users)
+    - [EU Insights Limitations](https://developers.facebook.com/docs/instagram-api/guides/insights):
+      - Stories `replies` metric does not include data from or to those in European Economic Area
+    - Timestamps: use UTC, zero offset, ISO-8601 format, e.g. 2019-04-05T07:56:32+0000
+    - [Webhooks for Instagram](https://developers.facebook.com/docs/instagram-api/guides/webhooks)
+      - The IG Professional user's connected Facebook Page must have Page subscriptions enabled.
+      - We need the IG Professional user's Page Access Token
+      - We must have the `pages_manage_metadata` permission.
+      - This [App must subscribe](https://developers.facebook.com/docs/graph-api/reference/page/subscribed_apps#Creating) to the IG user's FB Page
+      - `story_insights` - sent when the story expires, only gives update of metrics.
+      - `comments` (on media post owned by IG user) and `mentions` for @account in comment or caption.
+
 ## Deployment
 
 [Deployed Site](https://www.bacchusinfluencerplatform.com)
