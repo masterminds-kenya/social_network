@@ -1,11 +1,11 @@
 {% extends "base.html" %}
 {% block head %}
-<title>{{ action }} {{ mod.capitalize() }} Form</title>
+<title>{{ action }} {{ mod|title }} Form</title>
 {% endblock %}
 
 
 {% block content %}
-<h3>{{ action }} {{ mod.capitalize() }}</h3>
+<h3>{{ action }} {{ mod|title }}</h3>
 
 <form method="POST" enctype="multipart/form-data">
   <div class="form-group">

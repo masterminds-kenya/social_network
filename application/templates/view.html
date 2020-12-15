@@ -1,13 +1,12 @@
 {% extends "base.html" %} {% block head %}
-<title>{{ mod.capitalize() }} View Page</title>
+<title>{{ mod|title }} View Page</title>
 {% endblock %} {% block header %} {{ super() }} {% endblock header %} {% block
 content %}
 
 <main>
   <div class="intro">
     <h2>
-      {{ mod.capitalize() }} Details {% if data.get('name') %}for {{
-      data['name'] }}{% endif %}
+      {{ mod|title }} Details {% if data.get('name') %}for {{data['name'] }}{% endif %}
     </h2>
 
     {% if current_user.is_authenticated %}
