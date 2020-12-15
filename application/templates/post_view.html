@@ -7,9 +7,12 @@
   <li><a href="{{ data[key] }}">Instagram {{key|title}}</a> </li>
   {% elif key == 'saved_media' and data[key] %}
   <li><a href="{{ data[key] }}">Captured - Saved Media</a></li>
-
+  {% else %}
+  {% if key == 'caption' and caption_errors and data[key] in caption_errors %}
+  <li class="error {{ data[key]|e }}">Caption Error: {{ data[key]|e }}
   {% else %}
   <li>
+  {% endif %}
     {{key}}:
     {% if data[key] is iterable and data[key] is not string %}
     <ul>
