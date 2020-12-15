@@ -397,10 +397,6 @@ strong {
   order: 3;
 }
 
-section.campaign_posts .error {
-  color: #4444;
-  background: #995555;
-}
 /* .wrap-collapsible { margin-bottom: 1.2rem 0; } */
 input.toggle[type='checkbox'] {
   display: none;
@@ -408,7 +404,7 @@ input.toggle[type='checkbox'] {
 
 .lbl-toggle {
   display: block;
-  max-width: 30rem;
+  max-width: 34rem;
   /* font-family: monospace; */
   /* font-size: 110%; */
   /* text-transform: uppercase; */
@@ -462,7 +458,7 @@ input.toggle[type='checkbox'] {
 
 .collapsible-content {
   max-height: 0px;
-  max-width: 30rem;
+  max-width: 34rem;
   overflow: hidden;
   transition: max-height .25s ease-in-out;
   background: rgba(250, 224, 66, .2);
@@ -482,6 +478,10 @@ input.toggle[type='checkbox'] {
 }
 
 /* End of expanding box of content  */
+.error {
+  color: #222222;
+  background: #e09090;
+}
 
 
 button {
