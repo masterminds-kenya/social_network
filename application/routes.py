@@ -434,7 +434,7 @@ def view(mod, id):
             if not isinstance(value, dict):  # For the id_data Audience records
                 value = {'value': value}
             model['value'] = value
-    return render_template(template, mod=mod, data=model)
+    return render_template(template, mod=mod, data=model, caption_errors=caption_errors)
 
 
 @app.route('/<string:mod>/<int:id>/insights')

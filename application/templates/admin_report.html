@@ -29,6 +29,18 @@
       <ul class="collapsible-content {{lbl.name}}">
         {% set data = info[lbl] %}
         {% for key in data.keys() %}
+        {% for post in data[key] %}
+        {% if caption_errors and post.caption in caption_errors %}
+        <li class="error {{ post.caption|e }}">Caption Error: {{ post.caption|e }}
+        {% else %}
+        <li>
+        {% endif %}
+          <a href="{{ url_for('view', mod='post', id=ea.id) }}">
+            # {{ea.id}} {{ea.media_type}} on {{ea.recorded}}
+          </a>
+        </li>
+        {% endfor %}
+
         <li>{% include 'data_expand.html' %}</li>
         {% endfor %}
       </ul>
