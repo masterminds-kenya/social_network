@@ -1,13 +1,12 @@
 {% extends "base.html" %} {% block head %}
-<title>{{ mod.capitalize() }} View Page</title>
+<title>{{ mod|title }} View Page</title>
 {% endblock %} {% block header %} {{ super() }} {% endblock header %} {% block
 content %}
 
 <main>
   <div class="intro">
     <h2>
-      {{ mod.capitalize() }} Details {% if data.get('name') %}for {{
-      data['name'] }}{% endif %}
+      {{ mod|title }} Details {% if data.get('name') %}for {{data['name'] }}{% endif %}
     </h2>
 
     {% if current_user.is_authenticated %}
@@ -47,10 +46,14 @@ content %}
         {{ key }}: {{ data[key]|length }} total.
       </label>
       <ul class="collapsible-content {{key}}">
-        {% for ea in data[key] %}
+        {% for post in data[key] %}
+        {% if caption_errors and post.caption in caption_errors %}
+        <li class="error {{ post.caption|e }}">Caption Error: {{ post.caption|e }}
+        {% else %}
         <li>
-          <a href="{{ url_for('view', mod='post', id=ea.id) }}">
-            # {{ea.id}} {{ea.media_type}} posted on {{ea.recorded}}
+        {% endif %}
+          <a href="{{ url_for('view', mod='post', id=post.id) }}">
+            # {{post.id}} {{post.media_type}} on {{post.recorded}}
           </a>
         </li>
         {% endfor %}

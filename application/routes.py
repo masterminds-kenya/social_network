@@ -127,6 +127,19 @@ def permission_check(mod, id):
     return render_template('view.html', mod=mod, data=data)
 
 
+@app.route('/data/post/problem')
+@admin_required()
+def problem_posts():
+    """These media posts experienced problems that should be investigated. """
+    # app.logger.info("========== Test Method for admin:  ==========")
+    models = Post.query.filter(Post.caption.in_(caption_errors))
+    data = {'posts': models.all()}
+    mod = 'error media posts'
+    template = 'view.html'
+
+    return render_template(template, mod=mod, data=data, caption_errors=caption_errors)
+
+
 @app.route('/data/test')
 @admin_required()
 def test_method():
@@ -421,7 +434,7 @@ def view(mod, id):
             if not isinstance(value, dict):  # For the id_data Audience records
                 value = {'value': value}
             model['value'] = value
-    return render_template(template, mod=mod, data=model)
+    return render_template(template, mod=mod, data=model, caption_errors=caption_errors)
 
 
 @app.route('/<string:mod>/<int:id>/insights')
