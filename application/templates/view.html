@@ -1,8 +1,13 @@
-{% extends "base.html" %} {% block head %}
+{% extends "base.html" %}
+{% block head %}
 <title>{{ mod|title }} View Page</title>
-{% endblock %} {% block header %} {{ super() }} {% endblock header %} {% block
-content %}
+{% endblock head %}
 
+{% block header %}
+{{ super() }}
+{% endblock header %}
+
+{% block content %}
 <main>
   <div class="intro">
     <h2>

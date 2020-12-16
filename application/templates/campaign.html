@@ -1,6 +1,10 @@
-{% extends "base.html" %} {% block head %}
+{% extends "base.html" %}
+{% block head %}
 <title>{{ mod|title }} {{ view|title }}</title>
-{% endblock head %} {% block header %} {{ super() }}
+{% endblock head %}
+
+{% block header %}
+{{ super() }}
 <!-- <h1>
   {{ mod|title }} {{ view|title }} -
   {{ data.name|title|e if data.name else data.id }}
@@ -48,8 +52,8 @@
 </ul>
 {% endif %}
 {% endif %} -->
-
 {% endblock header %}
+
 {% block content %}
 <main>
   <div class="intro">

@@ -1,10 +1,10 @@
 {% extends "base.html" %}
+
 {% block header %}
 {{ super() }}
 {% endblock header %}
 
 {% block content %}
-
 <main>
   <div class="intro">
     {% if current_user.is_authenticated %}
