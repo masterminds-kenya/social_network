@@ -109,9 +109,12 @@ body > header nav .menu {
 body > header nav .menu-icon {
   cursor: pointer;
   display: inline-block;
-  float: right;
+  /* float: right; */
   padding: 28px 20px;
-  position: relative;
+  /* position: relative; */  /* Using absolute instead makes float: right not needed. */
+  position: absolute;
+  top: 0;
+  right: 0;
   user-select: none;
   z-index: 105;
 }
