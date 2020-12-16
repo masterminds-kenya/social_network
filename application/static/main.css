@@ -87,7 +87,6 @@ body > header nav ul {
   margin: 0;
   padding: 0;
   list-style: none;
-  overflow: hidden;
   text-align: center;
   font-family: "Open Sans", Arial, sans-serif;
 }

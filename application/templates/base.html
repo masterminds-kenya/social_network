@@ -47,9 +47,11 @@
       {% endblock header %}
       {% with messages = get_flashed_messages() %}
       {% if messages %}
-      {% for message in messages %}
-      <h4>{{ message }}</h4>
-      {% endfor %}
+      <div id="flash-messages">
+        {% for message in messages %}
+        <h4>{{ message }}</h4>
+        {% endfor %}
+      </div>
       {% endif %}
       {% endwith %}
     </header>
