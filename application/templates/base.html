@@ -15,8 +15,16 @@
   <body>
     <header id="header">
       {% block header %}
-      <nav>
-        <div class="header">
+      <div class="header-logo">
+        <img src="/static/Bacchus_Logo_Black.png" alt="logo" class="logo" />
+        <h1>Influencer Platform</h1>
+        {% if current_user.is_authenticated %}
+        <p class="platform-user-header">
+          Using the Platform as - {{ current_user.name }}
+        </p>
+        {% endif %}
+      </div>
+      <nav class="header">
           <input class="menu-btn" type="checkbox" id="menu-btn" />
           <label class="menu-icon" for="menu-btn">
             <span class="navicon"></span>
@@ -45,12 +53,6 @@
             <li><a href="{{ url_for('signup') }}">Sign Up</a></li>
             {% endif %}
           </ul>
-          <!-- {% if current_user.is_authenticated %}
-          <p class="platform-user-header">
-            Using the Platform as - {{ current_user.name }}
-          </p>
-          {% endif %} -->
-        </div>
       </nav>
       {% endblock header %}
       {% with messages = get_flashed_messages() %}
