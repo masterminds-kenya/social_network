@@ -277,9 +277,11 @@ body > header {
   text-decoration: underline;
  }
 
-.intro p a:hover {
-  color: rgb(183, 149, 159) !important;
-  text-decoration: underline;
+.intro a:focus,
+.intro a:hover {
+  /* color: rgb(183, 149, 159); */
+  color: rgb(245, 225, 205);
+  text-decoration: none;
 }
 
 .intro p a:active{
@@ -452,7 +454,8 @@ input.toggle[type='checkbox'] {
   transition: all 0.25s ease-out;
 }
 
-.lbl-toggle:hover {
+.lbl-toggle:hover,
+.lbl-toggle:focus {
   color: #7C5A0B;
 }
 
@@ -461,7 +464,8 @@ input.toggle[type='checkbox'] {
   background: #995555;
 }
 
-.lbl-toggle.error:hover {
+.lbl-toggle.error:hover,
+.lbl-toggle.error:focus {
   background: #AA4444;
 }
 
@@ -470,7 +474,8 @@ input.toggle[type='checkbox'] {
   background: #F0F4FF;
 }
 
-.lbl-toggle.list:hover {
+.lbl-toggle.list:hover,
+.lbl-toggle.list:focus {
   background: #D0D4DF;
 }
 
@@ -559,7 +564,8 @@ button {
   background: -ms-linear-gradient(top, #1b1e28, #2f313b);
   background: -o-linear-gradient(top, #1b1e28, #2f313b);
 } */
-button:hover {
+button:hover,
+button:focus {
   border-top-color: #4d5a64;
   background: #4d5a64;
   color: #bfc1c2;
