@@ -28,7 +28,8 @@ body {
   -webkit-box-sizing: border-box;
   -moz-box-sizing: border-box;
   box-sizing: border-box;
-  color: rgb(142, 142, 141);
+  /* color: rgb(142, 142, 141); */
+  color: rgb(47, 47, 47);
   background-color: #fff;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
@@ -335,7 +336,8 @@ h2 {
   /* font-weight: 600; */
   font-style: normal;
   padding-bottom: 8px;
-  color: rgb(57, 70, 80);
+  /* color: rgb(57, 70, 80); */
+  color: rgb(29, 35, 40);
 }
 
 h3 {
@@ -344,7 +346,8 @@ h3 {
   letter-spacing: 2px;
   font-family: 'Apercu-Medium', 'Helvetica Neue', Helvetica, Arial, sans-serif;
   text-transform: uppercase;
-  color: rgb(142, 142, 141);
+  /* color: rgb(142, 142, 141); */
+  color: rgb(71, 71, 71);
 }
 
 h4,
@@ -354,7 +357,8 @@ h6 {
   line-height: 26px;
   letter-spacing: 1.5px;
   font-family: 'Apercu-Medium', 'Helvetica Neue', Helvetica, Arial, sans-serif;
-  color: rgb(57, 70, 80);
+  /* color: rgb(57, 70, 80); */
+  color: rgb(29, 35, 40);
 }
 
 strong {
