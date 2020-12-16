@@ -36,7 +36,7 @@ body {
   -webkit-text-size-adjust: none;
 }
 
-.header {
+body > header nav {
   display: block;
   width: 100%;
   z-index: 100;
@@ -55,7 +55,7 @@ body {
   padding-top: 190px;
 }
 
-.header ul {
+body > header nav ul {
   position: absolute;
   /* display: table-cell; */ /* as written by Cait. */
   /* display: table; */  /* Chris - if any table display, shouldn't it be table here? */
@@ -70,11 +70,11 @@ body {
   font-family: "Open Sans",
     Arial,
     sans-serif;
-  background-color: rgba(255, 255, 255, 0.94);  /* already inherited from .header .menu rule? */
+  background-color: rgba(255, 255, 255, 0.94);  /* already inherited from body > header nav .menu rule? */
 }
 
-.header li a {
-  /* display: table-cell; */  /* Overwritten anyways?  If used, should have .header li { display: table-row } ? */
+body > header nav li a {
+  /* display: table-cell; */  /* Overwritten anyways?  If used, should have body > header nav li { display: table-row } ? */
   /* width: 100%; */          /* Not needed with likely display setting */
   /* height: 100%; */         /* Not needed with likely display setting */
   color: rgb(0, 0, 0);
@@ -92,7 +92,7 @@ body {
 
 /* menu */
 
-.header .menu {
+body > header nav .menu {
   display: flex;
   flex-direction: column;
   clear: both;
@@ -106,7 +106,7 @@ body {
 
 /* menu icon */
 
-.header .menu-icon {
+body > header nav .menu-icon {
   cursor: pointer;
   display: inline-block;
   float: right;
@@ -116,7 +116,7 @@ body {
   z-index: 105;
 }
 
-.header .menu-icon .navicon {
+body > header nav .menu-icon .navicon {
   background: #000000;
   display: block;
   height: 2px;
@@ -125,8 +125,8 @@ body {
   width: 18px;
 }
 
-.header .menu-icon .navicon:before,
-.header .menu-icon .navicon:after {
+body > header nav .menu-icon .navicon:before,
+body > header nav .menu-icon .navicon:after {
   background: #000000;
   content: "";
   display: block;
@@ -136,39 +136,39 @@ body {
   width: 100%;
 }
 
-.header .menu-icon .navicon:before {
+body > header nav .menu-icon .navicon:before {
   top: 5px;
 }
 
-.header .menu-icon .navicon:after {
+body > header nav .menu-icon .navicon:after {
   top: -5px;
 }
 
 /* menu btn */
 
-.header .menu-btn {
+body > header nav .menu-btn {
   display: none;
 }
 
-.header .menu-btn:checked~.menu {
+body > header nav .menu-btn:checked~.menu {
   max-height: 80%;
   position: fixed;
 }
 
-.header .menu-btn:checked~.menu-icon .navicon {
+body > header nav .menu-btn:checked~.menu-icon .navicon {
   background: transparent;
 }
 
-.header .menu-btn:checked~.menu-icon .navicon:before {
+body > header nav .menu-btn:checked~.menu-icon .navicon:before {
   transform: rotate(-45deg);
 }
 
-.header .menu-btn:checked~.menu-icon .navicon:after {
+body > header nav .menu-btn:checked~.menu-icon .navicon:after {
   transform: rotate(45deg);
 }
 
-.header .menu-btn:checked~.menu-icon:not(.steps) .navicon:before,
-.header .menu-btn:checked~.menu-icon:not(.steps) .navicon:after {
+body > header nav .menu-btn:checked~.menu-icon:not(.steps) .navicon:before,
+body > header nav .menu-btn:checked~.menu-icon:not(.steps) .navicon:after {
   top: 0;
 }
 
