@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 {% block head %}
 <title>{{mod|capitalize}} Sheet Access Permission {{ action }} Form</title>
-{% endblock %}
+{% endblock head %}
 
 {% block content %}
 <h2>{{mod|capitalize}} Sheet Access {{ action }} Permissions for {{ sheet.get('name', 'Worksheet') }}</h2>
@@ -55,5 +55,4 @@
   <li><a href="{{ url_for('detail_campaign', id=id) }}">Collected Posts for this Campaign</a></li>
   {% endif %}
 </ul>
-
-{% endblock %}
+{% endblock content %}

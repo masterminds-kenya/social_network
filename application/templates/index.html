@@ -4,9 +4,7 @@
 {{ super() }}
 {% endblock header %}
 
-{% block content %}
-<main>
-  <div class="intro">
+{% block intro %}
     {% if current_user.is_authenticated %}
     <p class="platform-user-header">
       Using the Platform as - {{ current_user.name }}
@@ -19,9 +17,10 @@
       influencers, agencies and brand partners, are created and processed by
       admin and managers on the Bacchus Influencer Platform.
     </p>
-  </div>
+{% endblock intro %}
 
-  <!-- <h4>During Development and Testing</h4>
+{% block content %}
+    <!-- <h4>During Development and Testing</h4>
   <p>
     This application is currently in the development stages. To sign up as a test user,
     the developers must add your Facebook username. Then you confirm through
@@ -114,5 +113,4 @@
       </ul>
     </div>
   </section>
-</main>
-{% endblock %}
+{% endblock content %}

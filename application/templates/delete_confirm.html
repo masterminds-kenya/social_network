@@ -5,12 +5,10 @@
 
 {% block header %}
 {{ super() }}
-<h1>Confirm Deletion</h1>
+<h2>Confirm Deletion</h2>
 {% endblock header %}
 
 {% block content %}
-<main>
-
   <ul>
   {% for key in data.keys() %}
     <li>{{ key }}: {{ data[key] }} </li>
@@ -32,6 +30,4 @@
     <input type="hidden" name="next" value="{{next}}" />
     <button type="submit">Submit</button>
   </form>
-
-</main>
 {% endblock content %}

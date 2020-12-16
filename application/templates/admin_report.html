@@ -1,7 +1,8 @@
 {% extends "base.html" %}
 {% block head %}
 <title>Admin {{ mod|capitalize }} Report {% if overview %}Overview{% endif %}</title>
-{% endblock %}
+{% endblock head %}
+
 {% block header %}
 {{ super() }}
 <h1>
@@ -15,8 +16,6 @@
 {% endblock header %}
 
 {% block content %}
-<main>
-
 {% block data_view %}
   <ul>
   {% for lbl in info.keys() %}
@@ -89,6 +88,4 @@
   <li><a href="{{ url_for('all', mod='brand') }}">Brands</a></li>
   <li><a href="{{ url_for('all', mod='campaign') }}">Campaigns</a></li>
 </ul>
-
-</main>
 {% endblock content %}

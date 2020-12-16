@@ -8,8 +8,22 @@
 <h1>Top Heading Option 1</h1>
 {% endblock header %}
 
+{% block intro %}
+  <h2>Some Page Intro Headding</h2>
+  <p>Some intro paragraph </p>
+  <ul>
+    <li>Some</li>
+    <li>Intro</li>
+    <li>Unordered List</li>
+  </ul>
+  <ol>
+    <li>Some</li>
+    <li>Intro</li>
+    <li>Ordered List</li>
+  </ol>
+{% endblock intro %}
+
 {% block content %}
-<main>
   <h1>Or Top Heading Option 2</h1>
   <p>
     {% if data %}
@@ -22,5 +36,4 @@
   <ul>
     <li><a href="{{ url_for('home') }}">Link example Home</a></li>
   </ul>
-</main>
 {% endblock content %}

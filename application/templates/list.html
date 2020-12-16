@@ -7,16 +7,16 @@
 {{ super() }}
 {% endblock header %}
 
-{% block content %}
-<main>
-  <div class="intro">
+{% block intro %}
     <h2>{{ view|default('all', true)|capitalize }} {{ mod|capitalize }}s</h2>
     {% if current_user.is_authenticated %}
     <p class="platform-user-header">
       Using the Platform as - {{ current_user.name }}
     </p>
     {% endif %}
-  </div>
+{% endblock intro %}
+
+{% block content %}
   <ul>
   {% for datum in data %}
     {% if mod == 'file' %}
@@ -55,5 +55,4 @@
     {% endif %}
   </ul>
   {% endif %}
-</main>
-{% endblock %}
+{% endblock content %}

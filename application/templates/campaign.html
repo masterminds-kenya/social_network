@@ -54,9 +54,7 @@
 {% endif %} -->
 {% endblock header %}
 
-{% block content %}
-<main>
-  <div class="intro">
+{% block intro %}
     <h2>
       {{ mod|title }} {{ view|title }}
       - {{ data.name|title|e if data.name else data.id }}
@@ -117,9 +115,10 @@
       {% endfor %}
     </ul>
     {% endif %}
-  </div>
+{% endblock intro}
 
-  {% for user in related.keys() %}
+{% block content %}
+    {% for user in related.keys() %}
   <div class="users" id="user_{{user.id}}">
     <h2>
       Media Post Assignment for - {{user.name|e}} ( {{related[user]|length}} )
@@ -212,6 +211,4 @@
     </form>
   </div>
   {% endfor %}
-</main>
-
 {% endblock content %}

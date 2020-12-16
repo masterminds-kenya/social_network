@@ -58,13 +58,16 @@
       {% endif %}
       {% endwith %}
     </header>
-
-    {% block content %}
     <main>
+      <div class="intro">
+      {% block intro %}
+      {% endblock intro %}
+      </div>
+    {% block content %}
       <h1>Main Content</h1>
       <p>content goes here</p>
-    </main>
     {% endblock content %}
+    </main>
     <footer>
       <p>
         <a href="{{ url_for('home')}}">Home</a> |

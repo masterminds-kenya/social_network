@@ -11,16 +11,15 @@
 {{ super() }}
 {% endblock header %}
 
-{% block content %}
-<main>
-  <div class="intro">
+{% block intro %}
   {% if signup_roles %}
   <h2>New User Sign Up</h2>
   {% else %}
   <h2>User Login</h2>
   {% endif %}
-  </div>
-  
+{% endblock intro %}
+
+{% block content %}
   {% if not current_user.is_authenticated %}
   {% if 'influencer' in mods %}
       <section class="main-content-box">
@@ -146,5 +145,4 @@
 
 </div>
 </section>
-</main>
-{% endblock %}
+{% endblock content %}
