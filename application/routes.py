@@ -414,7 +414,7 @@ def view(mod, id):
                 flash("Incorrect location. You are being redirected to the home page. ")
                 return redirect(url_for('home'))
         else:
-            flash("This was not a correct location. You are redirected to the home page. ")
+            flash("This was not a correct location. You are being redirected to the home page. ")
             return redirect(url_for('home'))
     model = model or Model.query.get(id)
     template = 'view.html'

@@ -42,6 +42,12 @@ SELECT user_id, users.name AS influencer, page_id, story_subscribed, COUNT(campa
 SELECT users.id AS u_id, role, name, page_id, story_subscribed, campaign_id FROM users LEFT JOIN user_campaigns ON users.id = user_campaigns.user_id WHERE campaign_id IS NULL AND role != 'brand' AND story_subscribed IS NOT false ORDER BY story_subscribed, role, name; SELECT users.id AS u_id, role, name, page_id, story_subscribed, campaign_id FROM users LEFT JOIN brand_campaigns ON users.id = brand_campaigns.brand_id WHERE campaign_id IS NULL AND role != 'influencer' AND story_subscribed IS NOT false ORDER BY story_subscribed, role, name;
 ```
 
+### Posts (with user's name & id) with caption is NULL (after date) or our error_codes
+
+```SQL
+SELECT posts.id AS p_id, users.id, users.name, media_type AS m_type, LEFT(caption, 16) AS caption_text, posts.created, posts.modified, posts.recorded FROM posts JOIN users ON posts.user_id = users.id WHERE posts.created > '2020-12-15' AND caption IS NULL or caption in ('NO_CREDENTIALS', 'AUTH_FACEBOOK', 'AUTH_TOKEN', 'AUTH_NONE', 'API_ERROR', 'INSIGHTS_CREATED');
+```
+
 ## Default Env Variables
 
 [App Engine Standard Docs](https://cloud.google.com/appengine/docs/standard/python3/runtime)

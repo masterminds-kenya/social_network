@@ -28,7 +28,8 @@ body {
   -webkit-box-sizing: border-box;
   -moz-box-sizing: border-box;
   box-sizing: border-box;
-  color: rgb(142, 142, 141);
+  /* color: rgb(142, 142, 141); */
+  color: rgb(47, 47, 47);
   background-color: #fff;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
@@ -56,35 +57,33 @@ body {
 
 .header ul {
   position: absolute;
-  display: table-cell;
-  vertical-align: middle;
+  /* display: table-cell; */ /* as written by Cait. */
+  /* display: table; */  /* Chris - if any table display, shouldn't it be table here? */
+  vertical-align: middle;  /* Does this actually change anything */
   width: 100%;
   height: 100%;
   margin: 0;
   padding: 0;
   list-style: none;
   overflow: hidden;
+  text-align: center;
   font-family: "Open Sans",
     Arial,
     sans-serif;
-  background-color: rgba(255, 255, 255, 0.94);
+  background-color: rgba(255, 255, 255, 0.94);  /* already inherited from .header .menu rule? */
 }
 
 .header li a {
-  display: table-cell;
-  width: 100%;
-  height: 100%;
+  /* display: table-cell; */  /* Overwritten anyways?  If used, should have .header li { display: table-row } ? */
+  /* width: 100%; */          /* Not needed with likely display setting */
+  /* height: 100%; */         /* Not needed with likely display setting */
   color: rgb(0, 0, 0);
-  text-align: center;
   display: inline-block;
-  padding: 10px 20px;
+  padding: 6px 20px;   /* If setting width or height, probably not keep this padding */
+  margin: 4px auto;    /* Took 4px away from the padding to give some space between links */
   text-decoration: none;
   background: transparent;
-  font-family: "Open Sans",
-    Arial,
-    sans-serif;
   font-size: 24px;
-  text-align: center;
   line-height: 32px;
   letter-spacing: 2px;
   text-transform: lowercase;
@@ -102,7 +101,6 @@ body {
   transform: translate3d(0, 0, 0);
   background-color: rgba(255, 255, 255, 0.94);
   border-top: 1px solid black;
-
   justify-content: center;
 }
 
@@ -335,7 +333,8 @@ h2 {
   /* font-weight: 600; */
   font-style: normal;
   padding-bottom: 8px;
-  color: rgb(57, 70, 80);
+  /* color: rgb(57, 70, 80); */
+  color: rgb(29, 35, 40);
 }
 
 h3 {
@@ -344,7 +343,8 @@ h3 {
   letter-spacing: 2px;
   font-family: 'Apercu-Medium', 'Helvetica Neue', Helvetica, Arial, sans-serif;
   text-transform: uppercase;
-  color: rgb(142, 142, 141);
+  /* color: rgb(142, 142, 141); */
+  color: rgb(71, 71, 71);
 }
 
 h4,
@@ -354,7 +354,8 @@ h6 {
   line-height: 26px;
   letter-spacing: 1.5px;
   font-family: 'Apercu-Medium', 'Helvetica Neue', Helvetica, Arial, sans-serif;
-  color: rgb(57, 70, 80);
+  /* color: rgb(57, 70, 80); */
+  color: rgb(29, 35, 40);
 }
 
 strong {
