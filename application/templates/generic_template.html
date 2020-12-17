@@ -4,14 +4,14 @@
 {% endblock head %}
 
 {% block intro %}
-  <h2>Some Page Intro Heading</h2>
-  <p>Some intro paragraph </p>
-  <ul>
+  <h2 class="status">Some Page Intro Heading</h2>
+  <p class="status">Paragraph that stays on compressed intro because of 'status' css class. </p>
+  <ul title="Title placed at beginning of line">
     <li>Some</li>
     <li>Intro</li>
     <li>Unordered List</li>
   </ul>
-  <ol>
+  <ol title="Also Title Magic">
     <li>Some</li>
     <li>Intro</li>
     <li>Ordered List</li>
@@ -20,15 +20,22 @@
 {% endblock intro %}
 
 {% block content %}
-  <h1>Or Top Heading Option 2</h1>
+  <h3>An H-tag that comes after the site and specific page H-tags</h3>
   <p>
-    {% if data %}
-    {{ data }}
+    {% if some_var %}
+    {{ some_var }}
     {% else %}
     some static content.
     {% endif %}
   </p>
-  <h2>Another Heading</h2>
+  <h3>Another Heading</h3>
+  <ul>
+    {% for key in data_dict  %}
+    <li>You have {{ key }} with value of {{ data_dict[key] }} </li>
+    {% else %}
+    <li>This li only made if data_dict is empty. </li>
+    {% endfor %}
+  </ul>
   <ul>
     <li><a href="{{ url_for('home') }}">Link example Home</a></li>
   </ul>
