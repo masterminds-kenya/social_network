@@ -1,31 +1,57 @@
 {% extends 'base.html' %}
 {% block head %}
 <title>Test Page</title>
-{% endblock %}
+{% endblock head %}
+
+{% block intro %}
+<h2 class="status">Intro Header</h2>
+<p class="status">status paragraph</p>
+<p>Generic paragraph (not-status)</p>
+<ul title="List Title">
+  <li>First Unordered item</li>
+  <li>Second Unordered item</li>
+</ul>
+{{ super() }}
+{% endblock intro %}
+
 {% block content %}
-<h1>This is the first header</h1>
-<h2>This is the Second Header</h2>
-<h3>Third header</h3>
-<h4>fourth header</h4>
-<h5>fifth header</h5>
-<h6>sixth header</h6>
+<h3>Level 3 header</h3>
 <p>
   Age is something only in your head or a stereotype. Age means nothing when you are passionate about something. Sometimes the simplest things are the most profound. Design and style should work toward making you look good and feel good without a lot of effort so you can get on with the things that matter. You have to be luxurious nude. It's difficult to move in the nude in front of a mirror. It's much easier to move when you're dressed. But if you can walk around in the nude easily in front of your man, if you can be luxurious in the nude, then you've really got it. I am not interested in shock tactics. I just want to make beautiful clothes.
 </p>
-  It is not easy to dress well. I have a fantastic relationship with money. I use it to buy my freedom. Those fashion designers are just crazy; but aren't we all? You have a more interesting life if you wear impressive clothes. I want to thank all the women who have worn my clothes, the famous and the unknown, who have been so faithful to me and given me so much joy.
-<p>
-  Doing collections, doing fashion is like a non-stop dialogue. I wish I had invented blue jeans. They have expression, modesty, sex appeal, simplicity - all I hope for in my clothes. I love you if you love me. I am convinced that there can be luxury in simplicity. You have to always work against what you did before, and even against your taste.
-</p>
-<p>
-  Elegance isn't solely defined by what you wear. It's how you carry yourself, how you speak, what you read. I love women's fashion, but women don't need me as much as men do. It's the men who have nothing to wear. I can't get sucked into that celebrity thing, because I think it's just crass. For me, art is about learning and about living with people. It's alive. It pains me physically to see a woman victimized, rendered pathetic, by fashion.
-</p>
-<hr />
-<!-- <p>Here is some data: {{ data }} </p> -->
 <ul>
   <li>First list item</li>
   <li>Second list item</li>
-  <li>Third list item</li>
+  <li>
+    <input id="collapsible_uni_key" class="toggle" type="checkbox" />
+    <label for="collapsible_uni_key" class="lbl-toggle">
+      #2) Text shown alone when collapsed, or on top expanded.
+    </label>
+    <ul class="collapsible-content optional_other_style_class">
+      <li>collapsed 1</li>
+      <li class="error other-optional-class">collapsed 2: Error</li>
+      <li>collapsed 3</li>
+      <li class="list other-optional-class">collapsed 4 with list class</li>
+    </ul>
+  </li>
+  <li>Forth list item</li>
 </ul>
+<h4>fourth header</h4>
+<p>
+  It is not easy to dress well. I have a fantastic relationship with money. I use it to buy my freedom. Those fashion designers are just crazy; but aren't we all? You have a more interesting life if you wear impressive clothes. I want to thank all the women who have worn my clothes, the famous and the unknown, who have been so faithful to me and given me so much joy.
+</p>
+<p>
+  Doing collections, doing fashion is like a non-stop dialogue. I wish I had invented blue jeans. They have expression, modesty, sex appeal, simplicity - all I hope for in my clothes. I love you if you love me. I am convinced that there can be luxury in simplicity. You have to always work against what you did before, and even against your taste.
+</p>
+<h5>fifth header</h5>
+<p>
+  Elegance isn't solely defined by what you wear. It's how you carry yourself, how you speak, what you read. I love women's fashion, but women don't need me as much as men do. It's the men who have nothing to wear. I can't get sucked into that celebrity thing, because I think it's just crass. For me, art is about learning and about living with people. It's alive. It pains me physically to see a woman victimized, rendered pathetic, by fashion.
+</p>
+<h6>sixth header</h6>
+
+<hr />
+<!-- <p>Here is some data: {{ data }} </p> -->
+<p>This paragraph is all about that cool hr line above it. </p>
 <ol>
   <li>Ordered first</li>
   <li>Ordered second</li>
