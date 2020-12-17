@@ -3,16 +3,9 @@
 <title>{{ mod|title }}s</title>
 {% endblock head %}
 
-{% block header %}
-{{ super() }}
-{% endblock header %}
-
 {% block intro %}
     <h2>{{ view|default('all', true)|capitalize }} {{ mod|capitalize }}s</h2>
-    {% if current_user.is_authenticated %}
-    <p class="platform-user-header">
-      Using the Platform as - {{ current_user.name }}
-    </p>
+    {{ super() }}
     {% endif %}
 {% endblock intro %}
 

@@ -43,6 +43,15 @@
             <li><a href="{{ url_for('signup') }}">Sign Up</a></li>
             {% endif %}
           </ul>
+          <div class="intro">
+            {% block intro %}
+              {% if current_user.is_authenticated %}
+              <p class="platform-user-header">
+                Using the Platform as - {{ current_user.name }}
+              </p>
+              {% endif %}
+            {% endblock intro %}
+          </div>
       </nav>
       {% endblock header %}
       {% with messages = get_flashed_messages() %}
@@ -56,15 +65,6 @@
       {% endwith %}
     </header>
     <main>
-      <div class="intro">
-      {% block intro %}
-        {% if current_user.is_authenticated %}
-        <p class="platform-user-header">
-          Using the Platform as - {{ current_user.name }}
-        </p>
-        {% endif %}
-      {% endblock intro %}
-      </div>
     {% block content %}
       <h1>Main Content</h1>
       <p>content goes here</p>

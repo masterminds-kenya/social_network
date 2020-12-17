@@ -1,15 +1,7 @@
 {% extends "base.html" %}
 
-{% block header %}
-{{ super() }}
-{% endblock header %}
-
 {% block intro %}
-    {% if current_user.is_authenticated %}
-    <p class="platform-user-header">
-      Using the Platform as - {{ current_user.name }}
-    </p>
-    {% endif %}
+    {{ super() }}
     <p>
       This platform is for tracking and analyzing media campaigns, using the
       data collected through Facebook/Instagram API on Instagram Professional

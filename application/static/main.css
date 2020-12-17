@@ -70,7 +70,8 @@ body > header nav .menu {
   /* display: flex;
   flex-direction: column; */
   max-height: 0;
-  transition: max-height 0.6s ease;
+  min-height: 0;
+  transition: all .4s ease-in-out;
   transform: translate3d(0, 0, 0);
   background-color: rgba(255, 255, 255, 0.94);
   border-top: 1px solid black;
@@ -133,7 +134,7 @@ body > header nav .menu-icon .navicon {
   height: 2px;
   /* position allows sizing of menu button bars. absolute pushes it to the side. */
   position: relative;
-  transition: background 0.2s ease-out;
+  transition: all .2s ease-out;
   width: 18px;
 }
 
@@ -145,7 +146,7 @@ body > header nav .menu-icon .navicon:after {
   height: 100%;
   /* relative does not look as good. */
   position: absolute;
-  transition: all 0.2s ease-out;
+  transition: all .2s ease-out;
   width: 100%;
 }
 
@@ -166,11 +167,28 @@ body > header nav .menu-btn {
 body > header nav .menu-btn:checked~.menu {
   max-height: 80%;
   min-height: 364px;
+  transition: all .4s ease-in-out 0.1s;
   /* position: fixed; */  /* min-height of space needed for menu items works better. */
+}
+
+body > header nav .intro {
+  position: relative;
+  top: 0;
+  transition: all .4s ease-in-out 0.1s;
+}
+
+body > header nav .menu-btn:checked~.intro {
+  position: relative;
+  top: 364px;
+  /* transition: top 0.1s ease; */
+  /* transition: top 0.1s ease-out; */
+  /* transition: top 0.1s ease-in; */
+  transition: all .4s ease-in-out;
 }
 
 body > header nav .menu-btn:checked~.menu-icon .navicon {
   background: transparent;
+  transition: all .2s ease-out;
 }
 
 body > header nav .menu-btn:checked~.menu-icon .navicon:before {
@@ -184,6 +202,7 @@ body > header nav .menu-btn:checked~.menu-icon .navicon:after {
 body > header nav .menu-btn:checked~.menu-icon:not(.steps) .navicon:before,
 body > header nav .menu-btn:checked~.menu-icon:not(.steps) .navicon:after {
   top: 0;
+  transition: all .2s ease-out;
 }
 
 .header-logo {

@@ -3,13 +3,8 @@
 <title>Insert Page Title Here</title>
 {% endblock head %}
 
-{% block header %}
-{{ super() }}
-<h1>Top Heading Option 1</h1>
-{% endblock header %}
-
 {% block intro %}
-  <h2>Some Page Intro Headding</h2>
+  <h2>Some Page Intro Heading</h2>
   <p>Some intro paragraph </p>
   <ul>
     <li>Some</li>
@@ -21,6 +16,7 @@
     <li>Intro</li>
     <li>Ordered List</li>
   </ol>
+  {{ super() }}
 {% endblock intro %}
 
 {% block content %}

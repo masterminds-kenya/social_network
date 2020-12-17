@@ -3,19 +3,11 @@
 <title>{{ mod|title }} View Page</title>
 {% endblock head %}
 
-{% block header %}
-{{ super() }}
-{% endblock header %}
-
 {% block intro %}
     <h2>
       {{ mod|title }} Details {% if data.get('name') %}for {{data['name'] }}{% endif %}
     </h2>
-
-    {% if current_user.is_authenticated %}
-    <p class="platform-user-header">
-      Using the Platform as - {{ current_user.name }}
-    </p>
+    {{ super() }}
     {% endif %}
 {% endblock intro %}
 
