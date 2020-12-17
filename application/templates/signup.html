@@ -12,11 +12,13 @@
 {% endblock header %}
 
 {% block intro %}
+<h2 class="status">
   {% if signup_roles %}
-  <h2>New User Sign Up</h2>
+    New User Sign Up
   {% else %}
-  <h2>User Login</h2>
-  {% endif %}
+    User Login
+    {% endif %}
+</h2>
   {{ super() }}
 {% endblock intro %}
 

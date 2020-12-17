@@ -4,7 +4,7 @@
 {% endblock head %}
 
 {% block intro %}
-    <h2>
+    <h2 class="status">
       {{ mod|title }} {{ view|title }}
       - {{ data.name|title|e if data.name else data.id }}
     </h2>
@@ -57,12 +57,7 @@
       {% endfor %}
     </ul>
     {% endif %}
-
-    {% if current_user.is_authenticated %}
-    <p class="platform-user-header">
-      You are logged in as - {{ current_user.name }}
-    </p>
-    {% endif %}
+    {{ super() }}
 {% endblock intro %}
 
 {% block content %}
