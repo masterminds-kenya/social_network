@@ -47,6 +47,10 @@ body > header {
   width: 100%;
 }
 
+/* .sticky .intro {
+
+} */
+
 .sticky+main {
   padding-top: 190px;
 }
@@ -55,51 +59,29 @@ body > header nav {
   display: block;
   width: 100%;
   z-index: 100;
-  /* right: 0;
-  top: 0; */
-  /* background: #fff; */
 }
 
 /* menu */
 
 body > header nav .menu {
-  position: absolute;
-  /* Slide from the top or header. position: relative makes it jump at header boarder. */
-  /* top: 0; */  /* If set, slide from the page top. If not set, slide out from the bottom of the header. */
-  /* display: table-cell; */ /* as written by Cait. Chris - if any table display, shouldn't it be table here? */
-  /* display: flex;
-  flex-direction: column; */
+  position: absolute;  /* relative makes it jumpy. Setting top changes where it slides from. */
+  margin: 0;
+  padding: 0;
+  width: 100%;
   max-height: 0;
   min-height: 0;
   transition: all .4s ease-in-out;
   transform: translate3d(0, 0, 0);
   background-color: rgba(255, 255, 255, 0.94);
   border-top: 1px solid black;
-  justify-content: center;
   overflow: hidden;
-}
-
-body > header nav ul {
-  /* Does this actually change anything */
-  /* vertical-align: middle; */
-  width: 100%;
-  /* height: 100%; */
-  clear: both;
-  margin: 0;
-  padding: 0;
-  list-style: none;
   text-align: center;
   font-family: "Open Sans", Arial, sans-serif;
+  text-transform: lowercase;
+  list-style: none;
 }
 
-/* body > header nav li {
-  padding: 10px 20px;
-} */
-
-body > header nav li a {
-  /* display: table-cell; */  /* Overwritten anyways?  If used, should have body > header nav li { display: table-row } ? */
-  /* width: 100%; */          /* Not needed with likely display setting */
-  /* height: 100%; */         /* Not needed with likely display setting */
+body > header nav .menu li a {
   color: rgb(0, 0, 0);
   display: inline-block;
   padding: 6px 20px;   /* If setting width or height, probably not keep this padding */
@@ -109,7 +91,6 @@ body > header nav li a {
   font-size: 24px;
   line-height: 32px;
   letter-spacing: 2px;
-  text-transform: lowercase;
   z-index: 100;
 }
 
@@ -118,13 +99,14 @@ body > header nav li a {
 body > header nav .menu-icon {
   cursor: pointer;
   display: inline-block;
-  /* float: right; */
   padding: 28px 20px;
-  /* position: relative; */  /* Using absolute instead makes float: right not needed. */
-  position: absolute;
+  position: absolute;  /* Using absolute instead of relative makes right float not needed. */
   top: 0;
   right: 0;
   user-select: none;
+  -moz-user-select: none;
+  -webkit-user-select: none;
+  -ms-user-select: none;
   z-index: 105;
 }
 
@@ -132,8 +114,7 @@ body > header nav .menu-icon .navicon {
   background: #000000;
   display: block;
   height: 2px;
-  /* position allows sizing of menu button bars. absolute pushes it to the side. */
-  position: relative;
+  position: relative;  /* allows sizing of menu button bars, but absolute would require finicky placement */
   transition: all .2s ease-out;
   width: 18px;
 }
@@ -144,8 +125,7 @@ body > header nav .menu-icon .navicon:after {
   content: "";
   display: block;
   height: 100%;
-  /* relative does not look as good. */
-  position: absolute;
+  position: absolute;   /* relative does not look as good. */
   transition: all .2s ease-out;
   width: 100%;
 }
@@ -166,24 +146,20 @@ body > header nav .menu-btn {
 
 body > header nav .menu-btn:checked~.menu {
   max-height: 80%;
-  min-height: 364px;
+  padding: 5% 0;
+  min-height: 364px;   /* instead of fixed position, setting needed space for menu items works better. */
   transition: all .4s ease-in-out 0.1s;
-  /* position: fixed; */  /* min-height of space needed for menu items works better. */
 }
 
 body > header nav .intro {
   position: relative;
   top: 0;
-  transition: all .4s ease-in-out 0.1s;
+  transition: top .4s ease-in-out 0.1s;
 }
 
 body > header nav .menu-btn:checked~.intro {
-  position: relative;
   top: 364px;
-  /* transition: top 0.1s ease; */
-  /* transition: top 0.1s ease-out; */
-  /* transition: top 0.1s ease-in; */
-  transition: all .4s ease-in-out;
+  transition: top .4s ease-in-out;
 }
 
 body > header nav .menu-btn:checked~.menu-icon .navicon {
@@ -212,42 +188,37 @@ body > header nav .menu-btn:checked~.menu-icon:not(.steps) .navicon:after {
   display: inline-flex;
   flex-direction: column;
   margin: auto;
-  /* position: relative; */
-  /* margin-top: -30px; */
   z-index: 100;
 }
 
-/* body > header nav h1 {
-  text-align: center;
-  line-height: 102%;
-} */
-
-.logo {
-  /* width: 215px; */
-  /* height between 55% and 73% Mimics width: 215px */
-  /* height: 73%; */
-  height: 55%;
-  /* height: 50%; */
-  margin: auto;
-}
-
-.header-logo h1 {
+body > header h1 {
   text-align: center;
   line-height: 102%;
   /* Mimic default font-size: about 233.4% */
   font-size: 2.63vh;
 }
 
+.logo {
+  /* width: 215px; */
+  /* height between 55% and 73% Mimics width: 215px */
+  height: 55%;
+  margin: auto;
+}
+
+/* .header-logo h1 {
+  text-align: center;
+  line-height: 102%;
+} */
+
 .intro {
   background-color: #000000;
   color: #fff;
   padding: 2% 1.5%;
-  /* margin-top: 0; */
   margin: 0;
-  /* text-align: center; */
+  text-align: left;
   font-weight: 500;
   letter-spacing: 0.1em;
-  line-height: 1.5;
+  line-height: 1.6;
   font-family: 'Apercu', 'Helvetica Neue', Helvetica, Arial, sans-serif;
 }
 
@@ -267,34 +238,33 @@ body > header nav .menu-btn:checked~.menu-icon:not(.steps) .navicon:after {
 .intro h5,
 .intro h6 {
   color: #fff;
+  text-align: left;
   font-weight: 700;
   letter-spacing: 0.15em;
   margin: 0;
   padding: 0;
 }
 
+.intro p,
+.intro ul,
+.intro ol {
+  margin: 0;
+  padding: 0;
+  text-align: left;
+}
+
 .platform-user-header {
   /* font-size: 18px; */
   text-align: center;
   font-weight: bolder;
-  margin: 0;
-  padding: 0;
 }
 
-.intro p {
-  margin: 0;
-  padding: 0;
-}
-
-.intro p.status {
+.intro .status {
   text-align: center;
 }
 
 .intro ul {
   list-style: none;
-  text-align: left;
-  margin: 0;
-  padding: 0;
 }
 
 .intro ul::before {
@@ -307,17 +277,32 @@ body > header nav .menu-btn:checked~.menu-icon:not(.steps) .navicon:after {
   /* width: 32%; */
 }
 
-.intro p ul li {
-  text-decoration: none;
-}
-.intro p a{
-  color: #fff !important;
-  text-decoration: underline;
+.intro .lbl-toggle {
+  display: inline-block;
+  /* max-width: 17rem; */
+  /* text-align: center; */
+  font-weight: bold;
+  padding: 0.5rem;
+  /* color: #A77B0E;
+  background: #FAE042; */
+  color: #D7DBFE;
+  background: #2F2F2F;
+  cursor: pointer;
+  border-radius: 7px;
+  transition: all 0.25s ease-out;
 }
 
-.intro p a:link{
-  color: #fff !important;
-  text-decoration: underline;
+.intro .lbl-toggle:hover {
+  /* color: #7C5A0B; */
+  color: #9AAACB;
+}
+
+.intro .collapsible-content {
+  max-height: 0px;
+  /* max-width: 33%; */
+  overflow: hidden;
+  transition: max-height .25s ease-in-out;
+  background: rgba(220, 240, 255, .2);
 }
 
 .intro a:visited,
@@ -392,10 +377,6 @@ body > header nav .menu-btn:checked~.menu-icon:not(.steps) .navicon:after {
   font-style: normal
 }
 
-header nav li {
-  list-style: none;
-}
-
 footer {
   text-align: center;
   width: 100%
@@ -410,7 +391,6 @@ h1 {
   text-transform: uppercase;
   color: rgb(0, 0, 0);
   margin-top: 10px;
-
 }
 
 h2 {
