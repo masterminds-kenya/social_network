@@ -46,7 +46,7 @@
           <div class="intro">
             {% block intro %}
               {% if current_user.is_authenticated %}
-              <p class="platform-user-header">
+              <p class="platform-user-header status">
                 Using the Platform as - {{ current_user.name }}
               </p>
               {% endif %}
