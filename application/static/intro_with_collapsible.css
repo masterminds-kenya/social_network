@@ -1,0 +1,31 @@
+/* Unsure if 'intro' section wants collapsible content */
+/* The following was some progress on that style, but needs more work. */
+/* This could be a starting point for styles if this feature is desired. */
+
+.intro .lbl-toggle {
+  display: inline-block;
+  /* max-width: 17rem; */
+  /* text-align: center; */
+  font-weight: bold;
+  padding: 0.5rem;
+  /* color: #A77B0E;
+  background: #FAE042; */
+  color: #D7DBFE;
+  background: #2F2F2F;
+  cursor: pointer;
+  border-radius: 7px;
+  transition: all 0.25s ease-out;
+}
+
+.intro .lbl-toggle:hover {
+  /* color: #7C5A0B; */
+  color: #9AAACB;
+}
+
+.intro .collapsible-content {
+  max-height: 0px;
+  /* max-width: 33%; */
+  overflow: hidden;
+  transition: max-height .25s ease-in-out;
+  background: rgba(220, 240, 255, .2);
+}

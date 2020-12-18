@@ -243,12 +243,10 @@ body > header nav .menu-btn:checked~.menu-icon:not(.steps) .navicon:after {
 }
 
 .header-logo {
-  width: 100%;
+  /* display: flex; flex-direction: column; THEN OTHER RULE .sticky .header-logo { flex-direction: row;} */
   /* height of 13.15vh mimics old settings, assuming logo image is 215px */
   height: 10vh;
-  display: inline-flex;
-  flex-direction: column;
-  margin: auto;
+  text-align: center;
   z-index: 100;
 }
 
@@ -272,6 +270,7 @@ body > header nav .menu-btn:checked~.menu-icon:not(.steps) .navicon:after {
   letter-spacing: 0.1em;
   line-height: 1.6;
   font-family: 'Apercu', 'Helvetica Neue', Helvetica, Arial, sans-serif;
+  z-index: 100;
 }
 
 .intro > * {
@@ -299,7 +298,6 @@ body > header nav .menu-btn:checked~.menu-icon:not(.steps) .navicon:after {
 }
 
 .intro .platform-user-header {
-  /* font-size: 18px; */
   text-align: center;
   font-weight: bolder;
 }
@@ -312,6 +310,7 @@ body > header nav .menu-btn:checked~.menu-icon:not(.steps) .navicon:after {
   list-style: none;
 }
 
+.intro ol::before,
 .intro ul::before {
   content: attr(title) ': ';
   font-weight: bolder;
@@ -322,42 +321,12 @@ body > header nav .menu-btn:checked~.menu-icon:not(.steps) .navicon:after {
   /* width: 32%; */
 }
 
-.intro .lbl-toggle {
-  display: inline-block;
-  /* max-width: 17rem; */
-  /* text-align: center; */
-  font-weight: bold;
-  padding: 0.5rem;
-  /* color: #A77B0E;
-  background: #FAE042; */
-  color: #D7DBFE;
-  background: #2F2F2F;
-  cursor: pointer;
-  border-radius: 7px;
-  transition: all 0.25s ease-out;
-}
-
-.intro .lbl-toggle:hover {
-  /* color: #7C5A0B; */
-  color: #9AAACB;
-}
-
-.intro .collapsible-content {
-  max-height: 0px;
-  /* max-width: 33%; */
-  overflow: hidden;
-  transition: max-height .25s ease-in-out;
-  background: rgba(220, 240, 255, .2);
-}
-
 .intro a:visited,
 .intro a:link,
 .intro a {
-  /* color: #fff; */
-  text-decoration: none;
-  /* text-decoration: underline dashed #FFF; */
   /* color: rgb(255, 225, 230); */
   color: rgb(205, 225, 245);
+  text-decoration: none;
 }
 
 .intro a:focus,
@@ -712,7 +681,7 @@ button {
 @media screen and (max-width: 750px) {
 
   .main-content-box {
-    display: block !important;
+    display: block;
     margin: auto;
     width: 90%;
   }
