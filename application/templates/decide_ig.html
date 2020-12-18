@@ -3,10 +3,14 @@
 <title>Assign InstaGram Account</title>
 {% endblock head %}
 
-{% block header %}
-{{ super() }}
-<h1>Which InstaGram account to use?</h1>
-{% endblock header %}
+{% block intro %}
+<h2 class="status">Which InstaGram account to use?</h2>
+{% if current_user.is_authenticated and current_user.name != current_user.facebook_id %}
+<p class="platform-user-header status">
+  Logged in as - {{ current_user.name }}
+</p>
+{% endif %}
+{% endblock intro %}
 
 {% block content %}
   {% for account in ig_list %}
