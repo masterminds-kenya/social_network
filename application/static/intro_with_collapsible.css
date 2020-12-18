@@ -1,3 +1,8 @@
+/* ********** Header 'intro' / summary section with collapsible content ********** */
+/* STYLE OPTIONS CONSIDERED OR PREVIOUSLY USED. HERE FOR LATER EASY COMPARISONS.   */
+/* ********** Header 'intro' / summary section with collapsible content ********** */
+
+/* ********** Header 'intro' / summary section with collapsible content ********** */
 /* Unsure if 'intro' section wants collapsible content */
 /* The following was some progress on that style, but needs more work. */
 /* This could be a starting point for styles if this feature is desired. */
@@ -29,3 +34,123 @@
   transition: max-height .25s ease-in-out;
   background: rgba(220, 240, 255, .2);
 }
+
+/* ********** Notes on header 'intro' ease comparisons ********** */
+
+  /* 0.8s, 0.8s delay: NOT ease-in, Probably not ease-in-out or ease,  */
+  /* 0.4s, 0.4s delay: matching on ease, out, or in-out. Possible match-? and out. */
+  /* 0.8s, 0.4s delay: match-out & out > match-ease & out OR match-out & in-out, yuck: match-ease & in-out  ... ease-out seems best? NOT ease-in or ease with any. */
+  /* |**Unsure| match-in-out & out |**All Yuck? || match-ease & in-out | match-out & in-out | match-in-out & in-out |**| match-out & out > match-ease & out, all-ease > any & ease      */
+  /* 0.8s, 0.4s delay: match-out & out, match-in-out & out, match-out & in-out, match-ease & ease, match-ease & out */
+  /* ******** Delays: 0.2s line-height, 0.1s font-size ********************* */
+  /* ease, ease, ease | ease, ease, out | in-out, in-out, out | out, out, out */
+  /* *********************************************************************** */
+
+/* ********** Notes for previous layout setups, some may have been unclear ********** */
+
+/* .header-logo { */
+    /* display: flex; flex-direction: column; THEN OTHER RULE .sticky .header-logo { flex-direction: row;} */
+    /* height of 13.15vh mimics old settings, assuming logo image is 215px */
+/* }  */
+
+/* .sticky .header-logo { */
+  /* display: block; */
+  /* flex-direction: row; */
+/* } */
+
+/* .sticky .header-logo h1 { */
+  /* Option 1) position: relative; bottom: 68% or 39px or not any vw. left: 132px; Option 2: margin-top -58px */
+/* } */
+
+.header-logo .logo {
+  width: 215px;
+}
+
+/* ********** Previous Button Stylings ********** */
+
+.no-show {
+  background: #2f313b;
+  background: -webkit-gradient(linear, left top, left bottom, from(#1b1e28), to(#2f313b));
+  background: -webkit-linear-gradient(top, #1b1e28, #2f313b);
+  background: -moz-linear-gradient(top, #1b1e28, #2f313b);
+  background: -ms-linear-gradient(top, #1b1e28, #2f313b);
+  background: -o-linear-gradient(top, #1b1e28, #2f313b);
+}
+
+.test-button {
+  display: inline-block;
+  vertical-align: middle;
+  background-color: #1877f2;
+  border-radius: 0.25rem;
+  padding: 0.25rem 0.72rem;
+  margin: 0.2rem 0;
+  white-space: nowrap;
+  font-family: Helvetica, Arial, sans-serif;
+  font-weight: 700;
+  font-size: 0.977rem;
+  text-align: center;
+  color: #fff;
+  text-decoration: none;
+  cursor: pointer;
+}
+.test-button img {
+  width: 1.56rem;
+  margin: 0.23rem 0.2rem 0.23rem 0;
+  vertical-align: middle;
+}
+
+/* ********** Font and @font-face declarations ********** */
+
+@font-face {
+  font-family: 'Apercu-Light';
+  src: url("/static/font/Apercu-Light.ttf");
+  /* src: url("/static/font/aperculight.eot?#iefix") format('embedded-opentype'),url("/static/font/aperculight.woff") format('woff'),url("/static/font/Apercu-Light.ttf") format('truetype'),url("/static/font/aperculight.svg#Apercu-Light") format('svg'); */
+  font-weight: 400;
+  font-style: normal
+}
+
+@font-face {
+  font-family: 'Apercu-LightItalic';
+  src: url("/static/font/Apercu-LightItalic.ttf");
+  /* src: url("/static/font/aperculightitalic.eot ?#iefix") format('embedded-opentype'),url("/static/font/aperculightitalic.woff") format('woff'),url("/static/Apercu-LightItalic.ttf") format('truetype'),url("/static/font/aperculightitalic.svg#Apercu-LightItalic") format('svg'); */
+  font-weight: 400;
+  font-style: italic
+}
+
+@font-face {
+  font-family: 'Apercu-Bold';
+  src: url("/static/font/Apercu-Bold.ttf");
+  /* src: url("/static/font/Apercu-Bold.eot?#iefix") format('embedded-opentype'),url("/static/font/Apercu-Bold.woff") format('woff'),url("/static/font/Apercu-Bold.ttf") format('truetype'),url("/static/font/Apercu-Bold.svg#Apercu-Bold") format('svg'); */
+  font-weight: 900;
+  font-style: normal
+}
+
+@font-face {
+  font-family: 'Apercu-Medium';
+  src: url("/static/font/Apercu-Medium.ttf");
+  /* src: url("/static/font/Apercu-Medium.otf?#iefix") format('embedded-opentype'),url("/static/font/Apercu-Medium.woff") format('woff'),url("/static/font/Apercu-Medium.ttf") format('truetype'),url("/static/font/Apercu-Medium.svg#Apercu-Medium") format('svg'); */
+  font-weight: 700;
+  font-style: normal
+}
+
+
+/* ********** The collapsible interactive module ********** */
+
+.lbl-toggle {
+  display: block;
+  max-width: 34rem;
+  font-family: monospace;
+  font-size: 110%;
+  text-transform: uppercase;
+  text-align: center;
+  font-weight: bold;
+  padding: 0.5rem;
+  color: #A77B0E;
+  background: #FAE042;
+  cursor: pointer;
+  border-radius: 7px;
+  transition: all 0.25s ease-out;
+}
+
+/* This module no longer has an element with this class. */
+/* .wrap-collapsible { margin-bottom: 1.2rem 0; } */
