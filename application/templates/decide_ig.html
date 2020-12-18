@@ -9,7 +9,6 @@
 {% endblock header %}
 
 {% block content %}
-<main>
   {% for account in ig_list %}
   <hr />
   <h3>{{account.name}} </h3>
@@ -50,5 +49,4 @@
     create another account on the platform to connect to your other Instagram account.
   </p>
   {% endif %}
-</main>
 {% endblock content %}

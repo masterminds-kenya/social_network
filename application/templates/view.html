@@ -1,21 +1,16 @@
-{% extends "base.html" %} {% block head %}
+{% extends "base.html" %}
+{% block head %}
 <title>{{ mod|title }} View Page</title>
-{% endblock %} {% block header %} {{ super() }} {% endblock header %} {% block
-content %}
+{% endblock head %}
 
-<main>
-  <div class="intro">
-    <h2>
+{% block intro %}
+    <h2 class="status">
       {{ mod|title }} Details {% if data.get('name') %}for {{data['name'] }}{% endif %}
     </h2>
+    {{ super() }}
+{% endblock intro %}
 
-    {% if current_user.is_authenticated %}
-    <p class="platform-user-header">
-      Using the Platform as - {{ current_user.name }}
-    </p>
-    {% endif %}
-  </div>
-
+{% block content %}
   {% block data_view %}
   <ul>
   {% for key in data.keys() %}
@@ -111,5 +106,4 @@ content %}
   </ul>
   {% endif %}
   {% endblock modify %}
-</main>
 {% endblock content %}

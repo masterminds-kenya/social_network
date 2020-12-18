@@ -1,8 +1,7 @@
 {% extends "base.html" %}
 {% block head %}
 <title>{{ action }} {{ mod|title }} Form</title>
-{% endblock %}
-
+{% endblock head %}
 
 {% block content %}
 <h3>{{ action }} {{ mod|title }}</h3>
@@ -40,4 +39,4 @@
   <button type="submit" class="btn btn-success">Save</button>
 </form>
 
-{% endblock %}
+{% endblock content %}

@@ -1,150 +1,145 @@
 {% extends "base.html" %}
 {% block head %}
-{% if signup_roles %}
-<title>New User Sign Up</title>
-{% else %}
-<title>User Login</title>
-{% endif %}
+<title>
+  {% if signup_roles %}
+  New User Sign Up
+  {% else %}
+  User Login
+  {% endif %}
+</title>
 {% endblock head %}
 
-{% block header %}
+{% block intro %}
+<h2 class="status">
+  {% if signup_roles %}
+  New User Sign Up
+  {% else %}
+  User Login
+  {% endif %}
+</h2>
 {{ super() }}
-{% endblock header %}
+{% endblock intro %}
 
 {% block content %}
-<main>
-  <div class="intro">
-  {% if signup_roles %}
-  <h2>New User Sign Up</h2>
-  {% else %}
-  <h2>User Login</h2>
-  {% endif %}
-  </div>
-  
-  {% if not current_user.is_authenticated %}
+{% if not current_user.is_authenticated %}
   {% if 'influencer' in mods %}
-      <section class="main-content-box">
+  <section class="main-content-box">
     <h2>Influencers</h2>
-      <div class ="sub-main-content">
-  <h3>
-    {% if signup_roles %}Join {% else %}Login {% endif %}
-    the Platform as an Influencer
-  </h3>
-  <p>
-    {% if signup_roles %}
-    To take advantage of the platform, you will be asked to confirm that we have your permission to view your Instagram professional account, insights, and media.
-    Instagram professional accounts should be connected to a Facebook user, so we are using Facebook Login to confirm your account and permissions.
-    {% else %}
-    As an influencer on Instagram, you bring value to brands with you social media presence and engagement. Leverage the Bacchus Influencer Platform for tracking and reporting that value to your campaign brand partners.
-    {% endif %}
-  </p>
-  <p class="join">
-    <a class="fb-login" id="influencer-join" href="{{ url_for('fb_login', mod='influencer') }}">
-      {% if signup_roles %}Continue with Facebook{% else %}Login with Facebook{% endif %}
-    </a>
-    <label for="influencer-join"></label>
-  </p>
-</section>
-{% endif %}
-{% if 'brand' in mods %}
-<section class="main-content-box">
-  <h2>Brands</h2>
-  <div class ="sub-main-content">
-  <h3>
-    {% if signup_roles %}Join {% else %}Login {% endif %}
-    the Platform as a Brand
-  </h3>
-  <p>
-    {% if signup_roles %}
-    To take full advantage of the platform, you will be asked to confirm that we have your permission to view your Instagram professional account, insights, and media.
-    Make sure you login as the Facebook user that is connected to your brand's Instagram professional account to verify your account and permissions.
-    An account without a connected Instagram account can be created by a platform admin or manager.
-  {% else %}
-    As a Brand partner, you can leverage the Bacchus Influencer Platform to gain insightful metrics for your campaigns with social media influencers. You gain additional features and metrics by also connecting your brand's Instagram professional account.
-  </p>
+    <div class ="sub-main-content">
+      <h3>
+        {% if signup_roles %}Join {% else %}Login {% endif %}
+        the Platform as an Influencer
+      </h3>
+      <p>
+        {% if signup_roles %}
+        To take advantage of the platform, you will be asked to confirm that we have your permission to view your Instagram professional account, insights, and media.
+        Instagram professional accounts should be connected to a Facebook user, so we are using Facebook Login to confirm your account and permissions.
+        {% else %}
+        As an influencer on Instagram, you bring value to brands with you social media presence and engagement. Leverage the Bacchus Influencer Platform for tracking and reporting that value to your campaign brand partners.
+        {% endif %}
+      </p>
+      <p class="join">
+        <a class="fb-login" id="influencer-join" href="{{ url_for('fb_login', mod='influencer') }}">
+          {% if signup_roles %}Continue with Facebook{% else %}Login with Facebook{% endif %}
+        </a>
+        <label for="influencer-join"></label>
+      </p>
+    </div>
+  </section>
   {% endif %}
-  <p class="join">
-    <a class="fb-login" id="brand-join" href="{{ url_for('fb_login', mod='brand') }}">
-      {% if signup_roles %}Continue with Facebook{% else %}Login with Facebook{% endif %}
-    </a>
-    <label for="brand-join"></label>
-  </p>
-</div>
-</section>
-{% endif %}
+  {% if 'brand' in mods %}
+  <section class="main-content-box">
+    <h2>Brands</h2>
+    <div class ="sub-main-content">
+      <h3>
+        {% if signup_roles %}Join {% else %}Login {% endif %}
+        the Platform as a Brand
+      </h3>
+      <p>
+        {% if signup_roles %}
+        To take full advantage of the platform, you will be asked to confirm that we have your permission to view your Instagram professional account, insights, and media.
+        Make sure you login as the Facebook user that is connected to your brand's Instagram professional account to verify your account and permissions.
+        An account without a connected Instagram account can be created by a platform admin or manager.
+        {% else %}
+        As a Brand partner, you can leverage the Bacchus Influencer Platform to gain insightful metrics for your campaigns with social media influencers. You gain additional features and metrics by also connecting your brand's Instagram professional account.
+      </p>
+      {% endif %}
+      <p class="join">
+        <a class="fb-login" id="brand-join" href="{{ url_for('fb_login', mod='brand') }}">
+          {% if signup_roles %}Continue with Facebook{% else %}Login with Facebook{% endif %}
+        </a>
+        <label for="brand-join"></label>
+      </p>
+    </div>
+  </section>
+  {% endif %}
 {% endif %}
 
 {% if not signup_roles or current_user.role == 'admin' %}
-  <section class="main-content-box">
-<h2>
-  Manual User
-  {% if signup_roles %}
-  Creation
-  {% else %}
-  Login
-  {% endif %}
-</h2>
-<div class ="sub-main-content">
-<form method="POST" enctype="multipart/form-data">
-  {% if signup_roles %}
-  <div class="form-group">
-    <label for="name">Name</label>
-    <input type="text" name="name" id="name" placeholder="username" class="form-control"/>
-  </div>
-  {% endif %}
-  <div class="form-group">
-    <label for="email">Email</label>
-    <input type="email" name="email" id="email" placeholder="email" class="form-control"/>
-  </div>
-  <div class="form-group">
-    <label for="password">Password</label>
-    <input type="password" name="password" id="password" placeholder="password" class="form-control"/>
-  </div>
-  <div class="form-group">
-  {% if signup_roles %}
-    <label for="role-select">User type</label>
-    <select name="role" id="role-select">
-      {% for role in signup_roles %}
-      <option value="{{role}}">{{role|capitalize}}</option>
-      {% endfor %}
-    </select>
-  {% else %}
-    <label for="remember">
-      <input type="checkbox" name="remember" id="remember" />
-      Remember me
-    </label>
-  {% endif %}
-  </div>
-  <div class="form-group">
-
-  {% if signup_roles %}
-  </div>
-  <div class="form-group">
-    <label for="notes">Notes</label>
-    <input type="text" name="notes" id="notes" placeholder="Notes" class="form-control"/>
-  </div>
-  {% endif %}
-
-  <button type="submit" class="btn btn-success">
+<section class="main-content-box">
+  <h2>
+    Manual User
     {% if signup_roles %}
-    Sign Up
+    Creation
     {% else %}
     Login
     {% endif %}
-  </button>
-</form>
-</div>
-  </section>
+  </h2>
+  <div class ="sub-main-content">
+  <form method="POST" enctype="multipart/form-data">
+    {% if signup_roles %}
+    <div class="form-group">
+      <label for="name">Name</label>
+      <input type="text" name="name" id="name" placeholder="username" class="form-control" />
+    </div>
+    {% endif %}
+    <div class="form-group">
+      <label for="email">Email</label>
+      <input type="email" name="email" id="email" placeholder="email" class="form-control" />
+    </div>
+    <div class="form-group">
+      <label for="password">Password</label>
+      <input type="password" name="password" id="password" placeholder="password" class="form-control" />
+    </div>
+    <div class="form-group">
+    {% if signup_roles %}
+      <label for="role-select">User type</label>
+      <select name="role" id="role-select">
+        {% for role in signup_roles %}
+        <option value="{{role}}">{{role|capitalize}}</option>
+        {% endfor %}
+      </select>
+    {% else %}
+      <label for="remember">
+        <input type="checkbox" name="remember" id="remember" />
+        Remember me
+      </label>
+    {% endif %}
+    </div>
+    {% if signup_roles %}
+    <div class="form-group">
+      <label for="notes">Notes</label>
+      <input type="text" name="notes" id="notes" placeholder="Notes" class="form-control"/>
+    </div>
+    {% endif %}
+
+    <button type="submit" class="btn btn-success">
+      {% if signup_roles %}
+      Sign Up
+      {% else %}
+      Login
+      {% endif %}
+    </button>
+  </form>
+  </div>
+</section>
 {% endif %}
 
 {% if not signup_roles %}
-  <section class="main-content-box">
-<p>Or did you want to <a href="{{ url_for('signup') }}">join the platform</a> for the first time?</p>
-<p><a href="{{ url_for('signup') }}">Create Account</a></p>
-  </section>
+<section class="main-content-box">
+  <p>Or did you want to <a href="{{ url_for('signup') }}">join the platform</a> for the first time?</p>
+  <p><a href="{{ url_for('signup') }}">Create Account</a></p>
+</section>
 {% endif %}
 
-</div>
-</section>
-</main>
-{% endblock %}
+{% endblock content %}

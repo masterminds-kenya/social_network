@@ -1,6 +1,7 @@
 from flask import render_template, redirect, url_for, request, flash, current_app as app  # , abort
 from flask_login import current_user, login_user, logout_user, login_required
 from werkzeug.security import generate_password_hash, check_password_hash
+# from sqlalchemy import or_
 import json
 from .model_db import db_create, db_read, db_delete, db_all, from_sql  # , metric_clean
 from .model_db import User, OnlineFollowers, Insight, Post, Campaign   # , Audience
@@ -131,12 +132,16 @@ def permission_check(mod, id):
 @admin_required()
 def problem_posts():
     """These media posts experienced problems that should be investigated. """
-    # app.logger.info("========== Test Method for admin:  ==========")
-    models = Post.query.filter(Post.caption.in_(caption_errors))
-    data = {'posts': models.all()}
+    null_date = '2020-12-16'
+    problem_data = Post.query.filter(Post.caption.in_(caption_errors))
+    recent_null = Post.query.filter(Post.caption.is_(None), Post.created > null_date)
+    models = problem_data.union(recent_null)
+    problem_posts = models.all()
+    data = {'posts': problem_posts}
     mod = 'error media posts'
     template = 'view.html'
-
+    flash(f"All media posts received with either NULL after {null_date} or assigned a caption error code. ")
+    flash(f"Known caption error codes: {', '.join(caption_errors)}. ")
     return render_template(template, mod=mod, data=data, caption_errors=caption_errors)
 
 

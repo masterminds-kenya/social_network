@@ -2,7 +2,7 @@
 {% block head %}
 <title> {{ user|title }} Chart Data</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.4.0/Chart.min.js"></script>
-{% endblock %}
+{% endblock head %}
 
 {% block content %}
 <h1>{{user}} Insight Data</h1>
@@ -77,4 +77,4 @@
   {% endfor %}
   makeChart(showSet);
 </script>
-{% endblock %}
+{% endblock content %}

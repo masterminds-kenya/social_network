@@ -100,7 +100,7 @@ def make_permission_overview(data):
             keys = [(f'Permission for {FB_CLIENT_APP_NAME}', 'Platform'), ('Permissions Needed', 'Need Scope')]
             label_vals = []
             for key, label in keys:
-                val = info.get(key, '')
+                val = info.get(key, None)
                 if isinstance(val, (list, tuple)):
                     val = ', '.join(val)
                 elif val is None:
@@ -227,6 +227,7 @@ def save(mod, id, Model):
        Takes users in the database and saves them in a text file to later be managed by the load function.
     """
     app.logger.info('------- Save User to File -------')
+    filename = None
     if mod in {'brand', 'influencer', 'user'}:
         filename = USER_FILE
     model = db_read(id, Model=Model, safe=False)
@@ -236,6 +237,8 @@ def save(mod, id, Model):
     model.pop('insight', None)
     model.pop('audience', None)
     app.logger.info('Old Account: ', model)
+    if not filename:
+        return 0
     count = 0
     with open(filename, 'a') as file:
         file.write(json.dumps(model))

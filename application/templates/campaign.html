@@ -1,121 +1,67 @@
-{% extends "base.html" %} {% block head %}
+{% extends "base.html" %}
+{% block head %}
 <title>{{ mod|title }} {{ view|title }}</title>
-{% endblock head %} {% block header %} {{ super() }}
-<!-- <h1>
-  {{ mod|title }} {{ view|title }} -
-  {{ data.name|title|e if data.name else data.id }}
-  {% if data.brands|length > 1 %}
-  - {{ data.brands|join(", ")|e }}
-  {% elif data.brands|length > 0 %}
-  - {{ data.brands[0]|e }}
-  {% else %}
-  - Unassigned Brands
-  {% endif %}
-</h1>
+{% endblock head %}
 
-<p>
-  {% if view != 'management' %}<a href="{{url_for('view', mod=mod, id=data.id)}}">Campaign Management</a> | {% endif %}
-  {% if view != 'collected' %}<a href="{{url_for('detail_campaign', id=data.id)}}">Collected Posts</a> | {% endif %}
-  {% if view != 'rejected' %}<a href="{{url_for('rejected_campaign', id=data.id)}}">Rejected Posts</a> | {% endif %}
-  {% if view != 'results' %}<a href="{{url_for('results', id=data.id)}}">Campaign Results</a> | {% endif %}
-  Last Updated on {{data.modified}} |
-  {%if completed%}Finished Campaign{%else%}Active Campaign{%endif%} |
-  <a href="{{ url_for('edit', mod=mod, id=data.id) }}">Change Campaign Settings</a>
-  <br /><strong>Notes: </strong> {{ data.notes|e }}
-</p>
-{% if data.brands|length < 1 %}
-<p>
-  There are no Brands associated with this campaign! You probably want to
-  <a href="{{url_for('edit', mod=mod, id=data.id)}}">Change Campaign Settings</a>
-</p>
-{% endif %}
-{% if data.users|length < 1 %}
-<h2>No Influencers assigned in Campaign</h2>
-<p>You probably want to <a href="{{url_for('edit', mod=mod, id=data.id)}}">Change Campaign Settings</a></p>
-{% else %}
-{% if view == 'management' %}
-<ul>
-  {% for user in data.users %}
-  <li>
-    <strong>{{ user.name }}</strong> |
-    posts last retrieved on {{user.modified}} |
-    <a href="{{ url_for('new_post', mod='influencer', id=user.id) }}">retrieve new {{user.name}} posts</a>
-    <br />
-  </li>
-  {% else %}
-  <li>No associated Influencers found</li>
-  {% endfor %}
-</ul>
-{% endif %}
-{% endif %} -->
-
-{% endblock header %}
-{% block content %}
-<main>
-  <div class="intro">
-    <h2>
+{% block intro %}
+    <h2 class="status">
       {{ mod|title }} {{ view|title }}
       - {{ data.name|title|e if data.name else data.id }}
-      {% if data.brands|length > 1 %}
-      - {{ data.brands|join(", ")|e}}
-      {% elif data.brands|length > 0 %}
-      - {{ data.brands[0]|e }}
-      {% else %}
-      - Unassigned Brands
-      {% endif %}
     </h2>
-    {% if current_user.is_authenticated %}
-    <p class="platform-user-header">
-      Using the Platform as - {{ current_user.name }}
-    </p>
-    {% endif %}
-
-    <p>
+    <p class="status">
       {% if view != 'management' %}
       <a href="{{url_for('view', mod=mod, id=data.id)}}">Campaign Management</a> |
       {% endif %}
       {% if view != 'collected' %}
-      <a href="{{url_for('detail_campaign', id=data.id)}}">Collected Posts</a> |
+      <a href="{{url_for('detail_campaign', id=data.id)}}">Collected</a> |
       {% endif %}
       {% if view != 'rejected' %}
-      <a href="{{url_for('rejected_campaign', id=data.id)}}">Rejected Posts</a> |
+      <a href="{{url_for('rejected_campaign', id=data.id)}}">Rejected</a> |
       {% endif %}
       {% if view != 'results' %}
-      <a href="{{url_for('results', id=data.id)}}">Campaign Results</a> |
+      <a href="{{url_for('results', id=data.id)}}">Results</a> |
       {% endif %}
-      Last Updated on {{data.modified}} |
-      {%if completed%} Finished Campaign{%else%} Active Campaign{%endif%} |
-      <a href="{{ url_for('edit', mod=mod, id=data.id) }}">Change Campaign Settings</a>
-      <br /><strong>Notes: </strong> {{ data.notes|e }}
+      Campaign {% if completed %} Finished {% else %} Active {% endif %} |
+      <a href="{{ url_for('edit', mod=mod, id=data.id) }}">Change Settings</a>
     </p>
-    {% if data.brands|length < 1 %}
-    <p>
-      There are no Brands associated with this campaign! You probably want to
-      <a href="{{url_for('edit', mod=mod, id=data.id)}}">Change Campaign Settings</a>
-    </p>
-    {% endif %}
-    {% if data.users|length < 1 %}
-    <h2>No Influencers assigned in Campaign</h2>
-    <p>
-      You probably want to
-      <a href="{{url_for('edit', mod=mod, id=data.id)}}">Change Campaign Settings</a>
-    </p>
-    {% elif view == 'management' %}
-    <ul>
-      {% for user in data.users %}
+    {% if data.notes %}<p>Notes: {{data.notes|e}} </p>{% endif %}
+    {% if view == 'management' %}
+    <ul title="Brands">
+      {% for user in data.brands %}
       <li>
-        <strong>{{ user.name }}</strong> |
-        <a href="{{ url_for('new_post', mod='influencer', id=user.id) }}">retrieve new {{user.name}} posts</a>
-        <br />
+        {{ user.name }}
+        {% if user.instagram_id %}
+        <a href="{{ url_for('new_post', mod='brand', id=user.id) }}">more posts</a> |
+        {% else %}
+        No Instagram Account |
+        {% endif %}
       </li>
       {% else %}
-      <li>No associated Influencers found</li>
+      <li>
+        No Brands associated with this campaign. You can add them in the
+        <a href="{{url_for('edit', mod=mod, id=data.id)}}">Campaign Settings</a>
+      </li>
+      {% endfor %}
+    </ul>
+    <ul title="Influencers">
+      {% for user in data.users %}
+      <li>
+        {{ user.name }}
+        <a href="{{ url_for('new_post', mod='influencer', id=user.id) }}">retrieve</a> |
+      </li>
+      {% else %}
+      <li>
+        No associated Influencers found. You can add them in the
+        <a href="{{url_for('edit', mod=mod, id=data.id)}}">Campaign Settings</a>
+      </li>
       {% endfor %}
     </ul>
     {% endif %}
-  </div>
+    {{ super() }}
+{% endblock intro %}
 
-  {% for user in related.keys() %}
+{% block content %}
+    {% for user in related.keys() %}
   <div class="users" id="user_{{user.id}}">
     <h2>
       Media Post Assignment for - {{user.name|e}} ( {{related[user]|length}} )
@@ -148,9 +94,8 @@
             {{ post.caption|e }}
           </p>
         </article>
-        <div class="metrics">
         {% if view == 'collected' %}
-          <ul>
+          <ul class="metrics">
           {% for key, val in post.items() %}
             {% if key not in ['id', 'user_id', 'recorded', 'permalink',
               'media_type', 'caption', 'processed', 'campaigns'] %}
@@ -159,7 +104,6 @@
           {% endfor %}
           </ul>
         {% endif %}
-        </div>
         <div class="form-group">
           <label for="accept_{{post.id}}">
             <input type="radio" id="accept_{{post.id}}" name="assign_{{post.id}}"
@@ -208,6 +152,4 @@
     </form>
   </div>
   {% endfor %}
-</main>
-
 {% endblock content %}

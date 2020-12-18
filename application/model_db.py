@@ -435,7 +435,7 @@ class Audience(db.Model):
         return f"Audience - {self.name} on {self.recorded} User: {self.user_id}"
 
     def __repr__(self):
-        return '<Audience {} | User: | Date: {} >'.format(self.name, self.user_id, self.recorded)
+        return '<Audience {} | User: {} | Date: {} >'.format(self.name, self.user_id, self.recorded)
 
 
 class Post(db.Model):

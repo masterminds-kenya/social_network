@@ -1,17 +1,14 @@
 {% extends "base.html" %}
-
 {% block head %}
 <title>Admin Page</title>
 {% endblock head %}
 
-{% block header %}
+{% block intro %}
+<h2 class="status">Admin Page</h2>
 {{ super() }}
-<h1>Admin Page</h1>
-{% endblock header %}
-
+{% endblock intro %}
 
 {% block content %}
-
 {% if data %}
 <h3>Data For Admin Review</h3>
 <p>
@@ -77,4 +74,4 @@
   {% endif %}
 </ul>
 
-{% endblock %}
+{% endblock content %}

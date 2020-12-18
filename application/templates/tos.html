@@ -1,10 +1,13 @@
 {% extends "base.html" %}
 {% block head %}
 <title>Terms of Service</title>
-{% endblock %}
+{% endblock head %}
+
+{% block intro %}
+<h2 class="status">Terms and Conditions</h2>
+{% endblock intro %}
 
 {% block content %}
-<h1>Terms and Conditions</h1>
 <address>Last Update: November 11, 2019</address>
 
 <ol type="1">
@@ -12,7 +15,7 @@
     <h2>ACCEPTANCE</h2>
     <p>
       These Terms and Conditions (the “Terms”) govern your use of Bacchus Influencer Platform (the “Platform”). These Terms have a force of a legally binding agreement, even if you are simply browsing without intention to contact us or register an account. The term "us," "we" or "our" refers to the owners and operators of this Platform. The term "you" refers to the viewer of the Platform.
-     <a href="{{ url_for('render_static', page_name='privacy') }}">Privacy Policy</a> is another important document that you should familiarize yourself with because it describes our practices with respect to your personal information. You cannot visit the Platform if you do not agree to these Terms or the Privacy Policy. Sometimes we modify these Terms. We don’t notify users about every change to the Terms but you can see the date of the last update at the top of this page. If you still wish to visit the Platform after said date, that constitutes your agreement to the updates. 
+     <a href="{{ url_for('render_static', page_name='privacy') }}">Privacy Policy</a> is another important document that you should familiarize yourself with because it describes our practices with respect to your personal information. You cannot visit the Platform if you do not agree to these Terms or the Privacy Policy. Sometimes we modify these Terms. We don’t notify users about every change to the Terms but you can see the date of the last update at the top of this page. If you still wish to visit the Platform after said date, that constitutes your agreement to the updates.
     </p>
   </li>
   <li>
@@ -129,4 +132,4 @@
   </li>
 </ol>
 
-  {% endblock %}
+{% endblock content %}

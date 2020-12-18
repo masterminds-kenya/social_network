@@ -1,8 +1,10 @@
 {% extends "campaign.html" %}
+
 {% block head %}
 {{ super() }}
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.4.0/Chart.min.js"></script>
 {% endblock head %}
+
 {% block header %}
 {{ super() }}
 <form method="POST" enctype="multipart/form-data">
@@ -10,8 +12,8 @@
   <button type="submit" class="btn btn-success">Create Google Sheet Report</button>
 </form>
 {% endblock header %}
+
 {% block content %}
-<main>
   {% set dataset = namespace(count=0, datatype=[], vals=[], labels=[]) %}
   {% for media_type, obj in related.items() %}
 
@@ -100,5 +102,4 @@
     console.log('hello');
     showData();
   </script>
-</main>
 {% endblock content %}

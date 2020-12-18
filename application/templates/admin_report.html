@@ -1,7 +1,8 @@
 {% extends "base.html" %}
 {% block head %}
 <title>Admin {{ mod|capitalize }} Report {% if overview %}Overview{% endif %}</title>
-{% endblock %}
+{% endblock head %}
+
 {% block header %}
 {{ super() }}
 <h1>
@@ -15,8 +16,6 @@
 {% endblock header %}
 
 {% block content %}
-<main>
-
 {% block data_view %}
   <ul>
   {% for lbl in info.keys() %}
@@ -29,18 +28,6 @@
       <ul class="collapsible-content {{lbl.name}}">
         {% set data = info[lbl] %}
         {% for key in data.keys() %}
-        {% for post in data[key] %}
-        {% if caption_errors and post.caption in caption_errors %}
-        <li class="error {{ post.caption|e }}">Caption Error: {{ post.caption|e }}
-        {% else %}
-        <li>
-        {% endif %}
-          <a href="{{ url_for('view', mod='post', id=ea.id) }}">
-            # {{ea.id}} {{ea.media_type}} on {{ea.recorded}}
-          </a>
-        </li>
-        {% endfor %}
-
         <li>{% include 'data_expand.html' %}</li>
         {% endfor %}
       </ul>
@@ -89,6 +76,4 @@
   <li><a href="{{ url_for('all', mod='brand') }}">Brands</a></li>
   <li><a href="{{ url_for('all', mod='campaign') }}">Campaigns</a></li>
 </ul>
-
-</main>
 {% endblock content %}

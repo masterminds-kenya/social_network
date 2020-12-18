@@ -96,24 +96,6 @@ def user_permissions(id_or_user, facebook=None, token=None, app_access_token=Non
     if not isinstance(user, User):
         app.logger.error("Expected a valid User instance, or id of one, for user_permissions check. ")
         return {}
-    if not facebook and not token:
-        token = user.token
-        if not token:
-            app.logger.error("We do not have a token for this user. ")
-            return {}
-    perm_info = {permission: False for permission in FB_SCOPE}  # Each will be overwritten if later found as True
-    url = f"https://graph.facebook.com/{user.facebook_id}/permissions"
-    params = {}
-    if not facebook:
-        params['access_token'] = token
-    res = facebook.get(url, params=params).json() if facebook else requests.get(url, params=params).json()
-    if 'error' in res:
-        app.logger.info('---------------- Error in user_permissions response ----------------')
-        app.logger.error(f"Error: {res.get('error', 'Empty Error')} ")
-        return {}
-    res_data = res.get('data', [{}])
-    perm_info.update({ea.get('permission', ''): ea.get('status', '') for ea in res_data})
-
     data = {'info': 'Permissions Report', 'id': user.id, 'name': user.name}
     keys = ('facebook_id', 'instagram_id', 'page_id', 'page_token', )
     needed = ', '.join(key for key in keys if not getattr(user, key, None))
@@ -124,15 +106,31 @@ def user_permissions(id_or_user, facebook=None, token=None, app_access_token=Non
     else:
         subscribed = "Have the account and page info, but NOT subscribed. "
     data['subscribed'] = subscribed
+
+    token = token or user.token
+    perm_info = {permission: False for permission in FB_SCOPE}  # Each will be overwritten if later found as True
+    if facebook or token:
+        url = f"https://graph.facebook.com/{user.facebook_id}/permissions"
+        params = {}
+        if not facebook:
+            params['access_token'] = token
+        res = facebook.get(url, params=params).json() if facebook else requests.get(url, params=params).json()
+        if 'error' in res:
+            app.logger.info('---------------- Error in user_permissions response ----------------')
+            app.logger.error(f"Error: {res.get('error', 'Empty Error')} ")
+        res_data = res.get('data', [{}])
+        perm_info.update({ea.get('permission', ''): ea.get('status', '') for ea in res_data})
     data['facebook user permissions'] = ['{}: {}'.format(k, v) for k, v in perm_info.items()]
+
     if token:
         inspect = inspect_access_token(token, app_access_token)
         if 'error' not in inspect:
             inspect = pretty_token_data(inspect, fb_id=user.facebook_id, ig_id=user.instagram_id, page_id=user.page_id)
     else:
-        skipped_text = "Did not check due to lack of user token. "
+        skipped_text = "Not Known. Did not check due to lack of user token. "
         inspect = {'scope_missing': skipped_text, 'app_connect': skipped_text}
-    missing_info = f"Not Known. Confirm {user.name} has approved the Facebook application: {FB_CLIENT_APP_NAME} "
+    missing_info = "Not Known. May need updated permissions. "
+    missing_info += f"Confirm {user.name} has approved the Facebook application: {FB_CLIENT_APP_NAME} "
     data[f'Permission for {FB_CLIENT_APP_NAME}'] = inspect.get('app_connect', missing_info)
     data['Matching ID'] = inspect.get('user_connect', None)
     scope_missing = inspect.get('scope_missing', missing_info)  # default used only if received an error.

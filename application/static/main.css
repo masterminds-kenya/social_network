@@ -36,47 +36,82 @@ body {
   -webkit-text-size-adjust: none;
 }
 
-.header {
-  display: block;
+body > header {
+  background-color: rgb(255, 255, 255);
   width: 100%;
-  z-index: 100;
-  right: 0;
-  top: 0;
-  background: #fff;
 }
 
 .sticky {
   position: fixed;
   top: 0;
-  width: 100%;
 }
 
+.sticky .header-logo {
+  text-align: left;
+  height: 58px;
+  transition: height 0.3s ease;
+}
+
+.sticky .header-logo .logo {
+  height: 90%;
+  transition: height 0.25s ease 0.05s;
+}
+
+.sticky .header-logo h1 {
+  display: inline-block;
+  font-size: 25px;
+  transition: font-size 0.2s ease-in 0.1;
+}
+
+/* TODO: Determine a min-max, or other technique, to avoid wrapping .header-log h1 on narrow screen. */
+/* Currently using @media (at end of this style-sheet. */
+
+.sticky .intro > *:not(.status) {
+  display: none;
+  overflow: hidden;
+}
+
+.sticky .intro p {
+  line-height: 1.2;
+  transition: line-height 0.2s ease 0.2s;
+}
+.sticky .intro h2 {
+  font-size: 20px;
+  line-height: 1.2;
+  transition: font-size 0.3s ease-out 0.1s, line-height 0.2s ease 0.2s;
+}
+.sticky .intro .platform-user-header {
+  font-weight: lighter;
+}
 .sticky+main {
-  padding-top: 190px;
+  padding-top: 290px;  /* No transition protects against wobble of smaller header removes scrolling sticky. */
 }
 
-.header ul {
-  position: absolute;
-  /* display: table-cell; */ /* as written by Cait. */
-  /* display: table; */  /* Chris - if any table display, shouldn't it be table here? */
-  vertical-align: middle;  /* Does this actually change anything */
-  width: 100%;
-  height: 100%;
+/* menu */
+
+body > header nav .menu {
+  position: absolute;  /* relative makes it jumpy. Setting top changes where it slides from. */
   margin: 0;
   padding: 0;
-  list-style: none;
+  width: 100%;
+  max-height: 0;
+  min-height: 0;
+  transition: all .4s ease-in-out;
+  transform: translate3d(0, 0, 0);
+  background-color: rgba(255, 255, 255, 0.94);
+  border-top: 1px solid black;
   overflow: hidden;
   text-align: center;
-  font-family: "Open Sans",
-    Arial,
-    sans-serif;
-  background-color: rgba(255, 255, 255, 0.94);  /* already inherited from .header .menu rule? */
+  font-family: "Open Sans", Arial, sans-serif;
+  text-transform: lowercase;
+  list-style: none;
 }
 
-.header li a {
-  /* display: table-cell; */  /* Overwritten anyways?  If used, should have .header li { display: table-row } ? */
-  /* width: 100%; */          /* Not needed with likely display setting */
-  /* height: 100%; */         /* Not needed with likely display setting */
+body > header nav .menu li {
+  z-index: 100;  /* Want to cover any underlying interactive elements, but not working. */
+}
+
+body > header nav .menu li a {
   color: rgb(0, 0, 0);
   display: inline-block;
   padding: 6px 20px;   /* If setting width or height, probably not keep this padding */
@@ -86,172 +121,189 @@ body {
   font-size: 24px;
   line-height: 32px;
   letter-spacing: 2px;
-  text-transform: lowercase;
-  z-index: 100;
-}
-
-/* menu */
-
-.header .menu {
-  display: flex;
-  flex-direction: column;
-  clear: both;
-  max-height: 0;
-  transition: max-height 0.6s ease;
-  transform: translate3d(0, 0, 0);
-  background-color: rgba(255, 255, 255, 0.94);
-  border-top: 1px solid black;
-  justify-content: center;
 }
 
 /* menu icon */
 
-.header .menu-icon {
+body > header nav .menu-icon {
   cursor: pointer;
   display: inline-block;
-  float: right;
   padding: 28px 20px;
-  position: relative;
+  position: absolute;  /* Using absolute instead of relative makes right float not needed. */
+  top: 0;
+  right: 0;
   user-select: none;
-  z-index: 105;
+  -moz-user-select: none;
+  -webkit-user-select: none;
+  -ms-user-select: none;
+  /* z-index: 105; */
 }
 
-.header .menu-icon .navicon {
+body > header nav .menu-icon .navicon {
   background: #000000;
   display: block;
   height: 2px;
-  position: relative;
-  transition: background 0.2s ease-out;
+  position: relative;  /* allows sizing of menu button bars, but absolute would require finicky placement */
+  transition: all .2s ease-out;
   width: 18px;
 }
 
-.header .menu-icon .navicon:before,
-.header .menu-icon .navicon:after {
+body > header nav .menu-icon .navicon:before,
+body > header nav .menu-icon .navicon:after {
   background: #000000;
   content: "";
   display: block;
   height: 100%;
-  position: absolute;
-  transition: all 0.2s ease-out;
+  position: absolute;   /* relative does not look as good. */
+  transition: all .2s ease-out;
   width: 100%;
 }
 
-.header .menu-icon .navicon:before {
+body > header nav .menu-icon .navicon:before {
   top: 5px;
 }
 
-.header .menu-icon .navicon:after {
+body > header nav .menu-icon .navicon:after {
   top: -5px;
 }
 
 /* menu btn */
 
-.header .menu-btn {
-  display: none;
+body > header nav .menu-btn {
+  display: none;  /* TODO: combine with selector of other checkbox display: none */
 }
 
-.header .menu-btn:checked~.menu {
+body > header nav .menu-btn:checked~.menu {
   max-height: 80%;
-  position: fixed;
+  padding: 10px 0;
+  min-height: 384px;   /* instead of fixed position, setting needed space for menu items works better. */
+  transition: all .4s ease-in-out 0.1s;
 }
 
-.header .menu-btn:checked~.menu-icon .navicon {
+body > header nav .intro {
+  position: relative;
+  top: 0;
+  transition: top .4s ease-in-out 0.1s;
+}
+
+body > header nav .menu-btn:checked~.intro {
+  top: 384px;
+  transition: top .4s ease-in-out;
+}
+
+body > header nav .menu-btn:checked~.menu-icon .navicon {
   background: transparent;
+  transition: all .2s ease-out;
 }
 
-.header .menu-btn:checked~.menu-icon .navicon:before {
+body > header nav .menu-btn:checked~.menu-icon .navicon:before {
   transform: rotate(-45deg);
 }
 
-.header .menu-btn:checked~.menu-icon .navicon:after {
+body > header nav .menu-btn:checked~.menu-icon .navicon:after {
   transform: rotate(45deg);
 }
 
-.header .menu-btn:checked~.menu-icon:not(.steps) .navicon:before,
-.header .menu-btn:checked~.menu-icon:not(.steps) .navicon:after {
+body > header nav .menu-btn:checked~.menu-icon:not(.steps) .navicon:before,
+body > header nav .menu-btn:checked~.menu-icon:not(.steps) .navicon:after {
   top: 0;
+  transition: all .2s ease-out;
 }
 
 .header-logo {
-  width: 100%;
-  display: inline-flex;
-  flex-direction: column;
-  margin: auto;
-  position: relative;
-  margin-top: -30px;
-  z-index: 100;
-}
-
-.header h1 {
+  height: 10vh;
   text-align: center;
-  line-height: 102%;
+  /* z-index: 100; */
 }
 
-.logo {
-  width: 215px;
-  margin: auto;
+.header-logo h1 {
+  font-size: 2.63vh;
+  line-height: 1.4;
+  margin: 0;
+}
+
+.header-logo .logo {
+  height: 55%;
 }
 
 .intro {
   background-color: #000000;
   color: #fff;
-  padding: 2.5%;
-  margin-top: 0;
-  text-align: center;
+  padding: 2% 1.5%;
+  text-align: left;
   font-weight: 500;
-  font-family: 'Apercu',
-    'Helvetica Neue',
-    Helvetica,
-    Arial,
-    sans-serif;
-  line-height: 1.5;
+  letter-spacing: 0.1em;
+  line-height: 1.6;
+  font-family: 'Apercu', 'Helvetica Neue', Helvetica, Arial, sans-serif;
+  z-index: 100;  /* Covers any interactive elements underneath when nav menu is expanded. */
+}
+
+.intro > * {
+  margin: 0;
+  padding: 0;
 }
 
 .intro h2 {
-  color: #fff !important;
-  text-transform: uppercase;
-  margin: auto;
+  color: #fff;
   text-align: center;
+  text-transform: uppercase;
+  font-weight: 900;
   font-size: 25px;
-  padding: none;
+  letter-spacing: 0.2em;
+}
+
+.intro h3,
+.intro h4,
+.intro h5,
+.intro h6 {
+  color: #fff;
+  text-align: left;
+  font-weight: 700;
+  letter-spacing: 0.15em;
 }
 
 .intro .platform-user-header {
-  text-align: center !important;
+  text-align: center;
   font-weight: bolder;
-  font-size: 18px;
 }
 
-.intro p {
-  margin: auto;
-  text-align: center !important;
+.intro .status {
+  text-align: center;
 }
 
-.intro p ul li {
+.intro ul {
+  list-style: none;
+}
+
+.intro ol::before,
+.intro ul::before {
+  content: attr(title) ': ';
+  font-weight: bolder;
+}
+
+.intro li {
+  display: inline-block;
+}
+
+.intro a:visited,
+.intro a:link,
+.intro a {
+  /* color: rgb(255, 225, 230); */
+  color: rgb(205, 225, 245);
   text-decoration: none;
 }
-.intro p a{
-  color: #fff !important;
-  text-decoration: underline;
+
+.intro a:focus,
+.intro a:hover {
+  /* color: rgb(183, 149, 159); */
+  color: rgb(245, 225, 205);
+  text-decoration: none;
 }
 
-.intro p a:link{
-  color: #fff !important;
-  text-decoration: underline;
-}
- .intro p a:visited {
-  color: #fff !important;
-  text-decoration: underline;
- }
-
-.intro p a:hover {
-  color: rgb(183, 149, 159) !important;
-  text-decoration: underline;
-}
-
-.intro p a:active{
-  color: rgb(183, 149, 159) !important;
-  text-decoration: underline;
+.intro a:active {
+  /* color: rgb(233, 199, 209); */
+  color: rgb(233, 199, 209);
+  text-decoration: none;
 }
 
 .main-content-box {
@@ -274,7 +326,6 @@ body {
 @font-face {
   font-family: 'Apercu-Light';
   src: url("/static/font/Apercu-Light.ttf");
-  /* src: url("/static/font/aperculight.eot?#iefix") format('embedded-opentype'),url("/static/font/aperculight.woff") format('woff'),url("/static/font/Apercu-Light.ttf") format('truetype'),url("/static/font/aperculight.svg#Apercu-Light") format('svg'); */
   font-weight: 400;
   font-style: normal
 }
@@ -282,7 +333,6 @@ body {
 @font-face {
   font-family: 'Apercu-LightItalic';
   src: url("/static/font/Apercu-LightItalic.ttf");
-  /* src: url("/static/font/aperculightitalic.eot ?#iefix") format('embedded-opentype'),url("/static/font/aperculightitalic.woff") format('woff'),url("/static/Apercu-LightItalic.ttf") format('truetype'),url("/static/font/aperculightitalic.svg#Apercu-LightItalic") format('svg'); */
   font-weight: 400;
   font-style: italic
 }
@@ -290,7 +340,6 @@ body {
 @font-face {
   font-family: 'Apercu-Bold';
   src: url("/static/font/Apercu-Bold.ttf");
-  /* src: url("/static/font/Apercu-Bold.eot?#iefix") format('embedded-opentype'),url("/static/font/Apercu-Bold.woff") format('woff'),url("/static/font/Apercu-Bold.ttf") format('truetype'),url("/static/font/Apercu-Bold.svg#Apercu-Bold") format('svg'); */
   font-weight: 900;
   font-style: normal
 }
@@ -298,18 +347,12 @@ body {
 @font-face {
   font-family: 'Apercu-Medium';
   src: url("/static/font/Apercu-Medium.ttf");
-  /* src: url("/static/font/Apercu-Medium.otf?#iefix") format('embedded-opentype'),url("/static/font/Apercu-Medium.woff") format('woff'),url("/static/font/Apercu-Medium.ttf") format('truetype'),url("/static/font/Apercu-Medium.svg#Apercu-Medium") format('svg'); */
   font-weight: 700;
   font-style: normal
 }
 
-header nav li {
-  list-style: none;
-}
-
 footer {
   text-align: center;
-  width: 100%
 }
 
 h1 {
@@ -321,7 +364,6 @@ h1 {
   text-transform: uppercase;
   color: rgb(0, 0, 0);
   margin-top: 10px;
-
 }
 
 h2 {
@@ -364,13 +406,9 @@ strong {
 
 .campaign_posts {
   display: flex;
-  /* flex-direction: row-reverse; */
   justify-content: flex-end;
 }
 
-/* .campaign_posts article {
-  width: 80%;
-} */
 .campaign_posts .form-group {
   display: flex;
   flex-direction: column;
@@ -398,7 +436,6 @@ strong {
   order: 3;
 }
 
-/* .wrap-collapsible { margin-bottom: 1.2rem 0; } */
 input.toggle[type='checkbox'] {
   display: none;
 }
@@ -406,10 +443,6 @@ input.toggle[type='checkbox'] {
 .lbl-toggle {
   display: block;
   max-width: 34rem;
-  /* font-family: monospace; */
-  /* font-size: 110%; */
-  /* text-transform: uppercase; */
-  /* text-align: center; */
   font-weight: bold;
   padding: 0.5rem;
   color: #A77B0E;
@@ -419,7 +452,8 @@ input.toggle[type='checkbox'] {
   transition: all 0.25s ease-out;
 }
 
-.lbl-toggle:hover {
+.lbl-toggle:hover,
+.lbl-toggle:focus {
   color: #7C5A0B;
 }
 
@@ -428,7 +462,8 @@ input.toggle[type='checkbox'] {
   background: #995555;
 }
 
-.lbl-toggle.error:hover {
+.lbl-toggle.error:hover,
+.lbl-toggle.error:focus {
   background: #AA4444;
 }
 
@@ -437,7 +472,8 @@ input.toggle[type='checkbox'] {
   background: #F0F4FF;
 }
 
-.lbl-toggle.list:hover {
+.lbl-toggle.list:hover,
+.lbl-toggle.list:focus {
   background: #D0D4DF;
 }
 
@@ -518,15 +554,8 @@ button {
   color: #9e9e9e;
 }
 
-/* .no-show {
-  background: #2f313b;
-  background: -webkit-gradient(linear, left top, left bottom, from(#1b1e28), to(#2f313b));
-  background: -webkit-linear-gradient(top, #1b1e28, #2f313b);
-  background: -moz-linear-gradient(top, #1b1e28, #2f313b);
-  background: -ms-linear-gradient(top, #1b1e28, #2f313b);
-  background: -o-linear-gradient(top, #1b1e28, #2f313b);
-} */
-button:hover {
+button:hover,
+button:focus {
   border-top-color: #4d5a64;
   background: #4d5a64;
   color: #bfc1c2;
@@ -541,27 +570,6 @@ button {
   margin: 1rem 1rem 2rem 0rem;
 }
 
-/* .test-button {
-  display: inline-block;
-  vertical-align: middle;
-  background-color: #1877f2;
-  border-radius: 0.25rem;
-  padding: 0.25rem 0.72rem;
-  margin: 0.2rem 0;
-  white-space: nowrap;
-  font-family: Helvetica, Arial, sans-serif;
-  font-weight: 700;
-  font-size: 0.977rem;
-  text-align: center;
-  color: #fff;
-  text-decoration: none;
-  cursor: pointer;
-  }
-  .test-button img {
-    width: 1.56rem;
-    margin: 0.23rem 0.2rem 0.23rem 0;
-    vertical-align: middle;
-  } */
 .fb-login {
   display: inline-block;
   vertical-align: middle;
@@ -589,31 +597,49 @@ button {
   font-weight: bold;
 }
 
-/* Why does .fb-button selector break? It does not seem any other style rules target it.  */
-
 @media screen and (max-width: 750px) {
-
-  .intro {
-    padding: 5%;
-  }
-
   .main-content-box {
-    display: block !important;
+    display: block;
     margin: auto;
     width: 90%;
   }
-
   .sub-main-content {
     width: 100%;
   }
 }
 
-@media screen and (max-width: 450px) {
-  .logo {
-    width: 50%;
+@media screen and (max-width: 520px) {
+  .sticky .header-logo,
+  .header-logo {
+    height: unset;
+    min-height: 58px;
   }
+  .header-logo .logo {
+    height: 13.2vw;
+  }
+  .header-logo h1 {
+    font-size: 6.25vw;
+  }
+  .sticky .header-logo .logo {
+    height: 9vw;
+  }
+  .sticky .header-logo h1 {
+    font-size: 4vw;
+  }
+}
 
-  h1 {
-    font-size: 6vw;
+@media screen and (max-width: 385px) {
+  .sticky .header-logo {
+    text-align: center;
+    height: unset;
+  }
+  .header-logo .logo,
+  .sticky .header-logo .logo {
+    height: 34px;
+  }
+  .header-logo h1,
+  .sticky .header-logo h1 {
+    display: block;
+    font-size: 15px;
   }
 }
