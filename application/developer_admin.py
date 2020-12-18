@@ -100,7 +100,7 @@ def make_permission_overview(data):
             keys = [(f'Permission for {FB_CLIENT_APP_NAME}', 'Platform'), ('Permissions Needed', 'Need Scope')]
             label_vals = []
             for key, label in keys:
-                val = info.get(key, '')
+                val = info.get(key, None)
                 if isinstance(val, (list, tuple)):
                     val = ', '.join(val)
                 elif val is None:
