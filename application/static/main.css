@@ -222,6 +222,11 @@ body > header h1 {
   font-family: 'Apercu', 'Helvetica Neue', Helvetica, Arial, sans-serif;
 }
 
+.intro > * {
+  margin: 0;
+  padding: 0;
+}
+
 .intro h2 {
   color: #fff;
   text-align: center;
@@ -229,8 +234,6 @@ body > header h1 {
   font-weight: 900;
   font-size: 25px;
   letter-spacing: 0.2em;
-  margin: 0;
-  padding: 0;
 }
 
 .intro h3,
@@ -241,16 +244,6 @@ body > header h1 {
   text-align: left;
   font-weight: 700;
   letter-spacing: 0.15em;
-  margin: 0;
-  padding: 0;
-}
-
-.intro p,
-.intro ul,
-.intro ol {
-  margin: 0;
-  padding: 0;
-  text-align: left;
 }
 
 .intro .platform-user-header {
