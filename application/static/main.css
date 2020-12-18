@@ -711,10 +711,6 @@ button {
 
 @media screen and (max-width: 750px) {
 
-  .intro {
-    padding: 5%;
-  }
-
   .main-content-box {
     display: block !important;
     margin: auto;
@@ -726,15 +722,40 @@ button {
   }
 }
 
-@media screen and (max-width: 450px) {
-  .logo {
-    width: 50%;
-    height: unset;
-  }
+@media screen and (max-width: 520px) {
+  .sticky .header-logo,
   .header-logo {
     height: unset;
+    min-height: 58px;
   }
-  h1 {
-    font-size: 6vw;
+.header-logo .logo {
+    height: 13.2vw;
+  }
+  .header-logo h1 {
+    font-size: 6.25vw;
+  }
+  .sticky .header-logo .logo {
+    height: 9vw;
+  }
+  .sticky .header-logo h1 {
+    font-size: 4vw;
+  }
+}
+
+@media screen and (max-width: 385px) {
+
+  .sticky .header-logo {
+    text-align: center;
+    height: unset;
+  }
+  .header-logo .logo,
+  .sticky .header-logo .logo {
+    height: 34px;
+  }
+  .header-logo h1,
+  .sticky .header-logo h1 {
+    display: block;
+    font-size: 15px;
+
   }
 }
