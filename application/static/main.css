@@ -47,12 +47,73 @@ body > header {
   width: 100%;
 }
 
-/* .sticky .intro {
+.sticky .header-logo {
+  /* display: block; */
+  /* flex-direction: row; */
+  text-align: left;
+  height: 58px;
+  background-color: #F0F8FF;
+  transition: height 0.3s ease, background-color 0.001s ease-out 0.3s;
+}
 
+.sticky .logo {
+  height: 90%;
+  /* transition: height 0.7659s ease-in 0.8341s; */
+  transition: height 0.25s ease 0.05s;
+}
+
+.sticky .header-logo h1 {
+  /* Option 1) position: relative; bottom: 68% or 39px or not any vw. left: 132px; Option 2: margin-top -58px */
+  display: inline-block;
+  font-size: 25px;
+  transition: font-size 0.2s ease-in 0.1;
+}
+/* TODO: Determine a min-max, or other technique, to avoid wrapping .header-log h1 on narrow screen. /*
+
+/* .sticky+main, */
+.sticky .menu-icon {
+  /* background-color: #F0F8FF; */
+  background-color: #FF666622;
+  transition: background-color 0.001s ease-out 0.1;
+}
+
+.sticky .intro > *:not(.status) {
+  display: none;
+  overflow: hidden;
+}
+/* .sticky .intro h2,
+.sticky .intro .status,
+.sticky .intro .platform-user-header {
+  height: unset;
+  overflow: unset;
+  transition: all 2s ease-in;
 } */
-
+.sticky .intro p {
+  line-height: 1.2;
+  /* NOT: ease-in, probably ease better then ease-in-out */
+  transition: line-height 0.2s ease 0.2s;
+}
+.sticky .intro h2 {
+  font-size: 20px;
+  line-height: 1.2;
+  transition: font-size 0.3s ease-out 0.1s, line-height 0.2s ease 0.2s;
+  /* 0.8s, 0.8s delay: NOT ease-in, Probably not ease-in-out or ease,  */
+  /* 0.4s, 0.4s delay: matching on ease, out, or in-out. Possible match-? and out. */
+  /* 0.8s, 0.4s delay: match-out & out > match-ease & out OR match-out & in-out, yuck: match-ease & in-out  ... ease-out seems best? NOT ease-in or ease with any. */
+  /* |**Unsure| match-in-out & out |**All Yuck? || match-ease & in-out | match-out & in-out | match-in-out & in-out |**| match-out & out > match-ease & out, all-ease > any & ease      */
+  /* 0.8s, 0.4s delay: match-out & out, match-in-out & out, match-out & in-out, match-ease & ease, match-ease & out */
+  /* ***************************** */
+  /* ?match-in-out & out?, match-ease & ease, match-ease & out */
+  /* 0.2s & 0.1s delay: all-out (good),  || Yuck: match-out & in-out, all-in-out,
+  /* ***************************** */
+}
+.sticky .intro .platform-user-header {
+  font-weight: lighter;
+}
 .sticky+main {
-  padding-top: 190px;
+  padding-top: 290px;
+  /* transition: all 0.2s ease-out; */
+  /* transition: all 2s ease-in; */
 }
 
 body > header nav {
