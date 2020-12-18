@@ -52,13 +52,11 @@ body > header {
   /* flex-direction: row; */
   text-align: left;
   height: 58px;
-  background-color: #F0F8FF;
-  transition: height 0.3s ease, background-color 0.001s ease-out 0.3s;
+  transition: height 0.3s ease;
 }
 
-.sticky .logo {
+.sticky .header-logo .logo {
   height: 90%;
-  /* transition: height 0.7659s ease-in 0.8341s; */
   transition: height 0.25s ease 0.05s;
 }
 
@@ -68,29 +66,17 @@ body > header {
   font-size: 25px;
   transition: font-size 0.2s ease-in 0.1;
 }
-/* TODO: Determine a min-max, or other technique, to avoid wrapping .header-log h1 on narrow screen. /*
 
-/* .sticky+main, */
-.sticky .menu-icon {
-  /* background-color: #F0F8FF; */
-  background-color: #FF666622;
-  transition: background-color 0.001s ease-out 0.1;
-}
+/* TODO: Determine a min-max, or other technique, to avoid wrapping .header-log h1 on narrow screen. */
+/* Currently using @media (at end of this style-sheet. */
 
 .sticky .intro > *:not(.status) {
   display: none;
   overflow: hidden;
 }
-/* .sticky .intro h2,
-.sticky .intro .status,
-.sticky .intro .platform-user-header {
-  height: unset;
-  overflow: unset;
-  transition: all 2s ease-in;
-} */
+
 .sticky .intro p {
   line-height: 1.2;
-  /* NOT: ease-in, probably ease better then ease-in-out */
   transition: line-height 0.2s ease 0.2s;
 }
 .sticky .intro h2 {
@@ -102,18 +88,15 @@ body > header {
   /* 0.8s, 0.4s delay: match-out & out > match-ease & out OR match-out & in-out, yuck: match-ease & in-out  ... ease-out seems best? NOT ease-in or ease with any. */
   /* |**Unsure| match-in-out & out |**All Yuck? || match-ease & in-out | match-out & in-out | match-in-out & in-out |**| match-out & out > match-ease & out, all-ease > any & ease      */
   /* 0.8s, 0.4s delay: match-out & out, match-in-out & out, match-out & in-out, match-ease & ease, match-ease & out */
-  /* ***************************** */
-  /* ?match-in-out & out?, match-ease & ease, match-ease & out */
-  /* 0.2s & 0.1s delay: all-out (good),  || Yuck: match-out & in-out, all-in-out,
-  /* ***************************** */
+  /* ******** Delays: 0.2s line-height, 0.1s font-size ********************* */
+  /* ease, ease, ease | ease, ease, out | in-out, in-out, out | out, out, out */
+  /* *********************************************************************** */
 }
 .sticky .intro .platform-user-header {
   font-weight: lighter;
 }
 .sticky+main {
-  padding-top: 290px;
-  /* transition: all 0.2s ease-out; */
-  /* transition: all 2s ease-in; */
+  padding-top: 290px;  /* No transition protects against wobble of smaller header removes scrolling sticky. */
 }
 
 body > header nav {
