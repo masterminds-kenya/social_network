@@ -125,6 +125,10 @@ body > header nav .menu {
   list-style: none;
 }
 
+body > header nav .menu li {
+  z-index: 100;  /* Want to cover any underlying interactive elements, but not working. */
+}
+
 body > header nav .menu li a {
   color: rgb(0, 0, 0);
   display: inline-block;
@@ -135,7 +139,6 @@ body > header nav .menu li a {
   font-size: 24px;
   line-height: 32px;
   letter-spacing: 2px;
-  z-index: 100;
 }
 
 /* menu icon */
@@ -151,7 +154,7 @@ body > header nav .menu-icon {
   -moz-user-select: none;
   -webkit-user-select: none;
   -ms-user-select: none;
-  z-index: 105;
+  /* z-index: 105; */
 }
 
 body > header nav .menu-icon .navicon {
@@ -230,7 +233,7 @@ body > header nav .menu-btn:checked~.menu-icon:not(.steps) .navicon:after {
   /* height of 13.15vh mimics old settings, assuming logo image is 215px */
   height: 10vh;
   text-align: center;
-  z-index: 100;
+  /* z-index: 100; */
 }
 
 .header-logo h1 {
@@ -253,7 +256,7 @@ body > header nav .menu-btn:checked~.menu-icon:not(.steps) .navicon:after {
   letter-spacing: 0.1em;
   line-height: 1.6;
   font-family: 'Apercu', 'Helvetica Neue', Helvetica, Arial, sans-serif;
-  z-index: 100;
+  z-index: 100;  /* Covers any interactive elements underneath when nav menu is expanded. */
 }
 
 .intro > * {
