@@ -252,30 +252,21 @@ body > header nav .menu-btn:checked~.menu-icon:not(.steps) .navicon:after {
   z-index: 100;
 }
 
-body > header h1 {
-  text-align: center;
-  line-height: 102%;
-  /* Mimic default font-size: about 233.4% */
+.header-logo h1 {
   font-size: 2.63vh;
+  line-height: 1.4;
+  margin: 0;
 }
 
-.logo {
+.header-logo .logo {
   /* width: 215px; */
-  /* height between 55% and 73% Mimics width: 215px */
   height: 55%;
-  margin: auto;
 }
-
-/* .header-logo h1 {
-  text-align: center;
-  line-height: 102%;
-} */
 
 .intro {
   background-color: #000000;
   color: #fff;
   padding: 2% 1.5%;
-  margin: 0;
   text-align: left;
   font-weight: 500;
   letter-spacing: 0.1em;
