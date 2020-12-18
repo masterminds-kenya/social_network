@@ -132,14 +132,16 @@ def permission_check(mod, id):
 @admin_required()
 def problem_posts():
     """These media posts experienced problems that should be investigated. """
-    # app.logger.info("========== Test Method for admin:  ==========")
+    null_date = '2020-12-16'
     problem_data = Post.query.filter(Post.caption.in_(caption_errors))
-    recent_null = Post.query.filter(Post.caption.is_(None), Post.created > '2020-12-16')
+    recent_null = Post.query.filter(Post.caption.is_(None), Post.created > null_date)
     models = problem_data.union(recent_null)
-    data = {'posts': models.all()}
+    problem_posts = models.all()
+    data = {'posts': problem_posts}
     mod = 'error media posts'
     template = 'view.html'
-
+    flash(f"All media posts received with either NULL after {null_date} or assigned a caption error code. ")
+    flash(f"Known caption error codes: {', '.join(caption_errors)}. ")
     return render_template(template, mod=mod, data=data, caption_errors=caption_errors)
 
 
