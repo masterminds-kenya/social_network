@@ -118,7 +118,6 @@ def user_permissions(id_or_user, facebook=None, token=None, app_access_token=Non
         if 'error' in res:
             app.logger.info('---------------- Error in user_permissions response ----------------')
             app.logger.error(f"Error: {res.get('error', 'Empty Error')} ")
-            # return {}
         res_data = res.get('data', [{}])
         perm_info.update({ea.get('permission', ''): ea.get('status', '') for ea in res_data})
     data['facebook user permissions'] = ['{}: {}'.format(k, v) for k, v in perm_info.items()]
