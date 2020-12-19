@@ -74,17 +74,13 @@
       </p>
     {% endblock content %}
 
-    {% block local_test %}
     {% if local_data %}
+    {% block local_test %}
       <h3>Local Data</h3>
-      <p>
-        <a href="{{ url_for('open_test', **local_data) }}">Test Route</a><br />
-      </p>
-      <p>
-        {{ local_data|e }}
-      </p>
-      {% endif %}
+      <p><a href="{{ url_for('open_test', **local_data) }}">Test Route</a></p>
+      <p>{{ local_data|e }}</p>
     {% endblock local_test %}
+    {% endif %}
     </main>
     <footer>
       <p>
