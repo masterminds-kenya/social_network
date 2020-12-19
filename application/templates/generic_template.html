@@ -21,21 +21,9 @@
 
 {% block content %}
   <h3>An H-tag that comes after the site and specific page H-tags</h3>
-  <p>
-    {% if some_var %}
-    {{ some_var }}
-    {% else %}
-    some static content.
-    {% endif %}
+  <p>Some Content
   </p>
-  <h3>Another Heading</h3>
-  <ul>
-    {% for key in data_dict  %}
-    <li>You have {{ key }} with value of {{ data_dict[key] }} </li>
-    {% else %}
-    <li>This li only made if data_dict is empty. </li>
-    {% endfor %}
-  </ul>
+
   <ul>
     <li><a href="{{ url_for('home') }}">Link example Home</a></li>
   </ul>

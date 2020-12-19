@@ -1,0 +1,64 @@
+{% extends "base.html" %}
+{% block head %}
+<title>Insert Page Title Here</title>
+{% endblock head %}
+
+{% block intro %}
+  <h2 class="status">Some Page Intro Heading</h2>
+  <p class="status">Paragraph that stays on compressed intro because of 'status' css class. </p>
+  <ul title="Title placed at beginning of line">
+    <li>Some</li>
+    <li>Intro</li>
+    <li>Unordered List</li>
+  </ul>
+  <ol title="Also Title Magic">
+    <li>Some</li>
+    <li>Intro</li>
+    <li>Ordered List</li>
+  </ol>
+  {{ super() }}
+{% endblock intro %}
+
+{% block content %}
+  <h3>An H-tag that comes after the site and specific page H-tags</h3>
+  <p>
+    {% if some_var %}
+    {{ some_var|e }}
+    Also notice that the '|e' causes it to use the jinja2 template filter for safer text output.
+    {% else %}
+    some static content.
+    {% endif %}
+  </p>
+  <h4>An h4 Heading</h4>
+  <p>
+    {{ hope_safe }}
+  </p>
+  <h5>An h5 Heading</h5>
+  <p>
+    {{ another_var|default("Can set a default value if the variable is undefined. ") }}
+  </p>
+  <p>
+    {{ risky_text|default("Can use multiple filters, each pre-prended wth '|' vertical bar. ")|e }}
+  </p>
+  <h3>Another h3 Heading</h3>
+  <ul>
+    {% for key in data_dict  %}
+    <li>You have {{ key }} with value of {{ data_dict[key] }} </li>
+    {% else %}
+    <li>This li only made if the iterable (currently data_dict) is empty. </li>
+    {% endfor %}
+  </ul>
+  <h3>Replace following links when making a template</h3>
+  <ul>
+    <li><a href="{{ url_for('home') }}">Link example Home</a></li>
+    {% if current_user.is_authenticated %}
+    <li><a href="{{ url_for('view', mod=current_user.role, id=current_user.id) }}">Profile for Authenticated</a></li>
+    {% endif %}
+    {% if current_user.is_active %}
+    <li><a href="{{ url_for('view', mod=current_user.role, id=current_user.id) }}">Active User Profile</a></li>
+    {% endif %}
+    {% if current_user.role == 'admin' %}
+    <li><a href="{{ url_for('admin') }}">Admin Page</a></li>
+    {% endif %}
+  </ul>
+{% endblock content %}
