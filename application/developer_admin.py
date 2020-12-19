@@ -1,9 +1,9 @@
 from flask import redirect, render_template, url_for, flash, request, current_app as app
 from flask_login import current_user
 import json
-from .helper_functions import staff_required, admin_required, mod_lookup
-from .model_db import Campaign, create_many, db_read, User, db
-from .api import get_ig_info, get_fb_page_for_users_ig_account, user_permissions, generate_app_access_token
+from .helper_functions import staff_required, admin_required  # , mod_lookup
+from .model_db import Campaign, db_read, User, db  # , create_many
+from .api import get_fb_page_for_users_ig_account, user_permissions, generate_app_access_token  # , get_ig_info
 from .api import FB_CLIENT_APP_NAME
 from .events import handle_campaign_stories, session_user_subscribe
 from pprint import pprint
@@ -204,20 +204,23 @@ def load():
        Function is only for use by dev admin.
        Takes users saved in text file and puts that data in the database.
     """
-    new_users = []
-    app.logger.info('------- Load users from File ------------')
-    with open(USER_FILE, 'r') as file:
-        for line in file.readlines():
-            user = json.loads(line)
-            # if 'email' in user:
-            #     del user['email']
-            ig_id, token = user.get('instagram_id'), user.get('token')
-            ig_info = get_ig_info(ig_id, token=token)
-            user['name'] = ig_info.get('username', ig_info.get('name', ''))
-            app.logger.info(user['name'])
-            new_users.append(user)
-    created_users = create_many(new_users)
-    app.logger.info(f'------------- Create from File: {len(created_users)} users -------------')
+    message = "This is a deprecated feature and route. "
+    flash(message)
+    created_users = []
+    # new_users = []
+    # app.logger.info('------- Load users from File ------------')
+    # with open(USER_FILE, 'r') as file:
+    #     for line in file.readlines():
+    #         user = json.loads(line)
+    #         # if 'email' in user:
+    #         #     del user['email']
+    #         ig_id, token = user.get('instagram_id'), user.get('token')
+    #         ig_info = get_ig_info(ig_id, token=token)
+    #         user['name'] = ig_info.get('username', ig_info.get('name', ''))
+    #         app.logger.info(user['name'])
+    #         new_users.append(user)
+    # created_users = create_many(new_users)
+    # app.logger.info(f'------------- Create from File: {len(created_users)} users -------------')
     return True if len(created_users) else False
 
 
@@ -252,62 +255,67 @@ def encrypt_token():
        Takes value in token field and saves in encrypt field, triggering the encryption process.
        Function is only for use by dev admin.
     """
-    message, count = '', 0
-    # q = User.query.filter(User.token is not None)
-    users = User.query.all()
-    app.logger.debug(f"Attempting token encrypt for {len(users)} users. ")
-    for user in users:
-        value = getattr(user, 'token')
-        setattr(user, 'crypt', value)
-        count += 1
-    app.logger.debug(f"{count} done. ")
-    message += f"Adjusted for {count} users. "
-    try:
-        db.session.commit()
-        message += "Commit Finished! "
-        success = True
-    except Exception as e:
-        success = False
-        temp = f"Encrypt method error. Count: {count}. "
-        app.logger.error(temp)
-        app.logger.exception(e)
-        message += temp
-        db.session.rollback()
+    message = "This is a deprecated feature and route. "
+    success = False
+    # message, count = '', 0
+    # # q = User.query.filter(User.token is not None)
+    # users = User.query.all()
+    # app.logger.debug(f"Attempting token encrypt for {len(users)} users. ")
+    # for user in users:
+    #     value = getattr(user, 'token')
+    #     setattr(user, 'crypt', value)
+    #     count += 1
+    # app.logger.debug(f"{count} done. ")
+    # message += f"Adjusted for {count} users. "
+    # try:
+    #     db.session.commit()
+    #     message += "Commit Finished! "
+    #     success = True
+    # except Exception as e:
+    #     success = False
+    #     temp = f"Encrypt method error. Count: {count}. "
+    #     app.logger.error(temp)
+    #     app.logger.exception(e)
+    #     message += temp
+    #     db.session.rollback()
     return message, success
 
 
 def fix_defaults():
     """DEPRECATED. Temporary route and function for developer to test components. """
-    from .model_db import Post, OnlineFollowers, Insight
-    p_keys = [*Post.METRICS['STORY'].union(Post.METRICS['VIDEO'])]  # All the integer Metrics requested from API.
-    # not_needed_keys = ['comments_count', 'like_count', ]
-    update_count = 0
-    Model = Post
-    app.logger.debug(f"========== Test: {Model.__name__} many fields ==========")
-    for pkey in p_keys:
-        q = Model.query.filter(getattr(Post, pkey).is_(None))
-        update_count += q.count()
-        q.update({pkey: 0}, synchronize_session=False)
-        app.logger.debug(f"----- {pkey} | {update_count} -----")
-    app.logger.debug(f"========== updating {update_count} records in Post ==========")
-    updates = [(OnlineFollowers, ['value']), (Insight, ['value'])]
-    for Model, fields in updates:
-        for column in fields:
-            models = Model.query.filter(getattr(Model, column).is_(None)).all()
-            app.logger.debug(f"--------- Test: {Model.__name__} {column} ----------")
-            for model in models:
-                setattr(model, column, 0)
-                update_count += 1
-                db.session.add(model)
-    app.logger.debug(f"========= Updating {update_count} total records =========")
-    try:
-        db.session.commit()
-        success = True
-    except Exception as e:
-        app.logger.error('Had an exception in fix_defaults. ')
-        app.logger.error(e)
-        success = False
-        db.session.rollback()
+    # from .model_db import Post, OnlineFollowers, Insight
+    message = "This is a deprecated feature and route. "
+    flash(message)
+    success = False
+    # p_keys = [*Post.METRICS['STORY'].union(Post.METRICS['VIDEO'])]  # All the integer Metrics requested from API.
+    # # not_needed_keys = ['comments_count', 'like_count', ]
+    # update_count = 0
+    # Model = Post
+    # app.logger.debug(f"========== Test: {Model.__name__} many fields ==========")
+    # for pkey in p_keys:
+    #     q = Model.query.filter(getattr(Post, pkey).is_(None))
+    #     update_count += q.count()
+    #     q.update({pkey: 0}, synchronize_session=False)
+    #     app.logger.debug(f"----- {pkey} | {update_count} -----")
+    # app.logger.debug(f"========== updating {update_count} records in Post ==========")
+    # updates = [(OnlineFollowers, ['value']), (Insight, ['value'])]
+    # for Model, fields in updates:
+    #     for column in fields:
+    #         models = Model.query.filter(getattr(Model, column).is_(None)).all()
+    #         app.logger.debug(f"--------- Test: {Model.__name__} {column} ----------")
+    #         for model in models:
+    #             setattr(model, column, 0)
+    #             update_count += 1
+    #             db.session.add(model)
+    # app.logger.debug(f"========= Updating {update_count} total records =========")
+    # try:
+    #     db.session.commit()
+    #     success = True
+    # except Exception as e:
+    #     app.logger.error('Had an exception in fix_defaults. ')
+    #     app.logger.error(e)
+    #     success = False
+    #     db.session.rollback()
     return success
 
 
@@ -315,7 +323,9 @@ def fix_defaults():
 @admin_required()
 def load_users_file():
     """DEPRECATED. This is a temporary development function. Will be removed for production. """
-    load()
+    # load()
+    message = "This is a deprecated feature and route. "
+    flash(message)
     return redirect(url_for('all', mod='influencer'))
 
 
@@ -323,27 +333,29 @@ def load_users_file():
 @admin_required()
 def backup_save(mod, id):
     """DEPRECATED. This is a temporary development function. Will be removed for production. """
-    Model = mod_lookup(mod)
-    count = save(mod, id, Model)
-    message = f"We just backed up {count} {mod} model(s). "
+    # Model = mod_lookup(mod)
+    # count = save(mod, id, Model)
+    # message = f"We just backed up {count} {mod} model(s). "
+    message = "This is a deprecated feature and route. "
     app.logger.info(message)
     flash(message)
-    return redirect(url_for('view', mod='influencer', id=id))
+    return redirect(url_for('view', mod=mod, id=id))
 
 
 @app.route('/data/encrypt/')
 @admin_required()
 def encrypt():
     """DEPRECATED. This is a temporary development function. Will be removed for production. """
-    message, success = encrypt_token()
-    app.logger.info(message)
-    if success:
-        success = fix_defaults()
-        temp = "Fix defaults worked! " if success else "Had an error in fix_defaults. "
-        app.logger.info(temp)
-        message += temp
-    else:
-        message += "Did not attempt fix_defaults. "
+    message = "This is a deprecated feature and route. "
+    # message, success = encrypt_token()
+    # app.logger.info(message)
+    # if success:
+    #     success = fix_defaults()
+    #     temp = "Fix defaults worked! " if success else "Had an error in fix_defaults. "
+    #     app.logger.info(temp)
+    #     message += temp
+    # else:
+    #     message += "Did not attempt fix_defaults. "
     flash(message)
     return admin_view(data=message)
     # return render_template('admin.html', dev=True, data=message, files=None)
