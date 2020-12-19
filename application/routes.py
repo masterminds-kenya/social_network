@@ -145,11 +145,10 @@ def problem_posts():
     return render_template(template, mod=mod, data=data, caption_errors=caption_errors)
 
 
-@app.route('/data/test')
+@app.route('/admin/test')
 @admin_required()
 def test_method():
-    """Temporary route and function for developer to test components. """
-
+    """Temporary restricted to admin route and function for developer to test components. """
     app.logger.info("========== Test Method for admin:  ==========")
     info = get_daily_ig_accounts()
     pprint([f"{ea}: {len(ea.campaigns)} | {len(ea.brand_campaigns)} " for ea in info])
@@ -157,6 +156,20 @@ def test_method():
     # pprint(info)
     app.logger.info('-------------------------------------------------------------')
     return admin(data=info)
+
+
+@app.route('/any/test')
+def open_test(**kwargs):
+    """Temporary open public route and function for developer to test components. """
+    app.logger.info("========== Test Method Open:  ==========")
+    params = request.args
+    kwargs.update(params)
+    page_title = kwargs.get('page', None)
+    text = kwargs.get('text', None)
+    info = kwargs.get('info_list', None)
+    data = kwargs.get('data', None)
+    template = kwargs.get('template', 'simple.html')
+    return render_template(template, page=page_title, text=text, info_list=info, data=data)
 
 
 @app.route('/data/capture/<int:id>')
