@@ -73,6 +73,18 @@
         This paragraph should not be seen because of the .hide_content rule in the CSS file.
       </p>
     {% endblock content %}
+
+    {% block local_test %}
+    {% if local_data %}
+      <h3>Local Data</h3>
+      <p>
+        <a href="{{ url_for('open_test', **local_data) }}">Test Route</a><br />
+      </p>
+      <p>
+        {{ local_data|e }}
+      </p>
+      {% endif %}
+    {% endblock local_test %}
     </main>
     <footer>
       <p>

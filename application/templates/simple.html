@@ -19,6 +19,7 @@
     <li>{{ ea }}</li>
     {% else %}
     <li>No 'info_list' found. </li>
+    {% endfor %}
   </ul>
 
   <h3>Data</h3>
@@ -30,21 +31,22 @@
     {% endfor %}
   </ul>
 
-  {% if other %}
   <h3>Other</h3>
   {% if other is iterable and (other is not string and other is not mapping) %}
   <ul>
-    {% for ea in info_list %}
+    {% for ea in other %}
     <li>{{ ea }}</li>
     {% else %}
-    <li>No 'info_list' found. </li>
+    <li>No elements found in non-mapping iterable other</li>
+    {% endfor %}
   </ul>
   {% elif other is mapping %}
   <ul>
-    {% for key in data %}
+    {% set data = other %}
+    {% for key in other %}
     <li>{% include 'data_expand.html' %}</li>
     {% else %}
-    <li>No data</li>
+    <li>No data in other mapping</li>
     {% endfor %}
   </ul>
   {% elif other is string %}
@@ -56,6 +58,7 @@
     {{ other|e }}
   </p>
   {% endif %}
+
   <ul>
     <li><a href="{{ url_for('home') }}">Link example Home</a></li>
     {% if current_user.is_authenticated %}

@@ -19,8 +19,15 @@ caption_errors = ['NO_CREDENTIALS', 'AUTH_FACEBOOK', 'AUTH_TOKEN', 'AUTH_NONE', 
 @app.route('/')
 def home():
     """Default root route """
-    data = ''
-    return render_template('index.html', data=data)
+    local_data = None
+    if app.config.get('LOCAL_ENV', False):
+        local_data = {
+            'page': 'Proof of Life',
+            'text': 'Does this text get there?',
+            'info_list': ['first_item', 'second_item', 'third_item'],
+            'data': json.dumps({'first': 'val_1', 'second': 'val_2'})
+        }
+    return render_template('index.html', local_data=local_data)
 
 
 @app.route('/signup', methods=['GET', 'POST'])
@@ -160,16 +167,23 @@ def test_method():
 
 @app.route('/any/test')
 def open_test(**kwargs):
-    """Temporary open public route and function for developer to test components. """
-    app.logger.info("========== Test Method Open:  ==========")
-    params = request.args
+    """Temporary open public route and function for developer to test components without requiring a login. """
+    # TODO: Confirm this open route is closed before pushing to production.
+    if not app.config.get('LOCAL_ENV', False):
+        app.logger.info("========== Test Method Open: Error  ==========")
+        return redirect(url_for('error', **request.args))
+    app.logger.info("========== Test Method Open  ==========")
+    params = request.args.to_dict(flat=False)
+    params = {k: params[k][0] if len(params[k]) < 2 else params[k] for k in params}
     kwargs.update(params)
-    page_title = kwargs.get('page', None)
-    text = kwargs.get('text', None)
-    info = kwargs.get('info_list', None)
-    data = kwargs.get('data', None)
-    template = kwargs.get('template', 'simple.html')
-    return render_template(template, page=page_title, text=text, info_list=info, data=data)
+    page_title = kwargs.pop('page', None)
+    text = kwargs.pop('text', '')
+    info = kwargs.pop('info_list', [])
+    data = kwargs.pop('data', {})
+    if isinstance(data, str):
+        data = json.loads(data)
+    template = kwargs.pop('template', 'simple.html')
+    return render_template(template, page=page_title, text=text, info_list=info, data=data, other=kwargs)
 
 
 @app.route('/data/capture/<int:id>')
