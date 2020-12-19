@@ -22,6 +22,7 @@ def create_app(config, debug=False, testing=False, config_overrides=None):
 
     @login_manager.user_loader
     def load_user(user_id):
+        print("========== Called The load_user Function ==========")
         return model_db.User.query.get(int(user_id))
 
     # Setup the data model. Import routes and events.
