@@ -1,10 +1,40 @@
 from flask import current_app as app
+# from flask.helpers import stream_with_context
 from sqlalchemy import event
+# from flask_login import user_logged_in, user_unauthorized, session_protected, user_logged_out, current_user
 from .model_db import User, Post, Campaign, db
 from .api import install_app_on_user_for_story_updates, remove_app_on_user_for_story_updates
 from .create_queue_task import add_to_capture
 
 CAPTURE_FEATURE_ACTIVE = False
+
+
+# def heard_user(sender, user):
+#     app.logger.info("========== HEARD USER ==========")
+#     app.logger.info(f"Had user_logged_in signal for: {user} ")
+#     app.logger.info(f"The sender: {sender} ")
+
+
+# def bad_user(sender):
+
+#     pass
+
+
+# def sess_protect(sender):
+#     app.logger.info("========== SESS PROTECT ==========")
+#     app.logger.info(f"The sender: {sender} ")
+
+
+# def bye_user(sender, user):
+#     app.logger.info("========== GOODBYE USER ==========")
+#     app.logger.info(f"Had user_logged_out signal for: {user} ")
+#     app.logger.info(f"The sender: {sender} ")
+
+
+# user_logged_in.connect(heard_user, app)
+# user_unauthorized.connect(bad_user, app)
+# session_protected.connect(sess_protect, app)
+# user_logged_out.connect(bye_user, app)
 
 
 def session_user_subscribe(user, remove=False):
