@@ -16,17 +16,26 @@ from pprint import pprint
 caption_errors = ['NO_CREDENTIALS', 'AUTH_FACEBOOK', 'AUTH_TOKEN', 'AUTH_NONE', 'API_ERROR', 'INSIGHTS_CREATED']
 
 
+def test_local(*args, **kwargs):
+    """Useful for constructing tests, but will only work when running locally. """
+    app.logger.info("========== Home route run locally ==========")
+    session['hello'] = 'Hello Session World'
+    app.logger.info(session)
+    local_data = {
+        'page': 'Proof of Life',
+        'text': 'Does this text get there?',
+        'info_list': ['first_item', 'second_item', 'third_item'],
+        'data': json.dumps({'first': 'val_1', 'second': 'val_2'})
+    }
+    return local_data
+
+
 @app.route('/')
 def home():
     """Default root route """
     local_data = None
     if app.config.get('LOCAL_ENV', False):
-        local_data = {
-            'page': 'Proof of Life',
-            'text': 'Does this text get there?',
-            'info_list': ['first_item', 'second_item', 'third_item'],
-            'data': json.dumps({'first': 'val_1', 'second': 'val_2'})
-        }
+        local_data = test_local()
     return render_template('index.html', local_data=local_data)
 
 
@@ -173,6 +182,11 @@ def open_test(**kwargs):
         app.logger.info("========== Test Method Open: Error  ==========")
         return redirect(url_for('error', **request.args))
     app.logger.info("========== Test Method Open  ==========")
+    hello_val = session.get('hello', 'NOT FOUND')
+    app.logger.info(hello_val)
+    app.logger.info("----------------------------------------------------")
+    app.logger.info(session)
+    app.logger.info("----------------------------------------------------")
     params = request.args.to_dict(flat=False)
     params = {k: params[k][0] if len(params[k]) < 2 else params[k] for k in params}
     kwargs.update(params)
