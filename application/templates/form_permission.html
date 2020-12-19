@@ -3,9 +3,14 @@
 <title>{{mod|capitalize}} Sheet Access Permission {{ action }} Form</title>
 {% endblock head %}
 
-{% block content %}
-<h2>{{mod|capitalize}} Sheet Access {{ action }} Permissions for {{ sheet.get('name', 'Worksheet') }}</h2>
+{% block intro %}
+<h2 class="status">
+  {{mod|capitalize}} Sheet Access {{ action }} Permissions for {{ sheet.get('name', 'Worksheet') }}
+</h2>
+{{ super() }}
+{% endblock intro %}
 
+{% block content %}
 <form method="POST" enctype="multipart/form-data">
   {% if data.get('id') %}
   <input type="hidden" name="id" value="{{ data['id'] }}" />
