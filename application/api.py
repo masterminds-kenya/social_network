@@ -38,6 +38,26 @@ METRICS = {
 # TODO: CRITICAL All API calls need to handle pagination results.
 
 
+def make_auth_facebook(id_or_user):
+    """For a given user with a saved token, create an OAuth2Session for Graph API requests of their data. """
+    user, user_id = None, None
+    if isinstance(id_or_user, User):
+        user = id_or_user
+        user_id = user.id
+    elif isinstance(id_or_user, (int, str)):
+        user_id = int(id_or_user)
+        user = User.query.get(user_id)
+        id_or_user = user
+    else:
+        raise TypeError(f"Expected an id or instance of User, but got {type({id_or_user})}: {id_or_user} ")
+    if not user.token:
+        app.logger.error(f"Unable to make API request for {user} user. They do not have an access token. ")
+        return None
+    # It seems that the Facebook Graph API does not have the auto_refresh_url and token_updater methods for OAuth2.
+    facebook = OAuth2Session(FB_CLIENT_ID, token=user.token)
+    return facebook
+
+
 # def generate_backend_token():
 #     """When an App access token (as proof the request is from BIP App) is needed instead of the app client secret. """
 #     client = BackendApplicationClient(client_id=FB_CLIENT_ID)
