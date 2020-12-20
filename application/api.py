@@ -370,6 +370,40 @@ def get_basic_post(media_id, metrics=None, id_or_user=None, facebook=None, token
     return res
 
 
+def get_metrics_post(media, facebook, metrics=None):
+    """Takes in a dict already containing the data from get_basic_post and adds metrics data. """
+    media_type = media['media_type']
+    media_id = media['media_id']
+    if not metrics:
+        post_metrics = METRICS[Post]
+        metrics = post_metrics.get(media_type, post_metrics['insight'])
+        if metrics == post_metrics['insight']:
+            app.logger.error(f" Match not found for {media_type} media_type parameter. ")
+    url = f"https://graph.facebook.com/{media_id}/insights?metric={metrics}"
+    res_insight = facebook.get(url).json()  # if facebook else requests.get(f"{url}&access_token={token}").json()
+    insights = res_insight.get('data')
+    if insights:
+        temp = {ea.get('name'): ea.get('values', [{'value': 0}])[0].get('value', 0) for ea in insights}
+        if media_type == 'CAROUSEL_ALBUM':
+            temp = {metric_clean(key): val for key, val in temp.items()}
+        media.update(temp)
+    else:
+        app.logger.info(f"media {media_id} had NO INSIGHTS for type {media_type} --- {res_insight}. ")
+    return media
+
+
+def get_post_data(media_id, is_story=False, id_or_user=None, facebook=None, token=None):
+    """Returns a dict with both basic and metrics data for a single media post (regular or story). """
+    user = find_valid_user(id_or_user)
+    if not user:
+        return []
+    facebook = facebook or user.get_auth_session()
+    res = get_basic_post(media_id, id_or_user=user.id, facebook=facebook, token=token)
+    res['media_type'] = 'STORY' if is_story else res.get('media_type', '')
+    media = get_metrics_post(res, facebook=facebook)
+    return media
+
+
 def _get_posts_data_of_user(id_or_user, stories=True, ig_id=None, facebook=None):
     """Called by get_posts. Returns list, for a user, of STORY and regular media Posts with basic content & metrics. """
     # TODO: Is pagination a concern?
@@ -434,9 +468,19 @@ def get_posts(id_or_users, stories=True, ig_id=None, facebook=None):
     """
     if not isinstance(id_or_users, (list, tuple)):
         id_or_users = [id_or_users]
+    # results = []
+    # for ea in id_or_users:
+    #     results.extend(_get_posts_data_of_user(ea, stories=stories, ig_id=ig_id, facebook=facebook))
+    users = (find_valid_user(ea) for ea in id_or_users)
     results = []
-    for ea in id_or_users:
-        results.extend(_get_posts_data_of_user(ea, stories=stories, ig_id=ig_id, facebook=facebook))
+    for fb, user in ((facebook or u.get_auth_session(), u) for u in users if u):
+        if stories:
+            stories = user.get_media(story=True, facebook=fb)
+            stories = [get_post_data(ea.get('id'), is_story=True, id_or_user=user, facebook=fb) for ea in stories]
+            results.extend(stories)
+        media = user.get_media(facebook=fb)
+        media = [get_post_data(ea.get('id'), id_or_user=user, facebook=fb) for ea in media]
+        results.extend(media)
     saved = db_create_or_update_many(results, Post)
     # If any STORY posts were found, the SQLAlchemy Event Listener will add it to the Task queue for the Capture API.
     return saved
