@@ -53,7 +53,7 @@
   Expand for 5 paragraphs (default) of lorem ipsum
 </label>
 <section class="collapsible-content optional_other_style_class">
-  {% lipsum(html=false) %}
+  {{ lipsum(html=false) }}
 </section>
 
 <h6>sixth header</h6>
@@ -62,7 +62,7 @@
   Expand for 6 paragraphs of lorem ipsum
 </label>
 <section class="collapsible-content optional_other_style_class">
-  {% lipsum(n=6, html=false) %}
+  {{ lipsum(n=6, html=false) }}
 </section>
 
 <input id="collapsible_test_3p" class="toggle" type="checkbox" />
@@ -70,7 +70,7 @@
   Expand for 3 paragraphs of lorem ipsum HTML
 </label>
 <section class="collapsible-content optional_other_style_class">
-  {% lipsum(n=3) %}
+  {{ lipsum(n=3) }}
 </section>
 
 <hr />
@@ -86,9 +86,4 @@
     <li><a href="{{ url_for('all', mod='insight') }}">Admin - List Insights</a></li>
     <li><a href="{{ url_for('all', mod='audience') }}">Admin - List all Audience Data</a></li>
 </ul>
-<!-- <ul>
-  {% for datum in data %}
-  <li>{{datum}}</li>
-  {% endfor %}
-</ul> -->
-{% endblock %}
+{% endblock content %}
