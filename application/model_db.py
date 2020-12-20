@@ -84,8 +84,14 @@ def fix_date(Model, data):
 def translate_api_user_token(data):
     """Returns the given dict with 'token' & 'token_expires' updated if 'token' is a Graph API formatted user token. """
     if 'token_expires' not in data and 'token' in data:  # modifications for parsing data from api call
-        token_expires = data['token'].get('token_expires', None)
-        data['token_expires'] = dt.fromtimestamp(token_expires) if token_expires else None
+        token_duration = data['token'].get('expires_in', None)
+        token_time = data['token'].get('expires_at', None)
+        token_expires = data['token'].get('token_expires', token_time)
+        if token_duration and not token_expires:
+            now_utc_stamp = dt.replace(tzinfo=dt.timezone.utc).timestamp()
+            token_expires = (now_utc_stamp + token_duration).in_seconds()
+        data['token_expires'] = dt.fromtimestamp(int(token_expires)) if token_expires else None
+        # data['refresh_token'] = data['token'].get('refresh_token', None)
         data['token'] = data['token'].get('access_token', None)
     return data
 
