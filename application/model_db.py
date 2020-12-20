@@ -173,6 +173,16 @@ class User(UserMixin, db.Model):
         self.token = data['token']
         # current_app.logger.info(f"The {self} user has an unsaved refresh_token of {refresh_token} ")
 
+    def get_auth_session(self):
+        """Create an OAuth2Session for retrieving Graph API data for this user. """
+        if not self.token:
+            current_app.logger.error(f"Missing token for {self} user. Unable to create an OAuth2Session. ")
+            return None
+        # It seems that the Facebook Graph API does not have the auto_refresh_url and token_updater methods for OAuth2.
+        facebook = OAuth2Session(current_app.config.get('FB_CLIENT_ID'), token=self.token)
+        facebook = facebook_compliance_fix(facebook)
+        return facebook
+
     # @hybrid_property
     # def is_connector(self):
     #     """Returns boolean: True if user has instagram_id and is an influencer or brand user. """
