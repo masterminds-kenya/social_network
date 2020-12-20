@@ -2,7 +2,7 @@ from flask import session, current_app as app
 from flask_login import login_user, logout_user, current_user
 from datetime import timedelta  # , datetime as dt
 import requests
-from requests_oauthlib import OAuth2Session
+from requests_oauthlib import OAuth2Session, BackendApplicationClient
 from requests_oauthlib.compliance_fixes import facebook_compliance_fix
 from .model_db import translate_api_user_token, db_create, db_create_or_update_many, db  # , db_read,
 from .model_db import metric_clean, Insight, Audience, Post, OnlineFollowers, User  # , Campaign
@@ -11,10 +11,11 @@ from pprint import pprint
 
 URL = app.config.get('URL')
 CAPTURE_BASE_URL = app.config.get('CAPTURE_BASE_URL')
-FB_CLIENT_ID = app.config.get('FB_CLIENT_ID')
 FB_CLIENT_APP_NAME = app.config.get('FB_CLIENT_APP_NAME', 'Bacchus Influencer Platform')
+FB_CLIENT_ID = app.config.get('FB_CLIENT_ID')
 FB_CLIENT_SECRET = app.config.get('FB_CLIENT_SECRET')
 FB_AUTHORIZATION_BASE_URL = "https://www.facebook.com/dialog/oauth"
+# GRAPH_URL = "https://graph.facebook.com/"
 FB_TOKEN_URL = "https://graph.facebook.com/oauth/access_token"
 FB_INSPECT_TOKEN_URL = 'https://graph.facebook.com/debug_token'
 FB_SCOPE = [
@@ -34,6 +35,16 @@ METRICS = {
     }
 
 # TODO: CRITICAL All API calls need to handle pagination results.
+
+
+def generate_backend_token():
+    """When an App access token (as proof the request is from BIP App) is needed instead of the app client secret. """
+    client = BackendApplicationClient(client_id=FB_CLIENT_ID)
+    oauth = OAuth2Session(client=client)
+    token = oauth.fetch_token(token_url=FB_TOKEN_URL, client_id=FB_CLIENT_ID, client_secret=FB_CLIENT_SECRET)
+    # What about the params['grant_type'] = 'client_credentials' in generate_app_access_token ?
+    # token = token.get('access_token')  ??
+    return token
 
 
 def generate_app_access_token():
@@ -347,8 +358,8 @@ def get_basic_post(media_id, metrics=None, id_or_user=None, facebook=None, token
     return res
 
 
-def _get_posts_data_of_user(id_or_user, stories=True, ig_id=None, facebook=None):
-    """Called by get_posts. Returns the API response data for posts on a single user. """
+def get_media_list_of_user(id_or_user, stories=True, ig_id=None, facebook=None):
+    """Called by get_posts. Returns list, for a user, of STORY and regular media Posts with basic content & metrics. """
     # TODO: Is pagination a concern?
     user, user_id, token = None, None, None
     if isinstance(id_or_user, User):
@@ -380,7 +391,8 @@ def _get_posts_data_of_user(id_or_user, stories=True, ig_id=None, facebook=None)
         app.logger.error('Error: ', response.get('error', 'NA'))
         media = []
     media.extend(stories)
-    # app.logger.info(f"------ Looking up a total of {len(media)} Media Posts, including {len(stories)} Stories ------")
+    # app.logger.info(f"------ Have a total of {len(media)} Media Posts, including {len(stories)} Stories ------")
+
     post_metrics = METRICS[Post]
     results = []
     for post in media:
@@ -416,7 +428,7 @@ def get_posts(id_or_users, stories=True, ig_id=None, facebook=None):
         id_or_users = [id_or_users]
     results = []
     for ea in id_or_users:
-        results.extend(_get_posts_data_of_user(ea, stories=stories, ig_id=ig_id, facebook=facebook))
+        results.extend(get_media_list_of_user(ea, stories=stories, ig_id=ig_id, facebook=facebook))
     saved = db_create_or_update_many(results, Post)
     # If any STORY posts were found, the SQLAlchemy Event Listener will add it to the Task queue for the Capture API.
     return saved
