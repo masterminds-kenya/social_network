@@ -411,51 +411,56 @@ def _get_posts_data_of_user(id_or_user, stories=True, ig_id=None, facebook=None)
     if not user:
         return []
     ig_id = ig_id or user.instagram_id
-    token = None
-    facebook = user.get_auth_session()
+    facebook = facebook or user.get_auth_session()
+    if not facebook:
+        return []
     # if not facebook or not ig_id:
     #     ig_id = ig_id or user.instagram_id
     #     token = user.token
     # app.logger.info(f"==================== Get Posts on User {user_id} ====================")
     if stories:
-        url = f"https://graph.facebook.com/{ig_id}/stories"
-        story_res = facebook.get(url).json()  # if facebook else requests.get(f"{url}?access_token={token}").json()
-        stories = story_res.get('data')
-        if not isinstance(stories, list) or 'error' in story_res:
-            app.logger.error('Stories Error: ', story_res.get('error', 'NA'))
+        stories = user.get_media(story=True, facebook=facebook)
+        # url = f"https://graph.facebook.com/{ig_id}/stories"
+        # story_res = facebook.get(url).json()  # if facebook else requests.get(f"{url}?access_token={token}").json()
+        # stories = story_res.get('data')
+        # if not isinstance(stories, list) or 'error' in story_res:
+        #     app.logger.error('Stories Error: ', story_res.get('error', 'NA'))
+        stories = [get_post_data(ea.get('id'), is_story=True, id_or_user=user, facebook=facebook) for ea in stories]
     if not isinstance(stories, list):
         stories = []
-    story_ids = set(ea.get('id') for ea in stories)
-    url = f"https://graph.facebook.com/{ig_id}/media"
-    response = facebook.get(url).json()  # if facebook else requests.get(f"{url}?access_token={token}").json()
-    media = response.get('data')
-    if not isinstance(media, list):
-        app.logger.error('Error: ', response.get('error', 'NA'))
-        media = []
-    media.extend(stories)
+    # story_ids = set(ea.get('id') for ea in stories)
+    media = user.get_media(facebook=facebook)
+    media = [get_post_data(ea.get('id'), id_or_user=user, facebook=facebook) for ea in media]
+    results = stories + media
+    # url = f"https://graph.facebook.com/{ig_id}/media"
+    # response = facebook.get(url).json()  # if facebook else requests.get(f"{url}?access_token={token}").json()
+    # media = response.get('data')
+    # if not isinstance(media, list):
+    #     app.logger.error('Error: ', response.get('error', 'NA'))
+    #     media = []
+    # media.extend(stories)
     # app.logger.info(f"------ Have a total of {len(media)} Media Posts, including {len(stories)} Stories ------")
-
-    post_metrics = METRICS[Post]
-    results = []
-    for post in media:
-        media_id = post.get('id')
-        res = get_basic_post(media_id, metrics=post_metrics['basic'], id_or_user=user, facebook=facebook, token=token)
-        media_type = 'STORY' if media_id in story_ids else res.get('media_type', '')
-        res['media_type'] = media_type
-        metrics = post_metrics.get(media_type, post_metrics['insight'])
-        if metrics == post_metrics['insight']:
-            app.logger.error(f" Match not found for {media_type} media_type parameter. ")
-        url = f"https://graph.facebook.com/{media_id}/insights?metric={metrics}"
-        res_insight = facebook.get(url).json()  # if facebook else requests.get(f"{url}&access_token={token}").json()
-        insights = res_insight.get('data')
-        if insights:
-            temp = {ea.get('name'): ea.get('values', [{'value': 0}])[0].get('value', 0) for ea in insights}
-            if media_type == 'CAROUSEL_ALBUM':
-                temp = {metric_clean(key): val for key, val in temp.items()}
-            res.update(temp)
-        else:
-            app.logger.info(f"media {media_id} had NO INSIGHTS for type {media_type} --- {res_insight}. ")
-        results.append(res)
+    # post_metrics = METRICS[Post]
+    # results = []
+    # for post in media:
+    #     media_id = post.get('id')
+    #     res = get_basic_post(media_id, metrics=post_metrics['basic'], id_or_user=user, facebook=facebook, token=token)
+    #     media_type = 'STORY' if media_id in story_ids else res.get('media_type', '')
+    #     res['media_type'] = media_type
+    #     metrics = post_metrics.get(media_type, post_metrics['insight'])
+    #     if metrics == post_metrics['insight']:
+    #         app.logger.error(f" Match not found for {media_type} media_type parameter. ")
+    #     url = f"https://graph.facebook.com/{media_id}/insights?metric={metrics}"
+    #     res_insight = facebook.get(url).json()  # if facebook else requests.get(f"{url}&access_token={token}").json()
+    #     insights = res_insight.get('data')
+    #     if insights:
+    #         temp = {ea.get('name'): ea.get('values', [{'value': 0}])[0].get('value', 0) for ea in insights}
+    #         if media_type == 'CAROUSEL_ALBUM':
+    #             temp = {metric_clean(key): val for key, val in temp.items()}
+    #         res.update(temp)
+    #     else:
+    #         app.logger.info(f"media {media_id} had NO INSIGHTS for type {media_type} --- {res_insight}. ")
+    #     results.append(res)
     return results
 
 
