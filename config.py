@@ -60,3 +60,6 @@ else:
     LOCAL_ENV = True
     SERVER_NAME = URL.split('//', 1).pop()
     SESSION_COOKIE_DOMAIN = SERVER_NAME
+    JSONIFY_PRETTYPRINT_REGULAR = True  # default is True on DEBUG, False on PRODUCTION.
+    EXPLAIN_TEMPLATE_LOADING = True  # default is False
+REMEMBER_COOKIE_REFRESH_EACH_REQUEST = True  # keep user cookie up-to-date with each request.
