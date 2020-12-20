@@ -2,7 +2,8 @@ from flask import session, current_app as app
 from flask_login import login_user, logout_user, current_user
 from datetime import timedelta  # , datetime as dt
 import requests
-from requests_oauthlib import OAuth2Session, BackendApplicationClient
+from requests_oauthlib import OAuth2Session  # , BackendApplicationClient
+# from requests_oauthlib import OAuth2Session, BackendApplicationClient
 from requests_oauthlib.compliance_fixes import facebook_compliance_fix
 from .model_db import translate_api_user_token, db_create, db_create_or_update_many, db  # , db_read,
 from .model_db import metric_clean, Insight, Audience, Post, OnlineFollowers, User  # , Campaign
@@ -37,14 +38,14 @@ METRICS = {
 # TODO: CRITICAL All API calls need to handle pagination results.
 
 
-def generate_backend_token():
-    """When an App access token (as proof the request is from BIP App) is needed instead of the app client secret. """
-    client = BackendApplicationClient(client_id=FB_CLIENT_ID)
-    oauth = OAuth2Session(client=client)
-    token = oauth.fetch_token(token_url=FB_TOKEN_URL, client_id=FB_CLIENT_ID, client_secret=FB_CLIENT_SECRET)
-    # What about the params['grant_type'] = 'client_credentials' in generate_app_access_token ?
-    # token = token.get('access_token')  ??
-    return token
+# def generate_backend_token():
+#     """When an App access token (as proof the request is from BIP App) is needed instead of the app client secret. """
+#     client = BackendApplicationClient(client_id=FB_CLIENT_ID)
+#     oauth = OAuth2Session(client=client)
+#     token = oauth.fetch_token(token_url=FB_TOKEN_URL, client_id=FB_CLIENT_ID, client_secret=FB_CLIENT_SECRET)
+#     # What about the params['grant_type'] = 'client_credentials' in generate_app_access_token ?
+#     # token = token.get('access_token')  ??
+#     return token
 
 
 def generate_app_access_token():
