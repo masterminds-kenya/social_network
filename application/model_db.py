@@ -186,11 +186,14 @@ class User(UserMixin, db.Model):
         facebook = facebook_compliance_fix(facebook)
         return facebook
 
-    def get_media_list(self, story=None, facebook=None):
-        """Collect STORY or Normal media posts from the Graph API. """
+    def get_media(self, story=None, facebook=None):
+        """Collects a list of STORY or Normal media posts from the Graph API for this user. """
         if not self.instagram_id or not self.token:
+            current_app.logger.error(f"Unable to collect media for {self} user. ")
             return []
         facebook = facebook or self.get_auth_session()
+        if not facebook:
+            return []
         edge = 'stories' if story else 'media'
         url = f"https://graph.facebook.com/{self.instagram_id}/{edge}"
         response = facebook.get(url).json()

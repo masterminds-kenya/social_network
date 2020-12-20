@@ -7,7 +7,8 @@ from .model_db import User, OnlineFollowers, Insight, Post, Campaign   # , Audie
 from .developer_admin import admin_view
 from .helper_functions import staff_required, admin_required, mod_lookup, prep_ig_decide, get_daily_ig_accounts
 from .manage import update_campaign, process_form, report_update, check_hash, add_edit, process_hook
-from .api import onboard_login, onboarding, get_insight, get_audience, get_posts, get_online_followers, user_permissions
+from .api import (onboard_login, onboarding, user_permissions,
+                  get_media_posts, get_insight, get_audience, get_online_followers)
 from .sheets import create_sheet, update_sheet, perm_add, perm_list, all_files
 from pprint import pprint
 
@@ -436,7 +437,7 @@ def all_posts():
             app.logger.error(message)
             return redirect(url_for('error'))
     all_ig = get_daily_ig_accounts()
-    saved = get_posts(all_ig)
+    saved = get_media_posts(all_ig)
     message = f"Got all posts for {len(all_ig)} users, for a total of {len(saved)} posts. "
     response = {'User_num': len(all_ig), 'Post_num': len(saved), 'message': message, 'status_code': 200}
     if cron_run:
@@ -594,7 +595,7 @@ def new_post(mod, id):
     if current_user.role not in ['admin', 'manager'] and current_user.id != id:
         flash("This was not a correct location. You are redirected to the home page. ")
         return redirect(url_for('home'))
-    posts = get_posts(id)
+    posts = get_media_posts(id)
     logstring = f"Retrieved {len(posts)} new Posts. " if posts else "No new posts were found. "
     app.logger.info(logstring)
     flash(logstring)

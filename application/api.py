@@ -41,18 +41,15 @@ METRICS = {
 
 def find_valid_user(id_or_user, instagram_required=True):
     """For a given user with a saved token, create an OAuth2Session for Graph API requests of their data. """
-    user, user_id = None, None
     if isinstance(id_or_user, User):
         user = id_or_user
-        user_id = user.id
     elif isinstance(id_or_user, (int, str)):
         user_id = int(id_or_user)
-        user = User.query.get(user_id)
-        id_or_user = user
+        user = User.query.get(user_id)  # If not a valid id, expect a return of None.
     else:
         raise TypeError(f"Expected an id or instance of User, but got {type({id_or_user})}: {id_or_user} ")
     if instagram_required and not user.instagram_id:
-        return None
+        user = None
     return user
 
 # def generate_backend_token():
@@ -330,28 +327,33 @@ def get_basic_post(media_id, metrics=None, id_or_user=None, facebook=None, token
     If there are issues in the data collection, sentinel values are saved in the 'caption' field.
     """
     # TODO: Is pagination a concern?
-    if not id_or_user:
-        app.logger.error("Expected a user or an id of one for the get_basic_post function. ")
-        return None
+    auth = 'FACEBOOK' if facebook else 'TOKEN' if token else 'NONE'  # TODO: Remove reference to token in this function.
+    user_id = None
     if not facebook:
         user = find_valid_user(id_or_user)
-        facebook = user.get_auth_session()
-        user_id = user.id
-    else:
+        if user:
+            facebook = user.get_auth_session()
+            user_id = user.id
+    elif isinstance(id_or_user, (int, str)):
         user_id = int(id_or_user)
+    elif isinstance(id_or_user, User):
+        user_id = id_or_user.id
+    else:
+        app.logger.error("Expected a user id along with the facebook OAuth2Session passed. ")
+    if not user_id or not isinstance(facebook, OAuth2Session):
+        app.logger.error("The get_basic_post must be called with a User id or User that can create an auth seession. ")
     timestamp = str(make_missing_timestamp(0))
     empty_res = {'media_id': media_id, 'user_id': user_id, 'timestamp': timestamp, 'caption': 'NO_CREDENTIALS'}
-    if not facebook and not token:
-        message = "The get_basic_post must have at least one of 'user_id', 'facebook', or 'token' values. "
-        app.logger.error(message)  # raise Exception(message)
-        return empty_res
+    # if not facebook and not token:
+    #     message = "The get_basic_post must have at least one of 'id_or_user', 'facebook', or 'token' values. "
+    #     app.logger.error(message)  # raise Exception(message)
+    #     return empty_res
     if not metrics:
         metrics = METRICS[Post]['basic']
     url = f"https://graph.facebook.com/{media_id}?fields={metrics}"
     try:
         res = facebook.get(url).json()  # if facebook else requests.get(f"{url}&access_token={token}").json()
     except Exception as e:
-        auth = 'FACEBOOK' if facebook else 'TOKEN' if token else 'NONE'
         app.logger.info('------------- Error in get_basic_post FB API response -------------')
         app.logger.error(f"API fail for Post with media_id {media_id} | Auth: {auth} ")
         app.logger.exception(e)
@@ -464,8 +466,8 @@ def _get_posts_data_of_user(id_or_user, stories=True, ig_id=None, facebook=None)
     return results
 
 
-def get_posts(id_or_users, stories=True, ig_id=None, facebook=None):
-    """Input is a single entity or list of User instance(s), or User id(s).
+def get_media_posts(id_or_users, stories=True, facebook=None):
+    """Returns a list of saved Post objects created for the single or list of Users or User id(s).
        Likely called by 'all_posts' for daily download or 'new_post' for a specific user.
        Calls the API to get all of the Posts (with insights of Posts) of User(s).
        Saves this data to the Database, creating or updating as needed.
