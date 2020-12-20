@@ -41,6 +41,10 @@ body > header {
   width: 100%;
 }
 
+.hide-content {
+  display: none;
+}
+
 .sticky {
   position: fixed;
   top: 0;

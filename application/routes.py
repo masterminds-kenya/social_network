@@ -1,7 +1,6 @@
-from flask import render_template, redirect, url_for, request, flash, current_app as app  # , abort
+from flask import render_template, redirect, url_for, request, flash, session, current_app as app  # , abort
 from flask_login import current_user, login_user, logout_user, login_required
 from werkzeug.security import generate_password_hash, check_password_hash
-# from sqlalchemy import or_
 import json
 from .model_db import db_create, db_read, db_delete, db_all, from_sql  # , metric_clean
 from .model_db import User, OnlineFollowers, Insight, Post, Campaign   # , Audience
@@ -16,11 +15,27 @@ from pprint import pprint
 caption_errors = ['NO_CREDENTIALS', 'AUTH_FACEBOOK', 'AUTH_TOKEN', 'AUTH_NONE', 'API_ERROR', 'INSIGHTS_CREATED']
 
 
+def test_local(*args, **kwargs):
+    """Useful for constructing tests, but will only work when running locally. """
+    app.logger.info("========== Home route run locally ==========")
+    session['hello'] = 'Hello Session World'
+    app.logger.info(session)
+    local_data = {
+        'page': 'Proof of Life',
+        'text': 'Does this text get there?',
+        'info_list': ['first_item', 'second_item', 'third_item'],
+        'data': json.dumps({'first': 'val_1', 'second': 'val_2'})
+    }
+    return local_data
+
+
 @app.route('/')
 def home():
     """Default root route """
-    data = ''
-    return render_template('index.html', data=data)
+    local_data = None
+    if app.config.get('LOCAL_ENV', False):
+        local_data = test_local()
+    return render_template('index.html', local_data=local_data)
 
 
 @app.route('/signup', methods=['GET', 'POST'])
@@ -75,11 +90,22 @@ def login():
             flash("Password required. If you don't have one, you can try Facebook login, otherwise contact an admin. ")
             return redirect(url_for('login'))
         user = User.query.filter_by(email=data['email']).first()
+        app.logger.debug(f"Found {user} user with role {getattr(user, 'role', 'NOT FOUND')}. ")
         if not user or not check_password_hash(user.password, data['password']):
+            app.logger.debug("Problem with login credentials. ")
+            if user:
+                app.logger.debug(f"Password problem for {user} ")
             flash("Those login details did not work. ")
             return redirect(url_for('login'))
-        login_user(user, remember=data['remember'])
-        return redirect(url_for('view', mod=user.role, id=user.id))
+        remember_answer = data.get('remember', False)
+        app.logger.debug(f"Remember Answer: {remember_answer} ")
+        attempt = login_user(user, remember=data.get('remember', False))  # , duration=timedelta(days=61)
+        app.logger.debug(f"The login attempt response: {attempt} ")
+        app.logger.debug(f"Current User: {current_user}, is a good match: {current_user == user} ")
+        if current_user == user:
+            app.logger.debug(f"Current details | role: {user.role} | id: {user.id} | is_active: {getattr(user, 'is_active', 'NOT FOUND')} ")
+        return view(user.role, user.id)
+        # return redirect(url_for('view', mod=user.role, id=user.id))
     return render_template('signup.html', signup_roles=None, mods=['influencer', 'brand'])
 
 
@@ -95,7 +121,7 @@ def logout():
 @app.route('/error', methods=['GET', 'POST'])
 def error():
     """Error route. """
-    err = request.form.get('data')
+    err = request.form.get('data') or request.args
     app.logger.error(err)
     if not app.config.get('DEBUG'):
         err = None
@@ -145,11 +171,10 @@ def problem_posts():
     return render_template(template, mod=mod, data=data, caption_errors=caption_errors)
 
 
-@app.route('/data/test')
+@app.route('/admin/test')
 @admin_required()
 def test_method():
-    """Temporary route and function for developer to test components. """
-
+    """Temporary restricted to admin route and function for developer to test components. """
     app.logger.info("========== Test Method for admin:  ==========")
     info = get_daily_ig_accounts()
     pprint([f"{ea}: {len(ea.campaigns)} | {len(ea.brand_campaigns)} " for ea in info])
@@ -157,6 +182,32 @@ def test_method():
     # pprint(info)
     app.logger.info('-------------------------------------------------------------')
     return admin(data=info)
+
+
+@app.route('/any/test')
+def open_test(**kwargs):
+    """Temporary open public route and function for developer to test components without requiring a login. """
+    # TODO: Confirm this open route is closed before pushing to production.
+    if not app.config.get('LOCAL_ENV', False):
+        app.logger.info("========== Test Method Open: Error  ==========")
+        return redirect(url_for('error', **request.args))
+    app.logger.info("========== Test Method Open  ==========")
+    hello_val = session.get('hello', 'NOT FOUND')
+    app.logger.info(hello_val)
+    app.logger.info("----------------------------------------------------")
+    app.logger.info(session)
+    app.logger.info("----------------------------------------------------")
+    params = request.args.to_dict(flat=False)
+    params = {k: params[k][0] if len(params[k]) < 2 else params[k] for k in params}
+    kwargs.update(params)
+    page_title = kwargs.pop('page', None)
+    text = kwargs.pop('text', '')
+    info = kwargs.pop('info_list', [])
+    data = kwargs.pop('data', {})
+    if isinstance(data, str):
+        data = json.loads(data)
+    template = kwargs.pop('template', 'simple.html')
+    return render_template(template, page=page_title, text=text, info_list=info, data=data, other=kwargs)
 
 
 @app.route('/data/capture/<int:id>')
@@ -439,6 +490,8 @@ def view(mod, id):
             if not isinstance(value, dict):  # For the id_data Audience records
                 value = {'value': value}
             model['value'] = value
+    # TODO: Remove these temporary logs
+    app.logger.info(f"Current User: {current_user} ")
     return render_template(template, mod=mod, data=model, caption_errors=caption_errors)
 
 
@@ -571,6 +624,7 @@ def edit(mod, id):
         flash(f"Editing a {mod} is not working right now. Contact an Admin. ")
         return redirect(request.referrer)
     if current_user.role not in ['admin', 'manager'] and (current_user.id != id or current_user.role != mod):
+        app.logger.info(f"Error in edit route | mod: {mod} | id: {id} | current_user: {current_user} ")
         flash("Something went wrong. Contact an admin or manager. Redirecting to the home page. ")
         return redirect(url_for('home'))
     return add_edit(mod, id=id)

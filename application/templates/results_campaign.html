@@ -5,13 +5,10 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.4.0/Chart.min.js"></script>
 {% endblock head %}
 
-{% block header %}
-{{ super() }}
 <form method="POST" enctype="multipart/form-data">
   <input type="hidden" name="related" value="{{related}}" />
   <button type="submit" class="btn btn-success">Create Google Sheet Report</button>
 </form>
-{% endblock header %}
 
 {% block content %}
   {% set dataset = namespace(count=0, datatype=[], vals=[], labels=[]) %}

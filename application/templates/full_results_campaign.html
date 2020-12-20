@@ -4,15 +4,12 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.4.0/Chart.min.js"></script>
 {% endblock head %}
 
-{% block header %}
-{{ super() }}
+{% block content %}
 <form method="POST" enctype="multipart/form-data">
   <input type="hidden" name="related" value="{{related}}" />
   <button type="submit" class="btn btn-success">Create Google Sheet Report</button>
 </form>
-{% endblock header %}
 
-{% block content %}
   {% set dataset = namespace(count=0, datatype=[], vals=[], labels=[]) %}
   {% for media_type, obj in related.items() %}
   <section id="{{media_type}}" class="media_results">

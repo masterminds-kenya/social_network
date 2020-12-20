@@ -39,19 +39,20 @@ def staff_required(role=['admin', 'manager']):
         @wraps(fn)
         def decorated_view(*args, **kwargs):
             if not current_user.is_authenticated or current_user.role not in role:
+                app.logger.debug("Unauthorized for STAFF attempt. ")
                 return app.login_manager.unauthorized()
             return fn(*args, **kwargs)
         return decorated_view
     return wrapper
 
 
-def admin_required(role=['admin']):
+def admin_required(role=['admin']):  # staff_required(role=role)
     """This decorator will limit access to admin only """
-    # staff_required(role=role)
     def wrapper(fn):
         @wraps(fn)
         def decorated_view(*args, **kwargs):
             if not current_user.is_authenticated or current_user.role not in role:
+                app.logger.debug("Unauthorized for ADMIN attempt. ")
                 return app.login_manager.unauthorized()
             return fn(*args, **kwargs)
         return decorated_view
@@ -64,6 +65,8 @@ def self_or_staff_required(role=['admin', 'manager'], user=current_user):
         @wraps(fn)
         def decorated_view(*args, **kwargs):
             if not current_user.is_authenticated or current_user.role not in role:
+                # TODO: Logic for testing if current_user is self for this model.
+                app.logger.debug("Unauthorized for SELF OR STAFF attempt. ")
                 return app.login_manager.unauthorized()
             return fn(*args, **kwargs)
         return decorated_view

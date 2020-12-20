@@ -3,9 +3,14 @@
 <title>{{ action }} {{ mod|title }} Form</title>
 {% endblock head %}
 
-{% block content %}
-<h3>{{ action }} {{ mod|title }}</h3>
+{% block intro %}
+<h2 class="status">
+  {{ action }} {{ mod|title }}
+</h2>
+{{ super() }}
+{% endblock intro %}
 
+{% block content %}
 <form method="POST" enctype="multipart/form-data">
   <div class="form-group">
     <label for="name">Name</label>

@@ -313,7 +313,7 @@ def fix_defaults():
 
 @app.route('/data/load/')
 @admin_required()
-def load_user():
+def load_users_file():
     """DEPRECATED. This is a temporary development function. Will be removed for production. """
     load()
     return redirect(url_for('all', mod='influencer'))

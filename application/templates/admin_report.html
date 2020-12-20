@@ -3,17 +3,17 @@
 <title>Admin {{ mod|capitalize }} Report {% if overview %}Overview{% endif %}</title>
 {% endblock head %}
 
-{% block header %}
-{{ super() }}
-<h1>
+{% block intro %}
+<h2 class="status">
   {{ mod|capitalize }} Report
   {% if overview %}
   Overview
   {% elif info.get('name') %}
   for {{ info['name'] }}
   {% endif %}
-</h1>
-{% endblock header %}
+</h2>
+{{ super() }}
+{% endblock intro %}
 
 {% block content %}
 {% block data_view %}

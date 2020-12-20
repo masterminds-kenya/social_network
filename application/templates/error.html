@@ -3,7 +3,11 @@
 <title>Error Page</title>
 {% endblock head %}
 
+{% block info %}
+<h2 class="status">There was an Error!</h2>
+{{ super() }}
+{% endblock info %}
+
 {% block content %}
-<h2>We got an Error!</h2>
 <p>{{ err }}</p>
 {% endblock content %}

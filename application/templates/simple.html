@@ -1,0 +1,74 @@
+{% extends "base.html" %}
+{% block head %}
+<title>{{ page|default("page title")|title }}</title>
+{% endblock head %}
+
+{% block intro %}
+  <h2 class="status">{{ page|default("page title")|title }}</h2>
+  {{ super() }}
+{% endblock intro %}
+
+{% block content %}
+  <p>
+    {{ text|default("Some 'text' Content. ")|e }}
+  </p>
+
+  <h3>Info List </h3>
+  <ul>
+    {% for ea in info_list %}
+    <li>{{ ea }}</li>
+    {% else %}
+    <li>No 'info_list' found. </li>
+    {% endfor %}
+  </ul>
+
+  <h3>Data</h3>
+  <ul>
+    {% for key in data %}
+    <li>{% include 'data_expand.html' %}</li>
+    {% else %}
+    <li>No data</li>
+    {% endfor %}
+  </ul>
+
+  <h3>Other</h3>
+  {% if other is iterable and (other is not string and other is not mapping) %}
+  <ul>
+    {% for ea in other %}
+    <li>{{ ea }}</li>
+    {% else %}
+    <li>No elements found in non-mapping iterable other</li>
+    {% endfor %}
+  </ul>
+  {% elif other is mapping %}
+  <ul>
+    {% set data = other %}
+    {% for key in other %}
+    <li>{% include 'data_expand.html' %}</li>
+    {% else %}
+    <li>No data in other mapping</li>
+    {% endfor %}
+  </ul>
+  {% elif other is string %}
+  <p>{{ other|e }} </p>
+  {% else %}
+  <p>Not a mapping (dict), not an iterable (list, tuple), not a string. </p>
+  <h4>What Is It?!?</h4>
+  <p>
+    {{ other|e }}
+  </p>
+  {% endif %}
+
+  <ul>
+    <li><a href="{{ url_for('home') }}">Link example Home</a></li>
+    {% if current_user.is_authenticated %}
+    <li><a href="{{ url_for('view', mod=current_user.role, id=current_user.id) }}">Profile for Authenticated</a></li>
+    {% endif %}
+    {% if current_user.is_active %}
+    <li><a href="{{ url_for('view', mod=current_user.role, id=current_user.id) }}">Active User Profile</a></li>
+    {% endif %}
+    {% if current_user.role == 'admin' %}
+    <li><a href="{{ url_for('admin') }}">Admin Page</a></li>
+    {% endif %}
+  </ul>
+{% endblock content %}
