@@ -8,6 +8,9 @@ from sqlalchemy import or_, desc  # , and_, select, func
 from sqlalchemy_utils import EncryptedType  # encrypt
 from sqlalchemy_utils.types.encrypted.encrypted_type import AesEngine  # encrypt
 from cryptography.fernet import Fernet  # noqa: F401  # TODO: Is this needed here? # encrypt
+from requests_oauthlib import OAuth2Session  # , BackendApplicationClient
+# from oauthlib.oauth2 import BackendApplicationClient
+from requests_oauthlib.compliance_fixes import facebook_compliance_fix
 from flask_migrate import Migrate
 from datetime import datetime as dt
 from dateutil import parser

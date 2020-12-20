@@ -39,7 +39,7 @@ METRICS = {
 # TODO: CRITICAL All API calls need to handle pagination results.
 
 
-def make_auth_facebook(id_or_user):
+def find_valid_user(id_or_user, instagram_required=True):
     """For a given user with a saved token, create an OAuth2Session for Graph API requests of their data. """
     user, user_id = None, None
     if isinstance(id_or_user, User):
@@ -51,13 +51,9 @@ def make_auth_facebook(id_or_user):
         id_or_user = user
     else:
         raise TypeError(f"Expected an id or instance of User, but got {type({id_or_user})}: {id_or_user} ")
-    if not user.token:
-        app.logger.error(f"Unable to make API request for {user} user. They do not have an access token. ")
+    if instagram_required and not user.instagram_id:
         return None
-    # It seems that the Facebook Graph API does not have the auto_refresh_url and token_updater methods for OAuth2.
-    facebook = OAuth2Session(FB_CLIENT_ID, token=user.token)
-    return facebook
-
+    return user
 
 # def generate_backend_token():
 #     """When an App access token (as proof the request is from BIP App) is needed instead of the app client secret. """
@@ -123,9 +119,7 @@ def inspect_access_token(input_token, app_access_token=None):
 def user_permissions(id_or_user, facebook=None, token=None, app_access_token=None):
     """Used by staff to check on what permissions a given user has granted to the platform application. """
     # TODO UNLIKELY: Is pagination a concern?
-    user = id_or_user
-    if isinstance(user, (str, int)):
-        user = User.query.get(user)
+    user = find_valid_user(id_or_user)
     if not isinstance(user, User):
         app.logger.error("Expected a valid User instance, or id of one, for user_permissions check. ")
         return {}
@@ -336,29 +330,26 @@ def get_basic_post(media_id, metrics=None, id_or_user=None, facebook=None, token
     If there are issues in the data collection, sentinel values are saved in the 'caption' field.
     """
     # TODO: Is pagination a concern?
-    user, user_id = None, id_or_user
-    if isinstance(id_or_user, User):
-        user = id_or_user
+    if not id_or_user:
+        app.logger.error("Expected a user or an id of one for the get_basic_post function. ")
+        return None
+    if not facebook:
+        user = find_valid_user(id_or_user)
+        facebook = user.get_auth_session()
         user_id = user.id
-        token = token if token or facebook else user.token
-    elif isinstance(id_or_user, (int, str)) and not facebook and not token:
+    else:
         user_id = int(id_or_user)
-        user = User.query.get(user_id)
-        token = getattr(user, 'token', None)
     timestamp = str(make_missing_timestamp(0))
     empty_res = {'media_id': media_id, 'user_id': user_id, 'timestamp': timestamp, 'caption': 'NO_CREDENTIALS'}
     if not facebook and not token:
-        if user:
-            message = "Unable to locate user token value. User should login with Facebook and authorize permissions. "
-        else:
-            message = "The get_basic_post must have at least one of 'user_id', 'facebook', or 'token' values. "
+        message = "The get_basic_post must have at least one of 'user_id', 'facebook', or 'token' values. "
         app.logger.error(message)  # raise Exception(message)
         return empty_res
     if not metrics:
         metrics = METRICS[Post]['basic']
     url = f"https://graph.facebook.com/{media_id}?fields={metrics}"
     try:
-        res = facebook.get(url).json() if facebook else requests.get(f"{url}&access_token={token}").json()
+        res = facebook.get(url).json()  # if facebook else requests.get(f"{url}&access_token={token}").json()
     except Exception as e:
         auth = 'FACEBOOK' if facebook else 'TOKEN' if token else 'NONE'
         app.logger.info('------------- Error in get_basic_post FB API response -------------')
@@ -375,31 +366,26 @@ def get_basic_post(media_id, metrics=None, id_or_user=None, facebook=None, token
     if res_media_id != media_id:
         app.logger.error(f"Mismatch media_id: Request {media_id} | Response {res_media_id} ")
     res['media_id'] = media_id
-    if user_id:
-        res['user_id'] = user_id
+    res['user_id'] = user_id
     return res
 
 
-def get_media_list_of_user(id_or_user, stories=True, ig_id=None, facebook=None):
+def _get_posts_data_of_user(id_or_user, stories=True, ig_id=None, facebook=None):
     """Called by get_posts. Returns list, for a user, of STORY and regular media Posts with basic content & metrics. """
     # TODO: Is pagination a concern?
-    user, user_id, token = None, None, None
-    if isinstance(id_or_user, User):
-        user = id_or_user
-        user_id = user.id
-    elif isinstance(id_or_user, (int, str)):
-        user_id = int(id_or_user)
-        user = User.query.get(user_id)
-        id_or_user = user
-    else:
-        raise TypeError(f"Expected an id or instance of User, but got {type({id_or_user})}: {id_or_user} ")
-    if not facebook or not ig_id:
-        ig_id = ig_id or user.instagram_id
-        token = user.token
+    user = find_valid_user(id_or_user)
+    if not user:
+        return []
+    ig_id = ig_id or user.instagram_id
+    token = None
+    facebook = user.get_auth_session()
+    # if not facebook or not ig_id:
+    #     ig_id = ig_id or user.instagram_id
+    #     token = user.token
     # app.logger.info(f"==================== Get Posts on User {user_id} ====================")
     if stories:
         url = f"https://graph.facebook.com/{ig_id}/stories"
-        story_res = facebook.get(url).json() if facebook else requests.get(f"{url}?access_token={token}").json()
+        story_res = facebook.get(url).json()  # if facebook else requests.get(f"{url}?access_token={token}").json()
         stories = story_res.get('data')
         if not isinstance(stories, list) or 'error' in story_res:
             app.logger.error('Stories Error: ', story_res.get('error', 'NA'))
@@ -407,7 +393,7 @@ def get_media_list_of_user(id_or_user, stories=True, ig_id=None, facebook=None):
         stories = []
     story_ids = set(ea.get('id') for ea in stories)
     url = f"https://graph.facebook.com/{ig_id}/media"
-    response = facebook.get(url).json() if facebook else requests.get(f"{url}?access_token={token}").json()
+    response = facebook.get(url).json()  # if facebook else requests.get(f"{url}?access_token={token}").json()
     media = response.get('data')
     if not isinstance(media, list):
         app.logger.error('Error: ', response.get('error', 'NA'))
@@ -426,7 +412,7 @@ def get_media_list_of_user(id_or_user, stories=True, ig_id=None, facebook=None):
         if metrics == post_metrics['insight']:
             app.logger.error(f" Match not found for {media_type} media_type parameter. ")
         url = f"https://graph.facebook.com/{media_id}/insights?metric={metrics}"
-        res_insight = facebook.get(url).json() if facebook else requests.get(f"{url}&access_token={token}").json()
+        res_insight = facebook.get(url).json()  # if facebook else requests.get(f"{url}&access_token={token}").json()
         insights = res_insight.get('data')
         if insights:
             temp = {ea.get('name'): ea.get('values', [{'value': 0}])[0].get('value', 0) for ea in insights}
@@ -450,7 +436,7 @@ def get_posts(id_or_users, stories=True, ig_id=None, facebook=None):
         id_or_users = [id_or_users]
     results = []
     for ea in id_or_users:
-        results.extend(get_media_list_of_user(ea, stories=stories, ig_id=ig_id, facebook=facebook))
+        results.extend(_get_posts_data_of_user(ea, stories=stories, ig_id=ig_id, facebook=facebook))
     saved = db_create_or_update_many(results, Post)
     # If any STORY posts were found, the SQLAlchemy Event Listener will add it to the Task queue for the Capture API.
     return saved
@@ -494,14 +480,7 @@ def get_fb_page_for_users_ig_account(user, ignore_current=False, facebook=None, 
 def install_app_on_user_for_story_updates(id_or_user, page=None, facebook=None, token=None):
     """Accurate Story Post metrics can be pushed to the Platform only if the App is installed on the related Page. """
     # TODO: Is pagination a concern?
-    if isinstance(id_or_user, User):
-        user = id_or_user
-        user_id = user.id
-    elif isinstance(id_or_user, (int, str)):
-        user_id = int(id_or_user)
-        user = User.query.get(user_id)
-    else:
-        raise ValueError('Input must be either a User model or an id for a User. ')
+    user = find_valid_user(id_or_user)
     # app.logger.info(f"========== INSTALL APP for: {user} ==========")
     if not isinstance(page, dict) or not page.get('id') or not page.get('token'):
         page = get_fb_page_for_users_ig_account(user, facebook=facebook, token=token)
@@ -512,7 +491,7 @@ def install_app_on_user_for_story_updates(id_or_user, page=None, facebook=None, 
     # url = f"https://graph.facebook.com/v9.0/{page['id']}/subscribed_apps",  # TODO: v3.1 out of date, is v# needed?
     field = 'name'  # OPTIONS: 'category', 'website' # NOT VALID: 'has_added_app', 'is_owned'
     # TODO: Check if permission needed: pages_manage_metadata or pages_read_user_content
-    params = {} if facebook else {'access_token': page['token']}
+    params = {} if facebook else {'access_token': page['token']}  # TODO: Determine if always need page access token.
     params['subscribed_fields'] = field
     res = facebook.post(url, params=params).json() if facebook else requests.post(url, params=params).json()
     app.logger.info(f"======== Install App for {user.name} - Success: {res.get('success', False)} ========")
@@ -541,14 +520,7 @@ def install_app_on_user_for_story_updates(id_or_user, page=None, facebook=None, 
 
 def remove_app_on_user_for_story_updates(id_or_user, page=None, facebook=None, token=None):
     """This User is no longer having their Story Posts tracked, so uninstall the App on their related Page. """
-    if isinstance(id_or_user, User):
-        user = id_or_user
-        user_id = user.id
-    elif isinstance(id_or_user, (int, str)):
-        user_id = int(id_or_user)
-        user = User.query.get(user_id)
-    else:
-        raise ValueError('Input must be either a User model or an id for a User. ')
+    user = find_valid_user(id_or_user)
     app.logger.info(f"========== remove_app_on_user_for_story_updates: {user} ==========")
     return True
     # if not isinstance(page, dict) or not page.get('id') or not page.get('token'):
