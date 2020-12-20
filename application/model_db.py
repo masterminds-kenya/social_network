@@ -183,6 +183,20 @@ class User(UserMixin, db.Model):
         facebook = facebook_compliance_fix(facebook)
         return facebook
 
+    def get_media_list(self, story=None, facebook=None):
+        """Collect STORY or Normal media posts from the Graph API. """
+        if not self.instagram_id or not self.token:
+            return []
+        facebook = facebook or self.get_auth_session()
+        edge = 'stories' if story else 'media'
+        url = f"https://graph.facebook.com/{self.instagram_id}/{edge}"
+        response = facebook.get(url).json()
+        media = response.get('data')
+        if not isinstance(media, list):
+            current_app.logger.error('Stories Error: ' if story else 'Media Error: ', response.get('error', 'NA'))
+            media = []
+        return media
+
     # @hybrid_property
     # def is_connector(self):
     #     """Returns boolean: True if user has instagram_id and is an influencer or brand user. """
