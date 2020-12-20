@@ -110,7 +110,7 @@ In order for our platform to get the most accurate Story metrics, the following 
 
 When looking at techniques and Documentation, be careful and **DO NOT USE** the Instagram Basic Display API, it is an incorrect source. Make sure to **USE Instagram Graph API** for documentation (links below).
 
-- [Instagram Basic Display API](https://developers.facebook.com/docs/instagram-basic-display-api/overview/permissions#instagram-graph-user-media)
+- Do NOT use: [Instagram Basic Display API](https://developers.facebook.com/docs/instagram-basic-display-api/overview/permissions#instagram-graph-user-media)
   - "Apps designated as Business apps are not supported. If your app is a Business app use the Instagram Graph API instead, or create a new, non-Business app." [AppTypes](https://developers.facebook.com/docs/instagram-basic-display-api/overview#instagram-user-access-tokens)
   - `instagram_graph_user_media` allows reading Media node (for an image, video, or album) and edges.
   - `instagram_graph_user_profile` permission allows your app to read the app user's profile.
