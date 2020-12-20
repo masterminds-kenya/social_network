@@ -468,10 +468,11 @@ def _get_posts_data_of_user(id_or_user, stories=True, ig_id=None, facebook=None)
 
 def get_media_posts(id_or_users, stories=True, facebook=None):
     """Returns a list of saved Post objects created for the single or list of Users or User id(s).
-       Likely called by 'all_posts' for daily download or 'new_post' for a specific user.
-       Calls the API to get all of the Posts (with insights of Posts) of User(s).
-       Saves this data to the Database, creating or updating as needed.
-       Returns an array of the saved Post instances.
+    If stories parameter is 'only', then it will only get STORY media posts for these user(s).
+    Otherwise stories parameter indicates if STORY media posts should or should not be included.
+    This function is likely called by 'all_posts' for daily download or 'new_post' for a specific user.
+    The Graph API is called to get all basic and metrics data, and creates or updates Posts in the database.
+    Returns an array of the saved (created or updated) Post instances.
     """
     if not isinstance(id_or_users, (list, tuple)):
         id_or_users = [id_or_users]
@@ -481,12 +482,14 @@ def get_media_posts(id_or_users, stories=True, facebook=None):
     users = (find_valid_user(ea) for ea in id_or_users)
     results = []
     for fb, user in ((facebook or u.get_auth_session(), u) for u in users if u):
+        media = []  # currently want to include basic media after stories if getting both.
+        if stories != 'only':
+            media = user.get_media(facebook=fb)
+            media = [get_post_data(ea.get('id'), id_or_user=user, facebook=fb) for ea in media]
         if stories:
             stories = user.get_media(story=True, facebook=fb)
             stories = [get_post_data(ea.get('id'), is_story=True, id_or_user=user, facebook=fb) for ea in stories]
             results.extend(stories)
-        media = user.get_media(facebook=fb)
-        media = [get_post_data(ea.get('id'), id_or_user=user, facebook=fb) for ea in media]
         results.extend(media)
     saved = db_create_or_update_many(results, Post)
     # If any STORY posts were found, the SQLAlchemy Event Listener will add it to the Task queue for the Capture API.
