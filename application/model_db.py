@@ -144,6 +144,34 @@ class User(UserMixin, db.Model):
             return self.brand_campaigns
         return []
 
+    @property
+    def full_token(self):
+        """The dict structure of a full token generally received from the Graph API. The setter will extract values. """
+        if not self.token:
+            return None
+        if self.token_expires:
+            expires = (self.token_expires - dt.utcnow()).in_seconds()
+            expires = 0 if expires < 0 else int(expires)
+        else:
+            expires = None
+        result = {
+            'access_token': self.token,
+            # 'refresh_token': '',  # The FB Graph API does not use refresh_token.
+            'token_type': 'Bearer',
+            'expires_in': expires,
+            }
+        return result
+
+    @full_token.setter
+    def full_token(self, token):
+        current_app.logger.info(f"Called full_token setter for {self} user. ")
+        current_app.logger.info(token)
+        # refresh_token = token.get('refresh_token', None)
+        data = translate_api_user_token({'token': token})
+        self.token_expires = data['token_expires']
+        self.token = data['token']
+        # current_app.logger.info(f"The {self} user has an unsaved refresh_token of {refresh_token} ")
+
     # @hybrid_property
     # def is_connector(self):
     #     """Returns boolean: True if user has instagram_id and is an influencer or brand user. """
