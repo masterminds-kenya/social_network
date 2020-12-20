@@ -47,30 +47,24 @@
 <p>
   Elegance isn't solely defined by what you wear. It's how you carry yourself, how you speak, what you read. I love women's fashion, but women don't need me as much as men do. It's the men who have nothing to wear. I can't get sucked into that celebrity thing, because I think it's just crass. For me, art is about learning and about living with people. It's alive. It pains me physically to see a woman victimized, rendered pathetic, by fashion.
 </p>
-
+<p>
+  The rest of this paragraph is jinja2 lorem ipsum (lipsum) with html as false (so it is not a nested paragraph).
+  {{ lipsum(html=false) }}
+</p>
 <input id="collapsible_test_5p" class="toggle" type="checkbox" />
 <label for="collapsible_test_5p" class="lbl-toggle">
   Expand for 5 paragraphs (default) of lorem ipsum
 </label>
 <section class="collapsible-content optional_other_style_class">
-  {{ lipsum(html=false) }}
+  {{ lipsum() }}
 </section>
-
 <h6>sixth header</h6>
 <input id="collapsible_test_6p" class="toggle" type="checkbox" />
 <label for="collapsible_test_6p" class="lbl-toggle">
   Expand for 6 paragraphs of lorem ipsum
 </label>
 <section class="collapsible-content optional_other_style_class">
-  {{ lipsum(n=6, html=false) }}
-</section>
-
-<input id="collapsible_test_3p" class="toggle" type="checkbox" />
-<label for="collapsible_test_3p" class="lbl-toggle">
-  Expand for 3 paragraphs of lorem ipsum HTML
-</label>
-<section class="collapsible-content optional_other_style_class">
-  {{ lipsum(n=3) }}
+  {{ lipsum(n=6) }}
 </section>
 
 <hr />
