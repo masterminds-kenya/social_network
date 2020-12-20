@@ -3,7 +3,7 @@ from flask_login import login_user, logout_user, current_user
 from datetime import timedelta  # , datetime as dt
 import requests
 from requests_oauthlib import OAuth2Session  # , BackendApplicationClient
-# from requests_oauthlib import OAuth2Session, BackendApplicationClient
+# from oauthlib.oauth2 import BackendApplicationClient
 from requests_oauthlib.compliance_fixes import facebook_compliance_fix
 from .model_db import translate_api_user_token, db_create, db_create_or_update_many, db  # , db_read,
 from .model_db import metric_clean, Insight, Audience, Post, OnlineFollowers, User  # , Campaign
@@ -27,6 +27,7 @@ FB_SCOPE = [
     'pages_manage_metadata',
     # 'manage_pages'  # Deprecated. Now using pages_read_engagement (v7.0), 'pages_manage_metadata' for later.
     ]
+# TODO: Implement request of permissions previously rejected: The FB_AUTHORIZATION_BASE_URL with auth_type=rerequest
 METRICS = {
     OnlineFollowers: ','.join(OnlineFollowers.METRICS),
     Audience: ','.join(Audience.METRICS),
@@ -826,6 +827,7 @@ def onboarding(mod, request):
     facebook = facebook_compliance_fix(facebook)  # we need to apply a fix for Facebook here
     # TODO: ? Modify input parameters to only pass the request.url value since that is all we use?
     token = facebook.fetch_token(FB_TOKEN_URL, client_secret=FB_CLIENT_SECRET, authorization_response=request_url)
+    # The previous line likely does the exchange of 'code' for the Access Token (probably long-lasting. )
     app.logger.info(token)
     if 'error' in token:
         app.logger.info(token['error'])

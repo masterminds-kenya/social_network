@@ -115,6 +115,7 @@ class User(UserMixin, db.Model):
     instagram_id = db.Column(BIGINT(unsigned=True), index=True,  unique=True,  nullable=True)
     facebook_id = db.Column(BIGINT(unsigned=True),  index=False, unique=False, nullable=True)
     token = db.Column(EncryptedType(db.String(255), SECRET_KEY, AesEngine, 'pkcs5'))  # encrypt
+    # access_token = db.Column(EncryptedType(db.String(255), SECRET_KEY, AesEngine, 'pkcs5'))  # encrypt
     token_expires = db.Column(db.DateTime,          index=False, unique=False, nullable=True)
     notes = db.Column(db.String(191),               index=False, unique=False, nullable=True)
     modified = db.Column(db.DateTime,               unique=False, nullable=False, default=dt.utcnow, onupdate=dt.utcnow)
@@ -181,10 +182,10 @@ class User(UserMixin, db.Model):
     # def is_connector(cls):
     #     return and_(cls.role.in_(['influencer', 'brand']), cls.instagram_id.is_not(None))
 
-    # # @is_connector.expression
-    # # def has_active_all(cls):
-    # #     is_active = Campaign.completed.is_(False)
-    # #     return and_(cls.role.in_('influencer', 'brand'), or_(cls.campaign(is_active), cls.brand_campaign(is_active)))
+    # @is_connector.expression
+    # def has_active_all(cls):
+    #     is_active = Campaign.completed.is_(False)
+    #     return and_(cls.role.in_('influencer', 'brand'), or_(cls.campaign(is_active), cls.brand_campaign(is_active)))
 
     @hybrid_property
     def has_active_all(self):
@@ -201,8 +202,11 @@ class User(UserMixin, db.Model):
     #         return cls.campaign.any(is_active)
     #     elif cls.role == 'brand':
     #         return cls.brand_campaign.any(is_active)
+    #     users_z = User.query.filter(
+    #         User.instagram_id.isnot(None),
+    #         (or_(User.campaigns.any(is_active), User.brand_campaigns.any(is_active)))
+    #         )
     #     return False
-        # users_z = User.query.filter(User.instagram_id.isnot(None), (or_(User.campaigns.any(is_active), User.brand_campaigns.any(is_active))))
 
     # @hybrid_property
     # def active_all(self):
