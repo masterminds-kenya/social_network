@@ -91,20 +91,21 @@ def login():
             flash("Password required. If you don't have one, you can try Facebook login, otherwise contact an admin. ")
             return redirect(url_for('login'))
         user = User.query.filter_by(email=data['email']).first()
-        app.logger.debug(f"Found {user} user with role {getattr(user, 'role', 'NOT FOUND')}. ")
+        # app.logger.debug(f"Found {user} user with role {getattr(user, 'role', 'NOT FOUND')}. ")
         if not user or not check_password_hash(user.password, data['password']):
             app.logger.debug("Problem with login credentials. ")
             if user:
                 app.logger.debug(f"Password problem for {user} ")
             flash("Those login details did not work. ")
             return redirect(url_for('login'))
-        remember_answer = data.get('remember', False)
-        app.logger.debug(f"Remember Answer: {remember_answer} ")
+        # remember_answer = data.get('remember', False)
+        # app.logger.debug(f"Remember Answer: {remember_answer} ")
         attempt = login_user(user, remember=data.get('remember', False))  # , duration=timedelta(days=61)
-        app.logger.debug(f"The login attempt response: {attempt} ")
-        app.logger.debug(f"Current User: {current_user}, is a good match: {current_user == user} ")
-        if current_user == user:
-            app.logger.debug(f"Current details | role: {user.role} | id: {user.id} | is_active: {getattr(user, 'is_active', 'NOT FOUND')} ")
+        if not attempt:
+            app.logger.debug(f"The login attempt response: {attempt} ")
+        # app.logger.debug(f"Current User: {current_user}, is a good match: {current_user == user} ")
+        # if current_user == user:
+        #     app.logger.debug(f"Current details | role: {user.role} | id: {user.id} | is_active: {getattr(user, 'is_active', 'NOT FOUND')} ")
         return view(user.role, user.id)
         # return redirect(url_for('view', mod=user.role, id=user.id))
     return render_template('signup.html', signup_roles=None, mods=['influencer', 'brand'])
@@ -490,7 +491,7 @@ def view(mod, id):
                 value = {'value': value}
             model['value'] = value
     # TODO: Remove these temporary logs
-    app.logger.info(f"Current User: {current_user} ")
+    # app.logger.info(f"Current User: {current_user} ")
     return render_template(template, mod=mod, data=model, caption_errors=caption_errors)
 
 
