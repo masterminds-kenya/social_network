@@ -1,10 +1,11 @@
 from flask import Flask, flash, current_app
 from flask_login import UserMixin
 from flask_sqlalchemy import SQLAlchemy
+from sqlalchemy import or_, desc
+# from sqlalchemy.orm.strategy_options import defer, undefer  # load_only  # , and_, select, func
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.hybrid import hybrid_property
 from sqlalchemy.dialects.mysql import BIGINT
-from sqlalchemy import or_, desc  # , and_, select, func
 from sqlalchemy_utils import EncryptedType  # encrypt
 from sqlalchemy_utils.types.encrypted.encrypted_type import AesEngine  # encrypt
 from cryptography.fernet import Fernet  # noqa: F401  # TODO: Is this needed here? # encrypt
@@ -22,6 +23,9 @@ import json
 db = SQLAlchemy()
 migrate = Migrate(current_app, db)
 SECRET_KEY = current_app.config.get('SECRET_KEY')
+STORY_RATE_DEFAULT = int(current_app.config.get('STORY_RATE_DEFAULT', 25))
+MEDIA_RATE_DEFAULT = int(current_app.config.get('MEDIA_RATE_DEFAULT', 50))
+MAX_MEDIA_COUNT = int(current_app.config.get('MAX_MEDIA_COUNT', MEDIA_RATE_DEFAULT * 4))
 
 
 def init_app(app):
@@ -127,7 +131,8 @@ class User(UserMixin, db.Model):
     audiences = db.relationship('Audience',        order_by='Audience.recorded', backref='user', passive_deletes=True)
     aud_count = db.relationship('OnlineFollowers', order_by='OnlineFollowers.recorded', backref='user',
                                 passive_deletes=True)
-    posts = db.relationship('Post',                order_by='Post.recorded', backref='user', passive_deletes=True)
+    posts = db.relationship('Post', lazy='dynamic', order_by='desc(Post.recorded)', backref='user',
+                            passive_deletes=True)
     # # campaigns = backref from Campaign.users has lazy='joined' on other side
     # # brand_campaigns = backref from Campaign.brands has lazy='joined' on other side
     UNSAFE = {'password', 'token', 'token_expires', 'page_token', 'modified', 'created'}
@@ -147,6 +152,34 @@ class User(UserMixin, db.Model):
         elif self.role == 'brand':
             return self.brand_campaigns
         return []
+
+    @hybrid_property
+    def last_story(self):
+        """Returns the 'media_id' property of the most recent story media post. """
+        try:
+            recent = self.posts.filter_by(media_type='STORY')
+            # recent = recent.options(defer('*'), undefer('media_id'), undefer('id'))
+            media_id = recent.first().media_id
+            # .order_by(Post.recorded.desc()) is not needed since this is the same sort of self.posts.
+        except Exception as e:
+            current_app.logger.debug("========== ERROR IN LAST STORY ==========")
+            current_app.logger.debug(e)
+            media_id = None
+        return media_id
+
+    @hybrid_property
+    def last_media(self):
+        """Returns the 'media_id' property of the most recent non-story media post. """
+        try:
+            recent = self.posts.filter(Post.media_type != 'STORY')
+            # recent = recent.options(defer('*'), undefer('media_id'), undefer('id'))
+            media_id = recent.first().media_id
+            # .order_by(Post.recorded.desc()) is not needed since this is the same sort of self.posts.
+        except Exception as e:
+            current_app.logger.debug("========== ERROR IN LAST MEDIA ==========")
+            current_app.logger.debug(e)
+            media_id = None
+        return media_id
 
     @property
     def full_token(self):
@@ -175,6 +208,7 @@ class User(UserMixin, db.Model):
         current_app.logger.info(token)
         # refresh_token = token.get('refresh_token', None)
         data = translate_api_user_token({'token': token})
+        if 'token_expires' in data and 'token' in data:
         self.token_expires = data['token_expires']
         self.token = data['token']
         # current_app.logger.info(f"The {self} user has an unsaved refresh_token of {refresh_token} ")
@@ -189,7 +223,7 @@ class User(UserMixin, db.Model):
         facebook = facebook_compliance_fix(facebook)
         return facebook
 
-    def get_media(self, story=None, facebook=None):
+    def get_media(self, story=None, use_last=True, facebook=None):
         """Collects a list of STORY or Normal media posts from the Graph API for this user. """
         if not self.instagram_id or not self.token:
             current_app.logger.error(f"Unable to collect media for {self} user. ")
@@ -197,10 +231,27 @@ class User(UserMixin, db.Model):
         facebook = facebook or self.get_auth_session()
         if not facebook:
             return []
+        recent = None
         if story:
             edge = 'stories'
+            if use_last:
+                recent = self.last_story
+            last_cursor = getattr(self, 'story_cursor', None)
+            limit = getattr(self, 'story_rate', STORY_RATE_DEFAULT)
+            max_tries = None
         else:
             edge = 'media'
+            if use_last:
+                recent = self.last_media
+            last_cursor = getattr(self, 'media_cursor', None)
+            limit = max((getattr(self, 'media_rate', 0), MEDIA_RATE_DEFAULT, ))
+            max_tries = MAX_MEDIA_COUNT // limit
+        if not recent:
+            use_last = False
+        if last_cursor:
+            params = {'limit': limit, 'after': last_cursor}
+        else:  # 25 is the default if no limit is set.
+            params = {} if limit == 25 else {'limit': limit}
         url = f"https://graph.facebook.com/{self.instagram_id}/{edge}"
         response = facebook.get(url).json()
         current_app.logger.debug(f"=============== GET MEDIA for {self} RESPONSE ===============")

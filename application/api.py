@@ -340,7 +340,7 @@ def get_basic_post(media_id, metrics=None, id_or_user=None, facebook=None):
     If there are issues in the data collection, sentinel values are saved in the 'caption' field.
     """
     # TODO: Is pagination a concern?
-    auth = 'FACEBOOK' if facebook else 'TOKEN' if token else 'NONE'  # TODO: Remove reference to token in this function.
+    auth = 'FACEBOOK' if facebook else 'NONE'
     user_id = None
     if not facebook:
         user = find_valid_user(id_or_user)
