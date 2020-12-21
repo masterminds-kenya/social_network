@@ -832,11 +832,12 @@ def onboard_existing(users, data, facebook=None):
 
 def onboarding(mod, request):
     """Verify the authorization request. Then either login or create the appropriate influencer or brand user.
-       The user should be logged in before the output is returned, but only if there are potential IG accounts.
-       Output: (view, data_list)
+    Input mod: The mod value for the user role. The only valid values for the API callback are 'influencer' or 'brand'.
+    Input request: The request object received by this application.
     view: a string that can be one of: 'complete', 'decide', 'existing', 'not_found', 'error'.
     ig_info: is a dict of the error or pertinent information about a connected professional instagram account(s).
     Non-error 'ig_info' have the keys: account_id, name, facebook_id, followers_count, media_count, page_id, page_token.
+    Behavior: User is logged in to an existing or created (if there is a valid Instagram account) User account.
     Returns a tuple of a 'view' and a list of 'ig_info' as defined above.
     """
     callback = URL + '/callback/' + mod
