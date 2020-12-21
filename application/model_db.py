@@ -185,7 +185,7 @@ class User(UserMixin, db.Model):
             current_app.logger.error(f"Missing token for {self} user. Unable to create an OAuth2Session. ")
             return None
         # It seems that the Facebook Graph API does not have the auto_refresh_url and token_updater methods for OAuth2.
-        facebook = OAuth2Session(current_app.config.get('FB_CLIENT_ID'), token=self.token)
+        facebook = OAuth2Session(current_app.config.get('FB_CLIENT_ID'), token=self.full_token)
         facebook = facebook_compliance_fix(facebook)
         return facebook
 

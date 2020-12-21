@@ -322,7 +322,7 @@ def get_audience(user_id, ig_id=None, facebook=None):
     return db_create_or_update_many(results, user_id=user_id, Model=Audience)
 
 
-def get_basic_post(media_id, metrics=None, id_or_user=None, facebook=None, token=None):
+def get_basic_post(media_id, metrics=None, id_or_user=None, facebook=None):
     """Returns API results of IG media posts content. Typically called by _get_posts_data_of_user.
     The user_id parameter can be a user instance or user_id.
     If there are issues in the data collection, sentinel values are saved in the 'caption' field.
@@ -383,7 +383,7 @@ def get_metrics_post(media, facebook, metrics=None):
         if metrics == post_metrics['insight']:
             app.logger.error(f" Match not found for {media_type} media_type parameter. ")
     url = f"https://graph.facebook.com/{media_id}/insights?metric={metrics}"
-    res_insight = facebook.get(url).json()  # if facebook else requests.get(f"{url}&access_token={token}").json()
+    res_insight = facebook.get(url).json()
     insights = res_insight.get('data')
     if insights:
         temp = {ea.get('name'): ea.get('values', [{'value': 0}])[0].get('value', 0) for ea in insights}
@@ -395,13 +395,13 @@ def get_metrics_post(media, facebook, metrics=None):
     return media
 
 
-def get_post_data(media_id, is_story=False, id_or_user=None, facebook=None, token=None):
+def get_post_data(media_id, is_story=False, id_or_user=None, facebook=None):
     """Returns a dict with both basic and metrics data for a single media post (regular or story). """
     user = find_valid_user(id_or_user)
     if not user:
         return []
     facebook = facebook or user.get_auth_session()
-    res = get_basic_post(media_id, id_or_user=user.id, facebook=facebook, token=token)
+    res = get_basic_post(media_id, id_or_user=user.id, facebook=facebook)
     res['media_type'] = 'STORY' if is_story else res.get('media_type', '')
     media = get_metrics_post(res, facebook=facebook)
     return media
