@@ -209,8 +209,8 @@ class User(UserMixin, db.Model):
         # refresh_token = token.get('refresh_token', None)
         data = translate_api_user_token({'token': token})
         if 'token_expires' in data and 'token' in data:
-        self.token_expires = data['token_expires']
-        self.token = data['token']
+            self.token_expires = data['token_expires']
+            self.token = data['token']
         # current_app.logger.info(f"The {self} user has an unsaved refresh_token of {refresh_token} ")
 
     def get_auth_session(self):
@@ -253,16 +253,27 @@ class User(UserMixin, db.Model):
         else:  # 25 is the default if no limit is set.
             params = {} if limit == 25 else {'limit': limit}
         url = f"https://graph.facebook.com/{self.instagram_id}/{edge}"
-        response = facebook.get(url).json()
-        current_app.logger.debug(f"=============== GET MEDIA for {self} RESPONSE ===============")
-        current_app.logger.debug(response)
-        media = response.get('data')
-        # current_app.logger.debug(media)
-        if isinstance(media, list):
-            media = [ea['id'] for ea in media if id in ea]
-        else:
-            current_app.logger.error('Stories Error: ' if story else 'Media Error: ', response.get('error', 'NA'))
-            media = []
+        media, request_count, finished = [], 0, False
+        while not finished:
+            response = facebook.get(url, **params).json()
+            current_app.logger.debug(f"================ GET {edge} MEDIA for {self}: #{request_count} ================")
+            current_app.logger.debug(response)
+            cur = response.get('data', [])
+            if isinstance(cur, list):
+                cur = [int(ea['id']) for ea in cur if 'id' in ea]
+                media.extend(cur)
+            else:
+                current_app.logger.error('Stories Error: ' if story else 'Media Error: ', response.get('error', 'NA'))
+                cur = []
+            url = response.get('paging', {}).get('next', None)
+            if not url:  # Once a trigger for finish has occurred, stop checking other triggers.
+                finished = True
+                last_cursor = response.get('paging', {}).get('cursors', {}).get('after', last_cursor)
+            elif max_tries and request_count > max_tries:
+                finished = True
+            elif use_last:
+                finished = True if recent in cur else False
+            request_count += 1
         return media
 
     # @hybrid_property
@@ -1005,7 +1016,7 @@ def db_create_or_update_many(dataset, user_id=None, Model=Post):
     current_app.logger.info(f'The all results has {len(all_results)} records to commit')
     current_app.logger.info(f'This includes {update_count} updated records')
     current_app.logger.info(f'This includes {add_count} added records')
-    current_app.logger.info(f'We were unable to handle {len(error_set)} of the incoming dataset items')
+    current_app.logger.info(f'There was a problem handling {len(error_set)} of the incoming dataset items')
     current_app.logger.info('------------------------------------------------------------------------------')
     db.session.commit()
     current_app.logger.info('All records saved')
