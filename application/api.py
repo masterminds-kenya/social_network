@@ -39,7 +39,7 @@ METRICS = {
 # TODO: CRITICAL All API calls need to handle pagination results.
 
 
-def find_valid_user(id_or_user, instagram_required=True):
+def find_valid_user(id_or_user, instagram_required=True, token_required=True):
     """For a given user with a saved token, create an OAuth2Session for Graph API requests of their data. """
     if isinstance(id_or_user, User):
         user = id_or_user
@@ -49,6 +49,8 @@ def find_valid_user(id_or_user, instagram_required=True):
     else:
         raise TypeError(f"Expected an id or instance of User, but got {type({id_or_user})}: {id_or_user} ")
     if instagram_required and not user.instagram_id:
+        user = None
+    if token_required and not user.token:
         user = None
     return user
 
