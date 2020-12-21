@@ -153,17 +153,20 @@ class User(UserMixin, db.Model):
         """The dict structure of a full token generally received from the Graph API. The setter will extract values. """
         if not self.token:
             return None
+        expires_at, expires = None, None
         if self.token_expires:
+            expires_at = self.token_expires
             expires = (self.token_expires - dt.utcnow()).in_seconds()
             expires = 0 if expires < 0 else int(expires)
-        else:
-            expires = None
         result = {
             'access_token': self.token,
             # 'refresh_token': '',  # The FB Graph API does not use refresh_token.
             'token_type': 'Bearer',
-            'expires_in': expires,
             }
+        if expires_at:
+            result['expires_at'] = expires_at
+        if expires:
+            result['expires_in': expires]
         return result
 
     @full_token.setter
