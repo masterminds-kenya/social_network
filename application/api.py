@@ -217,8 +217,9 @@ def capture_media(post_or_posts, get_story_only):
 
 def get_insight(user_id, first=1, influence_last=30*12, profile_last=30*3, ig_id=None, facebook=None):
     """Get the insight metrics for the User. Has default values, but can be called with custom durations.
-       It will check existing data to see how recently we have insight metrics for this user.
-       It will request results for the full duration, or since recent data, or a minimum of 30 days.
+    It will check existing data to see how recently we have insight metrics for this user.
+    It will request results for the full duration, or since recent data, or a minimum of 30 days.
+    Returns a tuple of models and follow_report.
     """
     # TODO Priority 2: Is pagination a concern?
     ig_period = 'day'
@@ -616,7 +617,8 @@ def get_ig_info(ig_id, facebook=None, token=None):
 
 def find_pages_for_fb_id(fb_id, facebook=None, token=None):
     """From a known facebook id, we can get a list of all pages the user has a role on via the accounts route.
-       Using technique from Graph API docs: https://developers.facebook.com/docs/graph-api/reference/v7.0/user/accounts
+    Using technique from Graph API docs: https://developers.facebook.com/docs/graph-api/reference/v7.0/user/accounts
+    Returns the response received from the Graph API.
     """
     # TODO Priority 2: CHECK FOR PAGINATION
     url = f"https://graph.facebook.com/v7.0/{fb_id}/accounts"
@@ -706,8 +708,9 @@ def onboard_login(mod):
 
 def onboard_new(data, facebook=None, token=None):
     """Typically used for adding a user that does not have any accounts under their facebook id.
-       May also be used for a currently logged in user to create another account with a different Instagram account.
-       The user should be logged in before returning results, but only if valid Instagram account(s) are found.
+    May also be used for a currently logged in user to create another account with a different Instagram account.
+    The user should be logged in before returning results, but only if valid Instagram account(s) are found.
+    Returns a tuple of a string for the state results and a list of professional instagram account(s) 'ig_info'.
     """
     if not facebook and not token:
         message = "This function requires at least one value for either 'facebook' or 'token' keyword arguments. "
@@ -831,9 +834,10 @@ def onboarding(mod, request):
     """Verify the authorization request. Then either login or create the appropriate influencer or brand user.
        The user should be logged in before the output is returned, but only if there are potential IG accounts.
        Output: (view, data_list)
-       view can be one of: 'complete', 'decide', 'existing', 'not_found', 'error'.
-       data_list has dicts with keys: account_id, name, facebook_id, followers_count, media_count, page_id, page_token.
-       or data_list is the error response for error.
+    view: a string that can be one of: 'complete', 'decide', 'existing', 'not_found', 'error'.
+    ig_info: is a dict of the error or pertinent information about a connected professional instagram account(s).
+    Non-error 'ig_info' have the keys: account_id, name, facebook_id, followers_count, media_count, page_id, page_token.
+    Returns a tuple of a 'view' and a list of 'ig_info' as defined above.
     """
     callback = URL + '/callback/' + mod
     request_url = request.url.strip().rstrip('#_=_')

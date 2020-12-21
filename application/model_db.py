@@ -55,9 +55,9 @@ def clean(obj):
 
 def from_sql(row, related=False, safe=True):
     """Translates a SQLAlchemy model instance into a dictionary.
-        Can return all properties, both column fields and properties declared by decorators.
-        Will return ORM related fields unless 'related' is False.
-        Will return only safe for viewing fields when 'safe' is True.
+    Can return all properties, both column fields and properties declared by decorators.
+    Will return ORM related fields unless 'related' is False.
+    Will return only safe for viewing fields when 'safe' is True.
     """
     data = {k: getattr(row, k) for k in dir(row.__mapper__.all_orm_descriptors) if not k.startswith('_')}
     # check_stuff(row, related, safe)  # TODO: Remove after resolved.
@@ -101,8 +101,8 @@ def translate_api_user_token(data):
 
 class User(UserMixin, db.Model):
     """Data model for user (influencer or brand) accounts.
-       Assumes only 1 Instagram per user, and it must be a business account.
-       They must have a Facebook Page connected to their business Instagram account.
+    Assumes only 1 Instagram per user, and it must be a business account.
+    They must have a Facebook Page connected to their business Instagram account.
     """
     ROLES = ('influencer', 'brand', 'manager', 'admin')
     __tablename__ = 'users'

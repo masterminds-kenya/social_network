@@ -48,11 +48,14 @@ def query_by_kwargs(query, Model=User, active_campaigns=None, **kwargs):
 
 
 def get_pages_for_users(overwrite=False, remove=False, **kwargs):
-    """We need the page number and token in order to setup webhooks for story insights.
-       The subscribing to a user's page will be handled elsewhere, and
-       triggered by this function when it sets and commits the user.page_token value.
-       If remove is True, then User.story_subscribed is set to False,
-       - but is overridden for any user who has other active campaigns.
+    """Gets or updates the appropriate Facebook Pages, and triggers the appropriate setting of user.story_subscribed
+    The webhooks story_insights subscription setup depends on the Facebook Page of the professional instagram account.
+    If not already saved, will try to reconcile if the Facebook Page id, or needed permission token for the page.
+    Despite any setting of user.story_subscribed, its final value depends on Events triggered by the database commit.
+    Input overwrite: If this function should try to replace the user page_id and page_token values.
+    Input remove: If the set of users should have their story_subscribed set to False (under appropriate conditions).
+    Input kwargs: Determines which group of users are managed by this process.
+    Returns a dict of paired user ids and str of user instance of users updated in the database commit.
     """
     updates = {}
     q = User.query.filter(User.instagram_id.isnot(None))

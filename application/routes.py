@@ -236,9 +236,7 @@ def capture(id):
 @app.route('/<string:mod>/<int:id>/export', methods=['GET', 'POST'])
 @staff_required()
 def export(mod, id):
-    """Export data to google sheet, generally for influencer or brand Users.
-        Was view results on GET and generate Sheet on POST .
-    """
+    """Export data to google sheet, generally for influencer or brand Users. Linked in the view template. """
     app.logger.info(f"==== {mod} Create Sheet ====")
     Model = mod_lookup(mod)
     model = Model.query.get(id)
@@ -406,9 +404,9 @@ def detail_campaign(id):
 @staff_required()
 def campaign(id, view='management'):
     """Defaults to management of assigning posts to a campaign.
-       When view is 'collected', user can review and re-assess posts already assigned to the campaign.
-       When view is 'rejected', user can re-assess posts previously marked as rejected.
-       On POST, updates the assigned media posts as indicated by the submitted form.
+    When view is 'collected', user can review and re-assess posts already assigned to the campaign.
+    When view is 'rejected', user can re-assess posts previously marked as rejected.
+    On POST, updates the assigned media posts as indicated by the submitted form.
      """
     mod = 'campaign'
     template, related = f"{mod}.html", {}
@@ -715,10 +713,9 @@ def delete(mod, id):
 @login_required
 def all(mod):
     """List view for all data of Model, or Google Drive Files, as indicated by mod.
-        Only admin & manager users are allowed to see the campaign list view.
-        The list view for influencer and brand will redirect those user types to their profile.
-        Otherwise, only admin & manager users can see these list views for brands or influencers.
-        All other list views can only be seen by admin users.
+    The list view for influencer and brand will redirect those user types to their profile.
+    Only admin & manager users can see these list views for brands, influencers, or campaigns.
+    Other list views may be available depending on the user.role, but admin users can see all list views.
     """
     if current_user.role not in ['admin', 'manager']:
         if mod in User.ROLES:

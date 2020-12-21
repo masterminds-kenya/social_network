@@ -42,10 +42,10 @@ def get_creds(config):
 
 def perm_add(sheet_id, add_users, service=None):
     """Used to update permissions. Currently Only add users.
-        add_users can be a list of strings, with each string an email address to give reader permissions.
-        add_users can be a list of objects, each with a 'emailAddress' key, and an option 'role' key.
-        add_users can be a single entity of either of the above.
-        This function returns a dictionary that includes all permissions for the provided sheet, & URL for the sheet.
+    add_users can be a list of strings, with each string an email address to give reader permissions.
+    add_users can be a list of objects, each with a 'emailAddress' key, and an option 'role' key.
+    add_users can be a single entity of either of the above.
+    This function returns a dictionary that includes all permissions for the provided sheet, & URL for the sheet.
     """
     def callback(request_id, response, exception):
         if exception:
@@ -219,9 +219,10 @@ def get_insight_report(model):
 
 
 def compute_A1(arr2d, start='A1', sheet='Sheet1'):
-    """Determine A1 format for 2D-array input, on given sheet, starting at given cell.
-        This algorithm assumes that exceeding 26 columns moves into the AA range and beyond.
-        It is possible that Google Sheets only allows a max of 26 columns and 4011 rows.
+    """Determine the 'A1' format for 2D-array input, on given sheet, starting at given cell.
+    This algorithm assumes that exceeding 26 columns moves into the AA range and beyond.
+    It is possible that Google Sheets only allows a max of 26 columns and 4011 rows.
+    Returns a string of the expected 'A1' format.
     """
     row_count = len(arr2d)
     col_count = len(max(arr2d, key=len))
