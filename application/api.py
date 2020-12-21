@@ -347,15 +347,11 @@ def get_basic_post(media_id, metrics=None, id_or_user=None, facebook=None):
         app.logger.error("The get_basic_post must be called with a User id or User that can create an auth seession. ")
     timestamp = str(make_missing_timestamp(0))
     empty_res = {'media_id': media_id, 'user_id': user_id, 'timestamp': timestamp, 'caption': 'NO_CREDENTIALS'}
-    # if not facebook and not token:
-    #     message = "The get_basic_post must have at least one of 'id_or_user', 'facebook', or 'token' values. "
-    #     app.logger.error(message)  # raise Exception(message)
-    #     return empty_res
     if not metrics:
         metrics = METRICS[Post]['basic']
     url = f"https://graph.facebook.com/{media_id}?fields={metrics}"
     try:
-        res = facebook.get(url).json()  # if facebook else requests.get(f"{url}&access_token={token}").json()
+        res = facebook.get(url).json()
     except Exception as e:
         app.logger.info('------------- Error in get_basic_post FB API response -------------')
         app.logger.error(f"API fail for Post with media_id {media_id} | Auth: {auth} ")

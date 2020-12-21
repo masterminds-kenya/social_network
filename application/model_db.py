@@ -197,11 +197,19 @@ class User(UserMixin, db.Model):
         facebook = facebook or self.get_auth_session()
         if not facebook:
             return []
-        edge = 'stories' if story else 'media'
+        if story:
+            edge = 'stories'
+        else:
+            edge = 'media'
         url = f"https://graph.facebook.com/{self.instagram_id}/{edge}"
         response = facebook.get(url).json()
+        current_app.logger.debug(f"=============== GET MEDIA for {self} RESPONSE ===============")
+        current_app.logger.debug(response)
         media = response.get('data')
-        if not isinstance(media, list):
+        # current_app.logger.debug(media)
+        if isinstance(media, list):
+            media = [ea['id'] for ea in media if id in ea]
+        else:
             current_app.logger.error('Stories Error: ' if story else 'Media Error: ', response.get('error', 'NA'))
             media = []
         return media

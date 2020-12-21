@@ -47,7 +47,7 @@ GAE_SERVICE = environ.get('GAE_SERVICE')
 # Flask Settings: Generally for the app, and for running it locally.
 SECRET_KEY = environ.get('SECRET_KEY')  # for session cookies & flash messages
 FLASK_APP = environ.get('FLASK_APP')
-FLASK_ENV = environ.get('FLASK_ENV')
+FLASK_ENV = environ.get('FLASK_ENV', 'production')
 DEV_RUN = True if environ.get('DEV_RUN') == 'True' else False
 DEBUG = any([DEV_RUN, environ.get('DEBUG') == 'True', GAE_SERVICE == 'dev'])
 LOCAL_URL = 'http://127.0.0.1:8080'
