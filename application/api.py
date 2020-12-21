@@ -1,4 +1,5 @@
 from flask import session, current_app as app
+# from flask_sqlalchemy import BaseQuery
 from flask_login import login_user, logout_user, current_user
 from datetime import timedelta  # , datetime as dt
 import requests
@@ -47,7 +48,16 @@ def find_valid_user(id_or_user, instagram_required=True, token_required=True):
         user_id = int(id_or_user)
         user = User.query.get(user_id)  # If not a valid id, expect a return of None.
     else:
+        # if not isinstance(id_or_user, BaseQuery):
         raise TypeError(f"Expected an id or instance of User, but got {type({id_or_user})}: {id_or_user} ")
+        # else:
+        #     opts = []
+        #     if instagram_required:
+        #         opts.append(User.instagram_id.isnot(None))
+        #     if token_required:
+        #         opts.append(User.token.isnot(None))
+        #     q = id_or_user.filter(*opts)
+        #     return q.all()
     if instagram_required and not user.instagram_id:
         user = None
     if token_required and not user.token:
