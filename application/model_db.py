@@ -253,9 +253,11 @@ class User(UserMixin, db.Model):
         else:  # 25 is the default if no limit is set.
             params = {} if limit == 25 else {'limit': limit}
         url = f"https://graph.facebook.com/{self.instagram_id}/{edge}"
+        if params:
+            url = url + '?' + '&'.join(f"{k}={v}" for k, v in params.items())
         media, request_count, finished = [], 0, False
         while not finished:
-            response = facebook.get(url, **params).json()
+            response = facebook.get(url).json()
             current_app.logger.debug(f"================ GET {edge} MEDIA for {self}: #{request_count} ================")
             current_app.logger.debug(response)
             cur = response.get('data', [])
@@ -274,6 +276,9 @@ class User(UserMixin, db.Model):
             elif use_last:
                 finished = True if recent in cur else False
             request_count += 1
+        if use_last:
+            existing = Post.query.filter(Post.media_id.in_(media))
+            media = set(media) - set(ea.media_id for ea in existing)
         return media
 
     # @hybrid_property
