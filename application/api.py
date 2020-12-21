@@ -1,5 +1,6 @@
 from flask import session, current_app as app
 # from flask_sqlalchemy import BaseQuery
+# from sqlalchemy.orm import load_only
 from flask_login import login_user, logout_user, current_user
 from datetime import timedelta  # , datetime as dt
 import requests
@@ -143,7 +144,7 @@ def user_permissions(id_or_user, facebook=None, token=None, app_access_token=Non
         subscribed = "Have the account and page info, but NOT subscribed. "
     data['subscribed'] = subscribed
 
-    token = token or user.token
+    token = token or user.token  # TODO: Determine if it should be user.full_token
     perm_info = {permission: False for permission in FB_SCOPE}  # Each will be overwritten if later found as True
     if facebook or token:
         url = f"https://graph.facebook.com/{user.facebook_id}/permissions"
@@ -237,7 +238,7 @@ def get_insight(user_id, first=1, influence_last=30*12, profile_last=30*3, ig_id
     ig_period = 'day'
     results, token = [], ''
     user = User.query.get(user_id)
-    if not facebook or not ig_id:
+    if not facebook or not ig_id:  # TODO: Use updated user.get_auth_session
         ig_id = ig_id or user.instagram_id
         token = user.token
     now = make_missing_timestamp(0)
@@ -281,7 +282,7 @@ def get_online_followers(user_id, ig_id=None, facebook=None):
     # TODO Priority 2: Is pagination a concern?
     ig_period, token = 'lifetime', ''
     metric = METRICS[OnlineFollowers]
-    if not facebook or not ig_id:
+    if not facebook or not ig_id:  # TODO: Use updated user.get_auth_session
         user = User.query.get(user_id)
         ig_id = ig_id or user.instagram_id
         token = user.token
@@ -310,7 +311,7 @@ def get_audience(user_id, ig_id=None, facebook=None):
     metric = METRICS[Audience]
     ig_period = 'lifetime'
     results, token = [], ''
-    if not facebook or not ig_id:
+    if not facebook or not ig_id:  # TODO: Use updated user.get_auth_session
         user = User.query.get(user_id)
         ig_id = ig_id or user.instagram_id
         token = user.token
@@ -788,7 +789,7 @@ def onboard_new(data, facebook=None, token=None):
 def user_update_on_login(user, data, ig_list):
     """During login of existing user, update their user model with recent information. """
     data_token = data.get('token', None)
-    if data_token and data_token != user.token:
+    if data_token and data_token != user.full_token:  # TODO: Determine if it should be user.full_token or user.token
         user.token = data_token  # TODO: confirm this is saved by some automatic db.session.commit()
         user.token_expires = data.get('token_expires', None)
     if len(ig_list) == 1:  # this user is missing page_id or page_token, and there is only 1 option.
