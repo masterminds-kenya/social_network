@@ -224,7 +224,12 @@ class User(UserMixin, db.Model):
         return facebook
 
     def get_media(self, story=None, use_last=True, facebook=None):
-        """Collects a list of STORY or Normal (default) media posts from the Graph API for this user. """
+        """Collects a list of STORY or Normal (default) media_id integers from the Graph API for this user.
+        Input story: Either collects media_id for 'STORY' (if True), or normal (if falsy) media for this user.
+        Input use_last: Stop media_id requests on traversing to the last already known media_id.
+        Input facebook: Use the passed OAuth2Session if present, otherwise construct a new one.
+        Output: A list or set of media_id int (story xor non-story) for user. Removing known ids if use_last is True.
+        """
         if not self.instagram_id or not self.token:
             current_app.logger.error(f"Unable to collect media for {self} user. ")
             return []
