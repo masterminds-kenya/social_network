@@ -499,14 +499,14 @@ def get_media_posts(id_or_users, stories=True, facebook=None, only_new=True):
             #     app.logger.debug("========== Check DB ==========")
             #     existing = Post.query.filter(Post.media_id in [int(ea) for ea in media]).options(load_only('media_id'))
             #     app.logger.debug(existing.all())
-            #     existing = set(str(ea) for ea in existing.all())
+            #     existing = set(ea.media_id for ea in existing.all())
             #     app.logger.debug(existing)
             #     not_found = [ea for ea in media if int(ea) not in existing]
             media = [get_post_data(ea, id_or_user=user, facebook=fb) for ea in media]
         if stories:
             stories = user.get_media(story=True, facebook=fb)
-            stories = [get_post_data(ea, is_story=True, id_or_user=user, facebook=fb) for ea in stories]
-            results.extend(stories)
+            # stories = [get_post_data(ea, is_story=True, id_or_user=user, facebook=fb) for ea in stories]
+            results.extend(get_post_data(ea, is_story=True, id_or_user=user, facebook=fb) for ea in stories)
         results.extend(media)
     if not results:
         return results
