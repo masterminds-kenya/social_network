@@ -131,8 +131,8 @@ class User(UserMixin, db.Model):
     audiences = db.relationship('Audience',        order_by='Audience.recorded', backref='user', passive_deletes=True)
     aud_count = db.relationship('OnlineFollowers', order_by='OnlineFollowers.recorded', backref='user',
                                 passive_deletes=True)
-    posts = db.relationship('Post', lazy='dynamic', order_by='desc(Post.recorded)', backref='user',
-                            passive_deletes=True)
+    # lazy='dynamic' on posts would cause it to be a query instead of a property.
+    posts = db.relationship('Post',                order_by='desc(Post.recorded)', backref='user', passive_deletes=True)
     # # campaigns = backref from Campaign.users has lazy='joined' on other side
     # # brand_campaigns = backref from Campaign.brands has lazy='joined' on other side
     UNSAFE = {'password', 'token', 'token_expires', 'page_token', 'modified', 'created'}
@@ -153,28 +153,28 @@ class User(UserMixin, db.Model):
             return self.brand_campaigns
         return []
 
-    @hybrid_property
+    @property
     def last_story(self):
         """Returns the 'media_id' property of the most recent story media post. """
         try:
-            recent = self.posts.filter_by(media_type='STORY')
-            # recent = recent.options(defer('*'), undefer('media_id'), undefer('id'))
+            recent = Post.query.filter_by(media_type='STORY', user_id=self.id)
+            recent = recent.order_by(Post.recorded.desc())
+            # recent = recent.options(defer('*'), undefer('media_id'), undefer('id'))  # or load_only technique
             media_id = recent.first().media_id
-            # .order_by(Post.recorded.desc()) is not needed since this is the same sort of self.posts.
         except Exception as e:
             current_app.logger.debug("========== ERROR IN LAST STORY ==========")
             current_app.logger.debug(e)
             media_id = None
         return media_id
 
-    @hybrid_property
+    @property
     def last_media(self):
         """Returns the 'media_id' property of the most recent non-story media post. """
         try:
-            recent = self.posts.filter(Post.media_type != 'STORY')
-            # recent = recent.options(defer('*'), undefer('media_id'), undefer('id'))
+            recent = Post.query.filter(Post.media_type != 'STORY', Post.user_id == self.id)
+            recent = recent.order_by(Post.recorded.desc())
+            # recent = recent.options(defer('*'), undefer('media_id'), undefer('id'))  # or load_only technique
             media_id = recent.first().media_id
-            # .order_by(Post.recorded.desc()) is not needed since this is the same sort of self.posts.
         except Exception as e:
             current_app.logger.debug("========== ERROR IN LAST MEDIA ==========")
             current_app.logger.debug(e)
