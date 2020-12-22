@@ -4,10 +4,6 @@ runtime: python37
 service: default or dev
 
 env_variables:
-  SECRET_KEY: 'Replace-with-secret'
-  CAPTURE_QUEUE: ''  # No underscore allowed. Hyphen, letters, and numbers only.
-  CAPTURE_SERVICE: 'capture'
-  CAPTURE_BASE_URL: 'url-to-capture-api'
   FB_CLIENT_ID: 'from-fb-dashboard'
   FB_CLIENT_SECRET: 'from-fb-dashboard'
   FB_HOOK_SECRET: 'value-set-for-webhooks-in-Facebook-dashboard'
@@ -20,10 +16,14 @@ env_variables:
   DB_USER: 'from-GCP-SQL'
   DB_PASSWORD: 'from-GCP-SQL'
   DB_NAME: 'from-database'
-  DB_CONNECTION_NAME: '[PROJECT_ID]:[PROJECT_REGION]:[DB_INSTANCE]'
-  DEPLOYED_URL: 'set-by-user'
-  URL: 'this-url-will-take-precedence-unless-run-local'
   GCLOUD_URL: 'https://[PROJECT_ID].[REGION_ID].r.appspot.com'
   DEV_URL: 'https://[VERSION_ID]-dot-[SERVICE_ID]-dot-[PROJECT_ID].[REGION_ID].r.appspot.com'
-  DEV_RUN: 'True'
+  URL: 'this-url-will-take-precedence-unless-run-local'
+  DEPLOYED_URL: 'set-by-user'
+  CAPTURE_QUEUE: ''  # No underscore allowed. Hyphen, letters, and numbers only.
+  CAPTURE_SERVICE: 'capture'
+  CAPTURE_BASE_URL: 'url-to-capture-api'
+  DB_CONNECTION_NAME: '[PROJECT_ID]:[PROJECT_REGION]:[DB_INSTANCE]'
+  SECRET_KEY: 'Replace-with-secret'
+  DEV_RUN: 'True'  # or 'False' for production.
 #

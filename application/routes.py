@@ -7,7 +7,8 @@ from .model_db import User, OnlineFollowers, Insight, Post, Campaign   # , Audie
 from .developer_admin import admin_view
 from .helper_functions import staff_required, admin_required, mod_lookup, prep_ig_decide, get_daily_ig_accounts
 from .manage import update_campaign, process_form, report_update, check_hash, add_edit, process_hook
-from .api import onboard_login, onboarding, get_insight, get_audience, get_posts, get_online_followers, user_permissions
+from .api import (onboard_login, onboarding, user_permissions,
+                  get_media_posts, get_insight, get_audience, get_online_followers)
 from .sheets import create_sheet, update_sheet, perm_add, perm_list, all_files
 from pprint import pprint
 
@@ -90,20 +91,21 @@ def login():
             flash("Password required. If you don't have one, you can try Facebook login, otherwise contact an admin. ")
             return redirect(url_for('login'))
         user = User.query.filter_by(email=data['email']).first()
-        app.logger.debug(f"Found {user} user with role {getattr(user, 'role', 'NOT FOUND')}. ")
+        # app.logger.debug(f"Found {user} user with role {getattr(user, 'role', 'NOT FOUND')}. ")
         if not user or not check_password_hash(user.password, data['password']):
             app.logger.debug("Problem with login credentials. ")
             if user:
                 app.logger.debug(f"Password problem for {user} ")
             flash("Those login details did not work. ")
             return redirect(url_for('login'))
-        remember_answer = data.get('remember', False)
-        app.logger.debug(f"Remember Answer: {remember_answer} ")
+        # remember_answer = data.get('remember', False)
+        # app.logger.debug(f"Remember Answer: {remember_answer} ")
         attempt = login_user(user, remember=data.get('remember', False))  # , duration=timedelta(days=61)
-        app.logger.debug(f"The login attempt response: {attempt} ")
-        app.logger.debug(f"Current User: {current_user}, is a good match: {current_user == user} ")
-        if current_user == user:
-            app.logger.debug(f"Current details | role: {user.role} | id: {user.id} | is_active: {getattr(user, 'is_active', 'NOT FOUND')} ")
+        if not attempt:
+            app.logger.debug(f"The login attempt response: {attempt} ")
+        # app.logger.debug(f"Current User: {current_user}, is a good match: {current_user == user} ")
+        # if current_user == user:
+        #     app.logger.debug(f"Current details | role: {user.role} | id: {user.id} | is_active: {getattr(user, 'is_active', 'NOT FOUND')} ")
         return view(user.role, user.id)
         # return redirect(url_for('view', mod=user.role, id=user.id))
     return render_template('signup.html', signup_roles=None, mods=['influencer', 'brand'])
@@ -235,9 +237,7 @@ def capture(id):
 @app.route('/<string:mod>/<int:id>/export', methods=['GET', 'POST'])
 @staff_required()
 def export(mod, id):
-    """Export data to google sheet, generally for influencer or brand Users.
-        Was view results on GET and generate Sheet on POST .
-    """
+    """Export data to google sheet, generally for influencer or brand Users. Linked in the view template. """
     app.logger.info(f"==== {mod} Create Sheet ====")
     Model = mod_lookup(mod)
     model = Model.query.get(id)
@@ -405,9 +405,9 @@ def detail_campaign(id):
 @staff_required()
 def campaign(id, view='management'):
     """Defaults to management of assigning posts to a campaign.
-       When view is 'collected', user can review and re-assess posts already assigned to the campaign.
-       When view is 'rejected', user can re-assess posts previously marked as rejected.
-       On POST, updates the assigned media posts as indicated by the submitted form.
+    When view is 'collected', user can review and re-assess posts already assigned to the campaign.
+    When view is 'rejected', user can re-assess posts previously marked as rejected.
+    On POST, updates the assigned media posts as indicated by the submitted form.
      """
     mod = 'campaign'
     template, related = f"{mod}.html", {}
@@ -436,7 +436,7 @@ def all_posts():
             app.logger.error(message)
             return redirect(url_for('error'))
     all_ig = get_daily_ig_accounts()
-    saved = get_posts(all_ig)
+    saved = get_media_posts(all_ig)
     message = f"Got all posts for {len(all_ig)} users, for a total of {len(saved)} posts. "
     response = {'User_num': len(all_ig), 'Post_num': len(saved), 'message': message, 'status_code': 200}
     if cron_run:
@@ -491,7 +491,7 @@ def view(mod, id):
                 value = {'value': value}
             model['value'] = value
     # TODO: Remove these temporary logs
-    app.logger.info(f"Current User: {current_user} ")
+    # app.logger.info(f"Current User: {current_user} ")
     return render_template(template, mod=mod, data=model, caption_errors=caption_errors)
 
 
@@ -594,7 +594,7 @@ def new_post(mod, id):
     if current_user.role not in ['admin', 'manager'] and current_user.id != id:
         flash("This was not a correct location. You are redirected to the home page. ")
         return redirect(url_for('home'))
-    posts = get_posts(id)
+    posts = get_media_posts(id)
     logstring = f"Retrieved {len(posts)} new Posts. " if posts else "No new posts were found. "
     app.logger.info(logstring)
     flash(logstring)
@@ -714,10 +714,9 @@ def delete(mod, id):
 @login_required
 def all(mod):
     """List view for all data of Model, or Google Drive Files, as indicated by mod.
-        Only admin & manager users are allowed to see the campaign list view.
-        The list view for influencer and brand will redirect those user types to their profile.
-        Otherwise, only admin & manager users can see these list views for brands or influencers.
-        All other list views can only be seen by admin users.
+    The list view for influencer and brand will redirect those user types to their profile.
+    Only admin & manager users can see these list views for brands, influencers, or campaigns.
+    Other list views may be available depending on the user.role, but admin users can see all list views.
     """
     if current_user.role not in ['admin', 'manager']:
         if mod in User.ROLES:
@@ -749,7 +748,7 @@ def all(mod):
 @app.route('/<string:page_name>/')
 def render_static(page_name):
     """Catch all for undefined routes. Return the requested static page. """
-    if page_name == 'favicon.ico':
-        return redirect(url_for('static', filename='favicon.ico'))
-    page_name += '.html' if page_name != 'robots.txt' else ''
+    if page_name in ('favicon.ico', 'robots.txt'):
+        return redirect(url_for('static', filename=page_name))
+    page_name += '.html'
     return render_template(page_name)

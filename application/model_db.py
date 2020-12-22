@@ -1,13 +1,17 @@
 from flask import Flask, flash, current_app
 from flask_login import UserMixin
 from flask_sqlalchemy import SQLAlchemy
+from sqlalchemy import or_, desc
+# from sqlalchemy.orm.strategy_options import defer, undefer  # load_only  # , and_, select, func
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.hybrid import hybrid_property
 from sqlalchemy.dialects.mysql import BIGINT
-from sqlalchemy import or_, desc  # , and_, select, func
 from sqlalchemy_utils import EncryptedType  # encrypt
 from sqlalchemy_utils.types.encrypted.encrypted_type import AesEngine  # encrypt
 from cryptography.fernet import Fernet  # noqa: F401  # TODO: Is this needed here? # encrypt
+from requests_oauthlib import OAuth2Session  # , BackendApplicationClient
+# from oauthlib.oauth2 import BackendApplicationClient
+from requests_oauthlib.compliance_fixes import facebook_compliance_fix
 from flask_migrate import Migrate
 from datetime import datetime as dt
 from dateutil import parser
@@ -19,6 +23,9 @@ import json
 db = SQLAlchemy()
 migrate = Migrate(current_app, db)
 SECRET_KEY = current_app.config.get('SECRET_KEY')
+STORY_RATE_DEFAULT = int(current_app.config.get('STORY_RATE_DEFAULT', 25))
+MEDIA_RATE_DEFAULT = int(current_app.config.get('MEDIA_RATE_DEFAULT', 50))
+MAX_MEDIA_COUNT = int(current_app.config.get('MAX_MEDIA_COUNT', MEDIA_RATE_DEFAULT * 4))
 
 
 def init_app(app):
@@ -52,9 +59,9 @@ def clean(obj):
 
 def from_sql(row, related=False, safe=True):
     """Translates a SQLAlchemy model instance into a dictionary.
-        Can return all properties, both column fields and properties declared by decorators.
-        Will return ORM related fields unless 'related' is False.
-        Will return only safe for viewing fields when 'safe' is True.
+    Can return all properties, both column fields and properties declared by decorators.
+    Will return ORM related fields unless 'related' is False.
+    Will return only safe for viewing fields when 'safe' is True.
     """
     data = {k: getattr(row, k) for k in dir(row.__mapper__.all_orm_descriptors) if not k.startswith('_')}
     # check_stuff(row, related, safe)  # TODO: Remove after resolved.
@@ -84,16 +91,22 @@ def fix_date(Model, data):
 def translate_api_user_token(data):
     """Returns the given dict with 'token' & 'token_expires' updated if 'token' is a Graph API formatted user token. """
     if 'token_expires' not in data and 'token' in data:  # modifications for parsing data from api call
-        token_expires = data['token'].get('token_expires', None)
-        data['token_expires'] = dt.fromtimestamp(token_expires) if token_expires else None
+        token_duration = data['token'].get('expires_in', None)
+        token_time = data['token'].get('expires_at', None)
+        token_expires = data['token'].get('token_expires', token_time)
+        if token_duration and not token_expires:
+            now_utc_stamp = dt.replace(tzinfo=dt.timezone.utc).timestamp()
+            token_expires = (now_utc_stamp + token_duration).in_seconds()
+        data['token_expires'] = dt.fromtimestamp(int(token_expires)) if token_expires else None
+        # data['refresh_token'] = data['token'].get('refresh_token', None)
         data['token'] = data['token'].get('access_token', None)
     return data
 
 
 class User(UserMixin, db.Model):
     """Data model for user (influencer or brand) accounts.
-       Assumes only 1 Instagram per user, and it must be a business account.
-       They must have a Facebook Page connected to their business Instagram account.
+    Assumes only 1 Instagram per user, and it must be a business account.
+    They must have a Facebook Page connected to their business Instagram account.
     """
     ROLES = ('influencer', 'brand', 'manager', 'admin')
     __tablename__ = 'users'
@@ -109,6 +122,7 @@ class User(UserMixin, db.Model):
     instagram_id = db.Column(BIGINT(unsigned=True), index=True,  unique=True,  nullable=True)
     facebook_id = db.Column(BIGINT(unsigned=True),  index=False, unique=False, nullable=True)
     token = db.Column(EncryptedType(db.String(255), SECRET_KEY, AesEngine, 'pkcs5'))  # encrypt
+    # access_token = db.Column(EncryptedType(db.String(255), SECRET_KEY, AesEngine, 'pkcs5'))  # encrypt
     token_expires = db.Column(db.DateTime,          index=False, unique=False, nullable=True)
     notes = db.Column(db.String(191),               index=False, unique=False, nullable=True)
     modified = db.Column(db.DateTime,               unique=False, nullable=False, default=dt.utcnow, onupdate=dt.utcnow)
@@ -117,7 +131,8 @@ class User(UserMixin, db.Model):
     audiences = db.relationship('Audience',        order_by='Audience.recorded', backref='user', passive_deletes=True)
     aud_count = db.relationship('OnlineFollowers', order_by='OnlineFollowers.recorded', backref='user',
                                 passive_deletes=True)
-    posts = db.relationship('Post',                order_by='Post.recorded', backref='user', passive_deletes=True)
+    # lazy='dynamic' on posts would cause it to be a query instead of a property.
+    posts = db.relationship('Post',                order_by='desc(Post.recorded)', backref='user', passive_deletes=True)
     # # campaigns = backref from Campaign.users has lazy='joined' on other side
     # # brand_campaigns = backref from Campaign.brands has lazy='joined' on other side
     UNSAFE = {'password', 'token', 'token_expires', 'page_token', 'modified', 'created'}
@@ -138,6 +153,143 @@ class User(UserMixin, db.Model):
             return self.brand_campaigns
         return []
 
+    @property
+    def last_story(self):
+        """Returns the 'media_id' property of the most recent story media post. """
+        try:
+            recent = Post.query.filter_by(media_type='STORY', user_id=self.id)
+            recent = recent.order_by(Post.recorded.desc())
+            # recent = recent.options(defer('*'), undefer('media_id'), undefer('id'))  # or load_only technique
+            media_id = recent.first().media_id
+        except Exception as e:
+            current_app.logger.debug("========== ERROR IN LAST STORY ==========")
+            current_app.logger.debug(e)
+            media_id = None
+        return media_id
+
+    @property
+    def last_media(self):
+        """Returns the 'media_id' property of the most recent non-story media post. """
+        try:
+            recent = Post.query.filter(Post.media_type != 'STORY', Post.user_id == self.id)
+            recent = recent.order_by(Post.recorded.desc())
+            # recent = recent.options(defer('*'), undefer('media_id'), undefer('id'))  # or load_only technique
+            media_id = recent.first().media_id
+        except Exception as e:
+            current_app.logger.debug("========== ERROR IN LAST MEDIA ==========")
+            current_app.logger.debug(e)
+            media_id = None
+        return media_id
+
+    @property
+    def full_token(self):
+        """The dict structure of a full token generally received from the Graph API. The setter will extract values. """
+        if not self.token:
+            return None
+        expires_at, expires = None, None
+        if self.token_expires:  # TODO: Does OAuth tokens have 'expires_at' and/or 'expires_in'?
+            expires_at = self.token_expires
+            expires = (self.token_expires - dt.utcnow()).in_seconds()
+            expires = 0 if expires < 0 else int(expires)
+        result = {
+            'access_token': self.token,
+            # 'refresh_token': '',  # The FB Graph API does not use refresh_token.
+            'token_type': 'Bearer',
+            }
+        if expires_at:
+            result['expires_at'] = expires_at
+        if expires:
+            result['expires_in': expires]
+        return result
+
+    @full_token.setter
+    def full_token(self, token):
+        current_app.logger.info(f"Called full_token setter for {self} user. ")
+        current_app.logger.info(token)
+        # refresh_token = token.get('refresh_token', None)
+        data = translate_api_user_token({'token': token})
+        if 'token_expires' in data and 'token' in data:
+            self.token_expires = data['token_expires']
+            self.token = data['token']
+        # current_app.logger.info(f"The {self} user has an unsaved refresh_token of {refresh_token} ")
+
+    def get_auth_session(self):
+        """Create an OAuth2Session for retrieving Graph API data for this user. """
+        if not self.token:
+            current_app.logger.error(f"Missing token for {self} user. Unable to create an OAuth2Session. ")
+            return None
+        # It seems that the Facebook Graph API does not have the auto_refresh_url and token_updater methods for OAuth2.
+        facebook = OAuth2Session(current_app.config.get('FB_CLIENT_ID'), token=self.full_token)
+        facebook = facebook_compliance_fix(facebook)
+        return facebook
+
+    def get_media(self, story=None, use_last=True, facebook=None):
+        """Collects a list of STORY or Normal (default) media_id integers from the Graph API for this user.
+        Input story: Either collects media_id for 'STORY' (if True), or normal (if falsy) media for this user.
+        Input use_last: Stop media_id requests on traversing to the last already known media_id.
+        Input facebook: Use the passed OAuth2Session if present, otherwise construct a new one.
+        Output: A list or set of media_id int (story xor non-story) for user. Removing known ids if use_last is True.
+        """
+        if not self.instagram_id or not self.token:
+            current_app.logger.error(f"Unable to collect media for {self} user. ")
+            return []
+        facebook = facebook if isinstance(facebook, OAuth2Session) else self.get_auth_session()
+        if not facebook:
+            return []
+        recent = None
+        if story:
+            edge = 'stories'
+            if use_last:
+                recent = self.last_story
+            cursor_attr = 'story_cursor' if hasattr(self, 'story_cursor') else None
+            limit = getattr(self, 'story_rate', STORY_RATE_DEFAULT)
+            max_tries = None
+        else:
+            edge = 'media'
+            if use_last:
+                recent = self.last_media
+            cursor_attr = 'media_cursor' if hasattr(self, 'media_cursor') else None
+            limit = max((getattr(self, 'media_rate', 0), MEDIA_RATE_DEFAULT, ))
+            max_tries = MAX_MEDIA_COUNT // limit
+        if not recent:
+            use_last = False
+        if cursor_attr:
+            last_cursor = getattr(self, cursor_attr)
+            params = {'limit': limit, 'after': last_cursor}
+        else:  # 25 is the default if no limit is set.
+            last_cursor = None
+            params = {} if limit == 25 else {'limit': limit}
+        # Note: manual construction of params assumes no list values and no escaping needed.
+        params = '' if not params else '?' + '&'.join(f"{k}={v}" for k, v in params.items())
+        url = f"https://graph.facebook.com/{self.instagram_id}/{edge}{params}"
+        media, request_count, finished = [], 0, False
+        while not finished:
+            response = facebook.get(url).json()
+            current_app.logger.debug(f"================ GET {edge} MEDIA for {self}: #{request_count} ================")
+            current_app.logger.debug(response)
+            cur = response.get('data', [])
+            if isinstance(cur, list):
+                cur = [int(ea['id']) for ea in cur if 'id' in ea]
+                media.extend(cur)
+            else:
+                current_app.logger.error('Stories Error: ' if story else 'Media Error: ', response.get('error', 'NA'))
+                cur = []
+            url = response.get('paging', {}).get('next', None)
+            if not url:  # Once a trigger for finish has occurred, stop checking other triggers.
+                finished = True
+                last_cursor = response.get('paging', {}).get('cursors', {}).get('after', last_cursor)
+            elif max_tries and request_count > max_tries:
+                finished = True
+            elif use_last:
+                finished = True if recent in cur else False
+            request_count += 1
+        if cursor_attr:  # TODO: If useful, add 'story_cursor' and 'media_cursor' fields.
+            setattr(self, cursor_attr, last_cursor)
+        if use_last:
+            existing = Post.query.filter(Post.media_id.in_(media))  # TODO: Change to SELECT only media_id field?
+            media = set(media) - set(ea.media_id for ea in existing)
+        return media
+
     # @hybrid_property
     # def is_connector(self):
     #     """Returns boolean: True if user has instagram_id and is an influencer or brand user. """
@@ -147,10 +299,10 @@ class User(UserMixin, db.Model):
     # def is_connector(cls):
     #     return and_(cls.role.in_(['influencer', 'brand']), cls.instagram_id.is_not(None))
 
-    # # @is_connector.expression
-    # # def has_active_all(cls):
-    # #     is_active = Campaign.completed.is_(False)
-    # #     return and_(cls.role.in_('influencer', 'brand'), or_(cls.campaign(is_active), cls.brand_campaign(is_active)))
+    # @is_connector.expression
+    # def has_active_all(cls):
+    #     is_active = Campaign.completed.is_(False)
+    #     return and_(cls.role.in_('influencer', 'brand'), or_(cls.campaign(is_active), cls.brand_campaign(is_active)))
 
     @hybrid_property
     def has_active_all(self):
@@ -167,8 +319,11 @@ class User(UserMixin, db.Model):
     #         return cls.campaign.any(is_active)
     #     elif cls.role == 'brand':
     #         return cls.brand_campaign.any(is_active)
+    #     users_z = User.query.filter(
+    #         User.instagram_id.isnot(None),
+    #         (or_(User.campaigns.any(is_active), User.brand_campaigns.any(is_active)))
+    #         )
     #     return False
-        # users_z = User.query.filter(User.instagram_id.isnot(None), (or_(User.campaigns.any(is_active), User.brand_campaigns.any(is_active))))
 
     # @hybrid_property
     # def active_all(self):
@@ -875,7 +1030,7 @@ def db_create_or_update_many(dataset, user_id=None, Model=Post):
     current_app.logger.info(f'The all results has {len(all_results)} records to commit')
     current_app.logger.info(f'This includes {update_count} updated records')
     current_app.logger.info(f'This includes {add_count} added records')
-    current_app.logger.info(f'We were unable to handle {len(error_set)} of the incoming dataset items')
+    current_app.logger.info(f'There was a problem handling {len(error_set)} of the incoming dataset items')
     current_app.logger.info('------------------------------------------------------------------------------')
     db.session.commit()
     current_app.logger.info('All records saved')
