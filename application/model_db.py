@@ -236,21 +236,23 @@ class User(UserMixin, db.Model):
             edge = 'stories'
             if use_last:
                 recent = self.last_story
-            last_cursor = getattr(self, 'story_cursor', None)
+            cursor_attr = 'story_cursor' if hasattr(self, 'story_cursor') else None
             limit = getattr(self, 'story_rate', STORY_RATE_DEFAULT)
             max_tries = None
         else:
             edge = 'media'
             if use_last:
                 recent = self.last_media
-            last_cursor = getattr(self, 'media_cursor', None)
+            cursor_attr = 'media_cursor' if hasattr(self, 'media_cursor') else None
             limit = max((getattr(self, 'media_rate', 0), MEDIA_RATE_DEFAULT, ))
             max_tries = MAX_MEDIA_COUNT // limit
         if not recent:
             use_last = False
-        if last_cursor:
+        if cursor_attr:
+            last_cursor = getattr(self, cursor_attr)
             params = {'limit': limit, 'after': last_cursor}
         else:  # 25 is the default if no limit is set.
+            last_cursor = None
             params = {} if limit == 25 else {'limit': limit}
         url = f"https://graph.facebook.com/{self.instagram_id}/{edge}"
         if params:
@@ -276,6 +278,8 @@ class User(UserMixin, db.Model):
             elif use_last:
                 finished = True if recent in cur else False
             request_count += 1
+        if cursor_attr:  # TODO: If useful, add 'story_cursor' and 'media_cursor' fields.
+            setattr(self, cursor_attr, last_cursor)
         if use_last:
             existing = Post.query.filter(Post.media_id.in_(media))
             media = set(media) - set(ea.media_id for ea in existing)
