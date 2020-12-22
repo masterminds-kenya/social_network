@@ -187,7 +187,7 @@ class User(UserMixin, db.Model):
         if not self.token:
             return None
         expires_at, expires = None, None
-        if self.token_expires:
+        if self.token_expires:  # TODO: Does OAuth tokens have 'expires_at' and/or 'expires_in'?
             expires_at = self.token_expires
             expires = (self.token_expires - dt.utcnow()).in_seconds()
             expires = 0 if expires < 0 else int(expires)
@@ -224,7 +224,7 @@ class User(UserMixin, db.Model):
         return facebook
 
     def get_media(self, story=None, use_last=True, facebook=None):
-        """Collects a list of STORY or Normal media posts from the Graph API for this user. """
+        """Collects a list of STORY or Normal (default) media posts from the Graph API for this user. """
         if not self.instagram_id or not self.token:
             current_app.logger.error(f"Unable to collect media for {self} user. ")
             return []
@@ -254,9 +254,9 @@ class User(UserMixin, db.Model):
         else:  # 25 is the default if no limit is set.
             last_cursor = None
             params = {} if limit == 25 else {'limit': limit}
-        url = f"https://graph.facebook.com/{self.instagram_id}/{edge}"
-        if params:
-            url = url + '?' + '&'.join(f"{k}={v}" for k, v in params.items())
+        # Note: manual construction of params assumes no list values and no escaping needed.
+        params = '' if not params else '?' + '&'.join(f"{k}={v}" for k, v in params.items())
+        url = f"https://graph.facebook.com/{self.instagram_id}/{edge}{params}"
         media, request_count, finished = [], 0, False
         while not finished:
             response = facebook.get(url).json()
@@ -281,7 +281,7 @@ class User(UserMixin, db.Model):
         if cursor_attr:  # TODO: If useful, add 'story_cursor' and 'media_cursor' fields.
             setattr(self, cursor_attr, last_cursor)
         if use_last:
-            existing = Post.query.filter(Post.media_id.in_(media))
+            existing = Post.query.filter(Post.media_id.in_(media))  # TODO: Change to SELECT only media_id field?
             media = set(media) - set(ea.media_id for ea in existing)
         return media
 
