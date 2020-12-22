@@ -228,7 +228,7 @@ class User(UserMixin, db.Model):
         if not self.instagram_id or not self.token:
             current_app.logger.error(f"Unable to collect media for {self} user. ")
             return []
-        facebook = facebook or self.get_auth_session()
+        facebook = facebook if isinstance(facebook, OAuth2Session) else self.get_auth_session()
         if not facebook:
             return []
         recent = None
