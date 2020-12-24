@@ -3,12 +3,12 @@ from flask_login import current_user, login_user, logout_user, login_required
 from werkzeug.security import generate_password_hash, check_password_hash
 import json
 from .model_db import db_create, db_read, db_delete, db_all, from_sql  # , metric_clean
-from .model_db import User, OnlineFollowers, Insight, Post, Campaign   # , Audience
+from .model_db import User, OnlineFollowers, Insight, Post, Campaign, db   # , Audience
 from .developer_admin import admin_view
 from .helper_functions import staff_required, admin_required, mod_lookup, prep_ig_decide, get_daily_ig_accounts
 from .manage import update_campaign, process_form, report_update, check_hash, add_edit, process_hook
 from .api import (onboard_login, onboarding, user_permissions,
-                  get_media_posts, get_insight, get_audience, get_online_followers)
+                  get_media_posts, get_metrics_post, get_insight, get_audience, get_online_followers)
 from .sheets import create_sheet, update_sheet, perm_add, perm_list, all_files
 from pprint import pprint
 
@@ -419,6 +419,31 @@ def campaign(id, view='management'):
             app.logger.error("Update Campaign Failed. ")
     related = campaign.related_posts(view)
     return render_template(template, mod=mod, view=view, data=campaign, related=related, caption_errors=caption_errors)
+
+
+@app.route('/campaign/<int:id>/update', methods=['GET'])
+@staff_required()
+def update_campaign_metrics(id):
+    """Update the metrics for all posts assigned to a given Campaign. """
+    camp = Campaign.query.get(id)
+    prep_data = camp.prep_metrics_update()
+    post_data = [get_metrics_post(media, facebook, metrics) for media, facebook, metrics in prep_data]
+    app.logger.debug("========== Route: UPDATE CAMPAIGN METRICS ==========")
+    app.logger.debug(post_data)
+    # updates = db_create_or_update_many(post_data, Post)
+    try:
+        db.session.bulk_update_mappings(Post, post_data)
+        db.session.commit()
+        app.logger.debug("========== UPDATE CAMPAIGN METRICS SUCCESS! ==========")
+        flash(f"Updated {len(post_data)} non-story media posts. ")
+    except Exception as e:
+        info = "There was a problem with updating non-story media post metrics. Please contact an Admin. "
+        app.logger.error("========== UPDATE CAMPAIGN METRICS ERROR ==========")
+        app.logger.error(info)
+        app.logger.error(e)
+        flash(info)
+    return redirect(request.referrer)
+
 
 # ########## End of Campaign Views ############
 # ########## The following are for general Views ############

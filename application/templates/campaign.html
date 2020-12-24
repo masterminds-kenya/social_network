@@ -21,8 +21,9 @@
       {% if view != 'results' %}
       <a href="{{url_for('results', id=data.id)}}">Results</a> |
       {% endif %}
-      Campaign {% if completed %} Finished {% else %} Active {% endif %} |
-      <a href="{{ url_for('edit', mod=mod, id=data.id) }}">Change Settings</a>
+      <a href="{{ url_for('update_campaign_metrics', id=data.id) }}">Metrics Update</a> |
+      <a href="{{ url_for('edit', mod=mod, id=data.id) }}">Change Settings</a> |
+      Campaign {% if completed %} Finished {% else %} Active {% endif %} 
     </p>
     {% if data.notes %}<p>Notes: {{data.notes|e}} </p>{% endif %}
     {% if view == 'management' %}

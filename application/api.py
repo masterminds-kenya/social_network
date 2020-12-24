@@ -384,7 +384,8 @@ def get_basic_post(media_id, metrics=None, id_or_user=None, facebook=None):
 
 def get_metrics_post(media, facebook, metrics=None):
     """Takes in a dict already containing the data from get_basic_post and adds metrics data. """
-    media_type = media['media_type']
+    media_type = media.get('media_type', None)
+    is_carousel = True if media_type == 'CAROUSEL_ALBUM' or (metrics and 'carousel_' in metrics) else False
     media_id = media['media_id']
     if not metrics:
         post_metrics = METRICS[Post]
@@ -396,7 +397,7 @@ def get_metrics_post(media, facebook, metrics=None):
     insights = res_insight.get('data')
     if insights:
         temp = {ea.get('name'): ea.get('values', [{'value': 0}])[0].get('value', 0) for ea in insights}
-        if media_type == 'CAROUSEL_ALBUM':
+        if is_carousel:
             temp = {metric_clean(key): val for key, val in temp.items()}
         media.update(temp)
     else:

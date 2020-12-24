@@ -13,7 +13,7 @@ from requests_oauthlib import OAuth2Session  # , BackendApplicationClient
 # from oauthlib.oauth2 import BackendApplicationClient
 from requests_oauthlib.compliance_fixes import facebook_compliance_fix
 from flask_migrate import Migrate
-from datetime import datetime as dt
+from datetime import datetime as dt, timedelta
 from dateutil import parser
 import re
 from statistics import mean, median, stdev
@@ -711,6 +711,25 @@ processed_campaign = db.Table(
     )
 
 
+def make_fb(access_token, end=None):
+    """Construct an OAuth2Session for a given user access_token, and optional expiration date of 'end'.
+    Temporary function. To be replaced when User.full_token is a hybrid_property.
+    """
+    token = {'access_token': access_token, 'token_type': 'Bearer'}
+    expires_at, expires = None, None
+    if end:  # TODO: Does OAuth tokens have 'expires_at' and/or 'expires_in'?
+        expires_at = end
+        expires = (end - dt.utcnow()).in_seconds()
+        expires = 0 if expires < 0 else int(expires)
+    if expires_at:
+        token['expires_at'] = expires_at
+    if expires:
+        token['expires_in': expires]
+    facebook = OAuth2Session(current_app.config.get('FB_CLIENT_ID'), token=token)
+    facebook = facebook_compliance_fix(facebook)
+    return facebook
+
+
 class Campaign(db.Model):
     """Model to manage the Campaign relationship between influencers and brands """
     __tablename__ = 'campaigns'
@@ -732,6 +751,29 @@ class Campaign(db.Model):
     def __init__(self, *args, **kwargs):
         kwargs['completed'] = True if kwargs.get('completed') in {'on', True} else False
         super().__init__(*args, **kwargs)
+
+    def prep_metrics_update(self):
+        """For all assigned non-story posts, request an update of the metrics from the Graph API. """
+        post_metrics = {key: ','.join(val) for key, val in Post.METRICS.items()}
+        targets = db.session.query(Post.id, Post.media_id, Post.media_type, User.token).filter(Post.user_id == User.id)
+        targets = targets.filter(Post.media_type != 'STORY', Post.campaigns.contains(self))
+        current_app.logger.debug(f"=============== PREP METRICS UPDATE on {self} ===============")
+        data = [({'id': pid, 'media_id': mid}, make_fb(tkn), post_metrics.get(mt)) for pid, mid, mt, tkn in targets]
+        current_app.logger.debug(data)
+        # post_data = [get_metrics_post(media, make_fb(token), metrics) for media, token, metrics in data]
+        # current_app.logger.debug(post_data)
+        # updates = db_create_or_update_many(post_data, Post)
+        # success = False
+        # try:
+        #     db.session.bulk_update_mappings(Post, post_data)
+        #     db.session.commit()
+        #     current_app.logger.debug("===== SUCCESS! =====")
+        #     success = True
+        # except Exception as e:
+        #     current_app.logger.error(f"===== Error in media_metrics_update on Campaign: {self} =====")
+        #     raise e
+        # return success
+        return data
 
     def export_posts(self):
         """Used for Sheets Report, a top label row followed by rows of Posts data. """
