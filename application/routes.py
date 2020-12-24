@@ -404,11 +404,12 @@ def detail_campaign(id):
 @app.route('/campaign/<int:id>', methods=['GET', 'POST'])
 @staff_required()
 def campaign(id, view='management'):
-    """Defaults to management of assigning posts to a campaign.
+    """Various views of media post lists for assigning, re-assessing, or preparing worksheets for campaigns.
+    When view is 'management' (default), user can assign or reject posts for the campaign.
     When view is 'collected', user can review and re-assess posts already assigned to the campaign.
     When view is 'rejected', user can re-assess posts previously marked as rejected.
     On POST, updates the assigned media posts as indicated by the submitted form.
-     """
+    """
     mod = 'campaign'
     template, related = f"{mod}.html", {}
     campaign = Campaign.query.get(id)
@@ -416,7 +417,9 @@ def campaign(id, view='management'):
     if request.method == 'POST':
         success = update_campaign(campaign, request)
         if not success:
-            app.logger.error("Update Campaign Failed. ")
+            info = "Update Campaign Failed. "
+            app.logger.error(info)
+            flash(info)
     related = campaign.related_posts(view)
     return render_template(template, mod=mod, view=view, data=campaign, related=related, caption_errors=caption_errors)
 
