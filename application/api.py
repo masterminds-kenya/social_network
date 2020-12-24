@@ -405,15 +405,22 @@ def get_metrics_post(media, facebook, metrics=None):
     return media
 
 
-def get_post_data(media_id, is_story=False, id_or_user=None, facebook=None):
+def get_post_data(media_id, user, is_story=False, full=True, facebook=None):
     """Returns a dict with both basic and metrics data for a single media post (regular or story). """
-    user = find_valid_user(id_or_user)
-    if not user:
+    if not isinstance(user, User):
+        info = "The get_post_data must be called with a user model, not a user id. "
+        app.logger.error(info)
         return []
+    # user = find_valid_user(id_or_user)
+    # if not user:
+    #     return []
     facebook = facebook or user.get_auth_session()
     res = get_basic_post(media_id, id_or_user=user.id, facebook=facebook)
     res['media_type'] = 'STORY' if is_story else res.get('media_type', '')
-    media = get_metrics_post(res, facebook=facebook)
+    if full:
+        media = get_metrics_post(res, facebook=facebook)
+    else:
+        media = res
     return media
 
 
@@ -429,11 +436,11 @@ def _get_posts_data_of_user(id_or_user, stories=True, ig_id=None, facebook=None)
         return []
     if stories:
         stories = user.get_media(story=True, facebook=facebook)
-        stories = [get_post_data(ea.get('id'), is_story=True, id_or_user=user, facebook=facebook) for ea in stories]
+        stories = [get_post_data(ea, user, is_story=True, facebook=facebook) for ea in stories]
     if not isinstance(stories, list):
         stories = []
     media = user.get_media(facebook=facebook)
-    media = [get_post_data(ea.get('id'), id_or_user=user, facebook=facebook) for ea in media]
+    media = [get_post_data(ea, user, facebook=facebook) for ea in media]
     results = stories + media
     return results
 
@@ -461,10 +468,10 @@ def get_media_posts(id_or_users, stories=True, facebook=None, only_new=True):
             #     existing = set(ea.media_id for ea in existing.all())
             #     app.logger.debug(existing)
             #     not_found = [ea for ea in media if int(ea) not in existing]
-            media = [get_post_data(ea, id_or_user=user, facebook=fb) for ea in media]
+            media = [get_post_data(ea, user, full=False, facebook=fb) for ea in media]
         if stories:
             stories = user.get_media(story=True, facebook=fb)
-            results.extend(get_post_data(ea, is_story=True, id_or_user=user, facebook=fb) for ea in stories)
+            results.extend(get_post_data(ea, user, is_story=True, full=False, facebook=fb) for ea in stories)
         results.extend(media)
     if not results:
         return results
