@@ -411,9 +411,6 @@ def get_post_data(media_id, user, is_story=False, full=True, facebook=None):
         info = "The get_post_data must be called with a user model, not a user id. "
         app.logger.error(info)
         return []
-    # user = find_valid_user(id_or_user)
-    # if not user:
-    #     return []
     facebook = facebook or user.get_auth_session()
     res = get_basic_post(media_id, id_or_user=user.id, facebook=facebook)
     res['media_type'] = 'STORY' if is_story else res.get('media_type', '')

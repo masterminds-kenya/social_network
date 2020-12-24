@@ -98,8 +98,6 @@ def login():
                 app.logger.debug(f"Password problem for {user} ")
             flash("Those login details did not work. ")
             return redirect(url_for('login'))
-        # remember_answer = data.get('remember', False)
-        # app.logger.debug(f"Remember Answer: {remember_answer} ")
         attempt = login_user(user, remember=data.get('remember', False))  # , duration=timedelta(days=61)
         if not attempt:
             app.logger.debug(f"The login attempt response: {attempt} ")
@@ -473,8 +471,7 @@ def all_posts():
     else:  # Process run by an admin.
         message += "Admin requested getting posts for all users. "
         flash(message)
-        response = admin_view(data=response)
-        # response = redirect(url_for('admin'))
+        response = redirect(url_for('admin', data=response))
     app.logger.info(message)
     return response
 
@@ -661,8 +658,6 @@ def edit(mod, id):
 @app.route('/capture/report/', methods=['GET', 'POST'])
 def capture_report():
     """After the capture work is processed, the results are sent here to update the models. """
-    from pprint import pprint
-
     app.logger.info("======================== capture report route =============================")
     message = ''
     # pprint(request.headers)
