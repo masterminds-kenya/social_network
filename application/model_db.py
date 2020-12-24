@@ -157,10 +157,11 @@ class User(UserMixin, db.Model):
     def last_story(self):
         """Returns the 'media_id' property of the most recent story media post. """
         try:
-            recent = Post.query.filter_by(media_type='STORY', user_id=self.id)
+            # recent = Post.query.filter_by(media_type='STORY', user_id=self.id)
+            recent = db.session.query(Post.media_id).filter_by(media_type='STORY', user_id=self.id)
             recent = recent.order_by(Post.recorded.desc())
-            # recent = recent.options(defer('*'), undefer('media_id'), undefer('id'))  # or load_only technique
-            media_id = recent.first().media_id
+            media_id = recent.first()[0]
+            # media_id = recent.first().media_id
         except Exception as e:
             current_app.logger.debug("========== ERROR IN LAST STORY ==========")
             current_app.logger.debug(e)
@@ -171,10 +172,11 @@ class User(UserMixin, db.Model):
     def last_media(self):
         """Returns the 'media_id' property of the most recent non-story media post. """
         try:
-            recent = Post.query.filter(Post.media_type != 'STORY', Post.user_id == self.id)
+            # recent = Post.query.filter(Post.media_type != 'STORY', Post.user_id == self.id)
+            recent = db.session.query(Post.media_id).filter(Post.media_type != 'STORY', Post.user_id == self.id)
             recent = recent.order_by(Post.recorded.desc())
-            # recent = recent.options(defer('*'), undefer('media_id'), undefer('id'))  # or load_only technique
-            media_id = recent.first().media_id
+            media_id = recent.first()[0]
+            # media_id = recent.first().media_id
         except Exception as e:
             current_app.logger.debug("========== ERROR IN LAST MEDIA ==========")
             current_app.logger.debug(e)
