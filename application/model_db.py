@@ -184,6 +184,7 @@ class User(UserMixin, db.Model):
     @property
     def full_token(self):
         """The dict structure of a full token generally received from the Graph API. The setter will extract values. """
+        # TODO: Change into a hybrid_property with expression to compute the full_token during a DB query.
         if not self.token:
             return None
         expires_at, expires = None, None
@@ -751,6 +752,23 @@ class Campaign(db.Model):
     def __init__(self, *args, **kwargs):
         kwargs['completed'] = True if kwargs.get('completed') in {'on', True} else False
         super().__init__(*args, **kwargs)
+
+    @property
+    def live_stories(self):
+        """Report on the STORY media posts assigned to this campaign that have not yet expired. """
+        deadline = dt.utcnow() - timedelta(hours=25)  # Gave an extra hour buffer for webhook and database update.
+        q = db.session.query(Post)  # If we want the full Post object.
+        # q = db.session.query(Post.id, Post.media_id, Post.media_type, Post.recorded, Post.created)
+        q = q.filter(Post.media_type == 'STORY', Post.campaigns.contains(self), Post.recorded > deadline)
+        count = q.count()
+        if not count:
+            message = "The metrics for all stories should be up to date now. "
+            return message
+        message = f"There are {count} story posts that have not yet completed. "
+        most_recent = q.order_by(Post.recorded.desc()).first()
+        expected_update = most_recent.recorded + timedelta(hours=25)
+        message += f"Updated metrics can be expected by {expected_update}. "
+        return message
 
     def prep_metrics_update(self):
         """For all assigned non-story posts, request an update of the metrics from the Graph API. """
