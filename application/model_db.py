@@ -406,9 +406,12 @@ class User(UserMixin, db.Model):
         else:
             raise ValueError(f"{metrics} is not a valid Insight metric")
         # TODO: ?Would it be more efficient to use self.insights?
-        q = Insight.query.filter(Insight.user_id == self.id, Insight.name.in_(metrics))
+        # q = Insight.query
+        q = db.session.query(Insight.recorded)
+        q = q.filter(Insight.user_id == self.id, Insight.name.in_(metrics))
         recent = q.order_by(desc('recorded')).first()
-        date = getattr(recent, 'recorded', 0) if recent else 0
+        date = recent[0] if recent else 0
+        # date = getattr(recent, 'recorded', 0) if recent else 0
         current_app.logger.debug(f"Recent Insight: {metrics} | {recent} ")
         current_app.logger.debug('-------------------------------------')
         current_app.logger.debug(date)
@@ -759,7 +762,8 @@ class Campaign(db.Model):
     def live_stories(self):
         """Report on the STORY media posts assigned to this campaign that have not yet expired. """
         deadline = dt.utcnow() - timedelta(hours=25)  # Gave an extra hour buffer for webhook and database update.
-        q = db.session.query(Post)  # If we want the full Post object.
+        q = db.session.query(Post.recorded)
+        # q = db.session.query(Post)  # If we want the full Post object.
         # q = db.session.query(Post.id, Post.media_id, Post.media_type, Post.recorded, Post.created)
         q = q.filter(Post.media_type == 'STORY', Post.campaigns.contains(self), Post.recorded > deadline)
         count = q.count()
@@ -768,7 +772,11 @@ class Campaign(db.Model):
             return message
         message = f"There are {count} story posts that have not yet completed. "
         most_recent = q.order_by(Post.recorded.desc()).first()
-        expected_update = most_recent.recorded + timedelta(hours=25)
+        if most_recent:
+            expected_update = most_recent[0] + timedelta(hours=25)
+        else:
+            expected_update = 'unknown'
+        # expected_update = most_recent.recorded + timedelta(hours=25)
         message += f"Updated metrics can be expected by {expected_update}. "
         return message
 
