@@ -429,9 +429,6 @@ def update_campaign_metrics(id):
     camp = Campaign.query.get(id)
     prep_data = camp.prep_metrics_update()
     post_data = [get_metrics_post(media, facebook, metrics) for media, facebook, metrics in prep_data]
-    app.logger.debug("========== Route: UPDATE CAMPAIGN METRICS ==========")
-    app.logger.debug(post_data)
-    # updates = db_create_or_update_many(post_data, Post)
     try:
         db.session.bulk_update_mappings(Post, post_data)
         db.session.commit()
@@ -466,7 +463,6 @@ def all_posts():
     message = f"Got all posts for {len(all_ig)} users, for a total of {len(saved)} posts. "
     response = {'User_num': len(all_ig), 'Post_num': len(saved), 'message': message, 'status_code': 200}
     if cron_run:
-        # message += "Cron job completed. "
         response = json.dumps(response)
     else:  # Process run by an admin.
         message += "Admin requested getting posts for all users. "

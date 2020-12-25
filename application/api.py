@@ -59,10 +59,8 @@ def find_valid_user(id_or_user, instagram_required=True, token_required=True):
         #         opts.append(User.token.isnot(None))
         #     q = id_or_user.filter(*opts)
         #     return q.all()
-    if instagram_required and not user.instagram_id:
-        user = None
-    if token_required and not user.token:
-        user = None
+    if any((user, instagram_required and not user.instagram_id, token_required and not user.token)):
+        return None
     return user
 
 # def generate_backend_token():
@@ -406,7 +404,7 @@ def get_metrics_post(media, facebook, metrics=None):
 
 
 def get_post_data(media_id, user, is_story=False, full=True, facebook=None):
-    """Returns a dict with both basic and metrics data for a single media post (regular or story). """
+    """Returns a dict with both basic and (optionally) metrics data for a single media post (regular or story). """
     if not isinstance(user, User):
         info = "The get_post_data must be called with a user model, not a user id. "
         app.logger.error(info)
@@ -442,7 +440,7 @@ def _get_posts_data_of_user(id_or_user, stories=True, ig_id=None, facebook=None)
     return results
 
 
-def get_media_posts(id_or_users, stories=True, facebook=None, only_new=True):
+def get_media_posts(id_or_users, stories=True, only_ids=False, facebook=None, only_new=True):
     """Returns a list of saved Post objects created for the single or list of Users or User id(s).
     If stories parameter is 'only', then it will only get STORY media posts for these user(s).
     Otherwise stories parameter indicates if STORY media posts should or should not be included.
@@ -455,21 +453,19 @@ def get_media_posts(id_or_users, stories=True, facebook=None, only_new=True):
     users = (find_valid_user(ea) for ea in id_or_users)
     results = []
     for fb, user in ((facebook or u.get_auth_session(), u) for u in users if u):
-        media = []  # currently want to include basic media after stories if getting both.
         if stories != 'only':
             media = user.get_media(use_last=only_new, facebook=fb)
-            # if check_db:
-            #     app.logger.debug("========== Check DB ==========")
-            #     existing = Post.query.filter(Post.media_id in [int(ea) for ea in media]).options(load_only('media_id'))
-            #     app.logger.debug(existing.all())
-            #     existing = set(ea.media_id for ea in existing.all())
-            #     app.logger.debug(existing)
-            #     not_found = [ea for ea in media if int(ea) not in existing]
-            media = [get_post_data(ea, user, full=False, facebook=fb) for ea in media]
+            if only_ids:
+                media = ({'media_id': ea, 'user_id': user.id} for ea in media)
+            else:
+                media = (get_post_data(ea, user, full=False, facebook=fb) for ea in media)
+            results.extend(media)
         if stories:
             stories = user.get_media(story=True, facebook=fb)
-            results.extend(get_post_data(ea, user, is_story=True, full=False, facebook=fb) for ea in stories)
-        results.extend(media)
+            if only_ids:
+                results.extend({'media_id': ea, 'media_type': 'STORY', 'user_id': user.id} for ea in stories)
+            else:
+                results.extend(get_post_data(ea, user, is_story=True, full=False, facebook=fb) for ea in stories)
     if not results:
         return results
     saved = db_create_or_update_many(results, Post)
