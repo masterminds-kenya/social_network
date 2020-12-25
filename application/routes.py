@@ -676,6 +676,41 @@ def capture_report():
     return report_update(data.get('changes', []), Model)
 
 
+@app.route('/collect/<string:mod>/<string:process>', methods=['GET', 'POST'])
+def collect_queue(mod, process):
+    """For backend handling requests for media post data from the Graph API with google cloud tasks. """
+    known_process = ('basic', 'metrics', 'data')
+    app.logger.info(f"======================== collect queue: {mod} {process} =============================")
+    if mod != 'post' or process not in known_process:
+        return "Unknown Data Type or Process in Request", 404
+    args = request.args
+    if args:
+        app.logger.info(args)
+    head = {}
+    head['x_queue_name'] = request.headers.get('X-AppEngine-QueueName', None)
+    head['x_task_id'] = request.headers.get('X-Appengine-Taskname', None)
+    head['x_retry_count'] = request.headers.get('X-Appengine-Taskretrycount', None)
+    head['x_response_count'] = request.headers.get('X-AppEngine-TaskExecutionCount', None)
+    head['x_task_eta'] = request.headers.get('X-AppEngine-TaskETA', None)
+    head['x_task_previous_response'] = request.headers.get('X-AppEngine-TaskPreviousResponse', None)
+    head['x_task_retry_reason'] = request.headers.get('X-AppEngine-TaskRetryReason', None)
+    head['x_fail_fast'] = request.headers.get('X-AppEngine-FailFast', None)
+    if not head:
+        app.logger.error("This request is not coming from our project. It should be rejected. ")
+        return "Unknown Request", 404
+    req_body = request.json if request.is_json else request.data
+    req_body = json.loads(req_body.decode())  # The request body from a Task API is byte encoded
+    # report_settings = req_body.get('report_settings', {})
+    source = req_body.get('source', {})
+    source.update(head)
+    # TODO: Determine if any other confirmation issues, and if anything needed for source or report_settings.
+    dataset = req_body.get('dataset', [])
+    result = handle_collect_media(dataset, process)
+    status_code = 500 if 'error' in result else 201
+    status_code = result.pop('status_code', status_code)
+    return results, status_code
+
+
 @app.route('/post/hook/', methods=['GET', 'POST'])
 def hook():
     """Endpoint receives all webhook updates from Instagram/Facebook for Story Posts. """
