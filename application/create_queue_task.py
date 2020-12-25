@@ -1,4 +1,5 @@
 from flask import current_app as app
+from flask.helpers import url_for
 from google.api_core.exceptions import RetryError, AlreadyExists, GoogleAPICallError
 from google.cloud import tasks_v2
 from google.protobuf import timestamp_pb2, duration_pb2
@@ -82,6 +83,64 @@ def add_to_capture(post, queue_name='test-on-db-b', task_name=None, in_seconds=9
             'app_engine_http_request': {  # Specify the type of request.
                 'http_method': 'POST',
                 'relative_uri': capture_api_path,
+                'body': json.dumps(payload).encode()  # Task API requires type bytes.
+            }
+    }
+    if task_name:
+        task['name'] = task_name.lower()  # The Task API will generate one if it is not set.
+    if in_seconds:
+        # Convert "seconds from now" into an rfc3339 datetime string, format as timestamp protobuf, add to tasks.
+        d = dt.utcnow() + timedelta(seconds=in_seconds)
+        timestamp = timestamp_pb2.Timestamp()
+        timestamp.FromDatetime(d)
+        task['schedule_time'] = timestamp
+    try:
+        response = client.create_task(parent, task)
+    except ValueError as e:
+        app.logger.info(f"Invalid parameters for creating a task: \n {task}")
+        app.logger.error(e)
+        response = None
+    except RetryError as e:
+        app.logger.info(f"Retry Attempts exhausted for a task: \n {task}")
+        app.logger.error(e)
+        response = None
+    except GoogleAPICallError as e:
+        app.logger.info(f"Google API Call Error on creating a task: \n {task}")
+        app.logger.error(e)
+        response = None
+    if response is not None:
+        app.logger.info("Created task!")
+        app.logger.info(response)
+    return response  # .name if response else None
+
+
+def add_to_collect(media_data, queue_name='basic-post', task_name=None, in_seconds=180):
+    """Adds a task to a Collect Queue to make a request to the Graph API for data on media posts. """
+    mod = 'post'
+    process_lookup = {'basic-post': 'basic', 'metrics-post': 'metrics', 'data-post': 'data'}
+    process = process_lookup.get(queue_name, None)
+    if queue_name not in process_lookup:
+        info = f"Unknown process name: {queue_name} "
+        app.logger.error(info)
+        raise ValueError(info)
+    if not isinstance(task_name, (str, type(None))):
+        raise TypeError("Usually the task_name for add_to_capture should be None, but should be a string if set. ")
+    parent = _get_queue_path(queue_name)
+    relative_uri = url_for('collect_queue', mod=mod, process=process)  # f"/collect/{mod}/{process}"
+    # report_settings = {'service': environ.get('GAE_SERVICE', 'dev'), 'relative_uri': '/capture/report/'}
+    source = {'queue_type': queue_name, 'queue_name': parent, 'object_type': mod}
+    # data = {'user_id': int, 'metrics': str or None, 'post_ids': [int], 'post_metrics': {int: str, } or str or None}
+    # TODO: prep data
+    # if not isinstance(media_data, Post):
+    #     raise TypeError("Expected a valid Post object or an id for an existing Post for add_to_capture. ")
+    # data = {'user_id': int, 'post_ids': [int, ] | None, 'media_ids': [int, ] | None, }  # must have post or media ids
+    # optional in data: 'metrics': str|None, 'post_metrics': {int: str}|str|None
+    payload = {'source': source, 'dataset': [media_data]}
+    # payload['report_settings'] = report_settings
+    task = {
+            'app_engine_http_request': {  # Specify the type of request.
+                'http_method': 'POST',
+                'relative_uri': relative_uri,
                 'body': json.dumps(payload).encode()  # Task API requires type bytes.
             }
     }
