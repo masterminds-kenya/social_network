@@ -59,7 +59,7 @@ def find_valid_user(id_or_user, instagram_required=True, token_required=True):
         #         opts.append(User.token.isnot(None))
         #     q = id_or_user.filter(*opts)
         #     return q.all()
-    if any((user, instagram_required and not user.instagram_id, token_required and not user.token)):
+    if any((not user, instagram_required and not user.instagram_id, token_required and not user.token)):
         return None
     return user
 
