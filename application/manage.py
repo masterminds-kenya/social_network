@@ -2,6 +2,7 @@ from flask import flash, redirect, render_template, url_for, request, current_ap
 from flask_login import current_user, login_user
 from werkzeug.security import generate_password_hash
 from collections import defaultdict
+from functools import reduce
 import hmac
 import hashlib
 import json
@@ -227,6 +228,27 @@ def report_update(reports, Model):
     app.logger.info(message)
     status_code = 422 if had_error else 200
     return message, status_code
+
+
+def media_posts_save(media_results, new_only=True):
+    """Save the initial media posts data. The basic media and media metrics will be updated later. """
+    mediaset = reduce(lambda result, ea: result + ea.get('media_list', []), media_results, [])
+    if not new_only:
+        # TODO: Possibly make a version for update, or maybe update or create.
+        # Not Implemented yet.
+        success = False
+    try:
+        db.session.bulk_insert_mappings(mediaset)
+        db.session.commit()
+        success = True
+    except Exception as e:
+        info = "There was a problem with saving media posts "
+        success = False
+        app.logger.error("========== SAVE MEDIA QUEUE ERROR ==========")
+        app.logger.error(info)
+        app.logger.error(e)
+    result = (len(mediaset), success)
+    return result
 
 
 def process_hook(req):
