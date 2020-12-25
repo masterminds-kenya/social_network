@@ -2,13 +2,15 @@ from flask import render_template, redirect, url_for, request, flash, session, c
 from flask_login import current_user, login_user, logout_user, login_required
 from werkzeug.security import generate_password_hash, check_password_hash
 import json
+from functools import reduce
 from .model_db import db_create, db_read, db_delete, db_all, from_sql  # , metric_clean
 from .model_db import User, OnlineFollowers, Insight, Post, Campaign, db   # , Audience
 from .developer_admin import admin_view
 from .helper_functions import staff_required, admin_required, mod_lookup, prep_ig_decide, get_daily_ig_accounts
 from .manage import update_campaign, process_form, report_update, check_hash, add_edit, process_hook
-from .api import (onboard_login, onboarding, user_permissions,
-                  get_media_posts, get_metrics_post, get_insight, get_audience, get_online_followers)
+from .api import (onboard_login, onboarding, user_permissions, get_insight, get_audience, get_online_followers,
+                  get_media_posts, get_metrics_post, handle_collect_media)
+from .create_queue_task import add_to_collect
 from .sheets import create_sheet, update_sheet, perm_add, perm_list, all_files
 from pprint import pprint
 
@@ -459,9 +461,26 @@ def all_posts():
             app.logger.error(message)
             return redirect(url_for('error'))
     all_ig = get_daily_ig_accounts()
-    saved = get_media_posts(all_ig)
-    message = f"Got all posts for {len(all_ig)} users, for a total of {len(saved)} posts. "
-    response = {'User_num': len(all_ig), 'Post_num': len(saved), 'message': message, 'status_code': 200}
+    media_results = get_media_posts(all_ig)
+    mediaset = reduce(lambda result, ea: result + ea.get('media_list', []), media_results, [])
+    try:
+        db.session.bulk_insert_mappings(mediaset)
+        db.session.commit()
+        success = True
+    except Exception as e:
+        info = "There was a problem with saving media posts "
+        success = False
+        app.logger.error("========== SAVE MEDIA QUEUE ERROR ==========")
+        app.logger.error(info)
+        app.logger.error(e)
+    message = f"For {len(all_ig)} users, got {len(mediaset)} posts. Initial save: {success}. "
+    if success:
+        success = add_to_collect(media_results, queue_name='basic-post', in_seconds=180)
+    response = {'User_num': len(all_ig), 'Post_num': len(mediaset), 'message': message}
+    if success:
+        response['status_code'] = 201
+    else:
+        response['status_code'] = 500
     if cron_run:
         response = json.dumps(response)
     else:  # Process run by an admin.
