@@ -11,19 +11,27 @@ PROJECT_ID = app.config.get('PROJECT_ID')
 PROJECT_REGION = app.config.get('PROJECT_REGION')  # Google Docs said PROJECT_ZONE ?
 CAPTURE_SERVICE = app.config.get('CAPTURE_SERVICE')
 CAPTURE_QUEUE = app.config.get('CAPTURE_QUEUE')
+COLLECT_SERVICE = app.config.get('COLLECT_SERVICE', environ.get('GAE_SERVICE', 'dev'))
+COLLECT_QUEUE = app.config.get('COLLECT_QUEUE')
+capture_names = ('test-on-db-b', 'post', 'test')
 client = tasks_v2.CloudTasksClient()
 
 
-def _get_capture_queue(queue_name):
+def _get_queue_path(queue_name):
     """Creates or gets a queue for managing calls to the capture API to get the live images of a web page.
        May need to refactor to Create or Update a queue.
     """
     if not queue_name:
         queue_name = 'test'
-    queue_name = f"{CAPTURE_QUEUE}-{queue_name}".lower()
     parent = client.location_path(PROJECT_ID, PROJECT_REGION)  # f"projects/{PROJECT_ID}/locations/{PROJECT_REGION}"
-    queue_path = client.queue_path(PROJECT_ID, PROJECT_REGION, queue_name)
-    routing_override = {'service': CAPTURE_SERVICE}
+    if queue_name in capture_names:
+        queue_name = f"{CAPTURE_QUEUE}-{queue_name}".lower()
+        queue_path = client.queue_path(PROJECT_ID, PROJECT_REGION, queue_name)
+        routing_override = {'service': CAPTURE_SERVICE}
+    else:
+        queue_name = f"{COLLECT_QUEUE}-{queue_name}".lower()
+        queue_path = client.queue_path(PROJECT_ID, PROJECT_REGION, queue_name)
+        routing_override = {'service': COLLECT_SERVICE}
     rate_limits = {'max_concurrent_dispatches': 2, 'max_dispatches_per_second': 1}
     queue_settings = {'name': queue_path, 'app_engine_routing_override': routing_override, 'rate_limits': rate_limits}
     min_backoff, max_backoff, max_life = duration_pb2.Duration(), duration_pb2.Duration(), duration_pb2.Duration()
@@ -64,7 +72,7 @@ def add_to_capture(post, queue_name='test-on-db-b', task_name=None, in_seconds=9
         post = Post.query.get(post)
     if not isinstance(post, Post):
         raise TypeError("Expected a valid Post object or an id for an existing Post for add_to_capture. ")
-    parent = _get_capture_queue(queue_name)
+    parent = _get_queue_path(queue_name)
     capture_api_path = f"/api/v1/{mod}/"
     report_settings = {'service': environ.get('GAE_SERVICE', 'dev'), 'relative_uri': '/capture/report/'}
     source = {'queue_type': queue_name, 'queue_name': parent, 'object_type': mod}

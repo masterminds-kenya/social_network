@@ -5,12 +5,21 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.4.0/Chart.min.js"></script>
 {% endblock head %}
 
+{% block content %}
+<p>
+  Before creating a worksheet, it is recommended to
+  <a href="{{ url_for('update_campaign_metrics', id=data.id) }}">Update Media Metrics</a>
+  For all non-story media posts assigned to this Campaign.
+</p>
+<p>
+  Story media posts are updated after they expire, at about 24 hours after they are created.
+  {{ data.live_stories }}
+</p>
 <form method="POST" enctype="multipart/form-data">
   <input type="hidden" name="related" value="{{related}}" />
   <button type="submit" class="btn btn-success">Create Google Sheet Report</button>
 </form>
 
-{% block content %}
   {% set dataset = namespace(count=0, datatype=[], vals=[], labels=[]) %}
   {% for media_type, obj in related.items() %}
 

@@ -13,7 +13,7 @@ from requests_oauthlib import OAuth2Session  # , BackendApplicationClient
 # from oauthlib.oauth2 import BackendApplicationClient
 from requests_oauthlib.compliance_fixes import facebook_compliance_fix
 from flask_migrate import Migrate
-from datetime import datetime as dt
+from datetime import datetime as dt, timedelta
 from dateutil import parser
 import re
 from statistics import mean, median, stdev
@@ -44,16 +44,9 @@ def clean(obj):
     """Make sure this obj is serializable. Datetime objects should be turned to strings. """
     if isinstance(obj, dt):
         return obj.isoformat()
-    elif isinstance(obj, (list, tuple)):
-        # current_app.logger.info(f"================= Clean for obj: {obj} ====================")
-        ' | '.join(obj)
-    # elif isinstance(obj, (list, tuple, set)):
-    #     temp = []
-    #     for ea in obj:
-    #         temp.append(clean(ea))
-    #     return temp
-    # elif isinstance(obj, (Campaign, User)):
-    #     return obj.id
+    if isinstance(obj, (list, tuple)):
+        current_app.logger.info(f"================= Clean for obj: {obj} ====================")
+        return ' | '.join(obj)
     return obj
 
 
@@ -104,9 +97,8 @@ def translate_api_user_token(data):
 
 
 class User(UserMixin, db.Model):
-    """Data model for user (influencer or brand) accounts.
-    Assumes only 1 Instagram per user, and it must be a business account.
-    They must have a Facebook Page connected to their business Instagram account.
+    """Data model for user accounts. Each user account can have zero or one Instagram account, stored by instagram_id.
+    For an Instagram account to be valid, it must be a business account and it must have a connected Facebook Page.
     """
     ROLES = ('influencer', 'brand', 'manager', 'admin')
     __tablename__ = 'users'
@@ -122,7 +114,6 @@ class User(UserMixin, db.Model):
     instagram_id = db.Column(BIGINT(unsigned=True), index=True,  unique=True,  nullable=True)
     facebook_id = db.Column(BIGINT(unsigned=True),  index=False, unique=False, nullable=True)
     token = db.Column(EncryptedType(db.String(255), SECRET_KEY, AesEngine, 'pkcs5'))  # encrypt
-    # access_token = db.Column(EncryptedType(db.String(255), SECRET_KEY, AesEngine, 'pkcs5'))  # encrypt
     token_expires = db.Column(db.DateTime,          index=False, unique=False, nullable=True)
     notes = db.Column(db.String(191),               index=False, unique=False, nullable=True)
     modified = db.Column(db.DateTime,               unique=False, nullable=False, default=dt.utcnow, onupdate=dt.utcnow)
@@ -157,10 +148,11 @@ class User(UserMixin, db.Model):
     def last_story(self):
         """Returns the 'media_id' property of the most recent story media post. """
         try:
-            recent = Post.query.filter_by(media_type='STORY', user_id=self.id)
+            # recent = Post.query.filter_by(media_type='STORY', user_id=self.id)
+            recent = db.session.query(Post.media_id).filter_by(media_type='STORY', user_id=self.id)
             recent = recent.order_by(Post.recorded.desc())
-            # recent = recent.options(defer('*'), undefer('media_id'), undefer('id'))  # or load_only technique
-            media_id = recent.first().media_id
+            media_id = recent.first()[0]
+            # media_id = recent.first().media_id
         except Exception as e:
             current_app.logger.debug("========== ERROR IN LAST STORY ==========")
             current_app.logger.debug(e)
@@ -171,10 +163,11 @@ class User(UserMixin, db.Model):
     def last_media(self):
         """Returns the 'media_id' property of the most recent non-story media post. """
         try:
-            recent = Post.query.filter(Post.media_type != 'STORY', Post.user_id == self.id)
+            # recent = Post.query.filter(Post.media_type != 'STORY', Post.user_id == self.id)
+            recent = db.session.query(Post.media_id).filter(Post.media_type != 'STORY', Post.user_id == self.id)
             recent = recent.order_by(Post.recorded.desc())
-            # recent = recent.options(defer('*'), undefer('media_id'), undefer('id'))  # or load_only technique
-            media_id = recent.first().media_id
+            media_id = recent.first()[0]
+            # media_id = recent.first().media_id
         except Exception as e:
             current_app.logger.debug("========== ERROR IN LAST MEDIA ==========")
             current_app.logger.debug(e)
@@ -184,6 +177,7 @@ class User(UserMixin, db.Model):
     @property
     def full_token(self):
         """The dict structure of a full token generally received from the Graph API. The setter will extract values. """
+        # TODO: Change into a hybrid_property with expression to compute the full_token during a DB query.
         if not self.token:
             return None
         expires_at, expires = None, None
@@ -402,10 +396,10 @@ class User(UserMixin, db.Model):
             metrics = [metrics]
         else:
             raise ValueError(f"{metrics} is not a valid Insight metric")
-        # TODO: ?Would it be more efficient to use self.insights?
-        q = Insight.query.filter(Insight.user_id == self.id, Insight.name.in_(metrics))
+        q = db.session.query(Insight.recorded)
+        q = q.filter(Insight.user_id == self.id, Insight.name.in_(metrics))
         recent = q.order_by(desc('recorded')).first()
-        date = getattr(recent, 'recorded', 0) if recent else 0
+        date = recent[0] if recent else 0
         current_app.logger.debug(f"Recent Insight: {metrics} | {recent} ")
         current_app.logger.debug('-------------------------------------')
         current_app.logger.debug(date)
@@ -668,6 +662,7 @@ class Post(db.Model):
 
     def display(self):
         """Since different media post types have different metrics, we only want to show the appropriate fields. """
+        # TODO: Update to not depend on from_sql
         post = from_sql(self, related=True, safe=True)
         fields = {'id', 'user_id', 'saved_media', 'saved_media_options', 'capture_name', 'campaigns', 'processed'}
         fields.update(('recorded', 'modified'), Post.METRICS['basic'], Post.METRICS[post['media_type']])
@@ -711,8 +706,27 @@ processed_campaign = db.Table(
     )
 
 
+def make_fb(access_token, end=None):
+    """Construct an OAuth2Session for a given user access_token, and optional expiration date of 'end'.
+    Temporary function. To be replaced when User.full_token is a hybrid_property.
+    """
+    token = {'access_token': access_token, 'token_type': 'Bearer'}
+    expires_at, expires = None, None
+    if end:  # TODO: Does OAuth tokens have 'expires_at' and/or 'expires_in'?
+        expires_at = end
+        expires = (end - dt.utcnow()).in_seconds()
+        expires = 0 if expires < 0 else int(expires)
+    if expires_at:
+        token['expires_at'] = expires_at
+    if expires:
+        token['expires_in': expires]
+    facebook = OAuth2Session(current_app.config.get('FB_CLIENT_ID'), token=token)
+    facebook = facebook_compliance_fix(facebook)
+    return facebook
+
+
 class Campaign(db.Model):
-    """Model to manage the Campaign relationship between influencers and brands """
+    """Model to manage the Campaign relationship between influencers and brands. """
     __tablename__ = 'campaigns'
 
     id = db.Column(db.Integer,       primary_key=True)
@@ -733,6 +747,35 @@ class Campaign(db.Model):
         kwargs['completed'] = True if kwargs.get('completed') in {'on', True} else False
         super().__init__(*args, **kwargs)
 
+    @property
+    def live_stories(self):
+        """Report on the STORY media posts assigned to this campaign that have not yet expired. """
+        deadline = dt.utcnow() - timedelta(hours=25)  # Gave an extra hour buffer for webhook and database update.
+        q = db.session.query(Post.recorded)
+        q = q.filter(Post.media_type == 'STORY', Post.campaigns.contains(self), Post.recorded > deadline)
+        count = q.count()
+        if not count:
+            message = "The metrics for all stories should be up to date now. "
+            return message
+        message = f"There are {count} story posts that have not yet completed. "
+        most_recent = q.order_by(Post.recorded.desc()).first()
+        if most_recent:
+            expected_update = most_recent[0] + timedelta(hours=25)
+        else:
+            expected_update = 'unknown'
+        message += f"Updated metrics can be expected by {expected_update}. "
+        return message
+
+    def prep_metrics_update(self):
+        """For all assigned non-story posts, request an update of the metrics from the Graph API. """
+        post_metrics = {key: ','.join(val) for key, val in Post.METRICS.items()}
+        targets = db.session.query(Post.id, Post.media_id, Post.media_type, User.token).filter(Post.user_id == User.id)
+        targets = targets.filter(Post.media_type != 'STORY', Post.campaigns.contains(self))
+        current_app.logger.debug(f"=============== PREP METRICS UPDATE on {self} ===============")
+        data = [({'id': pid, 'media_id': mid}, make_fb(tkn), post_metrics.get(mt)) for pid, mid, mt, tkn in targets]
+        current_app.logger.debug(data)
+        return data
+
     def export_posts(self):
         """Used for Sheets Report, a top label row followed by rows of Posts data. """
         ignore = {'id', 'user_id'}
@@ -750,13 +793,13 @@ class Campaign(db.Model):
         related = {user: [] for user in self.users}
         deleted_user = DeletedUser()
         related[deleted_user] = []
+        # TODO: Update to use query instead of filtering the lists below.
         if view == 'management':
             for user in self.users:
                 related[user] = [post for post in user.posts if post not in self.processed]
                 # TODO: Need a faster process. Would refactor to return a query be better?
         elif view == 'rejected':
             for post in self.processed:
-                # if post not in self.posts:
                 if self not in post.campaigns:
                     user = deleted_user if post.user_id is None else post.user
                     related[user].append(post.display())

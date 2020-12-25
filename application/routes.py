@@ -3,12 +3,12 @@ from flask_login import current_user, login_user, logout_user, login_required
 from werkzeug.security import generate_password_hash, check_password_hash
 import json
 from .model_db import db_create, db_read, db_delete, db_all, from_sql  # , metric_clean
-from .model_db import User, OnlineFollowers, Insight, Post, Campaign   # , Audience
+from .model_db import User, OnlineFollowers, Insight, Post, Campaign, db   # , Audience
 from .developer_admin import admin_view
 from .helper_functions import staff_required, admin_required, mod_lookup, prep_ig_decide, get_daily_ig_accounts
 from .manage import update_campaign, process_form, report_update, check_hash, add_edit, process_hook
 from .api import (onboard_login, onboarding, user_permissions,
-                  get_media_posts, get_insight, get_audience, get_online_followers)
+                  get_media_posts, get_metrics_post, get_insight, get_audience, get_online_followers)
 from .sheets import create_sheet, update_sheet, perm_add, perm_list, all_files
 from pprint import pprint
 
@@ -98,8 +98,6 @@ def login():
                 app.logger.debug(f"Password problem for {user} ")
             flash("Those login details did not work. ")
             return redirect(url_for('login'))
-        # remember_answer = data.get('remember', False)
-        # app.logger.debug(f"Remember Answer: {remember_answer} ")
         attempt = login_user(user, remember=data.get('remember', False))  # , duration=timedelta(days=61)
         if not attempt:
             app.logger.debug(f"The login attempt response: {attempt} ")
@@ -404,11 +402,12 @@ def detail_campaign(id):
 @app.route('/campaign/<int:id>', methods=['GET', 'POST'])
 @staff_required()
 def campaign(id, view='management'):
-    """Defaults to management of assigning posts to a campaign.
+    """Various views of media post lists for assigning, re-assessing, or preparing worksheets for campaigns.
+    When view is 'management' (default), user can assign or reject posts for the campaign.
     When view is 'collected', user can review and re-assess posts already assigned to the campaign.
     When view is 'rejected', user can re-assess posts previously marked as rejected.
     On POST, updates the assigned media posts as indicated by the submitted form.
-     """
+    """
     mod = 'campaign'
     template, related = f"{mod}.html", {}
     campaign = Campaign.query.get(id)
@@ -416,9 +415,33 @@ def campaign(id, view='management'):
     if request.method == 'POST':
         success = update_campaign(campaign, request)
         if not success:
-            app.logger.error("Update Campaign Failed. ")
+            info = "Update Campaign Failed. "
+            app.logger.error(info)
+            flash(info)
     related = campaign.related_posts(view)
     return render_template(template, mod=mod, view=view, data=campaign, related=related, caption_errors=caption_errors)
+
+
+@app.route('/campaign/<int:id>/update', methods=['GET'])
+@staff_required()
+def update_campaign_metrics(id):
+    """Update the metrics for all posts assigned to a given Campaign. """
+    camp = Campaign.query.get(id)
+    prep_data = camp.prep_metrics_update()
+    post_data = [get_metrics_post(media, facebook, metrics) for media, facebook, metrics in prep_data]
+    try:
+        db.session.bulk_update_mappings(Post, post_data)
+        db.session.commit()
+        app.logger.debug("========== UPDATE CAMPAIGN METRICS SUCCESS! ==========")
+        flash(f"Updated {len(post_data)} non-story media posts. ")
+    except Exception as e:
+        info = "There was a problem with updating non-story media post metrics. Please contact an Admin. "
+        app.logger.error("========== UPDATE CAMPAIGN METRICS ERROR ==========")
+        app.logger.error(info)
+        app.logger.error(e)
+        flash(info)
+    return redirect(request.referrer)
+
 
 # ########## End of Campaign Views ############
 # ########## The following are for general Views ############
@@ -440,13 +463,11 @@ def all_posts():
     message = f"Got all posts for {len(all_ig)} users, for a total of {len(saved)} posts. "
     response = {'User_num': len(all_ig), 'Post_num': len(saved), 'message': message, 'status_code': 200}
     if cron_run:
-        # message += "Cron job completed. "
         response = json.dumps(response)
     else:  # Process run by an admin.
         message += "Admin requested getting posts for all users. "
         flash(message)
-        response = admin_view(data=response)
-        # response = redirect(url_for('admin'))
+        response = redirect(url_for('admin', data=response))
     app.logger.info(message)
     return response
 
@@ -633,8 +654,6 @@ def edit(mod, id):
 @app.route('/capture/report/', methods=['GET', 'POST'])
 def capture_report():
     """After the capture work is processed, the results are sent here to update the models. """
-    from pprint import pprint
-
     app.logger.info("======================== capture report route =============================")
     message = ''
     # pprint(request.headers)
