@@ -93,14 +93,14 @@ def add_to_capture(post, queue_name='test-on-db-b', task_name=None, in_seconds=9
     mod = 'post'
     if not isinstance(task_name, (str, type(None))):
         raise TypeError("Usually the task_name for add_to_capture should be None, but should be a string if set. ")
-    if isinstance(post, (int, str)):
-        post = Post.query.get(post)
-    if not isinstance(post, Post):
-        raise TypeError("Expected a valid Post object or an id for an existing Post for add_to_capture. ")
     parent = _get_queue_path(queue_name)
     capture_api_path = f"/api/v1/{mod}/"
     report_settings = {'service': environ.get('GAE_SERVICE', 'dev'), 'relative_uri': '/capture/report/'}
     source = {'queue_type': queue_name, 'queue_name': parent, 'object_type': mod}
+    if isinstance(post, (int, str)):
+        post = Post.query.get(post)
+    if not isinstance(post, Post):
+        raise TypeError("Expected a valid Post object or an id for an existing Post for add_to_capture. ")
     data = {'target_url': post.permalink, 'media_type': post.media_type, 'media_id': post.media_id}
     payload = {'report_settings': report_settings, 'source': source, 'dataset': [data]}
     task = {
@@ -136,13 +136,9 @@ def add_to_collect(media_data, queue_name='basic-post', task_name=None, in_secon
     relative_uri = url_for('collect_queue', mod=mod, process=process)  # f"/collect/{mod}/{process}"
     # report_settings = {'service': environ.get('GAE_SERVICE', 'dev'), 'relative_uri': '/capture/report/'}
     source = {'queue_type': queue_name, 'queue_name': parent, 'object_type': mod}
-    # data = {'user_id': int, 'metrics': str or None, 'post_ids': [int], 'post_metrics': {int: str, } or str or None}
-    # TODO: prep data
-    # if not isinstance(media_data, Post):
-    #     raise TypeError("Expected a valid Post object or an id for an existing Post for add_to_capture. ")
     # data = {'user_id': int, 'post_ids': [int, ] | None, 'media_ids': [int, ] | None, }  # must have post or media ids
     # optional in data: 'metrics': str|None, 'post_metrics': {int: str}|str|None
-    payload = {'source': source, 'dataset': [media_data]}
+    payload = {'source': source, 'dataset': media_data}
     # payload['report_settings'] = report_settings
     task = {
             'app_engine_http_request': {  # Specify the type of request.
