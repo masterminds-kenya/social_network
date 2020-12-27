@@ -6,7 +6,7 @@ from functools import reduce
 import hmac
 import hashlib
 import json
-from .model_db import db, User, Post, Audience
+from .model_db import fix_date, db, User, Post, Audience
 from .model_db import db_read, db_create, db_update, db_delete
 from .helper_functions import mod_lookup, make_missing_timestamp
 
@@ -235,13 +235,13 @@ def media_posts_save(media_results, new_only=True, add_time=True):
     mediaset = reduce(lambda result, ea: result + ea.get('media_list', []), media_results, [])
     if add_time:
         ts = str(make_missing_timestamp(0))
-        mediaset = [dict(**ea, timestamp=ts) for ea in mediaset]
+        mediaset = [fix_date(Post, dict(**ea, timestamp=ts)) for ea in mediaset]
     if not new_only:
         # TODO: Possibly make a version for update, or maybe update or create.
         success = False  # Not Implemented yet.
         return len(mediaset), success
     try:
-        db.session.bulk_insert_mappings(mediaset)
+        db.session.bulk_insert_mappings(Post, mediaset)
         db.session.commit()
         success = True
     except Exception as e:
