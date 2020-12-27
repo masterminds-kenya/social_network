@@ -48,14 +48,16 @@ def _get_queue_path(queue_name):
         queue_name = 'test'
     parent = client.location_path(PROJECT_ID, PROJECT_REGION)  # f"projects/{PROJECT_ID}/locations/{PROJECT_REGION}"
     if queue_name in capture_names:
+        is_capture = True
         queue_name = f"{CAPTURE_QUEUE}-{queue_name}".lower()
         queue_path = client.queue_path(PROJECT_ID, PROJECT_REGION, queue_name)
         routing_override = {'service': CAPTURE_SERVICE}
     else:
+        is_capture = False
         queue_name = f"{COLLECT_QUEUE}-{queue_name}".lower()
         queue_path = client.queue_path(PROJECT_ID, PROJECT_REGION, queue_name)
         routing_override = {'service': COLLECT_SERVICE}
-    rate_limits = {'max_concurrent_dispatches': 2, 'max_dispatches_per_second': 1}
+    rate_limits = {'max_concurrent_dispatches': 2 if is_capture else 1, 'max_dispatches_per_second': 1}
     queue_settings = {'name': queue_path, 'app_engine_routing_override': routing_override, 'rate_limits': rate_limits}
     min_backoff, max_backoff, max_life = duration_pb2.Duration(), duration_pb2.Duration(), duration_pb2.Duration()
     min_backoff.FromJsonString('10s')    # 10 seconds
