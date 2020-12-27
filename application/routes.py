@@ -6,8 +6,7 @@ from .model_db import db_create, db_read, db_delete, db_all, from_sql  # , metri
 from .model_db import User, OnlineFollowers, Insight, Post, Campaign, db   # , Audience
 from .developer_admin import admin_view
 from .helper_functions import staff_required, admin_required, mod_lookup, prep_ig_decide, get_daily_ig_accounts
-from .manage import (update_campaign, process_form, report_update, check_hash, add_edit,
-                     media_posts_save, process_hook, prep_media_collect)
+from .manage import update_campaign, process_form, report_update, check_hash, add_edit, media_posts_save, process_hook
 from .api import (onboard_login, onboarding, user_permissions, get_insight, get_audience, get_online_followers,
                   get_media_posts, get_metrics_post, handle_collect_media)
 from .create_queue_task import add_to_collect
@@ -465,8 +464,7 @@ def all_posts():
     count, success = media_posts_save(media_results)
     message = f"For {len(all_ig)} users, got {count} posts. Initial save: {success}. "
     if success:
-        media_data = prep_media_collect(media_results)
-        success = add_to_collect(media_data, queue_name='basic-post', in_seconds=180)
+        success = add_to_collect(media_results, queue_name='basic-post', in_seconds=180)
     status = 201 if success else 500
     response = {'User_num': len(all_ig), 'Post_num': count, 'message': message, 'status_code': status}
     if cron_run:

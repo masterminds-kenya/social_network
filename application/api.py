@@ -451,28 +451,24 @@ def get_media_posts(id_or_users, stories=True, only_ids=True, facebook=None, onl
     if not isinstance(id_or_users, (list, tuple)):
         id_or_users = [id_or_users]
     users = (find_valid_user(ea) for ea in id_or_users)
-    ts = None if not only_ids else str(make_missing_timestamp(0))
     results = []
     for fb, user in ((facebook or u.get_auth_session(), u) for u in users if u):
-        cur = []
+        cur, media_ids = [], []
         if stories != 'only':
             media = user.get_media(use_last=only_new, facebook=fb)
+            media_ids.extend(media)
             if only_ids:
-                cur.extend({'media_id': ea, 'user_id': user.id, 'timestamp': ts} for ea in media)
+                cur.extend({'media_id': ea, 'user_id': user.id} for ea in media)
             else:
                 cur.extend(get_post_data(ea, user, full=False, facebook=fb) for ea in media)
         if stories:
             stories = user.get_media(story=True, facebook=fb)
+            media_ids.extend(stories)
             if only_ids:
-                cur.extend({'media_id': s, 'media_type': 'STORY', 'user_id': user.id, 'timestamp': ts} for s in stories)
+                cur.extend({'media_id': s, 'media_type': 'STORY', 'user_id': user.id} for s in stories)
             else:
                 cur.extend(get_post_data(ea, user, is_story=True, full=False, facebook=fb) for ea in stories)
-        results.append({'user_id': user.id, 'media_list': cur})
-    # if not results:
-    #     return results
-    # saved = db_create_or_update_many(results, Post)
-    # # If any STORY posts were found, the SQLAlchemy Event Listener will add it to the Task queue for the Capture API.
-    # return saved
+        results.append({'user_id': user.id, 'media_ids': media_ids, 'media_list': cur})
     return results
 
 

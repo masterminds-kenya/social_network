@@ -230,9 +230,12 @@ def report_update(reports, Model):
     return message, status_code
 
 
-def media_posts_save(media_results, new_only=True):
+def media_posts_save(media_results, new_only=True, add_time=True):
     """Save the initial media posts data. The basic media and media metrics will be updated later. """
     mediaset = reduce(lambda result, ea: result + ea.get('media_list', []), media_results, [])
+    if add_time:
+        ts = str(make_missing_timestamp(0))
+        mediaset = [dict(**ea, timestamp=ts) for ea in mediaset]
     if not new_only:
         # TODO: Possibly make a version for update, or maybe update or create.
         success = False  # Not Implemented yet.
@@ -248,31 +251,6 @@ def media_posts_save(media_results, new_only=True):
         app.logger.error(info)
         app.logger.error(e)
     return len(mediaset), success
-
-
-def prep_media_collect(media_results):
-    """Returns a dict in the format expected for the collect queue. """
-    # Input may be a single 'start' dict, or a list of them.
-    # start: {
-    #   'user_id': user.id, '
-    #   media_list': [
-    #       {'media_id': int, 'media_type': 'STORY', 'user_id': int, 'timestamp': dt.timestamp},
-    #   ]}
-    # Output should be a list of data dicts. The data dicts can have additional info. It must all be serializable.
-    # data = {'user_id': int, 'post_ids': [int, ] | None, 'media_ids': [int, ] | None, }  # must have post or media ids
-    # optional in data: 'metrics': str|None, 'post_metrics': {int: str}|str|None
-    if isinstance(media_results, dict):
-        media_data = [media_results]
-    else:
-        media_data = media_results
-    for data in media_data:
-        mids = []
-        for ea in data['media_list']:
-            ea.pop('timestamp', None)  # Remove for easier serializable and this temporary value shouldn't be used.
-            mids.append(ea['media_id'])
-        data['media_ids'] = mids
-        # data['post_ids'] = Post.query.filter(Post.media_id.in_(mids))
-    return media_data
 
 
 def process_hook(req):
