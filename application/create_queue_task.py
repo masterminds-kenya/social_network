@@ -18,6 +18,28 @@ capture_names = ('test-on-db-b', 'post', 'test')
 client = tasks_v2.CloudTasksClient()
 
 
+def try_task(parent, task):
+    """Given the parent queue path and a constructed task dict, create/assign the task or log the error response. """
+    try:
+        response = client.create_task(parent, task)
+    except ValueError as e:
+        app.logger.info(f"Invalid parameters for creating a task: \n {task}")
+        app.logger.error(e)
+        response = None
+    except RetryError as e:
+        app.logger.info(f"Retry Attempts exhausted for a task: \n {task}")
+        app.logger.error(e)
+        response = None
+    except GoogleAPICallError as e:
+        app.logger.info(f"Google API Call Error on creating a task: \n {task}")
+        app.logger.error(e)
+        response = None
+    if response is not None:
+        app.logger.info("Created task!")
+        app.logger.info(response)
+    return response  # .name if response else None
+
+
 def _get_queue_path(queue_name):
     """Creates or gets a queue for managing calls to the capture API to get the live images of a web page.
        May need to refactor to Create or Update a queue.
@@ -94,24 +116,7 @@ def add_to_capture(post, queue_name='test-on-db-b', task_name=None, in_seconds=9
         timestamp = timestamp_pb2.Timestamp()
         timestamp.FromDatetime(d)
         task['schedule_time'] = timestamp
-    try:
-        response = client.create_task(parent, task)
-    except ValueError as e:
-        app.logger.info(f"Invalid parameters for creating a task: \n {task}")
-        app.logger.error(e)
-        response = None
-    except RetryError as e:
-        app.logger.info(f"Retry Attempts exhausted for a task: \n {task}")
-        app.logger.error(e)
-        response = None
-    except GoogleAPICallError as e:
-        app.logger.info(f"Google API Call Error on creating a task: \n {task}")
-        app.logger.error(e)
-        response = None
-    if response is not None:
-        app.logger.info("Created task!")
-        app.logger.info(response)
-    return response  # .name if response else None
+    return try_task(parent, task)
 
 
 def add_to_collect(media_data, queue_name='basic-post', task_name=None, in_seconds=180):
@@ -152,21 +157,4 @@ def add_to_collect(media_data, queue_name='basic-post', task_name=None, in_secon
         timestamp = timestamp_pb2.Timestamp()
         timestamp.FromDatetime(d)
         task['schedule_time'] = timestamp
-    try:
-        response = client.create_task(parent, task)
-    except ValueError as e:
-        app.logger.info(f"Invalid parameters for creating a task: \n {task}")
-        app.logger.error(e)
-        response = None
-    except RetryError as e:
-        app.logger.info(f"Retry Attempts exhausted for a task: \n {task}")
-        app.logger.error(e)
-        response = None
-    except GoogleAPICallError as e:
-        app.logger.info(f"Google API Call Error on creating a task: \n {task}")
-        app.logger.error(e)
-        response = None
-    if response is not None:
-        app.logger.info("Created task!")
-        app.logger.info(response)
-    return response  # .name if response else None
+    return try_task(parent, task)
