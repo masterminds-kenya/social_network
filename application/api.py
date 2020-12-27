@@ -472,17 +472,15 @@ def get_media_posts(id_or_users, stories=True, only_ids=True, facebook=None, onl
     return results
 
 
-def construct_metrics_lookup(group_metrics, metrics, post_ids):
+def construct_metrics_lookup(group_metrics, metrics, media_ids):
     """Take the couple of parameters for forming a metrics lookup scheme and return an appropriate metrics value. """
-    errors = []
     if not metrics:
         metrics, group_metrics = group_metrics, metrics
     if (group_metrics and not (isinstance(group_metrics, str) and isinstance(metrics, dict))) \
             or not isinstance(metrics, (dict, str, type(None))):
         err = "The metrics and post_metrics were not formatted correctly for data. "
         app.logger.error(err)
-        errors.append(err)
-        return metrics, errors
+        return {'error': err}
     if isinstance(metrics, dict):
         try:
             metrics = {int(k): v for k, v in metrics.items()}
@@ -490,69 +488,62 @@ def construct_metrics_lookup(group_metrics, metrics, post_ids):
             err = "Not properly formatted metrics dict for data. "
             app.logger.error(err)
             app.logger.error(e)
-            errors.append(err)
-            errors.append(e)
-            return metrics, errors
-        for ea in post_ids:
+            return {'error': e}
+        for ea in media_ids:
             metrics.setdefault(ea, group_metrics)  # group_metrics is None or a str
     # else metrics is None or a str
-    return metrics, errors
+    return metrics
 
 
-def clean_collect_dataset(original_dataset):
+def clean_collect_dataset(data):
     """Return an updated dataset or return error if dataset does not confirm to expected format. """
-    # data = {'user_id': int, 'metrics': str or None, 'post_ids': [int], 'post_metrics': {int: str, } or str or None}
-    if not isinstance(original_dataset, (list, tuple)):
-        err = "Dataset is not an expected iterable. "
+    # data = {'user_id': int, 'post_ids': [int, ] | None, 'media_ids': [int, ] | None, }  # must have post or media ids
+    # optional in data: 'metrics': str|None, 'post_metrics': {int: str}|str|None
+    if not isinstance(data, (dict)):
+        err = "Dataset is not an expected dictionary. "
         app.logger.error(err)
-        return [], {'error': err}
-    dataset, errorset = [], []
-    for num, data in enumerate(original_dataset):
-        user_id = data.get('user_id', None)
-        user = find_valid_user(user_id) if user_id else None
-        if not user:
-            err = f"Unable to find a valid user id: {user_id} for data: {num}. "
-            app.logger.error(err)
-            errorset.append(err)
-            continue  # skip to the next num, data
-        post_ids = data.get('post_ids', [])
-        media_ids = data.get('media_ids', [])
-        try:
-            post_ids = [int(ea) for ea in post_ids]
-            media_ids = [int(ea) for ea in media_ids]
-        except TypeError as e:
-            err = f"Not properly formatted post or media ids for data: {num}. "
-            app.logger.error(err)
-            app.logger.error(e)
-            errorset.append(err)
-            errorset.append(e)
-            continue  # skip to the next num, data
-        metrics, errors = construct_metrics_lookup(data.get('metrics', None), data.get('post_metrics', None))
-        if errors:
-            errorset.append(f"Problem with constructing modifier of metrics for {num} data. ")
-            errorset.extend(errors)
-            continue
-        fb = user.get_auth_session()
-        if post_ids:
-            posts = Post.query.filter(Post.id.in_(post_ids))
-        elif media_ids:
-            posts = Post.query.filter(Post.id.in_(media_ids))
-        else:
-            posts = []
-        for p in posts:
-            cur = {'id': p.id, 'media_id': p.media_id, 'media_type': p.media_type, 'user': user, 'facebook': fb}
-            if metrics:
-                cur['metrics'] = metrics if isinstance(metrics, str) else metrics.get(p.id)
-            dataset.append(cur)
-    return dataset, errorset
+        return {'error': err}
+    dataset = []
+    user_id = data.get('user_id', None)
+    user = find_valid_user(user_id) if user_id else None
+    if not user:
+        err = f"Unable to find a valid user id: {user_id} for data. "
+        app.logger.error(err)
+        return {'error': err}
+    post_ids = data.get('post_ids', [])
+    media_ids = data.get('media_ids', [])
+    try:
+        post_ids = [int(ea) for ea in post_ids]
+        media_ids = [int(ea) for ea in media_ids]
+    except TypeError as e:
+        err = f"Not properly formatted post or media ids for {user} user data. "
+        app.logger.error(err)
+        app.logger.error(e)
+        return {'error': e}
+    metrics = construct_metrics_lookup(data.get('metrics', None), data.get('post_metrics', None), media_ids)
+    if 'error' in metrics:
+        return metrics
+    fb = user.get_auth_session()
+    if post_ids:
+        posts = Post.query.filter(Post.id.in_(post_ids))
+    elif media_ids:
+        posts = Post.query.filter(Post.media_id.in_(media_ids))
+    else:
+        posts = []
+    for p in posts:
+        cur = {'id': p.id, 'media_id': p.media_id, 'media_type': p.media_type, 'user': user, 'facebook': fb}
+        if metrics:
+            cur['metrics'] = metrics if isinstance(metrics, str) else metrics.get(p.media_id)
+        dataset.append(cur)
+    return dataset
 
 
-def handle_collect_media(dataset, process):
+def handle_collect_media(data, process):
     """With the given dataset and post process, call the Graph API and update the database. Return success status. """
     # already confirmed process is one of: 'basic', 'metrics', 'data'
-    dataset, errors = clean_collect_dataset(dataset)
-    if errors:
-        return {'error': errors}
+    dataset = clean_collect_dataset(data)
+    if 'error' in dataset:
+        return dataset
     collected = []
     for data in dataset:
         post_id = data.pop('id')

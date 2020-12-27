@@ -134,25 +134,29 @@ def add_to_collect(media_data, queue_name='basic-post', task_name=None, in_secon
         raise TypeError("Usually the task_name for add_to_capture should be None, but should be a string if set. ")
     parent = _get_queue_path(queue_name)
     relative_uri = url_for('collect_queue', mod=mod, process=process)  # f"/collect/{mod}/{process}"
-    # report_settings = {'service': environ.get('GAE_SERVICE', 'dev'), 'relative_uri': '/capture/report/'}
     source = {'queue_type': queue_name, 'queue_name': parent, 'object_type': mod}
     # data = {'user_id': int, 'post_ids': [int, ] | None, 'media_ids': [int, ] | None, }  # must have post or media ids
     # optional in data: 'metrics': str|None, 'post_metrics': {int: str}|str|None
-    payload = {'source': source, 'dataset': media_data}
-    # payload['report_settings'] = report_settings
-    task = {
-            'app_engine_http_request': {  # Specify the type of request.
-                'http_method': 'POST',
-                'relative_uri': relative_uri,
-                'body': json.dumps(payload).encode()  # Task API requires type bytes.
-            }
-    }
-    if task_name:
-        task['name'] = task_name.lower()  # The Task API will generate one if it is not set.
-    if in_seconds:
+    timestamp = timestamp_pb2.Timestamp()
+    d = dt.utcnow() + timedelta(seconds=in_seconds)
+    delay = timedelta(seconds=5)
+    if isinstance(media_data, dict):
+        media_data = [media_data]
+    task_list = []
+    for data in media_data:
+        payload = {'source': source, 'dataset': data}
+        task = {
+                'app_engine_http_request': {  # Specify the type of request.
+                    'http_method': 'POST',
+                    'relative_uri': relative_uri,
+                    'body': json.dumps(payload).encode()  # Task API requires type bytes.
+                }
+        }
+        if task_name:
+            task['name'] = task_name.lower()  # The Task API will generate one if it is not set.
         # Convert "seconds from now" into an rfc3339 datetime string, format as timestamp protobuf, add to tasks.
-        d = dt.utcnow() + timedelta(seconds=in_seconds)
-        timestamp = timestamp_pb2.Timestamp()
         timestamp.FromDatetime(d)
         task['schedule_time'] = timestamp
-    return try_task(parent, task)
+        d = d + delay
+        task_list.append(try_task(parent, task))
+    return task_list

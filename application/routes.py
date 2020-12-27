@@ -464,7 +464,8 @@ def all_posts():
     count, success = media_posts_save(media_results)
     message = f"For {len(all_ig)} users, got {count} posts. Initial save: {success}. "
     if success:
-        success = add_to_collect(media_results, queue_name='basic-post', in_seconds=180)
+        task_list = add_to_collect(media_results, queue_name='basic-post', in_seconds=180)
+        success = all(ea is not None for ea in task_list)
     status = 201 if success else 500
     response = {'User_num': len(all_ig), 'Post_num': count, 'message': message, 'status_code': status}
     if cron_run:
@@ -715,7 +716,6 @@ def collect_queue(mod, process):
     if not req_body:
         return "No request body to decode. ", 404
     req_body = json.loads(req_body.decode())  # The request body from a Task API is byte encoded
-    # report_settings = req_body.get('report_settings', {})
     source = req_body.get('source', {})
     source.update(head)
     # TODO: Determine if any other confirmation issues, and if anything needed for source or report_settings.
@@ -724,7 +724,8 @@ def collect_queue(mod, process):
     dataset = req_body.get('dataset', [])
     app.logger.debug(dataset)
     app.logger.info("-------------------------------------------------------------------")
-    result = handle_collect_media(dataset, process)
+    # result = handle_collect_media(dataset, process)
+    result = {'error': "Handle  of collect media not yet implemented. "}
     status_code = 500 if 'error' in result else 201
     status_code = result.pop('status_code', status_code)
     return results, status_code
