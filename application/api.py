@@ -580,6 +580,52 @@ def handle_collect_media(data, process):
     return result
 
 
+def handle_collect_media_no_post_id(data, process):
+    """With the given dataset and post process, call the Graph API and update the database. Return success status. """
+    # already confirmed process is one of: 'basic', 'metrics', 'data'
+    user_id = data.get('user_id', None)
+    user = find_valid_user(user_id) if user_id else None
+    facebook = user.get_auth_session() if user else None
+    if not user or not facebook:
+        err = f"Unable to find a valid user id: {user_id} for data. "
+        app.logger.error(err)
+        return {'error': err}
+    metrics = construct_metrics_lookup(data.get('metrics'), data.get('post_metrics'), data.get('media_ids'))
+    if metrics and 'error' in metrics:
+        return metrics
+    collected = []
+    for cur in data.get('media_list', []):
+        is_story = True if cur.get('media_type', None) == 'STORY' else False
+        mets = metrics if isinstance(metrics, (str, type(None))) else metrics.get(cur.get('media_id'))
+        if process == 'metrics':
+            media = get_metrics_post(data, facebook, metrics=mets)
+        elif not mets:
+            full = False if process == 'basic' else True
+            media = get_post_data(cur['media_id'], user, is_story=is_story, full=full, facebook=facebook)
+        else:  # metrics exist, and process is either 'basic' or 'data'.
+            basic_mets = mets if process == 'basic' else None
+            media = get_basic_post(cur['media_id'], metrics=basic_mets, id_or_user=user.id, facebook=facebook)
+            media['media_type'] = 'STORY' if is_story else media.get('media_type', '')
+            if process == 'data':
+                media = get_metrics_post(media, facebook, metrics=mets)
+        # media['id'] = post_id
+        collected.append(media)
+    try:
+        db.session.bulk_update_mappings(Post, collected)
+        db.session.commit()
+        app.logger.debug("========== HANDLE COLLECT MEDIA SUCCESS! ==========")
+        info = f"Updated {len(collected)} Post records with media {process} info. "
+        app.logger.debug(info)
+        result = {'reason': info, 'status_code': 201}
+    except Exception as e:
+        info = "There was a problem with updating the collect media results. "
+        app.logger.error("========== HANDLE COLLECT MEDIA ERROR ==========")
+        app.logger.error(info)
+        app.logger.error(e)
+        result = {'error': [info, e]}
+    return result
+
+
 def get_fb_page_for_users_ig_account(user, ignore_current=False, facebook=None, token=None):
     """For a user with a known Instagram account, we can determine the related Facebook page. """
     # TODO: Is pagination a concern?
