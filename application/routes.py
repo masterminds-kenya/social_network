@@ -472,7 +472,7 @@ def all_posts():
     if cron_run:
         response = json.dumps(response)
     else:  # Process run by an admin.
-        message += "Admin requested getting posts for all users. "
+        message += "Admin requested getting posts for all active users. "
         flash(message)
         response = redirect(url_for('admin', data=response))
     app.logger.info(message)
@@ -693,9 +693,6 @@ def collect_queue(mod, process):
     app.logger.info(f"======================== collect queue: {mod} {process} =============================")
     if mod != 'post' or process not in known_process:
         return "Unknown Data Type or Process in Request", 404
-    args = request.args
-    if args:
-        app.logger.info(args)
     head = {}
     head['x_queue_name'] = request.headers.get('X-AppEngine-QueueName', None)
     head['x_task_id'] = request.headers.get('X-Appengine-Taskname', None)
@@ -705,16 +702,30 @@ def collect_queue(mod, process):
     head['x_task_previous_response'] = request.headers.get('X-AppEngine-TaskPreviousResponse', None)
     head['x_task_retry_reason'] = request.headers.get('X-AppEngine-TaskRetryReason', None)
     head['x_fail_fast'] = request.headers.get('X-AppEngine-FailFast', None)
-    if not head:
+    req_body = request.json if request.is_json else request.data
+    app.logger.debug(request.args)
+    app.logger.info("-------------------------------------------------------------------")
+    app.logger.debug(head)
+    app.logger.info("-------------------------------------------------------------------")
+    app.logger.debug(request)
+    app.logger.debug("-------------------------------------------------------------------")
+    app.logger.debug(req_body)
+    app.logger.debug("-------------------------------------------------------------------")
+    if not head:  # TODO: Update to check that required values are not None.
         app.logger.error("This request is not coming from our project. It should be rejected. ")
         return "Unknown Request", 404
-    req_body = request.json if request.is_json else request.data
+    if not req_body:
+        return "No request body to decode. ", 404
     req_body = json.loads(req_body.decode())  # The request body from a Task API is byte encoded
     # report_settings = req_body.get('report_settings', {})
     source = req_body.get('source', {})
     source.update(head)
     # TODO: Determine if any other confirmation issues, and if anything needed for source or report_settings.
+    app.logger.debug(source)
+    app.logger.info("-------------------------------------------------------------------")
     dataset = req_body.get('dataset', [])
+    app.logger.debug(dataset)
+    app.logger.info("-------------------------------------------------------------------")
     result = handle_collect_media(dataset, process)
     status_code = 500 if 'error' in result else 201
     status_code = result.pop('status_code', status_code)
