@@ -6,7 +6,8 @@ from .model_db import db_create, db_read, db_delete, db_all, from_sql  # , metri
 from .model_db import User, OnlineFollowers, Insight, Post, Campaign, db   # , Audience
 from .developer_admin import admin_view
 from .helper_functions import staff_required, admin_required, mod_lookup, prep_ig_decide, get_daily_ig_accounts
-from .manage import update_campaign, process_form, report_update, check_hash, add_edit, media_posts_save, process_hook
+from .manage import (update_campaign, process_form, report_update, check_hash, add_edit,
+                     media_posts_save, process_hook, prep_media_collect)
 from .api import (onboard_login, onboarding, user_permissions, get_insight, get_audience, get_online_followers,
                   get_media_posts, get_metrics_post, handle_collect_media)
 from .create_queue_task import add_to_collect
@@ -464,12 +465,10 @@ def all_posts():
     count, success = media_posts_save(media_results)
     message = f"For {len(all_ig)} users, got {count} posts. Initial save: {success}. "
     if success:
-        success = add_to_collect(media_results, queue_name='basic-post', in_seconds=180)
-    response = {'User_num': len(all_ig), 'Post_num': count, 'message': message}
-    if success:
-        response['status_code'] = 201
-    else:
-        response['status_code'] = 500
+        media_data = prep_media_collect(media_results)
+        success = add_to_collect(media_data, queue_name='basic-post', in_seconds=180)
+    status = 201 if success else 500
+    response = {'User_num': len(all_ig), 'Post_num': count, 'message': message, 'status_code': status}
     if cron_run:
         response = json.dumps(response)
     else:  # Process run by an admin.
@@ -623,8 +622,11 @@ def new_post(mod, id):
     if current_user.role not in ['admin', 'manager'] and current_user.id != id:
         flash("This was not a correct location. You are redirected to the home page. ")
         return redirect(url_for('home'))
-    posts = get_media_posts(id)
-    logstring = f"Retrieved {len(posts)} new Posts. " if posts else "No new posts were found. "
+    media_results = get_media_posts(id, only_ids=False)
+    found = len(media_results[0]['media_list'])
+    logstring = f"Found {found} media posts. "
+    count, success = media_posts_save(media_results)
+    logstring += f"Saved {count} new Posts. " if success else "No new posts were saved. "
     app.logger.info(logstring)
     flash(logstring)
     return_path = request.referrer

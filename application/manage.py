@@ -235,8 +235,8 @@ def media_posts_save(media_results, new_only=True):
     mediaset = reduce(lambda result, ea: result + ea.get('media_list', []), media_results, [])
     if not new_only:
         # TODO: Possibly make a version for update, or maybe update or create.
-        # Not Implemented yet.
-        success = False
+        success = False  # Not Implemented yet.
+        return len(mediaset), success
     try:
         db.session.bulk_insert_mappings(mediaset)
         db.session.commit()
@@ -247,8 +247,32 @@ def media_posts_save(media_results, new_only=True):
         app.logger.error("========== SAVE MEDIA QUEUE ERROR ==========")
         app.logger.error(info)
         app.logger.error(e)
-    result = (len(mediaset), success)
-    return result
+    return len(mediaset), success
+
+
+def prep_media_collect(media_results):
+    """Returns a dict in the format expected for the collect queue. """
+    # Input may be a single 'start' dict, or a list of them.
+    # start: {
+    #   'user_id': user.id, '
+    #   media_list': [
+    #       {'media_id': int, 'media_type': 'STORY', 'user_id': int, 'timestamp': dt.timestamp},
+    #   ]}
+    # Output should be a list of data dicts. The data dicts can have additional info. It must all be serializable.
+    # data = {'user_id': int, 'post_ids': [int, ] | None, 'media_ids': [int, ] | None, }  # must have post or media ids
+    # optional in data: 'metrics': str|None, 'post_metrics': {int: str}|str|None
+    if isinstance(media_results, dict):
+        media_data = [media_results]
+    else:
+        media_data = media_results
+    for data in media_data:
+        mids = []
+        for ea in data['media_list']:
+            ea.pop('timestamp', None)  # Remove for easier serializable and this temporary value shouldn't be used.
+            mids.append(ea['media_id'])
+        data['media_ids'] = mids
+        # data['post_ids'] = Post.query.filter(Post.media_id.in_(mids))
+    return media_data
 
 
 def process_hook(req):

@@ -440,7 +440,7 @@ def _get_posts_data_of_user(id_or_user, stories=True, ig_id=None, facebook=None)
     return results
 
 
-def get_media_posts(id_or_users, stories=True, only_ids=False, facebook=None, only_new=True):
+def get_media_posts(id_or_users, stories=True, only_ids=True, facebook=None, only_new=True):
     """Returns a list of saved Post objects created for the single or list of Users or User id(s).
     If stories parameter is 'only', then it will only get STORY media posts for these user(s).
     Otherwise stories parameter indicates if STORY media posts should or should not be included.
@@ -451,9 +451,7 @@ def get_media_posts(id_or_users, stories=True, only_ids=False, facebook=None, on
     if not isinstance(id_or_users, (list, tuple)):
         id_or_users = [id_or_users]
     users = (find_valid_user(ea) for ea in id_or_users)
-    ts = None
-    if only_ids:
-        ts = str(make_missing_timestamp(0))
+    ts = None if not only_ids else str(make_missing_timestamp(0))
     results = []
     for fb, user in ((facebook or u.get_auth_session(), u) for u in users if u):
         cur = []
