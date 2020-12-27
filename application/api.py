@@ -476,6 +476,33 @@ def get_media_posts(id_or_users, stories=True, only_ids=True, facebook=None, onl
     return results
 
 
+def construct_metrics_lookup(group_metrics, metrics, post_ids):
+    """Take the couple of parameters for forming a metrics lookup scheme and return an appropriate metrics value. """
+    errors = []
+    if not metrics:
+        metrics, group_metrics = group_metrics, metrics
+    if (group_metrics and not (isinstance(group_metrics, str) and isinstance(metrics, dict))) \
+            or not isinstance(metrics, (dict, str, type(None))):
+        err = "The metrics and post_metrics were not formatted correctly for data. "
+        app.logger.error(err)
+        errors.append(err)
+        return metrics, errors
+    if isinstance(metrics, dict):
+        try:
+            metrics = {int(k): v for k, v in metrics.items()}
+        except TypeError as e:
+            err = "Not properly formatted metrics dict for data. "
+            app.logger.error(err)
+            app.logger.error(e)
+            errors.append(err)
+            errors.append(e)
+            return metrics, errors
+        for ea in post_ids:
+            metrics.setdefault(ea, group_metrics)  # group_metrics is None or a str
+    # else metrics is None or a str
+    return metrics, errors
+
+
 def clean_collect_dataset(original_dataset):
     """Return an updated dataset or return error if dataset does not confirm to expected format. """
     # data = {'user_id': int, 'metrics': str or None, 'post_ids': [int], 'post_metrics': {int: str, } or str or None}
@@ -504,29 +531,11 @@ def clean_collect_dataset(original_dataset):
             errorset.append(err)
             errorset.append(e)
             continue  # skip to the next num, data
-        group_metrics = data.get('metrics', None)
-        metrics = data.get('post_metrics', None)
-        if not metrics:
-            metrics, group_metrics = group_metrics, metrics
-        if (group_metrics and not (isinstance(group_metrics, str) and isinstance(metrics, dict))) \
-                or not isinstance(metrics, (dict, str, type(None))):
-            err = f"The metrics and post_metrics were not formatted correctly for data {num}. "
-            app.logger.error(err)
-            errorset.append(err)
-            continue  # skip to the next num, data
-        if isinstance(metrics, dict):
-            try:
-                metrics = {int(k): v for k, v in metrics.items()}
-            except TypeError as e:
-                err = f"Not properly formatted metrics dict for data: {num}. "
-                app.logger.error(err)
-                app.logger.error(e)
-                errorset.append(err)
-                errorset.append(e)
-                continue  # skip to the next num, data
-            for ea in post_ids:
-                metrics.setdefault(ea, group_metrics)  # group_metrics is None or a str
-        # else metrics is None or a str
+        metrics, errors = construct_metrics_lookup(data.get('metrics', None), data.get('post_metrics', None))
+        if errors:
+            errorset.append(f"Problem with constructing modifier of metrics for {num} data. ")
+            errorset.extend(errors)
+            continue
         fb = user.get_auth_session()
         if post_ids:
             posts = Post.query.filter(Post.id.in_(post_ids))
