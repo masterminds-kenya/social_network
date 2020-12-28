@@ -13,7 +13,7 @@ PROJECT_REGION = app.config.get('PROJECT_REGION')  # Google Docs said PROJECT_ZO
 CAPTURE_SERVICE = app.config.get('CAPTURE_SERVICE')
 CAPTURE_QUEUE = app.config.get('CAPTURE_QUEUE')
 COLLECT_SERVICE = app.config.get('COLLECT_SERVICE', environ.get('GAE_SERVICE', 'dev'))
-COLLECT_QUEUE = app.config.get('COLLECT_QUEUE')
+COLLECT_QUEUE = app.config.get('COLLECT_QUEUE', 'collect')
 capture_names = ('test-on-db-b', 'post', 'test')
 client = tasks_v2.CloudTasksClient()
 
@@ -46,17 +46,17 @@ def _get_queue_path(queue_name):
     """
     if not queue_name:
         queue_name = 'test'
-    parent = client.location_path(PROJECT_ID, PROJECT_REGION)  # f"projects/{PROJECT_ID}/locations/{PROJECT_REGION}"
+    # parent = client.location_path(PROJECT_ID, PROJECT_REGION)  # f"projects/{PROJECT_ID}/locations/{PROJECT_REGION}"
+    parent = f"projects/{PROJECT_ID}/locations/{PROJECT_REGION}"
     if queue_name in capture_names:
         is_capture = True
         queue_name = f"{CAPTURE_QUEUE}-{queue_name}".lower()
-        queue_path = client.queue_path(PROJECT_ID, PROJECT_REGION, queue_name)
         routing_override = {'service': CAPTURE_SERVICE}
     else:
         is_capture = False
         queue_name = f"{COLLECT_QUEUE}-{queue_name}".lower()
-        queue_path = client.queue_path(PROJECT_ID, PROJECT_REGION, queue_name)
         routing_override = {'service': COLLECT_SERVICE}
+    queue_path = client.queue_path(PROJECT_ID, PROJECT_REGION, queue_name)
     rate_limits = {'max_concurrent_dispatches': 2 if is_capture else 1, 'max_dispatches_per_second': 1}
     queue_settings = {'name': queue_path, 'app_engine_routing_override': routing_override, 'rate_limits': rate_limits}
     min_backoff, max_backoff, max_life = duration_pb2.Duration(), duration_pb2.Duration(), duration_pb2.Duration()
@@ -66,7 +66,7 @@ def _get_queue_path(queue_name):
     retry_config = {'max_attempts': 25, 'min_backoff': min_backoff, 'max_backoff': max_backoff, 'max_doublings': 9}
     retry_config['max_retry_duration'] = max_life
     queue_settings['retry_config'] = retry_config
-    for queue in client.list_queues(parent):  # TODO: ?Improve efficiency since queues list is in lexicographical order?
+    for queue in client.list_queues(parent=parent):  # TODO: ?Improve efficiency since queues list is in lexicographical order?
         if queue_settings['name'] == queue.name:
             # q = client.update(queue_settings, update_mask=queue_settings.keys())  # TODO: Fix
             return queue.name
@@ -144,6 +144,7 @@ def add_to_collect(media_data, queue_name='basic-post', task_name=None, in_secon
         media_data = [media_data]
     task_list = []
     for data in media_data:
+        source['time'] = d
         payload = {'source': source, 'dataset': data}
         task = {
                 'app_engine_http_request': {  # Specify the type of request.
