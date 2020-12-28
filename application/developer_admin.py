@@ -329,7 +329,7 @@ def load_users_file():
     # load()
     message = "This is a deprecated feature and route. "
     flash(message)
-    return redirect(url_for('all', mod='influencer'))
+    return redirect(url_for('list_all', mod='influencer'))
 
 
 @app.route('/data/<string:mod>/<int:id>')

@@ -25,10 +25,10 @@
           </label>
           <ul class="menu">
             <li><a href="{{ url_for('home') }}">Home</a></li>
-            <li><a href="{{ url_for('all', mod='influencer') }}">Influencers</a></li>
-            <li><a href="{{ url_for('all', mod='brand') }}">Brands</a></li>
+            <li><a href="{{ url_for('list_all', mod='influencer') }}">Influencers</a></li>
+            <li><a href="{{ url_for('list_all', mod='brand') }}">Brands</a></li>
             {% if current_user.role in ['admin', 'manager'] %}
-            <li><a href="{{ url_for('all', mod='campaign') }}">Campaigns</a></li>
+            <li><a href="{{ url_for('list_all', mod='campaign') }}">Campaigns</a></li>
             <li>
               <a href="{{ url_for('view', mod=current_user.role, id=current_user.id) }}">Profile</a>
             </li>

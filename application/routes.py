@@ -73,9 +73,9 @@ def signup():
         return redirect(url_for('view', mod=mod, id=user['id']))
 
     next_page = request.args.get('next')
-    if next_page == url_for('all', mod='influencer'):
+    if next_page == url_for('list_all', mod='influencer'):
         mods = ['influencer']
-    elif next_page == url_for('all', mod='brand'):
+    elif next_page == url_for('list_all', mod='brand'):
         mods = ['brand']
     else:
         mods = ['influencer', 'brand']
@@ -788,7 +788,7 @@ def delete(mod, id):
 
 @app.route('/<string:mod>/list')
 @login_required
-def all(mod):
+def list_all(mod):
     """List view for all data of Model, or Google Drive Files, as indicated by mod.
     The list view for influencer and brand will redirect those user types to their profile.
     Only admin & manager users can see these list views for brands, influencers, or campaigns.

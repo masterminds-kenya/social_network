@@ -32,9 +32,9 @@
 <ul>
   <li><a href="{{ url_for('signup') }}">Create Manager or Admin User</a> </li>
   <li><a href="{{ url_for('add', mod='brand') }}">Create Brand User</a> (Instagram account optional)</li>
-  <li><a href="{{ url_for('all', mod='manager') }}">List Managers</a></li>
-  <li><a href="{{ url_for('all', mod='admin')}}">List Admins</a></li>
-  <li><a href="{{ url_for('all', mod='file') }}">Google Drive Files</a></li>
+  <li><a href="{{ url_for('list_all', mod='manager') }}">List Managers</a></li>
+  <li><a href="{{ url_for('list_all', mod='admin')}}">List Admins</a></li>
+  <li><a href="{{ url_for('list_all', mod='file') }}">Google Drive Files</a></li>
   <li><a href="{{ url_for('problem_posts') }}">Problem Posts</a></li>
   <li><a href="{{ url_for('admin') }}">RETURN to Base Admin Page (admin)</a></li>
 </ul>
@@ -55,9 +55,9 @@
 <ul>
   <li><a href="{{ url_for('render_static', page_name='test') }}">Test Styles Page</a></li>
   <li><a href="{{ url_for('all_posts') }}">Get new posts for ALL user accounts</a> (automatically run daily)</li>
-  <li><a href="{{ url_for('all', mod='post') }}">List all Posts</a></li>
-  <li><a href="{{ url_for('all', mod='insight') }}">List all Insights</a></li>
-  <li><a href="{{ url_for('all', mod='audience') }}">List all Audience Data</a></li>
+  <li><a href="{{ url_for('list_all', mod='post') }}">List all Posts</a></li>
+  <li><a href="{{ url_for('list_all', mod='insight') }}">List all Insights</a></li>
+  <li><a href="{{ url_for('list_all', mod='audience') }}">List all Audience Data</a></li>
   {% if dev %}
   <li>Developer Only Functions - Potentially Dangerous</li>
   <li><a href="{{ url_for('add', mod='influencer') }}">Add Fake Influencer</a></li>
