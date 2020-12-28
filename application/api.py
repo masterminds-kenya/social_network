@@ -502,7 +502,7 @@ def clean_collect_dataset(data):
         app.logger.error(e)
         return {'error': e}
     metrics = construct_metrics_lookup(data.get('metrics', None), data.get('post_metrics', None), media_ids)
-    if metrics and 'error' in metrics:
+    if isinstance(metrics, dict) and 'error' in metrics:
         return metrics
     if post_ids:
         posts = Post.query.filter(Post.id.in_(post_ids))
@@ -572,11 +572,11 @@ def handle_collect_media_no_post_id(data, process):
     facebook = user.get_auth_session() if user else None
     if not user or not facebook:
         err = f"Unable to find a valid user id: {user_id} for data. "
-        app.logger.error(err)
+        app.logger.error(err)  # TODO: Change to raise error and catch the exception.
         return {'error': err}
     metrics = construct_metrics_lookup(data.get('metrics'), data.get('post_metrics'), data.get('media_ids'))
-    if metrics and 'error' in metrics:
-        return metrics
+    if isinstance(metrics, dict) and 'error' in metrics:
+        return metrics  # TODO: Change to raise error and catch the exception.
     collected = []
     for cur in data.get('media_list', []):
         is_story = True if cur.get('media_type', None) == 'STORY' else False

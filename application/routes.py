@@ -691,7 +691,7 @@ def capture_report():
 def collect_queue(mod, process):
     """For backend handling requests for media post data from the Graph API with google cloud tasks. """
     known_process = ('basic', 'metrics', 'data')
-    app.logger.info(f"======================== collect queue: {mod} {process} =============================")
+    app.logger.debug(f"==================== collect queue: {mod} {process} ====================")
     if mod != 'post' or process not in known_process:
         return "Unknown Data Type or Process in Request", 404
     head = {}
@@ -704,33 +704,23 @@ def collect_queue(mod, process):
     head['x_task_retry_reason'] = request.headers.get('X-AppEngine-TaskRetryReason', None)
     head['x_fail_fast'] = request.headers.get('X-AppEngine-FailFast', None)
     req_body = request.json if request.is_json else request.data
-    # app.logger.debug(request.args)
-    # app.logger.info("-------------------------------------------------------------------")
-    # app.logger.debug(head)
-    # app.logger.info("-------------------------------------------------------------------")
-    # app.logger.debug(request)
-    # app.logger.debug("-------------------------------------------------------------------")
-    # app.logger.debug(req_body)
-    # app.logger.debug("-------------------------------------------------------------------")
-    if not head:  # TODO: Update to check that required values are not None.
+    if not head['x_queue_name'] or not head['x_task_id']:
         app.logger.error("This request is not coming from our project. It should be rejected. ")
         return "Unknown Request", 404
     if not req_body:
-        return "No request body to decode. ", 404
+        return "No request body. ", 404
     req_body = json.loads(req_body.decode())  # The request body from a Task API is byte encoded
     source = req_body.get('source', {})
     source.update(head)
     # TODO: Determine if any other confirmation issues, and if anything needed for source or report_settings.
-    app.logger.info("------------------------- SOURCE ------------------------------------------")
+    app.logger.debug("------------------------ SOURCE ------------------------")
     app.logger.debug(source)
-    app.logger.info("------------------------- DATASET ------------------------------------------")
     dataset = req_body.get('dataset', [])
-    app.logger.debug(dataset)
-    app.logger.info("-------------------------------------------------------------------")
+    app.logger.debug(f"------------------------ DATASET: {len(dataset.get('media_list', []))} ------------------------")
+    app.logger.debug(f"For user ID: {dataset.get('user_id', 'NOT FOUND')}")
+    app.logger.debug("------------------------ ----------------- ------------------------")
     result = handle_collect_media(dataset, process)
-    # result = {'error': "Handle  of collect media not yet implemented. "}
     status_code = 500 if 'error' in result else 201
-    # result.setdefault('status_code', status_code)
     status_code = result.pop('status_code', status_code)
     return result, status_code
 
@@ -756,7 +746,7 @@ def hook():
         response_code = 200 if token_match else 401
         app.logger.debug(f"Mode: {mode} | Challenge: {res} | Token: {token_match} ")
     app.logger.debug(f"==================== The hook route returns status code: {response_code} ====================")
-    app.logger.info(res)
+    app.logger.debug(res)
     return res, response_code
 
 

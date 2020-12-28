@@ -42,10 +42,8 @@ def try_task(parent, task):
     return response  # .name if response else None
 
 
-def _get_queue_path(queue_name):
-    """Creates or gets a queue for managing calls to the capture API to get the live images of a web page.
-       May need to refactor to Create or Update a queue.
-    """
+def get_queue_path(queue_name):
+    """Creates or gets a queue for either the Capture API or the collect process. """
     if not queue_name:
         queue_name = 'test'
     parent = f"projects/{PROJECT_ID}/locations/{PROJECT_REGION}"
@@ -58,6 +56,14 @@ def _get_queue_path(queue_name):
         queue_name = f"{COLLECT_QUEUE}-{queue_name}".lower()
         routing_override = {'service': COLLECT_SERVICE}
     queue_path = client.queue_path(PROJECT_ID, PROJECT_REGION, queue_name)
+    try:
+        q = client.get_queue(name=queue_path)
+    except Exception as e:
+        app.logger.info(f"The {queue_path} queue does not exist, or could not be found. Attempting to create it. ")
+        app.logger.info(e)
+        q = None
+    if q:
+        return queue_path
     rate_limits = {'max_concurrent_dispatches': 2 if is_capture else 1, 'max_dispatches_per_second': 1}
     queue_settings = {'name': queue_path, 'app_engine_routing_override': routing_override, 'rate_limits': rate_limits}
     min_backoff, max_backoff, max_life = duration_pb2.Duration(), duration_pb2.Duration(), duration_pb2.Duration()
@@ -67,10 +73,10 @@ def _get_queue_path(queue_name):
     retry_config = {'max_attempts': 25, 'min_backoff': min_backoff, 'max_backoff': max_backoff, 'max_doublings': 9}
     retry_config['max_retry_duration'] = max_life
     queue_settings['retry_config'] = retry_config
-    for queue in client.list_queues(parent=parent):  # TODO: ?Improve efficiency since queues list is in lexicographical order?
-        if queue_settings['name'] == queue.name:
-            # q = client.update(queue_settings, update_mask=queue_settings.keys())  # TODO: Fix
-            return queue.name
+    # for queue in client.list_queues(parent=parent):  # TODO: ?Improve efficiency since queues list is in lexicographical order?
+    #     if queue_settings['name'] == queue.name:
+    #         # q = client.update(queue_settings, update_mask=queue_settings.keys())  # TODO: Fix
+    #         return queue.name
     try:
         q = client.create_queue(parent=parent, queue=queue_settings)
     except AlreadyExists as exists:
@@ -101,7 +107,14 @@ def get_or_create_queue(queue_name, logging=0):
     #     queue_name = f"{COLLECT_QUEUE}-{queue_name}".lower()
     #     routing_override = {'service': COLLECT_SERVICE}
     # queue_path = client.queue_path(PROJECT_ID, PROJECT_REGION, queue_name)
-
+    # try:
+    #     q = client.get_queue(name=queue_path)
+    # except Exception as e:
+    #     app.logger.info(f"The {queue_path} queue does not exist, or could not be found. Attempting to create it. ")
+    #     app.logger.info(e)
+    #     q = None
+    # if q:
+    #     return queue_path
     # rate_limits = {'max_concurrent_dispatches': 2 if is_capture else 1, 'max_dispatches_per_second': 1}
     # rate_limits = RateLimits(**rate_limits)
     # min_backoff, max_backoff, max_life = duration_pb2.Duration(), duration_pb2.Duration(), duration_pb2.Duration()
@@ -139,7 +152,7 @@ def add_to_capture(post, queue_name='test-on-db-b', task_name=None, in_seconds=9
     mod = 'post'
     if not isinstance(task_name, (str, type(None))):
         raise TypeError("Usually the task_name for add_to_capture should be None, but should be a string if set. ")
-    parent = _get_queue_path(queue_name)
+    parent = get_queue_path(queue_name)
     capture_api_path = f"/api/v1/{mod}/"
     report_settings = {'service': environ.get('GAE_SERVICE', 'dev'), 'relative_uri': '/capture/report/'}
     source = {'queue_type': queue_name, 'queue_name': parent, 'object_type': mod}
@@ -178,9 +191,9 @@ def add_to_collect(media_data, queue_name='basic-post', task_name=None, in_secon
         raise ValueError(info)
     if not isinstance(task_name, (str, type(None))):
         raise TypeError("Usually the task_name for add_to_capture should be None, but should be a string if set. ")
-    parent = _get_queue_path(queue_name)
+    parent = get_queue_path(queue_name)
     relative_uri = url_for('collect_queue', mod=mod, process=process)  # f"/collect/{mod}/{process}"
-    source = {'queue_type': queue_name, 'queue_name': parent, 'object_type': mod}
+    source = {'queue_type': queue_name, 'queue_name': parent}
     # data = {'user_id': int, 'post_ids': [int, ] | None, 'media_ids': [int, ] | None, }  # must have post or media ids
     # optional in data: 'metrics': str|None, 'post_metrics': {int: str}|str|None
     timestamp = timestamp_pb2.Timestamp()
@@ -190,7 +203,7 @@ def add_to_collect(media_data, queue_name='basic-post', task_name=None, in_secon
         media_data = [media_data]
     task_list = []
     for data in media_data:
-        source['time'] = d.isoformat()
+        source['start_time'] = d.isoformat()  # Must be serializable.
         payload = {'source': source, 'dataset': data}
         task = {
                 'app_engine_http_request': {  # Specify the type of request.
