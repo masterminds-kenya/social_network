@@ -37,13 +37,13 @@
     </li>
     {% if mod == 'campaign' %}
     <li><a href="{{ url_for('add', mod='brand')}}">Add Brand</a></li>
-    <li><a href="{{ url_for('all', mod='campaign', role='active') }}">Active Campaigns (default)</a></li>
-    <li><a href="{{ url_for('all', mod='campaign', role='completed') }}">Completed Campaigns</a></li>
-    <li><a href="{{ url_for('all', mod='campaign', role='all') }}">Both Active and Completed Campaigns</a></li>
+    <li><a href="{{ url_for('list_all', mod='campaign', role='active') }}">Active Campaigns (default)</a></li>
+    <li><a href="{{ url_for('list_all', mod='campaign', role='completed') }}">Completed Campaigns</a></li>
+    <li><a href="{{ url_for('list_all', mod='campaign', role='all') }}">Both Active and Completed Campaigns</a></li>
     {% elif mod in ('influencer', 'brand') %}
-    <li><a href="{{ url_for('all', mod=mod, view='active') }}">Active {{ mod|capitalize }}s</a></li>
-    <li><a href="{{ url_for('all', mod=mod, view='Not Active') }}">Not Active {{ mod|capitalize }}s</a></li>
-    <li><a href="{{ url_for('all', mod=mod, view='all') }}">All {{ mod|capitalize }}s (default)</a></li>
+    <li><a href="{{ url_for('list_all', mod=mod, view='active') }}">Active {{ mod|capitalize }}s</a></li>
+    <li><a href="{{ url_for('list_all', mod=mod, view='Not Active') }}">Not Active {{ mod|capitalize }}s</a></li>
+    <li><a href="{{ url_for('list_all', mod=mod, view='all') }}">All {{ mod|capitalize }}s (default)</a></li>
     {% endif %}
   </ul>
   {% endif %}

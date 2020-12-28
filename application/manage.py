@@ -2,10 +2,11 @@ from flask import flash, redirect, render_template, url_for, request, current_ap
 from flask_login import current_user, login_user
 from werkzeug.security import generate_password_hash
 from collections import defaultdict
+from functools import reduce
 import hmac
 import hashlib
 import json
-from .model_db import db, User, Post, Audience
+from .model_db import fix_date, db, User, Post, Audience
 from .model_db import db_read, db_create, db_update, db_delete
 from .helper_functions import mod_lookup, make_missing_timestamp
 
@@ -227,6 +228,31 @@ def report_update(reports, Model):
     app.logger.info(message)
     status_code = 422 if had_error else 200
     return message, status_code
+
+
+def media_posts_save(media_results, new_only=True, add_time=True):
+    """Save the initial media posts data. The basic media and media metrics will be updated later. """
+    if isinstance(media_results, list) and len(media_results) == 0:
+        return 0, True
+    mediaset = reduce(lambda result, ea: result + ea.get('media_list', []), media_results, [])
+    if add_time:
+        ts = str(make_missing_timestamp(0))
+        mediaset = [fix_date(Post, dict(**ea, timestamp=ts)) for ea in mediaset]
+    if not new_only:
+        # TODO: Possibly make a version for update, or maybe update or create.
+        success = False  # Not Implemented yet.
+        return len(mediaset), success
+    try:
+        db.session.bulk_insert_mappings(Post, mediaset)
+        db.session.commit()
+        success = True
+    except Exception as e:
+        info = "There was a problem with saving media posts "
+        success = False
+        app.logger.error("========== SAVE MEDIA QUEUE ERROR ==========")
+        app.logger.error(info)
+        app.logger.error(e)
+    return len(mediaset), success
 
 
 def process_hook(req):

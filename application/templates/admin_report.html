@@ -72,8 +72,8 @@
 
 <ul>
   <li><a href="{{ url_for('admin') }}">RETURN to Base Admin Page</a></li>
-  <li><a href="{{ url_for('all', mod='influencer') }}">Influencers</a></li>
-  <li><a href="{{ url_for('all', mod='brand') }}">Brands</a></li>
-  <li><a href="{{ url_for('all', mod='campaign') }}">Campaigns</a></li>
+  <li><a href="{{ url_for('list_all', mod='influencer') }}">Influencers</a></li>
+  <li><a href="{{ url_for('list_all', mod='brand') }}">Brands</a></li>
+  <li><a href="{{ url_for('list_all', mod='campaign') }}">Campaigns</a></li>
 </ul>
 {% endblock content %}

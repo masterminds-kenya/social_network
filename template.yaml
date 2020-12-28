@@ -23,6 +23,9 @@ env_variables:
   CAPTURE_QUEUE: ''  # No underscore allowed. Hyphen, letters, and numbers only.
   CAPTURE_SERVICE: 'capture'
   CAPTURE_BASE_URL: 'url-to-capture-api'
+  # COLLECT_BASE_URL: 'url-to-collect-site'
+  COLLECT_QUEUE: ''  # No underscore allowed. Hyphen, letters, and numbers only.
+  # COLLECT_SERVICE: ''  # dev|capture|default - If not set, the service (dev or production) will be set, and thus receive the request.
   DB_CONNECTION_NAME: '[PROJECT_ID]:[PROJECT_REGION]:[DB_INSTANCE]'
   SECRET_KEY: 'Replace-with-secret'
   DEV_RUN: 'True'  # or 'False' for production.

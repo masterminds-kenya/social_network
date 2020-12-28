@@ -2,12 +2,11 @@ from flask import render_template, redirect, url_for, request, flash, session, c
 from flask_login import current_user, login_user, logout_user, login_required
 from werkzeug.security import generate_password_hash, check_password_hash
 import json
-from functools import reduce
 from .model_db import db_create, db_read, db_delete, db_all, from_sql  # , metric_clean
 from .model_db import User, OnlineFollowers, Insight, Post, Campaign, db   # , Audience
 from .developer_admin import admin_view
 from .helper_functions import staff_required, admin_required, mod_lookup, prep_ig_decide, get_daily_ig_accounts
-from .manage import update_campaign, process_form, report_update, check_hash, add_edit, process_hook
+from .manage import update_campaign, process_form, report_update, check_hash, add_edit, media_posts_save, process_hook
 from .api import (onboard_login, onboarding, user_permissions, get_insight, get_audience, get_online_followers,
                   get_media_posts, get_metrics_post, handle_collect_media)
 from .create_queue_task import add_to_collect
@@ -74,9 +73,9 @@ def signup():
         return redirect(url_for('view', mod=mod, id=user['id']))
 
     next_page = request.args.get('next')
-    if next_page == url_for('all', mod='influencer'):
+    if next_page == url_for('list_all', mod='influencer'):
         mods = ['influencer']
-    elif next_page == url_for('all', mod='brand'):
+    elif next_page == url_for('list_all', mod='brand'):
         mods = ['brand']
     else:
         mods = ['influencer', 'brand']
@@ -177,13 +176,15 @@ def problem_posts():
 @admin_required()
 def test_method():
     """Temporary restricted to admin route and function for developer to test components. """
+    from .create_queue_task import list_queues
     app.logger.info("========== Test Method for admin:  ==========")
-    info = get_daily_ig_accounts()
-    pprint([f"{ea}: {len(ea.campaigns)} | {len(ea.brand_campaigns)} " for ea in info])
+    info = list_queues()
+    # info = get_daily_ig_accounts()
+    # pprint([f"{ea}: {len(ea.campaigns)} | {len(ea.brand_campaigns)} " for ea in info])
     # info = {'key1': 1, 'key2': 'two', 'key3': '3rd', 'meaningful': False}
     # pprint(info)
     app.logger.info('-------------------------------------------------------------')
-    return admin(data=info)
+    return redirect(url_for('admin', data=info))
 
 
 @app.route('/any/test')
@@ -462,29 +463,17 @@ def all_posts():
             return redirect(url_for('error'))
     all_ig = get_daily_ig_accounts()
     media_results = get_media_posts(all_ig)
-    mediaset = reduce(lambda result, ea: result + ea.get('media_list', []), media_results, [])
-    try:
-        db.session.bulk_insert_mappings(mediaset)
-        db.session.commit()
-        success = True
-    except Exception as e:
-        info = "There was a problem with saving media posts "
-        success = False
-        app.logger.error("========== SAVE MEDIA QUEUE ERROR ==========")
-        app.logger.error(info)
-        app.logger.error(e)
-    message = f"For {len(all_ig)} users, got {len(mediaset)} posts. Initial save: {success}. "
-    if success:
-        success = add_to_collect(media_results, queue_name='basic-post', in_seconds=180)
-    response = {'User_num': len(all_ig), 'Post_num': len(mediaset), 'message': message}
-    if success:
-        response['status_code'] = 201
-    else:
-        response['status_code'] = 500
+    count, success = media_posts_save(media_results)
+    message = f"For {len(all_ig)} users, got {count} posts. Initial save: {success}. "
+    if success and count > 0:
+        task_list = add_to_collect(media_results, queue_name='basic-post', in_seconds=180)
+        success = all(ea is not None for ea in task_list)
+    status = 201 if success else 500
+    response = {'User_num': len(all_ig), 'Post_num': count, 'message': message, 'status_code': status}
     if cron_run:
         response = json.dumps(response)
     else:  # Process run by an admin.
-        message += "Admin requested getting posts for all users. "
+        message += "Admin requested getting posts for all active users. "
         flash(message)
         response = redirect(url_for('admin', data=response))
     app.logger.info(message)
@@ -634,8 +623,11 @@ def new_post(mod, id):
     if current_user.role not in ['admin', 'manager'] and current_user.id != id:
         flash("This was not a correct location. You are redirected to the home page. ")
         return redirect(url_for('home'))
-    posts = get_media_posts(id)
-    logstring = f"Retrieved {len(posts)} new Posts. " if posts else "No new posts were found. "
+    media_results = get_media_posts(id, only_ids=False)
+    found = len(media_results[0]['media_list'])
+    logstring = f"Found {found} media posts. "
+    count, success = media_posts_save(media_results)
+    logstring += f"Saved {count} new Posts. " if success else "No new posts were saved. "
     app.logger.info(logstring)
     flash(logstring)
     return_path = request.referrer
@@ -702,9 +694,6 @@ def collect_queue(mod, process):
     app.logger.info(f"======================== collect queue: {mod} {process} =============================")
     if mod != 'post' or process not in known_process:
         return "Unknown Data Type or Process in Request", 404
-    args = request.args
-    if args:
-        app.logger.info(args)
     head = {}
     head['x_queue_name'] = request.headers.get('X-AppEngine-QueueName', None)
     head['x_task_id'] = request.headers.get('X-Appengine-Taskname', None)
@@ -714,20 +703,36 @@ def collect_queue(mod, process):
     head['x_task_previous_response'] = request.headers.get('X-AppEngine-TaskPreviousResponse', None)
     head['x_task_retry_reason'] = request.headers.get('X-AppEngine-TaskRetryReason', None)
     head['x_fail_fast'] = request.headers.get('X-AppEngine-FailFast', None)
-    if not head:
+    req_body = request.json if request.is_json else request.data
+    # app.logger.debug(request.args)
+    # app.logger.info("-------------------------------------------------------------------")
+    # app.logger.debug(head)
+    # app.logger.info("-------------------------------------------------------------------")
+    # app.logger.debug(request)
+    # app.logger.debug("-------------------------------------------------------------------")
+    # app.logger.debug(req_body)
+    # app.logger.debug("-------------------------------------------------------------------")
+    if not head:  # TODO: Update to check that required values are not None.
         app.logger.error("This request is not coming from our project. It should be rejected. ")
         return "Unknown Request", 404
-    req_body = request.json if request.is_json else request.data
+    if not req_body:
+        return "No request body to decode. ", 404
     req_body = json.loads(req_body.decode())  # The request body from a Task API is byte encoded
-    # report_settings = req_body.get('report_settings', {})
     source = req_body.get('source', {})
     source.update(head)
     # TODO: Determine if any other confirmation issues, and if anything needed for source or report_settings.
+    app.logger.info("------------------------- SOURCE ------------------------------------------")
+    app.logger.debug(source)
+    app.logger.info("------------------------- DATASET ------------------------------------------")
     dataset = req_body.get('dataset', [])
+    app.logger.debug(dataset)
+    app.logger.info("-------------------------------------------------------------------")
     result = handle_collect_media(dataset, process)
+    # result = {'error': "Handle  of collect media not yet implemented. "}
     status_code = 500 if 'error' in result else 201
+    # result.setdefault('status_code', status_code)
     status_code = result.pop('status_code', status_code)
-    return results, status_code
+    return result, status_code
 
 
 @app.route('/post/hook/', methods=['GET', 'POST'])
@@ -785,7 +790,7 @@ def delete(mod, id):
 
 @app.route('/<string:mod>/list')
 @login_required
-def all(mod):
+def list_all(mod):
     """List view for all data of Model, or Google Drive Files, as indicated by mod.
     The list view for influencer and brand will redirect those user types to their profile.
     Only admin & manager users can see these list views for brands, influencers, or campaigns.
