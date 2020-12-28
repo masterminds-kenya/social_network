@@ -48,7 +48,6 @@ def _get_queue_path(queue_name):
     """
     if not queue_name:
         queue_name = 'test'
-    # parent = client.location_path(PROJECT_ID, PROJECT_REGION)  # f"projects/{PROJECT_ID}/locations/{PROJECT_REGION}"
     parent = f"projects/{PROJECT_ID}/locations/{PROJECT_REGION}"
     if queue_name in capture_names:
         is_capture = True

@@ -232,6 +232,8 @@ def report_update(reports, Model):
 
 def media_posts_save(media_results, new_only=True, add_time=True):
     """Save the initial media posts data. The basic media and media metrics will be updated later. """
+    if isinstance(media_results, list) and len(media_results) == 0:
+        return 0, True
     mediaset = reduce(lambda result, ea: result + ea.get('media_list', []), media_results, [])
     if add_time:
         ts = str(make_missing_timestamp(0))

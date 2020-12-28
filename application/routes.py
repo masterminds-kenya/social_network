@@ -465,7 +465,7 @@ def all_posts():
     media_results = get_media_posts(all_ig)
     count, success = media_posts_save(media_results)
     message = f"For {len(all_ig)} users, got {count} posts. Initial save: {success}. "
-    if success:
+    if success and count > 0:
         task_list = add_to_collect(media_results, queue_name='basic-post', in_seconds=180)
         success = all(ea is not None for ea in task_list)
     status = 201 if success else 500

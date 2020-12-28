@@ -468,7 +468,8 @@ def get_media_posts(id_or_users, stories=True, only_ids=True, facebook=None, onl
                 cur.extend({'media_id': s, 'media_type': 'STORY', 'user_id': user.id} for s in stories)
             else:
                 cur.extend(get_post_data(ea, user, is_story=True, full=False, facebook=fb) for ea in stories)
-        results.append({'user_id': user.id, 'media_ids': media_ids, 'media_list': cur})
+        if cur:
+            results.append({'user_id': user.id, 'media_ids': media_ids, 'media_list': cur})
     return results
 
 
