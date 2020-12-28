@@ -71,7 +71,7 @@ def _get_queue_path(queue_name):
             # q = client.update(queue_settings, update_mask=queue_settings.keys())  # TODO: Fix
             return queue.name
     try:
-        q = client.create_queue(parent, queue_settings)
+        q = client.create_queue(parent=parent, queue=queue_settings)
     except AlreadyExists as exists:
         # TODO: return the existing queue.
         app.logger.info(f"Already Exists on get/create/update {queue_name} ")
@@ -144,7 +144,7 @@ def add_to_collect(media_data, queue_name='basic-post', task_name=None, in_secon
         media_data = [media_data]
     task_list = []
     for data in media_data:
-        source['time'] = d
+        source['time'] = d.isoformat()
         payload = {'source': source, 'dataset': data}
         task = {
                 'app_engine_http_request': {  # Specify the type of request.
