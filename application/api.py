@@ -372,7 +372,7 @@ def get_basic_post(media_id, metrics=None, id_or_user=None, facebook=None):
         app.logger.error(f"User: {id_or_user} | Media: {media_id} | Error: {res.get('error', 'Empty Error')} ")
         empty_res['caption'] = 'API_ERROR'
         return empty_res
-    res_media_id = res.pop('id', '')
+    res_media_id = int(res.pop('id', 0))
     if res_media_id != media_id:
         app.logger.error(f"Mismatch media_id: Request {media_id} | Response {res_media_id} ")
     res['media_id'] = media_id
@@ -486,7 +486,8 @@ def clean_collect_dataset(data):
     dataset = []
     user_id = data.get('user_id', None)
     user = find_valid_user(user_id) if user_id else None
-    if not user:
+    fb = user.get_auth_session() if user else None
+    if not user or not fb:
         err = f"Unable to find a valid user id: {user_id} for data. "
         app.logger.error(err)
         return {'error': err}
@@ -501,9 +502,8 @@ def clean_collect_dataset(data):
         app.logger.error(e)
         return {'error': e}
     metrics = construct_metrics_lookup(data.get('metrics', None), data.get('post_metrics', None), media_ids)
-    if 'error' in metrics:
+    if metrics and 'error' in metrics:
         return metrics
-    fb = user.get_auth_session()
     if post_ids:
         posts = Post.query.filter(Post.id.in_(post_ids))
     elif media_ids:
@@ -521,9 +521,12 @@ def clean_collect_dataset(data):
 def handle_collect_media(data, process):
     """With the given dataset and post process, call the Graph API and update the database. Return success status. """
     # already confirmed process is one of: 'basic', 'metrics', 'data'
+    app.logger.debug("========== HANDLE COLLECT MEDIA ==========")
     dataset = clean_collect_dataset(data)
+    app.logger.debug(len(dataset))
     if 'error' in dataset:
         return dataset
+    user = None
     collected = []
     for data in dataset:
         post_id = data.pop('id')
@@ -544,11 +547,12 @@ def handle_collect_media(data, process):
                 media = get_metrics_post(media, facebook, metrics=metrics)
         media['id'] = post_id
         collected.append(media)
+    app.logger.debug(f"-------------------- collected: {len(collected)} --------------------------------")
     try:
         db.session.bulk_update_mappings(Post, collected)
         db.session.commit()
         app.logger.debug("========== HANDLE COLLECT MEDIA SUCCESS! ==========")
-        info = f"Updated {len(collected)} Post records with media {process} info. "
+        info = f"Updated {len(collected)} Post records for user {user} with media {process} info. "
         app.logger.debug(info)
         result = {'reason': info, 'status_code': 201}
     except Exception as e:

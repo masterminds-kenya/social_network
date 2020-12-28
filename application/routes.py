@@ -704,14 +704,14 @@ def collect_queue(mod, process):
     head['x_task_retry_reason'] = request.headers.get('X-AppEngine-TaskRetryReason', None)
     head['x_fail_fast'] = request.headers.get('X-AppEngine-FailFast', None)
     req_body = request.json if request.is_json else request.data
-    app.logger.debug(request.args)
-    app.logger.info("-------------------------------------------------------------------")
-    app.logger.debug(head)
-    app.logger.info("-------------------------------------------------------------------")
-    app.logger.debug(request)
-    app.logger.debug("-------------------------------------------------------------------")
-    app.logger.debug(req_body)
-    app.logger.debug("-------------------------------------------------------------------")
+    # app.logger.debug(request.args)
+    # app.logger.info("-------------------------------------------------------------------")
+    # app.logger.debug(head)
+    # app.logger.info("-------------------------------------------------------------------")
+    # app.logger.debug(request)
+    # app.logger.debug("-------------------------------------------------------------------")
+    # app.logger.debug(req_body)
+    # app.logger.debug("-------------------------------------------------------------------")
     if not head:  # TODO: Update to check that required values are not None.
         app.logger.error("This request is not coming from our project. It should be rejected. ")
         return "Unknown Request", 404
@@ -721,16 +721,18 @@ def collect_queue(mod, process):
     source = req_body.get('source', {})
     source.update(head)
     # TODO: Determine if any other confirmation issues, and if anything needed for source or report_settings.
+    app.logger.info("------------------------- SOURCE ------------------------------------------")
     app.logger.debug(source)
-    app.logger.info("-------------------------------------------------------------------")
+    app.logger.info("------------------------- DATASET ------------------------------------------")
     dataset = req_body.get('dataset', [])
     app.logger.debug(dataset)
     app.logger.info("-------------------------------------------------------------------")
-    # result = handle_collect_media(dataset, process)
-    result = {'error': "Handle  of collect media not yet implemented. "}
+    result = handle_collect_media(dataset, process)
+    # result = {'error': "Handle  of collect media not yet implemented. "}
     status_code = 500 if 'error' in result else 201
+    # result.setdefault('status_code', status_code)
     status_code = result.pop('status_code', status_code)
-    return results, status_code
+    return result, status_code
 
 
 @app.route('/post/hook/', methods=['GET', 'POST'])
