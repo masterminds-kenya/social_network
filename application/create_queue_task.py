@@ -2,6 +2,8 @@ from flask import current_app as app
 from flask.helpers import url_for
 from google.api_core.exceptions import RetryError, AlreadyExists, GoogleAPICallError
 from google.cloud import tasks_v2
+# from google.cloud.tasks_v2.types.queue import Queue, RateLimits, RetryConfig, StackdriverLoggingConfig
+# from google.cloud.tasks_v2.types import target
 from google.protobuf import timestamp_pb2, duration_pb2
 from datetime import timedelta, datetime as dt
 from .model_db import Post
@@ -9,7 +11,7 @@ from os import environ
 import json
 
 PROJECT_ID = app.config.get('PROJECT_ID')
-PROJECT_REGION = app.config.get('PROJECT_REGION')  # Google Docs said PROJECT_ZONE ?
+PROJECT_REGION = app.config.get('PROJECT_REGION')  # Google Docs said PROJECT_ZONE, but confirmed PROJECT_REGION works
 CAPTURE_SERVICE = app.config.get('CAPTURE_SERVICE')
 CAPTURE_QUEUE = app.config.get('CAPTURE_QUEUE')
 COLLECT_SERVICE = app.config.get('COLLECT_SERVICE', environ.get('GAE_SERVICE', 'dev'))
@@ -21,7 +23,7 @@ client = tasks_v2.CloudTasksClient()
 def try_task(parent, task):
     """Given the parent queue path and a constructed task dict, create/assign the task or log the error response. """
     try:
-        response = client.create_task(parent, task)
+        response = client.create_task(parent=parent, task=task)
     except ValueError as e:
         app.logger.info(f"Invalid parameters for creating a task: \n {task}")
         app.logger.error(e)
@@ -36,7 +38,7 @@ def try_task(parent, task):
         response = None
     if response is not None:
         app.logger.info("Created task!")
-        app.logger.info(response)
+        # app.logger.info(response)
     return response  # .name if response else None
 
 
@@ -86,6 +88,51 @@ def _get_queue_path(queue_name):
         app.logger.error(error)
         q = None
     return queue_path if q else None
+
+
+def get_or_create_queue(queue_name, logging=0):
+    """Updated process for queue path. """
+    # parent = client.queue_path(PROJECT_ID, PROJECT_REGION, queue_name)
+    # if queue_name in capture_names:
+    #     is_capture = True
+    #     queue_name = f"{CAPTURE_QUEUE}-{queue_name}".lower()
+    #     routing_override = {'service': CAPTURE_SERVICE}
+    # else:
+    #     is_capture = False
+    #     queue_name = f"{COLLECT_QUEUE}-{queue_name}".lower()
+    #     routing_override = {'service': COLLECT_SERVICE}
+    # queue_path = client.queue_path(PROJECT_ID, PROJECT_REGION, queue_name)
+
+    # rate_limits = {'max_concurrent_dispatches': 2 if is_capture else 1, 'max_dispatches_per_second': 1}
+    # rate_limits = RateLimits(**rate_limits)
+    # min_backoff, max_backoff, max_life = duration_pb2.Duration(), duration_pb2.Duration(), duration_pb2.Duration()
+    # min_backoff.FromJsonString('10s')    # 10 seconds
+    # max_backoff.FromJsonString('5100s')  # 1 hour and 25 minutes
+    # max_life.FromJsonString('86100s')    # 5 minutes shy of 24 hours
+    # retry_config = {'max_attempts': 25, 'min_backoff': min_backoff, 'max_backoff': max_backoff, 'max_doublings': 9}
+    # retry_config['max_retry_duration'] = max_life
+    # retry_config = RetryConfig(**retry_config)
+    # queue_settings = {'name': queue_path, 'rate_limits': rate_limits, 'retry_config': retry_config}
+    # if routing_override:
+    #     queue_settings['app_engine_routing_override'] = target.AppEngineRouting(**routing_override)
+    # if logging:
+    #     queue_settings['stackdriver_logging_config'] = StackdriverLoggingConfig(sampling_ratio=logging)
+    # queue_settings = Queue(**queue_settings)
+    # if queue_path not in list_queues():
+    #     queue = client.create_queue(parent=parent, queue=queue_settings)
+    # else:
+    #     queue = queue_path
+    # return queue
+    pass
+
+
+def list_queues():
+    """Helper to list the queues associated with this project. """
+    parent = f"projects/{PROJECT_ID}/locations/{PROJECT_REGION}"
+    queue_list = client.list_queues(parent=parent)
+    for ea in queue_list:
+        app.logger.info(ea)
+    return queue_list
 
 
 def add_to_capture(post, queue_name='test-on-db-b', task_name=None, in_seconds=90):
