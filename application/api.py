@@ -460,7 +460,7 @@ def construct_metrics_lookup(group_metrics, metrics, media_ids):
             or not isinstance(metrics, (dict, str, type(None))):
         err = "The metrics and post_metrics were not formatted correctly for data. "
         app.logger.error(err)
-        return {'error': err}
+        return {'error': err, 'status_code': 500}
     if isinstance(metrics, dict):
         try:
             metrics = {int(k): v for k, v in metrics.items()}
@@ -468,7 +468,7 @@ def construct_metrics_lookup(group_metrics, metrics, media_ids):
             err = "Not properly formatted metrics dict for data. "
             app.logger.error(err)
             app.logger.error(e)
-            return {'error': e}
+            return {'error': e, 'status_code': 500}
         for ea in media_ids:
             metrics.setdefault(ea, group_metrics)  # group_metrics is None or a str
     # else metrics is None or a str
@@ -476,13 +476,13 @@ def construct_metrics_lookup(group_metrics, metrics, media_ids):
 
 
 def clean_collect_dataset(data):
-    """Return an updated dataset or return error if dataset does not confirm to expected format. """
+    """Return a list of dicts with Post id, and resources needed for the Graph API request. """
     # data = {'user_id': int, 'post_ids': [int, ] | None, 'media_ids': [int, ] | None, }  # must have post or media ids
     # optional in data: 'metrics': str|None, 'post_metrics': {int: str}|str|None
     if not isinstance(data, (dict)):
-        err = "Dataset is not an expected dictionary. "
+        err = "Input is not an expected dictionary. "
         app.logger.error(err)
-        return {'error': err}
+        return {'error': err, 'status_code': 500}
     dataset = []
     user_id = data.get('user_id', None)
     user = find_valid_user(user_id) if user_id else None
@@ -490,7 +490,7 @@ def clean_collect_dataset(data):
     if not user or not fb:
         err = f"Unable to find a valid user id: {user_id} for data. "
         app.logger.error(err)
-        return {'error': err}
+        return {'error': err, 'status_code': 500}
     post_ids = data.get('post_ids', [])
     media_ids = data.get('media_ids', [])
     try:
@@ -500,7 +500,7 @@ def clean_collect_dataset(data):
         err = f"Not properly formatted post or media ids for {user} user data. "
         app.logger.error(err)
         app.logger.error(e)
-        return {'error': e}
+        return {'error': e, 'status_code': 500}
     metrics = construct_metrics_lookup(data.get('metrics', None), data.get('post_metrics', None), media_ids)
     if isinstance(metrics, dict) and 'error' in metrics:
         return metrics
@@ -519,12 +519,13 @@ def clean_collect_dataset(data):
 
 
 def handle_collect_media(data, process):
-    """With the given dataset and post process, call the Graph API and update the database. Return success status. """
+    """With the given dataset and post process, call the Graph API and update the database. Return dict with status. """
     # already confirmed process is one of: 'basic', 'metrics', 'data'
     app.logger.debug("========== HANDLE COLLECT MEDIA ==========")
+    # return handle_collect_media_no_post_id(data, process)
     dataset = clean_collect_dataset(data)
     app.logger.debug(len(dataset))
-    if 'error' in dataset:
+    if isinstance(dataset, dict) and 'error' in dataset:
         return dataset
     user = None
     collected = []
@@ -560,7 +561,7 @@ def handle_collect_media(data, process):
         app.logger.error("========== HANDLE COLLECT MEDIA ERROR ==========")
         app.logger.error(info)
         app.logger.error(e)
-        result = {'error': [info, e]}
+        result = {'error': [info, e], 'status_code': 500}
     return result
 
 
@@ -573,7 +574,7 @@ def handle_collect_media_no_post_id(data, process):
     if not user or not facebook:
         err = f"Unable to find a valid user id: {user_id} for data. "
         app.logger.error(err)  # TODO: Change to raise error and catch the exception.
-        return {'error': err}
+        return {'error': err, 'status_code': 500}
     metrics = construct_metrics_lookup(data.get('metrics'), data.get('post_metrics'), data.get('media_ids'))
     if isinstance(metrics, dict) and 'error' in metrics:
         return metrics  # TODO: Change to raise error and catch the exception.
@@ -592,7 +593,6 @@ def handle_collect_media_no_post_id(data, process):
             media['media_type'] = 'STORY' if is_story else media.get('media_type', '')
             if process == 'data':
                 media = get_metrics_post(media, facebook, metrics=mets)
-        # media['id'] = post_id
         collected.append(media)
     try:
         db.session.bulk_update_mappings(Post, collected)
@@ -606,7 +606,7 @@ def handle_collect_media_no_post_id(data, process):
         app.logger.error("========== HANDLE COLLECT MEDIA ERROR ==========")
         app.logger.error(info)
         app.logger.error(e)
-        result = {'error': [info, e]}
+        result = {'error': [info, e], 'status_code': 500}
     return result
 
 

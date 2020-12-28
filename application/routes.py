@@ -374,7 +374,7 @@ def decide_new(mod, id):
 
 @app.route('/campaign/<int:id>/results', methods=['GET', 'POST'])
 @staff_required()
-def results(id):
+def results_campaign(id):
     """Campaign Results View (on GET) or generate Worksheet report (on POST) """
     view, mod, related = 'results', 'campaign', {}
     template = f"{view}_{mod}.html"
