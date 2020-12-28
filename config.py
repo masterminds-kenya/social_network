@@ -22,6 +22,10 @@ GCLOUD_URL = environ.get('URL', environ.get('GCLOUD_URL', ''))
 CAPTURE_BASE_URL = environ.get('CAPTURE_BASE_URL')
 CAPTURE_QUEUE = environ.get('CAPTURE_QUEUE')
 CAPTURE_SERVICE = environ.get('CAPTURE_SERVICE')
+# COLLECT_BASE_URL = environ.get('COLLECT_BASE_URL')
+COLLECT_QUEUE = environ.get('COLLECT_QUEUE')
+COLLECT_SERVICE = environ.get('COLLECT_SERVICE', environ.get('GAE_SERVICE', 'dev'))
+# dev|capture|default  # If not set, the service (dev or production) will be set, and thus receive the request.
 # Set the following value to the Cloud SQL connection name, e.g.
 #   "project:region:cloudsql-instance".
 # You must also update the value in app.yaml.
