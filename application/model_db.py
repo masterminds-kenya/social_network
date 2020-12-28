@@ -280,8 +280,8 @@ class User(UserMixin, db.Model):
         if cursor_attr:  # TODO: If useful, add 'story_cursor' and 'media_cursor' fields.
             setattr(self, cursor_attr, last_cursor)
         if use_last:
-            existing = Post.query.filter(Post.media_id.in_(media))  # TODO: Change to SELECT only media_id field?
-            media = set(media) - set(ea.media_id for ea in existing)
+            existing = db.session.query(Post.media_id).filter(Post.media_id.in_(media))
+            media = set(media) - set(ea[0] for ea in existing)
         return media
 
     # @hybrid_property

@@ -419,27 +419,6 @@ def get_post_data(media_id, user, is_story=False, full=True, facebook=None):
     return media
 
 
-def _get_posts_data_of_user(id_or_user, stories=True, ig_id=None, facebook=None):
-    """Called by get_posts. Returns list, for a user, of STORY and regular media Posts with basic content & metrics. """
-    # TODO: Is pagination a concern?
-    user = find_valid_user(id_or_user)
-    if not user:
-        return []
-    ig_id = ig_id or user.instagram_id
-    facebook = facebook or user.get_auth_session()
-    if not facebook:
-        return []
-    if stories:
-        stories = user.get_media(story=True, facebook=facebook)
-        stories = [get_post_data(ea, user, is_story=True, facebook=facebook) for ea in stories]
-    if not isinstance(stories, list):
-        stories = []
-    media = user.get_media(facebook=facebook)
-    media = [get_post_data(ea, user, facebook=facebook) for ea in media]
-    results = stories + media
-    return results
-
-
 def get_media_posts(id_or_users, stories=True, only_ids=True, facebook=None, only_new=True):
     """Returns a list of saved Post objects created for the single or list of Users or User id(s).
     If stories parameter is 'only', then it will only get STORY media posts for these user(s).
@@ -462,7 +441,7 @@ def get_media_posts(id_or_users, stories=True, only_ids=True, facebook=None, onl
             else:
                 cur.extend(get_post_data(ea, user, full=False, facebook=fb) for ea in media)
         if stories:
-            stories = user.get_media(story=True, facebook=fb)
+            stories = user.get_media(story=True, use_last=only_new, facebook=fb)
             media_ids.extend(stories)
             if only_ids:
                 cur.extend({'media_id': s, 'media_type': 'STORY', 'user_id': user.id} for s in stories)
