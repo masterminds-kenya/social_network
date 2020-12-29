@@ -73,17 +73,12 @@ def get_queue_path(queue_name):
     retry_config = {'max_attempts': 25, 'min_backoff': min_backoff, 'max_backoff': max_backoff, 'max_doublings': 9}
     retry_config['max_retry_duration'] = max_life
     queue_settings['retry_config'] = retry_config
-    # for queue in client.list_queues(parent=parent):  # TODO: ?Improve efficiency since queues list is in lexicographical order?
-    #     if queue_settings['name'] == queue.name:
-    #         # q = client.update(queue_settings, update_mask=queue_settings.keys())  # TODO: Fix
-    #         return queue.name
     try:
         q = client.create_queue(parent=parent, queue=queue_settings)
     except AlreadyExists as exists:
-        # TODO: return the existing queue.
         app.logger.info(f"Already Exists on get/create/update {queue_name} ")
         app.logger.info(exists)
-        q = None
+        q = queue_path
     except ValueError as error:
         app.logger.info(f"Value Error on get/create/update the {queue_name} ")
         app.logger.error(error)

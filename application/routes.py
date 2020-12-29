@@ -3,7 +3,7 @@ from flask_login import current_user, login_user, logout_user, login_required
 from werkzeug.security import generate_password_hash, check_password_hash
 import json
 from .model_db import db_create, db_read, db_delete, db_all, from_sql  # , metric_clean
-from .model_db import User, OnlineFollowers, Insight, Post, Campaign, db   # , Audience
+from .model_db import User, OnlineFollowers, Insight, Post, Campaign  # , db, Audience
 from .developer_admin import admin_view
 from .helper_functions import staff_required, admin_required, mod_lookup, prep_ig_decide, get_daily_ig_accounts
 from .manage import update_campaign, process_form, report_update, check_hash, add_edit, media_posts_save, process_hook
@@ -434,15 +434,15 @@ def update_campaign_metrics(id):
     post_data = [get_metrics_media(media, facebook, metrics) for media, facebook, metrics in prep_data]
     count, success = media_posts_save(post_data, create_or_update='update')
     if success:
-        flash(f"Updated {count} non-story media posts. ")
+        info = f"Updated metrics for {count} non-story media posts. "
     else:
         info = "There was a problem with updating non-story media post metrics. Please contact an Admin. "
-        flash(info)
+    flash(info)
     return redirect(request.referrer)
 
 
 # ########## End of Campaign Views ############
-# ########## The following are for general Views ############
+# ########## Backend Routes: Used by Cron and Queue Tasks (possibly called by admin). ############
 
 
 @app.route('/all_posts')
@@ -475,57 +475,119 @@ def all_posts():
     return response
 
 
-@app.route('/<string:mod>/<int:id>')
-@login_required
-def view(mod, id):
-    """Used primarily for specific User or Brand views, but also any data model view except Campaign. """
-    # if mod == 'campaign':
-    #     return campaign(id)
-    Model, model = mod_lookup(mod), None
-    if current_user.role not in ['manager', 'admin']:
-        if mod in User.ROLES:
-            if current_user.role == mod and current_user.id != id:
-                flash("Incorrect location. You are being redirected to your own profile page. ")
-                return redirect(url_for('view', mod=current_user.role, id=current_user.id))
-        elif mod in ['post', 'audience']:
-            # The user can only view this detail view if they are associated to the data
-            model = Model.query.get(id)
-            if model.user != current_user:
-                flash("Incorrect location. You are being redirected to the home page. ")
-                return redirect(url_for('home'))
-        else:
-            flash("This was not a correct location. You are being redirected to the home page. ")
-            return redirect(url_for('home'))
-    model = model or Model.query.get(id)
-    template = 'view.html'
-    if mod == 'post':
-        template = f"{mod}_{template}"
-        model = model.display()
-    else:
-        model = from_sql(model, related=True, safe=True)
-        related_user = from_sql(model.user, related=False, safe=True) if getattr(model, 'user', None) else None
-        if mod == 'insight':
-            template = f"{mod}_{template}"
-            model['user'] = related_user
-        elif mod == 'audience':
-            template = f"{mod}_{template}"
-            model['user'] = related_user
-            value = json.loads(model['value'])
-            if not isinstance(value, dict):  # For the id_data Audience records
-                value = {'value': value}
-            model['value'] = value
-    # TODO: Remove these temporary logs
-    # app.logger.info(f"Current User: {current_user} ")
-    return render_template(template, mod=mod, data=model, caption_errors=caption_errors)
+@app.route('/capture/report/', methods=['GET', 'POST'])
+def capture_report():
+    """After the capture work is processed, the results are sent here to update the models. """
+    app.logger.info("======================== capture report route =============================")
+    message = ''
+    # pprint(request.headers)
+    # TODO: Check request.headers or source info for signs this came from a task queue, and reject if not a valid source
+    data = request.json if request.is_json else request.data
+    data = json.loads(data.decode())
+    # # data = {'success': Bool, 'message': '', 'source': {}, 'error': <answer remains>, 'changes':[change_vals, ...]}
+    # # data['changes'] is a list of dict to be used as update content.
+    app.logger.info('------------------  Source  -------------------------------------')
+    pprint(data.get('source'))
+    app.logger.info('------------------ Message  -------------------------------------')
+    message += data.get('message')
+    app.logger.info(message)
+    if data.get('success', False) is False:
+        app.logger.info('------------------ Answer Remains -------------------------------------')
+        pprint(data.get('error'))
+        return message, 500
+    mod = data.get('source', {}).get('object_type', '')
+    Model = mod_lookup(mod)
+    return report_update(data.get('changes', []), Model)
 
+
+@app.route('/collect/<string:mod>/<string:process>', methods=['GET', 'POST'])
+def collect_queue(mod, process):
+    """For backend handling requests for media post data from the Graph API with google cloud tasks. """
+    known_process = ('basic', 'metrics', 'data')
+    app.logger.debug(f"==================== collect queue: {mod} {process} ====================")
+    if mod != 'post' or process not in known_process:
+        return "Unknown Data Type or Process in Request", 404
+    head = {}
+    head['x_queue_name'] = request.headers.get('X-AppEngine-QueueName', None)
+    head['x_task_id'] = request.headers.get('X-Appengine-Taskname', None)
+    head['x_retry_count'] = request.headers.get('X-Appengine-Taskretrycount', None)
+    head['x_response_count'] = request.headers.get('X-AppEngine-TaskExecutionCount', None)
+    head['x_task_eta'] = request.headers.get('X-AppEngine-TaskETA', None)
+    head['x_task_previous_response'] = request.headers.get('X-AppEngine-TaskPreviousResponse', None)
+    head['x_task_retry_reason'] = request.headers.get('X-AppEngine-TaskRetryReason', None)
+    head['x_fail_fast'] = request.headers.get('X-AppEngine-FailFast', None)
+    req_body = request.json if request.is_json else request.data
+    if not head['x_queue_name'] or not head['x_task_id']:
+        app.logger.error("This request is not coming from our project. It should be rejected. ")
+        return "Unknown Request", 404
+    if not req_body:
+        return "No request body. ", 404
+    req_body = json.loads(req_body.decode())  # The request body from a Task API is byte encoded
+    source = req_body.get('source', {})
+    source.update(head)
+    app.logger.debug("------------------------ SOURCE ------------------------")
+    app.logger.debug(source)
+    dataset = req_body.get('dataset', [])
+    user_id = dataset.get('user_id', 'NOT FOUND')
+    media_count = len(dataset.get('media_list', []))
+    app.logger.debug(f"------------------------ Media: {media_count} for User ID: {user_id} ------------------------")
+    result = handle_collect_media(dataset, process)
+    if isinstance(result, list):
+        count, success = media_posts_save(result, create_or_update='update')
+        if success:
+            info = f"Updated {count} Post records with media {process} info for user ID: {user_id} - SUCCESS. "
+            app.logger.debug(info)
+            result = {'reason': info, 'status_code': 201}
+        else:
+            info = f"Updating {count} Posts with the media {process} results for user ID: {user_id} - FAILED. "
+            app.logger.error(info)
+            result = {'error': info, 'status_code': 500}
+    status_code = 500 if 'error' in result else 201
+    status_code = result.pop('status_code', status_code)
+    return result, status_code
+
+
+@app.route('/post/hook/', methods=['GET', 'POST'])
+def hook():
+    """Endpoint receives all webhook updates from Instagram/Facebook for Story Posts. """
+    app.logger.debug(f"========== The hook route has a {request.method} request ==========")
+    if request.method == 'POST':
+        signed = request.headers.get('X-Hub-Signature', '')
+        data = request.json if request.is_json else request.data  # request.get_data() for byte_data
+        verified = check_hash(signed, data)
+        if not verified:
+            message = "Signature given for webhook could not be verified. "
+            app.logger.error(message)
+            return message, 401  # 403 if we KNOW it was done wrong
+        res, response_code = process_hook(data)
+    else:  # request.method == 'GET':
+        mode = request.args.get('hub.mode')
+        token_match = request.args.get('hub.verify_token', '') if request.args.get('hub.mode') == 'subscribe' else ''
+        token_match = True if token_match == app.config.get('FB_HOOK_SECRET') else False
+        res = request.args.get('hub.challenge', '') if token_match else 'Error. '
+        response_code = 200 if token_match else 401
+        app.logger.debug(f"Mode: {mode} | Challenge: {res} | Token: {token_match} ")
+    app.logger.debug(f"==================== The hook route returns status code: {response_code} ====================")
+    app.logger.debug(res)
+    return res, response_code
+
+
+# ########## End of Backend Routes ############
+# ########## User Updates and Views: Show or collect from the Graph API data for users. ############
 
 @app.route('/<string:mod>/<int:id>/insights')
 @login_required
 def insights(mod, id):
     """For a given User (influencer or brand), show the account Insight data. """
+    return_path = redirect(request.referrer)
+    error_message = ''
+    if mod not in ('influencer', 'brand'):
+        error_message = "Invalid user role or type to collect new posts. "
     if current_user.role not in ['admin', 'manager'] and current_user.id != id:
-        flash("This was not a correct location. You are redirected to the home page. ")
-        return redirect(url_for('home'))
+        error_message += "This was not a correct location. You are redirected to the home page. "
+    if error_message:
+        flash(error_message)
+        return return_path
     user = db_read(id)
     scheme_color = ['gold', 'purple', 'green', 'blue']
     dataset, i = {}, 0
@@ -634,6 +696,54 @@ def new_post(mod, id):
     return return_path
 
 
+# ########## End User Updates and Views ############
+# ########## The following are for general Views ############
+
+
+@app.route('/<string:mod>/<int:id>')
+@login_required
+def view(mod, id):
+    """Used primarily for specific User or Brand views, but also any data model view except Campaign. """
+    # if mod == 'campaign':
+    #     return campaign(id)
+    Model, model = mod_lookup(mod), None
+    if current_user.role not in ['manager', 'admin']:
+        if mod in User.ROLES:
+            if current_user.role == mod and current_user.id != id:
+                flash("Incorrect location. You are being redirected to your own profile page. ")
+                return redirect(url_for('view', mod=current_user.role, id=current_user.id))
+        elif mod in ['post', 'audience']:
+            # The user can only view this detail view if they are associated to the data
+            model = Model.query.get(id)
+            if model.user != current_user:
+                flash("Incorrect location. You are being redirected to the home page. ")
+                return redirect(url_for('home'))
+        else:
+            flash("This was not a correct location. You are being redirected to the home page. ")
+            return redirect(url_for('home'))
+    model = model or Model.query.get(id)
+    template = 'view.html'
+    if mod == 'post':
+        template = f"{mod}_{template}"
+        model = model.display()
+    else:
+        model = from_sql(model, related=True, safe=True)
+        related_user = from_sql(model.user, related=False, safe=True) if getattr(model, 'user', None) else None
+        if mod == 'insight':
+            template = f"{mod}_{template}"
+            model['user'] = related_user
+        elif mod == 'audience':
+            template = f"{mod}_{template}"
+            model['user'] = related_user
+            value = json.loads(model['value'])
+            if not isinstance(value, dict):  # For the id_data Audience records
+                value = {'value': value}
+            model['value'] = value
+    # TODO: Remove these temporary logs
+    # app.logger.info(f"Current User: {current_user} ")
+    return render_template(template, mod=mod, data=model, caption_errors=caption_errors)
+
+
 @app.route('/<string:mod>/add', methods=['GET', 'POST'])
 @staff_required()
 def add(mod):
@@ -660,103 +770,6 @@ def edit(mod, id):
         flash("Something went wrong. Contact an admin or manager. Redirecting to the home page. ")
         return redirect(url_for('home'))
     return add_edit(mod, id=id)
-
-
-@app.route('/capture/report/', methods=['GET', 'POST'])
-def capture_report():
-    """After the capture work is processed, the results are sent here to update the models. """
-    app.logger.info("======================== capture report route =============================")
-    message = ''
-    # pprint(request.headers)
-    # TODO: Check request.headers or source info for signs this came from a task queue, and reject if not a valid source
-    data = request.json if request.is_json else request.data
-    data = json.loads(data.decode())
-    # # data = {'success': Bool, 'message': '', 'source': {}, 'error': <answer remains>, 'changes':[change_vals, ...]}
-    # # data['changes'] is a list of dict to be used as update content.
-    app.logger.info('------------------  Source  -------------------------------------')
-    pprint(data.get('source'))
-    app.logger.info('------------------ Message  -------------------------------------')
-    message += data.get('message')
-    app.logger.info(message)
-    if data.get('success', False) is False:
-        app.logger.info('------------------ Answer Remains -------------------------------------')
-        pprint(data.get('error'))
-        return message, 500
-    mod = data.get('source', {}).get('object_type', '')
-    Model = mod_lookup(mod)
-    return report_update(data.get('changes', []), Model)
-
-
-@app.route('/collect/<string:mod>/<string:process>', methods=['GET', 'POST'])
-def collect_queue(mod, process):
-    """For backend handling requests for media post data from the Graph API with google cloud tasks. """
-    known_process = ('basic', 'metrics', 'data')
-    app.logger.debug(f"==================== collect queue: {mod} {process} ====================")
-    if mod != 'post' or process not in known_process:
-        return "Unknown Data Type or Process in Request", 404
-    head = {}
-    head['x_queue_name'] = request.headers.get('X-AppEngine-QueueName', None)
-    head['x_task_id'] = request.headers.get('X-Appengine-Taskname', None)
-    head['x_retry_count'] = request.headers.get('X-Appengine-Taskretrycount', None)
-    head['x_response_count'] = request.headers.get('X-AppEngine-TaskExecutionCount', None)
-    head['x_task_eta'] = request.headers.get('X-AppEngine-TaskETA', None)
-    head['x_task_previous_response'] = request.headers.get('X-AppEngine-TaskPreviousResponse', None)
-    head['x_task_retry_reason'] = request.headers.get('X-AppEngine-TaskRetryReason', None)
-    head['x_fail_fast'] = request.headers.get('X-AppEngine-FailFast', None)
-    req_body = request.json if request.is_json else request.data
-    if not head['x_queue_name'] or not head['x_task_id']:
-        app.logger.error("This request is not coming from our project. It should be rejected. ")
-        return "Unknown Request", 404
-    if not req_body:
-        return "No request body. ", 404
-    req_body = json.loads(req_body.decode())  # The request body from a Task API is byte encoded
-    source = req_body.get('source', {})
-    source.update(head)
-    app.logger.debug("------------------------ SOURCE ------------------------")
-    app.logger.debug(source)
-    dataset = req_body.get('dataset', [])
-    user_id = dataset.get('user_id', 'NOT FOUND')
-    media_count = len(dataset.get('media_list', []))
-    app.logger.debug(f"------------------------ Media: {media_count} for User ID: {user_id} ------------------------")
-    result = handle_collect_media(dataset, process)
-    if isinstance(result, list):
-        count, success = media_posts_save(result, create_or_update='update')
-        if success:
-            info = f"Updated {count} Post records with media {process} info for user ID: {user_id} "
-            app.logger.debug(info)
-            result = {'reason': info, 'status_code': 201}
-        else:
-            info = "There was a problem with updating the collect media results. "
-            app.logger.error(info)
-            result = {'error': info, 'status_code': 500}
-    status_code = 500 if 'error' in result else 201
-    status_code = result.pop('status_code', status_code)
-    return result, status_code
-
-
-@app.route('/post/hook/', methods=['GET', 'POST'])
-def hook():
-    """Endpoint receives all webhook updates from Instagram/Facebook for Story Posts. """
-    app.logger.debug(f"========== The hook route has a {request.method} request ==========")
-    if request.method == 'POST':
-        signed = request.headers.get('X-Hub-Signature', '')
-        data = request.json if request.is_json else request.data  # request.get_data() for byte_data
-        verified = check_hash(signed, data)
-        if not verified:
-            message = "Signature given for webhook could not be verified. "
-            app.logger.error(message)
-            return message, 401  # 403 if we KNOW it was done wrong
-        res, response_code = process_hook(data)
-    else:  # request.method == 'GET':
-        mode = request.args.get('hub.mode')
-        token_match = request.args.get('hub.verify_token', '') if request.args.get('hub.mode') == 'subscribe' else ''
-        token_match = True if token_match == app.config.get('FB_HOOK_SECRET') else False
-        res = request.args.get('hub.challenge', '') if token_match else 'Error. '
-        response_code = 200 if token_match else 401
-        app.logger.debug(f"Mode: {mode} | Challenge: {res} | Token: {token_match} ")
-    app.logger.debug(f"==================== The hook route returns status code: {response_code} ====================")
-    app.logger.debug(res)
-    return res, response_code
 
 
 @app.route('/<string:mod>/<int:id>/delete', methods=['GET', 'POST'])

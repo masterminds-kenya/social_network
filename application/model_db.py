@@ -362,7 +362,7 @@ class User(UserMixin, db.Model):
 
     # @has_active_special.expression
     # def has_active_special(cls):
-    #     has_infuence = cls.role == 'influencer' and select().join(user_campaign).join(Campaign)
+    #     has_influence = cls.role == 'influencer' and select().join(user_campaign).join(Campaign)
     #     pass
 
     def has_active(self, ignore=[]):

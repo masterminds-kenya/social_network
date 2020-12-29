@@ -29,7 +29,7 @@ FB_SCOPE = [
     'pages_manage_metadata',
     # 'manage_pages'  # Deprecated. Now using pages_read_engagement (v7.0), 'pages_manage_metadata' for later.
     ]
-# TODO: Implement request of permissions previously rejected: The FB_AUTHORIZATION_BASE_URL with auth_type=rerequest
+# TODO: Implement request of permissions previously rejected: The FB_AUTHORIZATION_BASE_URL with auth_type=re-request
 METRICS = {
     OnlineFollowers: ','.join(OnlineFollowers.METRICS),
     Audience: ','.join(Audience.METRICS),
