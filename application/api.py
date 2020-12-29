@@ -545,20 +545,7 @@ def handle_collect_media(data, process):
         media['id'] = post_id
         collected.append(media)
     app.logger.debug(f"-------------------- collected: {len(collected)} --------------------------------")
-    try:
-        db.session.bulk_update_mappings(Post, collected)
-        db.session.commit()
-        app.logger.debug("========== HANDLE COLLECT MEDIA SUCCESS! ==========")
-        info = f"Updated {len(collected)} Post records for user {user} with media {process} info. "
-        app.logger.debug(info)
-        result = {'reason': info, 'status_code': 201}
-    except Exception as e:
-        info = "There was a problem with updating the collect media results. "
-        app.logger.error("========== HANDLE COLLECT MEDIA ERROR ==========")
-        app.logger.error(info)
-        app.logger.error(e)
-        result = {'error': [info, e], 'status_code': 500}
-    return result
+    return collected  # The media posts are updated by a different process.
 
 
 def handle_collect_media_no_post_id(data, process):

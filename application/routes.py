@@ -432,16 +432,11 @@ def update_campaign_metrics(id):
     camp = Campaign.query.get(id)
     prep_data = camp.prep_metrics_update()
     post_data = [get_metrics_media(media, facebook, metrics) for media, facebook, metrics in prep_data]
-    try:
-        db.session.bulk_update_mappings(Post, post_data)
-        db.session.commit()
-        app.logger.debug("========== UPDATE CAMPAIGN METRICS SUCCESS! ==========")
-        flash(f"Updated {len(post_data)} non-story media posts. ")
-    except Exception as e:
+    count, success = media_posts_save(post_data, create_or_update='update')
+    if success:
+        flash(f"Updated {count} non-story media posts. ")
+    else:
         info = "There was a problem with updating non-story media post metrics. Please contact an Admin. "
-        app.logger.error("========== UPDATE CAMPAIGN METRICS ERROR ==========")
-        app.logger.error(info)
-        app.logger.error(e)
         flash(info)
     return redirect(request.referrer)
 
@@ -463,7 +458,7 @@ def all_posts():
             return redirect(url_for('error'))
     all_ig = get_daily_ig_accounts()
     media_results = get_media_lists(all_ig)
-    count, success = media_posts_save(media_results)
+    count, success = media_posts_save(media_results, add_time=True)
     message = f"For {len(all_ig)} users, got {count} posts. Initial save: {success}. "
     if success and count > 0:
         task_list = add_to_collect(media_results, queue_name='basic-post', in_seconds=180)
@@ -632,7 +627,7 @@ def new_post(mod, id):
     media_results = get_media_lists(id, only_ids=False)
     found = len(media_results[0].get('media_list', [])) if media_results else 0
     logstring = f"Found {found} media posts. "
-    count, success = media_posts_save(media_results)
+    count, success = media_posts_save(media_results, add_time=False)
     logstring += f"Saved {count} new Posts. " if success else "No new posts were saved. "
     app.logger.debug(logstring)
     flash(logstring)
@@ -717,14 +712,23 @@ def collect_queue(mod, process):
     req_body = json.loads(req_body.decode())  # The request body from a Task API is byte encoded
     source = req_body.get('source', {})
     source.update(head)
-    # TODO: Determine if any other confirmation issues, and if anything needed for source or report_settings.
     app.logger.debug("------------------------ SOURCE ------------------------")
     app.logger.debug(source)
     dataset = req_body.get('dataset', [])
-    app.logger.debug(f"------------------------ DATASET: {len(dataset.get('media_list', []))} ------------------------")
-    app.logger.debug(f"For user ID: {dataset.get('user_id', 'NOT FOUND')}")
-    app.logger.debug("------------------------ ----------------- ------------------------")
+    user_id = dataset.get('user_id', 'NOT FOUND')
+    media_count = len(dataset.get('media_list', []))
+    app.logger.debug(f"------------------------ Media: {media_count} for User ID: {user_id} ------------------------")
     result = handle_collect_media(dataset, process)
+    if isinstance(result, list):
+        count, success = media_posts_save(result, create_or_update='update')
+        if success:
+            info = f"Updated {count} Post records with media {process} info for user ID: {user_id} "
+            app.logger.debug(info)
+            result = {'reason': info, 'status_code': 201}
+        else:
+            info = "There was a problem with updating the collect media results. "
+            app.logger.error(info)
+            result = {'error': info, 'status_code': 500}
     status_code = 500 if 'error' in result else 201
     status_code = result.pop('status_code', status_code)
     return result, status_code
