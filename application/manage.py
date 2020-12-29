@@ -230,29 +230,43 @@ def report_update(reports, Model):
     return message, status_code
 
 
-def media_posts_save(media_results, new_only=True, add_time=True):
+def media_posts_save(media_results, create_or_update='create', add_time=False):
     """Save the initial media posts data. The basic media and media metrics will be updated later. """
     if isinstance(media_results, list) and len(media_results) == 0:
         return 0, True
-    mediaset = reduce(lambda result, ea: result + ea.get('media_list', []), media_results, [])
-    if add_time:
-        ts = str(make_missing_timestamp(0))
-        mediaset = [fix_date(Post, dict(**ea, timestamp=ts)) for ea in mediaset]
-    if not new_only:
-        # TODO: Possibly make a version for update, or maybe update or create.
+    if create_or_update == 'create':
+        mediaset = reduce(lambda result, ea: result + ea.get('media_list', []), media_results, [])
+        count = len(mediaset)
+        if add_time:
+            ts = str(make_missing_timestamp(0))
+            mediaset = [fix_date(Post, dict(**ea, timestamp=ts)) for ea in mediaset]
+        try:
+            db.session.bulk_insert_mappings(Post, mediaset)
+            db.session.commit()
+            success = True
+        except Exception as e:
+            info = "There was a problem with saving media posts "
+            success = False
+            app.logger.error("========== CREATE MEDIA POSTS ERROR ==========")
+            app.logger.error(info)
+            app.logger.error(e)
+    elif create_or_update == 'update':
+        count = len(media_results)
+        try:
+            db.session.bulk_update_mappings(Post, media_results)
+            db.session.commit()
+            success = True
+        except Exception as e:
+            info = "There was a problem with updating media posts "
+            success = False
+            app.logger.error("========== UPDATE MEDIA POSTS ERROR ==========")
+            app.logger.error(info)
+            app.logger.error(e)
+    else:  # May have some to update, some to create. Filter accordingly for bulk processes.
+        # TODO: Possibly update or create.
+        count = len(media_results)
         success = False  # Not Implemented yet.
-        return len(mediaset), success
-    try:
-        db.session.bulk_insert_mappings(Post, mediaset)
-        db.session.commit()
-        success = True
-    except Exception as e:
-        info = "There was a problem with saving media posts "
-        success = False
-        app.logger.error("========== SAVE MEDIA QUEUE ERROR ==========")
-        app.logger.error(info)
-        app.logger.error(e)
-    return len(mediaset), success
+    return count, success
 
 
 def process_hook(req):
