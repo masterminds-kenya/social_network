@@ -333,7 +333,7 @@ def get_audience(user_id, ig_id=None, facebook=None):
     return db_create_or_update_many(results, user_id=user_id, Model=Audience)
 
 
-def get_basic_post(media_id, metrics=None, id_or_user=None, facebook=None):
+def get_basic_media(media_id, metrics=None, id_or_user=None, facebook=None):
     """Returns API results of IG media posts content. Typically called by _get_posts_data_of_user.
     The user_id parameter can be a user instance or user_id.
     If there are issues in the data collection, sentinel values are saved in the 'caption' field.
@@ -353,7 +353,7 @@ def get_basic_post(media_id, metrics=None, id_or_user=None, facebook=None):
     else:
         app.logger.error("Expected a user id along with the facebook OAuth2Session passed. ")
     if not user_id or not isinstance(facebook, OAuth2Session):
-        app.logger.error("The get_basic_post must be called with a User id or User that can create an auth seession. ")
+        app.logger.error("The get_basic_media must be called with a User id or User that can create an auth seession. ")
     timestamp = str(make_missing_timestamp(0))
     empty_res = {'media_id': media_id, 'user_id': user_id, 'timestamp': timestamp, 'caption': 'NO_CREDENTIALS'}
     if not metrics:
@@ -362,13 +362,13 @@ def get_basic_post(media_id, metrics=None, id_or_user=None, facebook=None):
     try:
         res = facebook.get(url).json()
     except Exception as e:
-        app.logger.info('------------- Error in get_basic_post FB API response -------------')
+        app.logger.info('------------- Error in get_basic_media FB API response -------------')
         app.logger.error(f"API fail for Post with media_id {media_id} | Auth: {auth} ")
         app.logger.exception(e)
         empty_res['caption'] = 'AUTH_' + auth
         return empty_res
     if 'error' in res:
-        app.logger.info('------------- Error in get_basic_post FB API response -------------')
+        app.logger.info('------------- Error in get_basic_media FB API response -------------')
         app.logger.error(f"User: {id_or_user} | Media: {media_id} | Error: {res.get('error', 'Empty Error')} ")
         empty_res['caption'] = 'API_ERROR'
         return empty_res
@@ -380,8 +380,8 @@ def get_basic_post(media_id, metrics=None, id_or_user=None, facebook=None):
     return res
 
 
-def get_metrics_post(media, facebook, metrics=None):
-    """Takes in a dict already containing the data from get_basic_post and adds metrics data. """
+def get_metrics_media(media, facebook, metrics=None):
+    """Takes in a dict already containing the data from get_basic_media and adds metrics data. """
     media_type = media.get('media_type', None)
     is_carousel = True if media_type == 'CAROUSEL_ALBUM' or (metrics and 'carousel_' in metrics) else False
     media_id = media['media_id']
@@ -403,23 +403,25 @@ def get_metrics_post(media, facebook, metrics=None):
     return media
 
 
-def get_post_data(media_id, user, is_story=False, full=True, facebook=None):
+def get_media_data(media_id, user, is_story=False, full=False, only_ids=False, facebook=None):
     """Returns a dict with both basic and (optionally) metrics data for a single media post (regular or story). """
     if not isinstance(user, User):
-        info = "The get_post_data must be called with a user model, not a user id. "
+        info = "The get_media_data must be called with a user model, not a user id. "
         app.logger.error(info)
         return []
-    facebook = facebook or user.get_auth_session()
-    res = get_basic_post(media_id, id_or_user=user.id, facebook=facebook)
-    res['media_type'] = 'STORY' if is_story else res.get('media_type', '')
-    if full:
-        media = get_metrics_post(res, facebook=facebook)
+    if only_ids:
+        media = {'media_id': media_id, 'user_id': user.id}
     else:
-        media = res
+        facebook = facebook or user.get_auth_session()
+        media = get_basic_media(media_id, id_or_user=user.id, facebook=facebook)
+    if is_story:
+        media['media_type'] = 'STORY'
+    if full and not only_ids:
+        media = get_metrics_media(media, facebook=facebook)
     return media
 
 
-def get_media_posts(id_or_users, stories=True, only_ids=True, facebook=None, only_new=True):
+def get_media_lists(id_or_users, stories=True, only_ids=True, facebook=None, only_new=True):
     """Returns a list of saved Post objects created for the single or list of Users or User id(s).
     If stories parameter is 'only', then it will only get STORY media posts for these user(s).
     Otherwise stories parameter indicates if STORY media posts should or should not be included.
@@ -436,17 +438,11 @@ def get_media_posts(id_or_users, stories=True, only_ids=True, facebook=None, onl
         if stories != 'only':
             media = user.get_media(use_last=only_new, facebook=fb)
             media_ids.extend(media)
-            if only_ids:
-                cur.extend({'media_id': ea, 'user_id': user.id} for ea in media)
-            else:
-                cur.extend(get_post_data(ea, user, full=False, facebook=fb) for ea in media)
+            cur.extend(get_media_data(ea, user, only_ids=only_ids, facebook=fb) for ea in media)
         if stories:
             stories = user.get_media(story=True, use_last=only_new, facebook=fb)
             media_ids.extend(stories)
-            if only_ids:
-                cur.extend({'media_id': s, 'media_type': 'STORY', 'user_id': user.id} for s in stories)
-            else:
-                cur.extend(get_post_data(ea, user, is_story=True, full=False, facebook=fb) for ea in stories)
+            cur.extend(get_media_data(ea, user, is_story=True, only_ids=only_ids, facebook=fb) for ea in stories)
         if cur:
             results.append({'user_id': user.id, 'media_ids': media_ids, 'media_list': cur})
     return results
@@ -536,16 +532,16 @@ def handle_collect_media(data, process):
         metrics = data.pop('metrics', None)
         is_story = True if data.get('media_type') == 'STORY' else False
         if process == 'metrics':
-            media = get_metrics_post(data, facebook, metrics=metrics)
+            media = get_metrics_media(data, facebook, metrics=metrics)
         elif not metrics:
             full = False if process == 'basic' else True
-            media = get_post_data(data['media_id'], user, is_story=is_story, full=full, facebook=facebook)
+            media = get_media_data(data['media_id'], user, is_story=is_story, full=full, facebook=facebook)
         else:  # metrics exist, and process is either 'basic' or 'data'.
             mets = metrics if process == 'basic' else None
-            media = get_basic_post(data['media_id'], metrics=mets, id_or_user=user.id, facebook=facebook)
+            media = get_basic_media(data['media_id'], metrics=mets, id_or_user=user.id, facebook=facebook)
             media['media_type'] = 'STORY' if is_story else media.get('media_type', '')
             if process == 'data':
-                media = get_metrics_post(media, facebook, metrics=metrics)
+                media = get_metrics_media(media, facebook, metrics=metrics)
         media['id'] = post_id
         collected.append(media)
     app.logger.debug(f"-------------------- collected: {len(collected)} --------------------------------")
@@ -583,16 +579,16 @@ def handle_collect_media_no_post_id(data, process):
         is_story = True if cur.get('media_type', None) == 'STORY' else False
         mets = metrics if isinstance(metrics, (str, type(None))) else metrics.get(cur.get('media_id'))
         if process == 'metrics':
-            media = get_metrics_post(data, facebook, metrics=mets)
+            media = get_metrics_media(data, facebook, metrics=mets)
         elif not mets:
             full = False if process == 'basic' else True
-            media = get_post_data(cur['media_id'], user, is_story=is_story, full=full, facebook=facebook)
+            media = get_media_data(cur['media_id'], user, is_story=is_story, full=full, facebook=facebook)
         else:  # metrics exist, and process is either 'basic' or 'data'.
             basic_mets = mets if process == 'basic' else None
-            media = get_basic_post(cur['media_id'], metrics=basic_mets, id_or_user=user.id, facebook=facebook)
+            media = get_basic_media(cur['media_id'], metrics=basic_mets, id_or_user=user.id, facebook=facebook)
             media['media_type'] = 'STORY' if is_story else media.get('media_type', '')
             if process == 'data':
-                media = get_metrics_post(media, facebook, metrics=mets)
+                media = get_metrics_media(media, facebook, metrics=mets)
         collected.append(media)
     try:
         db.session.bulk_update_mappings(Post, collected)

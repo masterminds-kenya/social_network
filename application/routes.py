@@ -8,7 +8,7 @@ from .developer_admin import admin_view
 from .helper_functions import staff_required, admin_required, mod_lookup, prep_ig_decide, get_daily_ig_accounts
 from .manage import update_campaign, process_form, report_update, check_hash, add_edit, media_posts_save, process_hook
 from .api import (onboard_login, onboarding, user_permissions, get_insight, get_audience, get_online_followers,
-                  get_media_posts, get_metrics_post, handle_collect_media)
+                  get_media_lists, get_metrics_media, handle_collect_media)
 from .create_queue_task import add_to_collect
 from .sheets import create_sheet, update_sheet, perm_add, perm_list, all_files
 from pprint import pprint
@@ -431,7 +431,7 @@ def update_campaign_metrics(id):
     """Update the metrics for all posts assigned to a given Campaign. """
     camp = Campaign.query.get(id)
     prep_data = camp.prep_metrics_update()
-    post_data = [get_metrics_post(media, facebook, metrics) for media, facebook, metrics in prep_data]
+    post_data = [get_metrics_media(media, facebook, metrics) for media, facebook, metrics in prep_data]
     try:
         db.session.bulk_update_mappings(Post, post_data)
         db.session.commit()
@@ -453,7 +453,7 @@ def update_campaign_metrics(id):
 @app.route('/all_posts')
 def all_posts():
     """Used for daily downloads, or can be called manually by an admin (but not managers). """
-    app.logger.info("===================== All Posts Process Run =====================")
+    app.logger.debug("===================== All Posts Process Run =====================")
     cron_run = request.headers.get('X-Appengine-Cron', None)
     if not cron_run:
         if not current_user.is_authenticated and current_user.role == 'admin':
@@ -462,7 +462,7 @@ def all_posts():
             app.logger.error(message)
             return redirect(url_for('error'))
     all_ig = get_daily_ig_accounts()
-    media_results = get_media_posts(all_ig)
+    media_results = get_media_lists(all_ig)
     count, success = media_posts_save(media_results)
     message = f"For {len(all_ig)} users, got {count} posts. Initial save: {success}. "
     if success and count > 0:
@@ -620,18 +620,23 @@ def new_insight(mod, id):
 @login_required
 def new_post(mod, id):
     """Get new posts data from API for a given user. Input mod for either User or Brand, with a given id. """
+    return_path = redirect(request.referrer)
+    error_message = ''
+    if mod not in ('influencer', 'brand'):
+        error_message = "Invalid user role or type to collect new posts. "
     if current_user.role not in ['admin', 'manager'] and current_user.id != id:
-        flash("This was not a correct location. You are redirected to the home page. ")
-        return redirect(url_for('home'))
-    media_results = get_media_posts(id, only_ids=False)
-    found = len(media_results[0]['media_list'])
+        error_message += "You do not have permissions for that action. No updates made. "
+    if error_message:
+        flash(error_message)
+        return return_path
+    media_results = get_media_lists(id, only_ids=False)
+    found = len(media_results[0].get('media_list', [])) if media_results else 0
     logstring = f"Found {found} media posts. "
     count, success = media_posts_save(media_results)
     logstring += f"Saved {count} new Posts. " if success else "No new posts were saved. "
-    app.logger.info(logstring)
+    app.logger.debug(logstring)
     flash(logstring)
-    return_path = request.referrer
-    return redirect(return_path)
+    return return_path
 
 
 @app.route('/<string:mod>/add', methods=['GET', 'POST'])
