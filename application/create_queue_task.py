@@ -14,8 +14,10 @@ PROJECT_ID = app.config.get('PROJECT_ID')
 PROJECT_REGION = app.config.get('PROJECT_REGION')  # Google Docs said PROJECT_ZONE, but confirmed PROJECT_REGION works
 CAPTURE_SERVICE = app.config.get('CAPTURE_SERVICE')
 CAPTURE_QUEUE = app.config.get('CAPTURE_QUEUE')
-COLLECT_SERVICE = app.config.get('COLLECT_SERVICE', environ.get('GAE_SERVICE', 'dev'))
+CURRENT_SERVICE = environ.get('GAE_SERVICE', 'dev')
+COLLECT_SERVICE = app.config.get('COLLECT_SERVICE', CURRENT_SERVICE)
 COLLECT_QUEUE = app.config.get('COLLECT_QUEUE', 'collect')
+BETWEEN_COLLECT = 4  # Multiple collect-tasks starting time seperated by this number of seconds.
 capture_names = ('test-on-db-b', 'post', 'test')
 client = tasks_v2.CloudTasksClient()
 
@@ -49,32 +51,39 @@ def get_queue_path(queue_name):
     parent = f"projects/{PROJECT_ID}/locations/{PROJECT_REGION}"
     if queue_name in capture_names:
         is_capture = True
-        queue_name = f"{CAPTURE_QUEUE}-{queue_name}".lower()
+        queue_name = f"{CAPTURE_QUEUE}-{CURRENT_SERVICE}-{queue_name}".lower()
         routing_override = {'service': CAPTURE_SERVICE}
     else:
         is_capture = False
-        queue_name = f"{COLLECT_QUEUE}-{queue_name}".lower()
+        queue_name = f"{COLLECT_QUEUE}-{CURRENT_SERVICE}-{queue_name}".lower()
         routing_override = {'service': COLLECT_SERVICE}
     queue_path = client.queue_path(PROJECT_ID, PROJECT_REGION, queue_name)
     try:
         q = client.get_queue(name=queue_path)
+        app.logger.info("============ FOUND QUEUE ============")
+        app.logger.info(q)
+        app.logger.info("-------------------------------------")
+        app.logger.info(dir(q))
     except Exception as e:
         app.logger.info(f"The {queue_path} queue does not exist, or could not be found. Attempting to create it. ")
         app.logger.info(e)
         q = None
     if q:
+        # TODO: Check for critical parameters, update if needed.
         return queue_path
     rate_limits = {'max_concurrent_dispatches': 2 if is_capture else 1, 'max_dispatches_per_second': 1}
     queue_settings = {'name': queue_path, 'app_engine_routing_override': routing_override, 'rate_limits': rate_limits}
     min_backoff, max_backoff, max_life = duration_pb2.Duration(), duration_pb2.Duration(), duration_pb2.Duration()
-    min_backoff.FromJsonString('10s')    # 10 seconds
-    max_backoff.FromJsonString('5100s')  # 1 hour and 25 minutes
-    max_life.FromJsonString('86100s')    # 5 minutes shy of 24 hours
-    retry_config = {'max_attempts': 25, 'min_backoff': min_backoff, 'max_backoff': max_backoff, 'max_doublings': 9}
+    min_backoff.FromJsonString('10s' if is_capture else '7s')
+    max_backoff.FromJsonString('3900s')  # 65 minutes, shortens last 1 of collect, last 2 of capture.
+    max_life.FromJsonString('86100s')    # 5 minutes shy of 24 hours; shortens last of max_attempts?
+    retry_config = {'max_attempts': 32, 'min_backoff': min_backoff, 'max_backoff': max_backoff, 'max_doublings': 10}
     retry_config['max_retry_duration'] = max_life
     queue_settings['retry_config'] = retry_config
     try:
         q = client.create_queue(parent=parent, queue=queue_settings)
+        app.logger.info("============ CREATED QUEUE ============")
+        app.logger.info(q)
     except AlreadyExists as exists:
         app.logger.info(f"Already Exists on get/create/update {queue_name} ")
         app.logger.info(exists)
@@ -136,7 +145,7 @@ def get_or_create_queue(queue_name, logging=0):
 def list_queues():
     """Helper to list the queues associated with this project. """
     parent = f"projects/{PROJECT_ID}/locations/{PROJECT_REGION}"
-    queue_list = client.list_queues(parent=parent)
+    queue_list = [ea for ea in client.list_queues(parent=parent)]
     for ea in queue_list:
         app.logger.info(ea)
     return queue_list
@@ -149,8 +158,8 @@ def add_to_capture(post, queue_name='test-on-db-b', task_name=None, in_seconds=9
         raise TypeError("Usually the task_name for add_to_capture should be None, but should be a string if set. ")
     parent = get_queue_path(queue_name)
     capture_api_path = f"/api/v1/{mod}/"
-    report_settings = {'service': environ.get('GAE_SERVICE', 'dev'), 'relative_uri': '/capture/report/'}
-    source = {'queue_type': queue_name, 'queue_name': parent, 'object_type': mod}
+    report_settings = {'service': environ.get('GAE_SERVICE', 'dev'), 'relative_uri': url_for('capture_report')}
+    source = {'queue_type': queue_name, 'queue_name': parent, 'object_type': mod, 'service': CURRENT_SERVICE}
     if isinstance(post, (int, str)):
         post = Post.query.get(post)
     if not isinstance(post, Post):
@@ -188,12 +197,12 @@ def add_to_collect(media_data, queue_name='basic-post', task_name=None, in_secon
         raise TypeError("Usually the task_name for add_to_capture should be None, but should be a string if set. ")
     parent = get_queue_path(queue_name)
     relative_uri = url_for('collect_queue', mod=mod, process=process)  # f"/collect/{mod}/{process}"
-    source = {'queue_type': queue_name, 'queue_name': parent}
+    source = {'queue_type': queue_name, 'queue_name': parent, 'service': CURRENT_SERVICE}
     # data = {'user_id': int, 'post_ids': [int, ] | None, 'media_ids': [int, ] | None, }  # must have post or media ids
     # optional in data: 'metrics': str|None, 'post_metrics': {int: str}|str|None
     timestamp = timestamp_pb2.Timestamp()
     d = dt.utcnow() + timedelta(seconds=in_seconds)
-    delay = timedelta(seconds=5)
+    delay = timedelta(seconds=BETWEEN_COLLECT)
     if isinstance(media_data, dict):
         media_data = [media_data]
     task_list = []

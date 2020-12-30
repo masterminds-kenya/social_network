@@ -527,16 +527,22 @@ def collect_queue(mod, process):
     source.update(head)
     app.logger.debug("------------------------ SOURCE ------------------------")
     app.logger.debug(source)
+    service_request = source.get('service', None)
+    expect_service = app.config.get('COLLECT_SERVICE', '')
+    if service_request != expect_service:
+        info = f"Request from {service_request} does not match expected {expect_service} service. "
+        app.logger.error(info)
+        return info, 404
     dataset = req_body.get('dataset', [])
     user_id = dataset.get('user_id', 'NOT FOUND')
     media_count = len(dataset.get('media_list', []))
-    app.logger.debug(f"------------------------ Media: {media_count} for User ID: {user_id} ------------------------")
+    app.logger.info(f"------------------------ Media: {media_count} for User ID: {user_id} ------------------------")
     result = handle_collect_media(dataset, process)
     if isinstance(result, list):
         count, success = media_posts_save(result, create_or_update='update')
         if success:
             info = f"Updated {count} Post records with media {process} info for user ID: {user_id} - SUCCESS. "
-            app.logger.debug(info)
+            app.logger.info(info)
             result = {'reason': info, 'status_code': 201}
         else:
             info = f"Updating {count} Posts with the media {process} results for user ID: {user_id} - FAILED. "
