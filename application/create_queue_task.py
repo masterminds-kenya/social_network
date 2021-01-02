@@ -39,8 +39,7 @@ def try_task(parent, task):
         app.logger.error(e)
         response = None
     if response is not None:
-        app.logger.info("Created task!")
-        # app.logger.info(response)
+        app.logger.info(f"Created task: {response} ")
     return response  # .name if response else None
 
 
