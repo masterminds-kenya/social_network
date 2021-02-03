@@ -45,7 +45,7 @@ SELECT users.id AS u_id, role, name, page_id, story_subscribed, campaign_id FROM
 ### Posts (with user's name & id) with caption is NULL (after date) or our error_codes
 
 ```SQL
-SELECT posts.id AS p_id, users.id, users.name, media_type AS m_type, LEFT(caption, 16) AS caption_text, posts.created, posts.modified, posts.recorded FROM posts JOIN users ON posts.user_id = users.id WHERE posts.created > '2020-12-15' AND caption IS NULL or caption in ('NO_CREDENTIALS', 'AUTH_FACEBOOK', 'AUTH_TOKEN', 'AUTH_NONE', 'API_ERROR', 'INSIGHTS_CREATED');
+SELECT posts.id AS p_id, users.id, users.name, media_type AS m_type, LEFT(caption, 16) AS caption_text, posts.created, posts.modified, posts.recorded FROM posts JOIN users ON posts.user_id = users.id WHERE posts.created > '2020-12-24' AND caption IS NULL or caption in ('NO_CREDENTIALS', 'AUTH_FACEBOOK', 'AUTH_TOKEN', 'AUTH_NONE', 'API_ERROR', 'INSIGHTS_CREATED');
 ```
 
 ## Default Env Variables
