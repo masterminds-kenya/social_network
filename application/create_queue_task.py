@@ -39,8 +39,7 @@ def try_task(parent, task):
         app.logger.error(e)
         response = None
     if response is not None:
-        app.logger.info("Created task!")
-        # app.logger.info(response)
+        app.logger.info(f"Created task: {response} ")
     return response  # .name if response else None
 
 
@@ -60,10 +59,9 @@ def get_queue_path(queue_name):
     queue_path = client.queue_path(PROJECT_ID, PROJECT_REGION, queue_name)
     try:
         q = client.get_queue(name=queue_path)
-        app.logger.info("============ FOUND QUEUE ============")
-        app.logger.info(q)
-        app.logger.info("-------------------------------------")
+        app.logger.info(f"===== FOUND QUEUE: {q} =====")
         app.logger.info(dir(q))
+        app.logger.info("-----------------------------")
     except Exception as e:
         app.logger.info(f"The {queue_path} queue does not exist, or could not be found. Attempting to create it. ")
         app.logger.info(e)

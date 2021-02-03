@@ -143,7 +143,7 @@ def enqueue_capture(model, value, oldvalue, initiator):
 @event.listens_for(db.session, 'before_flush')
 def process_session_before_flush(session, flush_context, instances):
     """During creation or modification of Post models, some may be marked for adding to a Capture queue. """
-    app.logger.info("============ Process Session Before Flush ===============")
+    # app.logger.debug("============ Process Session Before Flush ===============")
     stories_to_capture = session.info.get('story_capture', [])
     other_posts_to_capture = session.info.get('post_capture', [])
     subscribe_pages = session.info.get('subscribe_page', [])
@@ -186,6 +186,7 @@ def process_session_before_flush(session, flush_context, instances):
             session.info['unsubscribe_page'].discard(user)
     # TODO: Handle deletion of Posts not assigned to a Campaign when deleting a User.
     # session.deleted  # The set of all instances marked as 'deleted' within this Session
-    app.logger.info(message)
-    app.logger.info(session.info)
-    app.logger.info('---------------- End pre-flush session process ----------------')
+    app.logger.info(f"===== Process Flush | {message} | {session.info} =====")
+    # app.logger.debug(message)
+    # app.logger.debug(session.info)
+    # app.logger.debug('---------------- End pre-flush session process ----------------')
