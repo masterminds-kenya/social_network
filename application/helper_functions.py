@@ -79,11 +79,11 @@ def get_daily_ig_accounts(active=True):
     if active:
         is_active = Campaign.completed.is_(False)
         users = users.filter(or_(User.campaigns.any(is_active), User.brand_campaigns.any(is_active)))
-    return users.all()
+    return users
 
 
-def get_active_ig():
-    """Return a list of users that are in currently active campaigns and have an instagram account. """
+def active_ids():
+    """Return a query/list of tuples for User id & instagram_id for those connected to a currently active Campaign. """
     # # active_campaigns = Campaign.query.filter(Campaign.completed.is_(False))
     # # active = db.session.query(User.id, Campaign.completed)
     # brands = db.session.query(User).join(Campaign.brands)
@@ -104,6 +104,17 @@ def get_active_ig():
     all_ids = db.session.query(User.id, User.instagram_id)
     influencers = all_ids.join(Campaign.users)
     brands = all_ids.join(Campaign.brands)
+    users = influencers.union(brands)
+
+    is_active = Campaign.completed.is_(False)
+    has_ig = User.instagram_id.isnot(None)
+    return users.filter(is_active, has_ig)
+
+
+def active_users():
+    """Return a list/query of full user accounts that have ig and are connected to a currently active Campaign. """
+    influencers = User.query.join(Campaign.users)
+    brands = User.query.join(Campaign.brands)
     users = influencers.union(brands)
 
     is_active = Campaign.completed.is_(False)
