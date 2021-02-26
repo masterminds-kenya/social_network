@@ -82,6 +82,35 @@ def get_daily_ig_accounts(active=True):
     return users.all()
 
 
+def get_active_ig():
+    """Return a list of users that are in currently active campaigns and have an instagram account. """
+    # # active_campaigns = Campaign.query.filter(Campaign.completed.is_(False))
+    # # active = db.session.query(User.id, Campaign.completed)
+    # brands = db.session.query(User).join(Campaign.brands)
+    # influencers = db.session.query(User).join(Campaign.users)
+    # brands = User.query.join(Campaign.brands)
+    # influencers = User.query.join(Campaign.users)
+    # # DOES NOT WORK: users = brands + influencers
+    # # DOES NOT WORK: users = db.session.query(User).join(or_(Campaign.brands, Campaign.users))
+    # users = influencers.union(brands)
+    # is_active = Campaign.completed.is_(False)
+    # has_ig = User.instagram_id.isnot(None)
+    # # users = users.filter(Campaign.completed.is_(False), User.instagram_id.isnot(None))
+    # users = users.filter(is_active, has_ig)
+    # # -----
+    # # -----
+    # users = db.session.query(User).join()
+    # # HERE
+    all_ids = db.session.query(User.id, User.instagram_id)
+    influencers = all_ids.join(Campaign.users)
+    brands = all_ids.join(Campaign.brands)
+    users = influencers.union(brands)
+
+    is_active = Campaign.completed.is_(False)
+    has_ig = User.instagram_id.isnot(None)
+    return users.filter(is_active, has_ig)
+
+
 def get_test_ig(version):
     """Trying a few structures to test their speed. """
     # results = {'version': ('query', 'query_result', 'duration')}
