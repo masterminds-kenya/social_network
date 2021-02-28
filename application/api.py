@@ -7,6 +7,7 @@ import requests
 from requests_oauthlib import OAuth2Session  # , BackendApplicationClient
 # from oauthlib.oauth2 import BackendApplicationClient
 from requests_oauthlib.compliance_fixes import facebook_compliance_fix
+from sqlalchemy.orm.query import Query
 from .model_db import translate_api_user_token, db_create, db_create_or_update_many, db  # , db_read,
 from .model_db import metric_clean, Insight, Audience, Post, OnlineFollowers, User  # , Campaign
 from .helper_functions import make_missing_timestamp
@@ -421,6 +422,33 @@ def get_media_data(media_id, user, is_story=False, full=False, only_ids=False, f
     return media
 
 
+def clean_valid_user_list(id_or_users, instagram_required=True, token_required=True):
+    """Takes a single or list of User instances or ids, filters by parameters, and Returns a user list or query. """
+    users = []
+    if isinstance(id_or_users, Query):
+        # TODO: Also confirm it is a Query of User model. Currently assumes this is true.
+        users = id_or_users
+    elif not isinstance(id_or_users, (list, tuple)):
+        id_or_users = [id_or_users]
+    if users:
+        pass
+    elif all(isinstance(ea, User) for ea in id_or_users):
+        users = id_or_users
+        users = [u for u in users if all((u, not instagram_required or u.instagram_id, not token_required or u.token))]
+        return users
+    else:
+        try:
+            id_or_users = [int(ea) for ea in id_or_users]
+        except ValueError:
+            raise ValueError("Unable to cast to int. Expected a query or list of User instances or ids. ")
+        users = User.query.filter(User.id.in_(id_or_users))
+    if instagram_required:
+        users = users.filter(User.instagram_id.isnot(None))
+    if token_required:
+        users = users.filter(User.token.isnot(None))
+    return users
+
+
 def get_media_lists(id_or_users, stories=True, only_ids=True, facebook=None, only_new=True):
     """Returns a list of saved Post objects created for the single or list of Users or User id(s).
     If stories parameter is 'only', then it will only get STORY media posts for these user(s).
@@ -429,11 +457,9 @@ def get_media_lists(id_or_users, stories=True, only_ids=True, facebook=None, onl
     The Graph API is called to get all basic and metrics data, and creates or updates Posts in the database.
     Returns an array of the saved (created or updated) Post instances.
     """
-    if not isinstance(id_or_users, (list, tuple)):
-        id_or_users = [id_or_users]
-    users = (find_valid_user(ea) for ea in id_or_users)
+    users = clean_valid_user_list(id_or_users)
     results = []
-    for fb, user in ((facebook or u.get_auth_session(), u) for u in users if u):
+    for fb, user in ((facebook or u.get_auth_session(), u) for u in users):
         cur, media_ids = [], []
         if stories != 'only':
             media = user.get_media(use_last=only_new, facebook=fb)
