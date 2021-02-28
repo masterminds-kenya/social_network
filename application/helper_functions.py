@@ -74,52 +74,19 @@ def self_or_staff_required(role=['admin', 'manager'], user=current_user):
 
 
 def get_daily_ig_accounts(active=True):
-    """Returns a list of users that should have up-to-date tracking of their daily IG media posts. """
-    users = User.query.filter(User.instagram_id.isnot(None))
-    if active:
-        is_active = Campaign.completed.is_(False)
-        users = users.filter(or_(User.campaigns.any(is_active), User.brand_campaigns.any(is_active)))
-    return users
-
-
-def active_ids():
-    """Return a query/list of tuples for User id & instagram_id for those connected to a currently active Campaign. """
-    # # active_campaigns = Campaign.query.filter(Campaign.completed.is_(False))
-    # # active = db.session.query(User.id, Campaign.completed)
-    # brands = db.session.query(User).join(Campaign.brands)
-    # influencers = db.session.query(User).join(Campaign.users)
-    # brands = User.query.join(Campaign.brands)
-    # influencers = User.query.join(Campaign.users)
-    # # DOES NOT WORK: users = brands + influencers
-    # # DOES NOT WORK: users = db.session.query(User).join(or_(Campaign.brands, Campaign.users))
-    # users = influencers.union(brands)
-    # is_active = Campaign.completed.is_(False)
-    # has_ig = User.instagram_id.isnot(None)
-    # # users = users.filter(Campaign.completed.is_(False), User.instagram_id.isnot(None))
-    # users = users.filter(is_active, has_ig)
-    # # -----
-    # # -----
-    # users = db.session.query(User).join()
-    # # HERE
-    all_ids = db.session.query(User.id, User.instagram_id)
-    influencers = all_ids.join(Campaign.users)
-    brands = all_ids.join(Campaign.brands)
-    users = influencers.union(brands)
-
-    is_active = Campaign.completed.is_(False)
-    has_ig = User.instagram_id.isnot(None)
-    return users.filter(is_active, has_ig)
-
-
-def active_users():
-    """Return a list/query of full user accounts that have ig and are connected to a currently active Campaign. """
+    """Returns a Query of Users that should have up-to-date tracking of their daily IG media posts. """
+    # users = User.query.filter(User.instagram_id.isnot(None))
+    # if active:
+    #     is_active = Campaign.completed.is_(False)
+    #     users = users.filter(or_(User.campaigns.any(is_active), User.brand_campaigns.any(is_active)))
+    # return users
     influencers = User.query.join(Campaign.users)
     brands = User.query.join(Campaign.brands)
     users = influencers.union(brands)
-
-    is_active = Campaign.completed.is_(False)
-    has_ig = User.instagram_id.isnot(None)
-    return users.filter(is_active, has_ig)
+    users = users.filter(User.instagram_id.isnot(None))
+    if active:
+        users = users.filter(Campaign.completed.is_(False))
+    return users
 
 
 def get_test_ig(version):
