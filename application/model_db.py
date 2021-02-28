@@ -183,8 +183,9 @@ class User(UserMixin, db.Model):
         expires_at, expires = None, None
         if self.token_expires:  # TODO: Does OAuth tokens have 'expires_at' and/or 'expires_in'?
             expires_at = self.token_expires
-            expires = (self.token_expires - dt.utcnow()).in_seconds()
+            expires = (expires_at - dt.utcnow()).total_seconds()
             expires = 0 if expires < 0 else int(expires)
+            expires_at = expires_at.timestamp()
         result = {
             'access_token': self.token,
             # 'refresh_token': '',  # The FB Graph API does not use refresh_token.
@@ -193,7 +194,7 @@ class User(UserMixin, db.Model):
         if expires_at:
             result['expires_at'] = expires_at
         if expires:
-            result['expires_in': expires]
+            result['expires_in'] = expires
         return result
 
     @full_token.setter
