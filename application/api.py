@@ -423,16 +423,16 @@ def get_media_data(media_id, user, is_story=False, full=False, only_ids=False, f
 
 
 def clean_valid_user_list(id_or_users, instagram_required=True, token_required=True):
-    """Takes a single or list of User instances or ids, filters by parameters, and Returns a user list or query. """
+    """If given a Query, returns this Query unchanged, assuming all desired filtering handled elsewhere.
+    If given a single or list of User instances or ids, filters by parameters, and Returns a user list or query.
+    """
     users = []
     if isinstance(id_or_users, Query):
         # TODO: Also confirm it is a Query of User model. Currently assumes this is true.
-        users = id_or_users
-    elif not isinstance(id_or_users, (list, tuple)):
+        return id_or_users
+    if not isinstance(id_or_users, (list, tuple)):
         id_or_users = [id_or_users]
-    if users:
-        pass
-    elif all(isinstance(ea, User) for ea in id_or_users):
+    if all(isinstance(ea, User) for ea in id_or_users):
         users = id_or_users
         users = [u for u in users if all((u, not instagram_required or u.instagram_id, not token_required or u.token))]
         return users
