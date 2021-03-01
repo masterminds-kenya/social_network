@@ -50,7 +50,7 @@ body > header {
   top: 0;
 }
 
-.sticky .header-logo {
+/* .sticky .header-logo {
   text-align: left;
   height: 58px;
   transition: height 0.3s ease;
@@ -65,7 +65,7 @@ body > header {
   display: inline-block;
   font-size: 25px;
   transition: font-size 0.2s ease-in 0.1;
-}
+} */
 
 /* TODO: Determine a min-max, or other technique, to avoid wrapping .header-log h1 on narrow screen. */
 /* Currently using @media (at end of this style-sheet. */
@@ -88,7 +88,7 @@ body > header {
   font-weight: lighter;
 }
 .sticky+main {
-  padding-top: 290px;  /* No transition protects against wobble of smaller header removes scrolling sticky. */
+  padding-top: 126px;  /* 290px for No transition protects against wobble of smaller header removes scrolling sticky. */
 }
 
 /* menu */
@@ -624,12 +624,12 @@ button {
   .header-logo h1 {
     font-size: 6.25vw;
   }
-  .sticky .header-logo .logo {
+  /* .sticky .header-logo .logo {
     height: 9vw;
   }
   .sticky .header-logo h1 {
     font-size: 4vw;
-  }
+  } */
 }
 
 @media screen and (max-width: 385px) {
