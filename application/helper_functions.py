@@ -74,12 +74,19 @@ def self_or_staff_required(role=['admin', 'manager'], user=current_user):
 
 
 def get_daily_ig_accounts(active=True):
-    """Returns a list of users that should have up-to-date tracking of their daily IG media posts. """
-    users = User.query.filter(User.instagram_id.isnot(None))
+    """Returns a Query of Users that should have up-to-date tracking of their daily IG media posts. """
+    # users = User.query.filter(User.instagram_id.isnot(None))
+    # if active:
+    #     is_active = Campaign.completed.is_(False)
+    #     users = users.filter(or_(User.campaigns.any(is_active), User.brand_campaigns.any(is_active)))
+    # return users
+    influencers = User.query.join(Campaign.users)
+    brands = User.query.join(Campaign.brands)
+    users = influencers.union(brands)
+    users = users.filter(User.instagram_id.isnot(None))
     if active:
-        is_active = Campaign.completed.is_(False)
-        users = users.filter(or_(User.campaigns.any(is_active), User.brand_campaigns.any(is_active)))
-    return users.all()
+        users = users.filter(Campaign.completed.is_(False))
+    return users
 
 
 def get_test_ig(version):

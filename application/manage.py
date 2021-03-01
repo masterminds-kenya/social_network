@@ -262,6 +262,7 @@ def media_posts_save(media_results, create_or_update='create', add_time=False):
             app.logger.error("========== UPDATE MEDIA POSTS ERROR ==========")
             app.logger.error(info)
             app.logger.error(e)
+            db.session.rollback()
     else:  # May have some to update, some to create. Filter accordingly for bulk processes.
         # TODO: Possibly update or create.
         count = len(media_results)
