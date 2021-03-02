@@ -14,7 +14,7 @@ from .sheets import create_sheet, update_sheet, perm_add, perm_list, all_files
 from pprint import pprint
 
 # Sentinels for errors recorded on the Post.caption field.
-caption_errors = ['NO_CREDENTIALS', 'AUTH_FACEBOOK', 'AUTH_TOKEN', 'AUTH_NONE', 'API_ERROR', 'INSIGHTS_CREATED']
+CAPTION_ERRORS = ['NO_CREDENTIALS', 'AUTH_FACEBOOK', 'AUTH_TOKEN', 'AUTH_NONE', 'API_ERROR', 'INSIGHTS_CREATED']
 
 
 def test_local(*args, **kwargs):
@@ -159,8 +159,8 @@ def permission_check(mod, id):
 @admin_required()
 def problem_posts():
     """These media posts experienced problems that should be investigated. """
-    null_date = '2020-12-16'
-    problem_data = Post.query.filter(Post.caption.in_(caption_errors))
+    null_date = '2021-02-28'
+    problem_data = Post.query.filter(Post.caption.in_(CAPTION_ERRORS))
     recent_null = Post.query.filter(Post.caption.is_(None), Post.created > null_date)
     models = problem_data.union(recent_null)
     problem_posts = models.all()
@@ -168,8 +168,8 @@ def problem_posts():
     mod = 'error media posts'
     template = 'view.html'
     flash(f"All media posts received with either NULL after {null_date} or assigned a caption error code. ")
-    flash(f"Known caption error codes: {', '.join(caption_errors)}. ")
-    return render_template(template, mod=mod, data=data, caption_errors=caption_errors)
+    flash(f"Known caption error codes: {', '.join(CAPTION_ERRORS)}. ")
+    return render_template(template, mod=mod, data=data, caption_errors=CAPTION_ERRORS)
 
 
 @app.route('/admin/test')
@@ -422,7 +422,7 @@ def campaign(id, view='management'):
             app.logger.error(info)
             flash(info)
     related = campaign.related_posts(view)
-    return render_template(template, mod=mod, view=view, data=campaign, related=related, caption_errors=caption_errors)
+    return render_template(template, mod=mod, view=view, data=campaign, related=related, caption_errors=CAPTION_ERRORS)
 
 
 @app.route('/campaign/<int:id>/update', methods=['GET'])
@@ -748,7 +748,7 @@ def view(mod, id):
             model['value'] = value
     # TODO: Remove these temporary logs
     # app.logger.info(f"Current User: {current_user} ")
-    return render_template(template, mod=mod, data=model, caption_errors=caption_errors)
+    return render_template(template, mod=mod, data=model, caption_errors=CAPTION_ERRORS)
 
 
 @app.route('/<string:mod>/add', methods=['GET', 'POST'])
