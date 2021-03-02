@@ -1,4 +1,5 @@
 from flask import render_template, redirect, url_for, request, flash, session, current_app as app  # , abort
+from sqlalchemy import or_
 from flask_login import current_user, login_user, logout_user, login_required
 from werkzeug.security import generate_password_hash, check_password_hash
 import json
@@ -15,6 +16,7 @@ from pprint import pprint
 
 # Sentinels for errors recorded on the Post.caption field.
 CAPTION_ERRORS = ['NO_CREDENTIALS', 'AUTH_FACEBOOK', 'AUTH_TOKEN', 'AUTH_NONE', 'API_ERROR', 'INSIGHTS_CREATED']
+POST_ERROR_DATE = '2021-02-28'
 
 
 def test_local(*args, **kwargs):
@@ -159,15 +161,12 @@ def permission_check(mod, id):
 @admin_required()
 def problem_posts():
     """These media posts experienced problems that should be investigated. """
-    null_date = '2021-02-28'
-    problem_data = Post.query.filter(Post.caption.in_(CAPTION_ERRORS))
-    recent_null = Post.query.filter(Post.caption.is_(None), Post.created > null_date)
-    models = problem_data.union(recent_null)
-    problem_posts = models.all()
-    data = {'posts': problem_posts}
+    problem_data = Post.query.filter(or_(Post.caption.in_(CAPTION_ERRORS), Post.caption.is_(None)))
+    problem_data = problem_data.filter(Post.created > POST_ERROR_DATE)
+    data = {'posts': problem_data.all()}
     mod = 'error media posts'
     template = 'view.html'
-    flash(f"All media posts received with either NULL after {null_date} or assigned a caption error code. ")
+    flash(f"All media posts received after {POST_ERROR_DATE}  with either NULL or assigned a caption error code. ")
     flash(f"Known caption error codes: {', '.join(CAPTION_ERRORS)}. ")
     return render_template(template, mod=mod, data=data, caption_errors=CAPTION_ERRORS)
 
