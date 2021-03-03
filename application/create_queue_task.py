@@ -12,10 +12,10 @@ import json
 
 PROJECT_ID = app.config.get('PROJECT_ID')
 PROJECT_REGION = app.config.get('PROJECT_REGION')  # Google Docs said PROJECT_ZONE, but confirmed PROJECT_REGION works
-CURRENT_SERVICE = environ.get('GAE_SERVICE', 'dev')
+CURRENT_SERVICE = app.config.get('CURRENT_SERVICE')
 CAPTURE_SERVICE = app.config.get('CAPTURE_SERVICE', CURRENT_SERVICE)
 COLLECT_SERVICE = app.config.get('COLLECT_SERVICE', CURRENT_SERVICE)
-CAPTURE_QUEUE = app.config.get('CAPTURE_QUEUE')
+CAPTURE_QUEUE = app.config.get('CAPTURE_QUEUE', 'capture')
 COLLECT_QUEUE = app.config.get('COLLECT_QUEUE', 'collect')
 BETWEEN_COLLECT = 4  # Multiple collect-tasks starting time seperated by this number of seconds.
 CAPTURE_IMAGE_QUEUE_NAMES = ('test-on-db-b', 'post', 'test')
