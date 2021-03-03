@@ -508,7 +508,6 @@ def clean_collect_dataset(data):
         err = "Input is not an expected dictionary. "
         app.logger.error(err)
         return {'error': err, 'status_code': 500}
-    dataset = []
     user_id = data.get('user_id', None)
     user = find_valid_user(user_id) if user_id else None
     fb = user.get_auth_session() if user else None
@@ -516,31 +515,41 @@ def clean_collect_dataset(data):
         err = f"Unable to find a valid user id: {user_id} for data. "
         app.logger.error(err)
         return {'error': err, 'status_code': 500}
+    posts = data.get('media_list', [])
     post_ids = data.get('post_ids', [])
     media_ids = data.get('media_ids', [])
-    try:
-        post_ids = [int(ea) for ea in post_ids]
-        media_ids = [int(ea) for ea in media_ids]
-    except TypeError as e:
-        err = f"Not properly formatted post or media ids for {user} user data. "
-        app.logger.error(err)
-        app.logger.error(e)
-        return {'error': e, 'status_code': 500}
+    if posts and not media_ids:
+        media_ids = [p['media_id'] for p in posts]
     metrics = construct_metrics_lookup(data.get('metrics', None), data.get('post_metrics', None), media_ids)
     if isinstance(metrics, dict) and 'error' in metrics:
         return metrics
-    if post_ids:
-        posts = Post.query.filter(Post.id.in_(post_ids))
+    if not posts:
+        try:
+            post_ids = [int(ea) for ea in post_ids]
+            media_ids = [int(ea) for ea in media_ids]
+        except TypeError as e:
+            err = f"Not properly formatted post or media ids for {user} user data. "
+            app.logger.error(err)
+            app.logger.error(e)
+            return {'error': e, 'status_code': 500}
+    if posts:
+        posts = [{k: v for k, v in p.items() if k != 'user_id'} for p in posts]
+        q = None
+    elif post_ids:
+        # posts = Post.query.filter(Post.id.in_(post_ids))
+        q = db.session.query(Post.id, Post.media_id, Post.media_type).filter(Post.id.in_(post_ids))
     elif media_ids:
-        posts = Post.query.filter(Post.media_id.in_(media_ids))
+        # posts = Post.query.filter(Post.media_id.in_(media_ids))
+        q = db.session.query(Post.id, Post.media_id, Post.media_type).filter(Post.media_id.in_(media_ids))
     else:
         posts = []
+    if q:
+        posts = [{'id': p[0], 'media_id': p[1], 'media_type': p[2]} for p in q.all()]
     for p in posts:
-        cur = {'id': p.id, 'media_id': p.media_id, 'media_type': p.media_type, 'user': user, 'facebook': fb}
+        p.update({'user': user, 'facebook': fb})
         if metrics:
-            cur['metrics'] = metrics if isinstance(metrics, str) else metrics.get(p.media_id)
-        dataset.append(cur)
-    return dataset
+            p['metrics'] = metrics if isinstance(metrics, str) else metrics.get(p['media_id'])
+    return posts
 
 
 def handle_collect_media(data, process):
@@ -562,9 +571,9 @@ def handle_collect_media(data, process):
         facebook = data.pop('facebook')
         metrics = data.pop('metrics', None)
         is_story = True if data.get('media_type') == 'STORY' else False
-        if process == 'metrics':
+        if process == 'metrics':  # Only getting metrics.
             media = get_metrics_media(data, facebook, metrics=metrics)
-        elif not metrics:
+        elif not metrics:  # Either getting post content, or getting both content and metrics.
             full = False if process == 'basic' else True
             media = get_media_data(data['media_id'], user, is_story=is_story, full=full, facebook=facebook)
         else:  # metrics exist, and process is either 'basic' or 'data'.
