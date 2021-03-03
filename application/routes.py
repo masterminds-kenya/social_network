@@ -10,7 +10,7 @@ from .helper_functions import staff_required, admin_required, mod_lookup, prep_i
 from .manage import update_campaign, process_form, report_update, check_hash, add_edit, media_posts_save, process_hook
 from .api import (onboard_login, onboarding, user_permissions, get_insight, get_audience, get_online_followers,
                   get_media_lists, get_metrics_media, handle_collect_media)
-from .create_queue_task import add_to_collect
+from .create_queue_task import add_to_collect, COLLECT_PROCESS_ALLOWED
 from .sheets import create_sheet, update_sheet, perm_add, perm_list, all_files
 from pprint import pprint
 
@@ -509,7 +509,7 @@ def capture_report():
 @app.route('/collect/<string:mod>/<string:process>', methods=['GET', 'POST'])
 def collect_queue(mod, process):
     """For backend handling requests for media post data from the Graph API with google cloud tasks. """
-    known_process = ('basic', 'metrics', 'data')
+    known_process = COLLECT_PROCESS_ALLOWED  # {'basic', 'metrics', 'data'}
     app.logger.debug(f"==================== collect queue: {mod} {process} ====================")
     if mod != 'post' or process not in known_process:
         return "Unknown Data Type or Process in Request", 404
