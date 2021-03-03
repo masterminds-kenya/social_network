@@ -52,6 +52,7 @@ def get_queue_path(process):
     if process in CAPTURE_IMAGE_QUEUE_NAMES:
         is_capture = True
         service = CAPTURE_SERVICE
+        override_service = service
         queue_type = CAPTURE_QUEUE
     elif process in COLLECT_PROCESS_ALLOWED:
         is_capture = False
