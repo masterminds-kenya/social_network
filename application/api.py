@@ -502,6 +502,8 @@ def clean_collect_dataset(data):
     """Return a list of dicts with Post id, and resources needed for the Graph API request. """
     # data = {'user_id': int, 'post_ids': [int, ] | None, 'media_ids': [int, ] | None, }  # must have post or media ids
     # optional in data: 'metrics': str|None, 'post_metrics': {int: str}|str|None
+    # daily download format: {'user_id': user.id, 'media_ids': media_ids, 'media_list': cur}
+    # format of each in data['media_list']: {'media_id': media_id, 'user_id': user.id, [media_type': 'STORY']}
     if not isinstance(data, (dict)):
         err = "Input is not an expected dictionary. "
         app.logger.error(err)
@@ -544,6 +546,8 @@ def clean_collect_dataset(data):
 def handle_collect_media(data, process):
     """With the given dataset and post process, call the Graph API and update the database. Return dict with status. """
     # already confirmed process is one of: 'basic', 'metrics', 'data'
+    # data format: {'user_id': user.id, 'media_ids': media_ids, 'media_list': cur}
+    # format of each in data['media_list']: {'media_id': media_id, 'user_id': user.id, [media_type': 'STORY']}
     app.logger.debug("========== HANDLE COLLECT MEDIA ==========")
     # return handle_collect_media_no_post_id(data, process)
     dataset = clean_collect_dataset(data)

@@ -539,7 +539,8 @@ def collect_queue(mod, process):
         info = f"Request from {service_request} does not match expected {expect_service} service. "
         app.logger.error(info)
         return info, 404
-    dataset = req_body.get('dataset', [])
+    dataset = req_body.get('dataset', {})  # format: {'user_id': user.id, 'media_ids': media_ids, 'media_list': cur}
+    # format of each in dataset['media_list']: {'media_id': media_id, 'user_id': user.id, [media_type': 'STORY']}
     user_id = dataset.get('user_id', 'NOT FOUND')
     media_count = len(dataset.get('media_list', []))
     app.logger.info(f"------------------------ Media: {media_count} for User ID: {user_id} ------------------------")

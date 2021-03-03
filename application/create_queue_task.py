@@ -217,10 +217,11 @@ def add_to_collect(media_data, process='basic', task_name=None, in_seconds=180):
     timestamp = timestamp_pb2.Timestamp()
     d = dt.utcnow() + timedelta(seconds=in_seconds)
     delay = timedelta(seconds=BETWEEN_COLLECT)
-    if isinstance(media_data, dict):
+    if isinstance(media_data, dict):  # Normalizes input for a single user to match a list of users.
         media_data = [media_data]
     task_list = []
-    for data in media_data:
+    for data in media_data:  # There is a data for each User in this batch of media_data.
+        # data format: {'user_id': user.id, 'media_ids': media_ids, 'media_list': cur}
         source['start_time'] = d.isoformat()  # Must be serializable.
         payload = {'source': source, 'dataset': data}
         task = {
