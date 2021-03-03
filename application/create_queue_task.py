@@ -46,38 +46,40 @@ def try_task(parent, task):
 
 def get_queue_path(process):
     """Creates or gets a queue for either the Capture API or the collect process. """
+    override_service = None
     if not process:
         process = 'test'
-    parent = f"projects/{PROJECT_ID}/locations/{PROJECT_REGION}"
     if process in CAPTURE_IMAGE_QUEUE_NAMES:
         is_capture = True
         service = CAPTURE_SERVICE
         queue_type = CAPTURE_QUEUE
     elif process in COLLECT_PROCESS_ALLOWED:
         is_capture = False
-        service = COLLECT_SERVICE
+        service = CURRENT_SERVICE
+        if service != COLLECT_SERVICE:
+            override_service = service
         queue_type = COLLECT_QUEUE
     else:
         is_capture, service, queue_type = False, None, None
         raise ValueError("The process must be one of CAPTURE_IMAGE_QUEUE_NAMES or COLLECT_PROCESS_ALLOWED. ")
-    queue_name = f"{queue_type}-{service}-{process}".lower()
-    queue_path = client.queue_path(PROJECT_ID, PROJECT_REGION, queue_name)
+    short_queue_name = f"{queue_type}-{service}-{process}".lower()
+    full_queue_name = client.queue_path(PROJECT_ID, PROJECT_REGION, short_queue_name)
     try:
-        q = client.get_queue(name=queue_path)
+        q = client.get_queue(name=full_queue_name)
         app.logger.info(f"===== FOUND QUEUE: {q} =====")
         app.logger.info(dir(q))
         app.logger.info("-----------------------------")
     except Exception as e:
-        app.logger.info(f"The {queue_path} queue does not exist, or could not be found. Attempting to create it. ")
+        app.logger.info(f"The {full_queue_name} queue does not exist, or could not be found. Attempting to create it. ")
         app.logger.info(e)
         q = None
     if q:
         # TODO: Check for critical parameters, update if needed.
-        return queue_path
-    rate_limits = {'max_concurrent_dispatches': 2 if is_capture else 1, 'max_dispatches_per_second': 1}
-    queue_settings = {'name': queue_path, 'rate_limits': rate_limits}
-    if service != CURRENT_SERVICE:
-        queue_settings['app_engine_routing_override'] = {'service': service}
+        return full_queue_name
+    rate_limits = {'max_concurrent_dispatches': 2 if is_capture else 1, 'max_dispatches_per_second': 500}
+    queue_settings = {'name': full_queue_name, 'rate_limits': rate_limits}
+    if override_service:
+        queue_settings['app_engine_routing_override'] = {'service': override_service}
     min_backoff, max_backoff, max_life = duration_pb2.Duration(), duration_pb2.Duration(), duration_pb2.Duration()
     min_backoff.FromJsonString('10s' if is_capture else '7s')
     max_backoff.FromJsonString('3900s')  # 65 minutes, shortens last 1 of collect, last 2 of capture.
@@ -85,23 +87,24 @@ def get_queue_path(process):
     retry_config = {'max_attempts': 32, 'min_backoff': min_backoff, 'max_backoff': max_backoff, 'max_doublings': 10}
     retry_config['max_retry_duration'] = max_life
     queue_settings['retry_config'] = retry_config
+    parent = f"projects/{PROJECT_ID}/locations/{PROJECT_REGION}"
     try:
         q = client.create_queue(parent=parent, queue=queue_settings)
         app.logger.info("============ CREATED QUEUE ============")
         app.logger.info(q)
     except AlreadyExists as exists:
-        app.logger.info(f"Already Exists on get/create/update {queue_name} ")
+        app.logger.info(f"Already Exists on get/create/update {short_queue_name} ")
         app.logger.info(exists)
-        q = queue_path
+        q = full_queue_name
     except ValueError as error:
-        app.logger.info(f"Value Error on get/create/update the {queue_name} ")
+        app.logger.info(f"Value Error on get/create/update the {short_queue_name} ")
         app.logger.error(error)
         q = None
     except GoogleAPICallError as error:
-        app.logger.info(f"Google API Call Error on get/create/update {queue_name} ")
+        app.logger.info(f"Google API Call Error on get/create/update {short_queue_name} ")
         app.logger.error(error)
         q = None
-    return queue_path if q else None
+    return full_queue_name if q else None
 
 
 def get_or_create_queue(queue_name, logging=0):
