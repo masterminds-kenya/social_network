@@ -17,6 +17,7 @@ from pprint import pprint
 # Sentinels for errors recorded on the Post.caption field.
 CAPTION_ERRORS = ['NO_CREDENTIALS', 'AUTH_FACEBOOK', 'AUTH_TOKEN', 'AUTH_NONE', 'API_ERROR', 'INSIGHTS_CREATED']
 POST_ERROR_DATE = '2021-02-28'
+MAX_ACTIVE_USER_NUM = app.config.get('MAX_ACTIVE_USER_NUM', 100)
 
 
 def test_local(*args, **kwargs):
@@ -456,13 +457,18 @@ def all_posts():
             app.logger.error(message)
             return redirect(url_for('error'))
     all_ig = get_daily_ig_accounts()
-    media_results = get_media_lists(all_ig)
-    count, success = media_posts_save(media_results, add_time=True)
     num_users = all_ig.distinct().count()
-    message = f"For {num_users} users, got {count} posts. Initial save: {success}. "
-    if success and count > 0:
-        task_list = add_to_collect(media_results, process='basic', in_seconds=180)
-        success = all(ea is not None for ea in task_list)
+    if num_users > MAX_ACTIVE_USER_NUM:
+        count = 'NA'
+        success = False
+        message = f"Exceeded the current maximum of {MAX_ACTIVE_USER_NUM} active users. Found {num_users} users. "
+    else:
+        media_results = get_media_lists(all_ig)
+        count, success = media_posts_save(media_results, add_time=True)
+        message = f"For {num_users} users, got {count} posts. Initial save: {success}. "
+        if success and count > 0:
+            task_list = add_to_collect(media_results, process='basic', in_seconds=180)
+            success = all(ea is not None for ea in task_list)
     status = 201 if success else 500
     response = {'User_num': num_users, 'Post_num': count, 'message': message, 'status_code': status}
     if cron_run:
