@@ -193,7 +193,14 @@ def add_to_capture(post, queue_name='test-on-db-b', task_name=None, in_seconds=9
 
 
 def add_to_collect(media_data, process='basic', task_name=None, in_seconds=180):
-    """Adds a task to a Collect Queue to make a request to the Graph API for data on media posts. """
+    """Add tasks to a specific (depending on process) Collect Queue to request Graph API data on media posts.
+    Input media_data: Expected get_media_lists output, a list of dicts for each User (containing a list of media info).
+    Input process: Indicates if the task is to get the 'basic' post content, the 'metrics', or (data?)
+    Input task_name: Usually not set, available for further expansion.
+    Input in_seconds: The first task will be scheduled this number of seconds from now.
+    Consequences: A task is created for each User in the media_data (later, a Graph API call for each media post).
+    Output: A list for each attempted task. Each will be the create task response, or None for caught exceptions.
+    """
     mod = 'post'
     if process not in COLLECT_PROCESS_ALLOWED:
         info = f"Unknown process name: {process} "
@@ -203,7 +210,7 @@ def add_to_collect(media_data, process='basic', task_name=None, in_seconds=180):
         raise TypeError("Usually the task_name for add_to_capture should be None, but should be a string if set. ")
     parent = get_queue_path(process)
     relative_uri = url_for('collect_queue', mod=mod, process=process)  # f"/collect/{mod}/{process}"
-    source = {'queue_type': process, 'queue_name': parent, 'service': CURRENT_SERVICE}
+    source = {'queue_type': process, 'queue_name': parent, 'service': CURRENT_SERVICE}  # Only used for debugging.
     # data = {'user_id': int, 'post_ids': [int, ] | None, 'media_ids': [int, ] | None, }  # must have post or media ids
     # optional in data: 'metrics': str|None, 'post_metrics': {int: str}|str|None
     timestamp = timestamp_pb2.Timestamp()
