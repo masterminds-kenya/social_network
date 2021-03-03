@@ -518,11 +518,6 @@ def clean_collect_dataset(data):
     posts = data.get('media_list', [])
     post_ids = data.get('post_ids', [])
     media_ids = data.get('media_ids', [])
-    if posts and not media_ids:
-        media_ids = [p['media_id'] for p in posts]
-    metrics = construct_metrics_lookup(data.get('metrics', None), data.get('post_metrics', None), media_ids)
-    if isinstance(metrics, dict) and 'error' in metrics:
-        return metrics
     if not posts:
         try:
             post_ids = [int(ea) for ea in post_ids]
@@ -532,14 +527,17 @@ def clean_collect_dataset(data):
             app.logger.error(err)
             app.logger.error(e)
             return {'error': e, 'status_code': 500}
-    if posts:
+    if posts and not media_ids:
+        media_ids = [p['media_id'] for p in posts]
+    metrics = construct_metrics_lookup(data.get('metrics', None), data.get('post_metrics', None), media_ids)
+    if isinstance(metrics, dict) and 'error' in metrics:
+        return metrics  # Will raise error for mon-resolvable error in the metrics structure.
+    if posts:  # TODO: Determine if it is okay, or preferred, to leave in the 'user_id' field.
         posts = [{k: v for k, v in p.items() if k != 'user_id'} for p in posts]
         q = None
     elif post_ids:
-        # posts = Post.query.filter(Post.id.in_(post_ids))
         q = db.session.query(Post.id, Post.media_id, Post.media_type).filter(Post.id.in_(post_ids))
     elif media_ids:
-        # posts = Post.query.filter(Post.media_id.in_(media_ids))
         q = db.session.query(Post.id, Post.media_id, Post.media_type).filter(Post.media_id.in_(media_ids))
     else:
         posts = []
