@@ -18,7 +18,7 @@ CURRENT_SERVICE = environ.get('GAE_SERVICE', 'dev')
 COLLECT_SERVICE = app.config.get('COLLECT_SERVICE', CURRENT_SERVICE)
 COLLECT_QUEUE = app.config.get('COLLECT_QUEUE', 'collect')
 BETWEEN_COLLECT = 4  # Multiple collect-tasks starting time seperated by this number of seconds.
-capture_names = ('test-on-db-b', 'post', 'test')
+CAPTURE_IMAGE_QUEUE_NAMES = ('test-on-db-b', 'post', 'test')
 client = tasks_v2.CloudTasksClient()
 
 
@@ -48,7 +48,7 @@ def get_queue_path(queue_name):
     if not queue_name:
         queue_name = 'test'
     parent = f"projects/{PROJECT_ID}/locations/{PROJECT_REGION}"
-    if queue_name in capture_names:
+    if queue_name in CAPTURE_IMAGE_QUEUE_NAMES:
         is_capture = True
         queue_name = f"{CAPTURE_QUEUE}-{CURRENT_SERVICE}-{queue_name}".lower()
         routing_override = {'service': CAPTURE_SERVICE}
@@ -100,7 +100,7 @@ def get_queue_path(queue_name):
 def get_or_create_queue(queue_name, logging=0):
     """Updated process for queue path. """
     # parent = client.queue_path(PROJECT_ID, PROJECT_REGION, queue_name)
-    # if queue_name in capture_names:
+    # if queue_name in CAPTURE_IMAGE_QUEUE_NAMES:
     #     is_capture = True
     #     queue_name = f"{CAPTURE_QUEUE}-{queue_name}".lower()
     #     routing_override = {'service': CAPTURE_SERVICE}
@@ -182,20 +182,19 @@ def add_to_capture(post, queue_name='test-on-db-b', task_name=None, in_seconds=9
     return try_task(parent, task)
 
 
-def add_to_collect(media_data, queue_name='basic-post', task_name=None, in_seconds=180):
+def add_to_collect(media_data, process='basic', task_name=None, in_seconds=180):
     """Adds a task to a Collect Queue to make a request to the Graph API for data on media posts. """
     mod = 'post'
-    process_lookup = {'basic-post': 'basic', 'metrics-post': 'metrics', 'data-post': 'data'}
-    process = process_lookup.get(queue_name, None)
-    if queue_name not in process_lookup:
-        info = f"Unknown process name: {queue_name} "
+    process_allowed = {'basic', 'metrics', 'data'}
+    if process not in process_allowed:
+        info = f"Unknown process name: {process} "
         app.logger.error(info)
         raise ValueError(info)
     if not isinstance(task_name, (str, type(None))):
         raise TypeError("Usually the task_name for add_to_capture should be None, but should be a string if set. ")
-    parent = get_queue_path(queue_name)
+    parent = get_queue_path(process)
     relative_uri = url_for('collect_queue', mod=mod, process=process)  # f"/collect/{mod}/{process}"
-    source = {'queue_type': queue_name, 'queue_name': parent, 'service': CURRENT_SERVICE}
+    source = {'queue_type': process, 'queue_name': parent, 'service': CURRENT_SERVICE}
     # data = {'user_id': int, 'post_ids': [int, ] | None, 'media_ids': [int, ] | None, }  # must have post or media ids
     # optional in data: 'metrics': str|None, 'post_metrics': {int: str}|str|None
     timestamp = timestamp_pb2.Timestamp()
