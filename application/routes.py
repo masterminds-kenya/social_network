@@ -534,7 +534,7 @@ def collect_queue(mod, process):
     app.logger.debug("------------------------ SOURCE ------------------------")
     app.logger.debug(source)
     service_request = source.get('service', None)
-    expect_service = app.config.get('COLLECT_SERVICE', '')
+    expect_service = app.config.get('CURRENT_SERVICE', '')
     if service_request != expect_service:
         info = f"Request from {service_request} does not match expected {expect_service} service. "
         app.logger.error(info)
