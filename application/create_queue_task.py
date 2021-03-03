@@ -12,13 +12,14 @@ import json
 
 PROJECT_ID = app.config.get('PROJECT_ID')
 PROJECT_REGION = app.config.get('PROJECT_REGION')  # Google Docs said PROJECT_ZONE, but confirmed PROJECT_REGION works
-CAPTURE_SERVICE = app.config.get('CAPTURE_SERVICE')
-CAPTURE_QUEUE = app.config.get('CAPTURE_QUEUE')
 CURRENT_SERVICE = environ.get('GAE_SERVICE', 'dev')
+CAPTURE_SERVICE = app.config.get('CAPTURE_SERVICE', CURRENT_SERVICE)
 COLLECT_SERVICE = app.config.get('COLLECT_SERVICE', CURRENT_SERVICE)
+CAPTURE_QUEUE = app.config.get('CAPTURE_QUEUE')
 COLLECT_QUEUE = app.config.get('COLLECT_QUEUE', 'collect')
 BETWEEN_COLLECT = 4  # Multiple collect-tasks starting time seperated by this number of seconds.
 CAPTURE_IMAGE_QUEUE_NAMES = ('test-on-db-b', 'post', 'test')
+COLLECT_PROCESS_ALLOWED = {'basic', 'metrics', 'data'}
 client = tasks_v2.CloudTasksClient()
 
 
@@ -43,19 +44,23 @@ def try_task(parent, task):
     return response  # .name if response else None
 
 
-def get_queue_path(queue_name):
+def get_queue_path(process):
     """Creates or gets a queue for either the Capture API or the collect process. """
-    if not queue_name:
-        queue_name = 'test'
+    if not process:
+        process = 'test'
     parent = f"projects/{PROJECT_ID}/locations/{PROJECT_REGION}"
-    if queue_name in CAPTURE_IMAGE_QUEUE_NAMES:
+    if process in CAPTURE_IMAGE_QUEUE_NAMES:
         is_capture = True
-        queue_name = f"{CAPTURE_QUEUE}-{CURRENT_SERVICE}-{queue_name}".lower()
-        routing_override = {'service': CAPTURE_SERVICE}
-    else:
+        service = CAPTURE_SERVICE
+        queue_type = CAPTURE_QUEUE
+    elif process in COLLECT_PROCESS_ALLOWED:
         is_capture = False
-        queue_name = f"{COLLECT_QUEUE}-{CURRENT_SERVICE}-{queue_name}".lower()
-        routing_override = {'service': COLLECT_SERVICE}
+        service = COLLECT_SERVICE
+        queue_type = COLLECT_QUEUE
+    else:
+        is_capture, service, queue_type = False, None, None
+        raise ValueError("The process must be one of CAPTURE_IMAGE_QUEUE_NAMES or COLLECT_PROCESS_ALLOWED. ")
+    queue_name = f"{queue_type}-{service}-{process}".lower()
     queue_path = client.queue_path(PROJECT_ID, PROJECT_REGION, queue_name)
     try:
         q = client.get_queue(name=queue_path)
@@ -70,7 +75,9 @@ def get_queue_path(queue_name):
         # TODO: Check for critical parameters, update if needed.
         return queue_path
     rate_limits = {'max_concurrent_dispatches': 2 if is_capture else 1, 'max_dispatches_per_second': 1}
-    queue_settings = {'name': queue_path, 'app_engine_routing_override': routing_override, 'rate_limits': rate_limits}
+    queue_settings = {'name': queue_path, 'rate_limits': rate_limits}
+    if service != CURRENT_SERVICE:
+        queue_settings['app_engine_routing_override'] = {'service': service}
     min_backoff, max_backoff, max_life = duration_pb2.Duration(), duration_pb2.Duration(), duration_pb2.Duration()
     min_backoff.FromJsonString('10s' if is_capture else '7s')
     max_backoff.FromJsonString('3900s')  # 65 minutes, shortens last 1 of collect, last 2 of capture.
@@ -185,8 +192,7 @@ def add_to_capture(post, queue_name='test-on-db-b', task_name=None, in_seconds=9
 def add_to_collect(media_data, process='basic', task_name=None, in_seconds=180):
     """Adds a task to a Collect Queue to make a request to the Graph API for data on media posts. """
     mod = 'post'
-    process_allowed = {'basic', 'metrics', 'data'}
-    if process not in process_allowed:
+    if process not in COLLECT_PROCESS_ALLOWED:
         info = f"Unknown process name: {process} "
         app.logger.error(info)
         raise ValueError(info)
