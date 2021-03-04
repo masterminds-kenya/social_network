@@ -616,7 +616,7 @@ def handle_collect_media_no_post_id(data, process):
                 media = get_metrics_media(media, facebook, metrics=mets)
         collected.append(media)
     try:
-        db.session.bulk_update_mappings(Post, collected)
+        db.session.bulk_update_mappings(Post, collected)  # primary keys are required.
         db.session.commit()
         app.logger.debug("========== HANDLE COLLECT MEDIA SUCCESS! ==========")
         info = f"Updated {len(collected)} Post records with media {process} info. "
