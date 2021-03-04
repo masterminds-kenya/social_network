@@ -230,12 +230,15 @@ def report_update(reports, Model):
     return message, status_code
 
 
-def media_posts_save(media_results, bulk_db_operation='create', add_time=False):
-    """Use bulk database processes to 'create', 'update', or 'save' Posts based on a list of mapped objects (dicts). """
+def media_posts_save(media_results, bulk_db_operation='create', return_ids=False, add_time=False):
+    """Use bulk database processes to 'create', 'update', or 'save', Posts based on a list of mapped objects (dicts). """
     if isinstance(media_results, list) and len(media_results) == 0:
         return 0, True
+    kwargs = {}  # Only changed for 'create' or 'save' bulk_db_operation if return_ids is True.
     if bulk_db_operation in ('save', 'create'):
         mediaset = reduce(lambda result, ea: result + ea.get('media_list', []), media_results, [])
+        if return_ids:
+            kwargs = {'return_defaults': True}
         if bulk_db_operation == 'save':  # Will INSERT or UPDATE as needed.
             db_process = db.session.bulk_save_objects
         else:
@@ -252,7 +255,7 @@ def media_posts_save(media_results, bulk_db_operation='create', add_time=False):
         mediaset = [fix_date(Post, dict(**ea, timestamp=ts)) for ea in mediaset]
     count = len(mediaset)
     try:
-        db_process(Post, mediaset)
+        db_response = db_process(Post, mediaset, **kwargs)
         db.session.commit()
         success = True
     except Exception as e:
@@ -262,7 +265,9 @@ def media_posts_save(media_results, bulk_db_operation='create', add_time=False):
         app.logger.error(error_info)
         app.logger.error(e)
         db.session.rollback()
-    return count, success
+    if not return_ids:
+        db_response = None
+    return count, success, db_response
 
 
 def process_hook(req):
