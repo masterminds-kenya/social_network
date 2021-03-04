@@ -12,13 +12,14 @@ import json
 
 PROJECT_ID = app.config.get('PROJECT_ID')
 PROJECT_REGION = app.config.get('PROJECT_REGION')  # Google Docs said PROJECT_ZONE, but confirmed PROJECT_REGION works
-CAPTURE_SERVICE = app.config.get('CAPTURE_SERVICE')
-CAPTURE_QUEUE = app.config.get('CAPTURE_QUEUE')
-CURRENT_SERVICE = environ.get('GAE_SERVICE', 'dev')
+CURRENT_SERVICE = app.config.get('CURRENT_SERVICE')
+CAPTURE_SERVICE = app.config.get('CAPTURE_SERVICE', CURRENT_SERVICE)
 COLLECT_SERVICE = app.config.get('COLLECT_SERVICE', CURRENT_SERVICE)
+CAPTURE_QUEUE = app.config.get('CAPTURE_QUEUE', 'capture')
 COLLECT_QUEUE = app.config.get('COLLECT_QUEUE', 'collect')
 BETWEEN_COLLECT = 4  # Multiple collect-tasks starting time seperated by this number of seconds.
-capture_names = ('test-on-db-b', 'post', 'test')
+CAPTURE_IMAGE_QUEUE_NAMES = ('test-on-db-b', 'post', 'test')
+COLLECT_PROCESS_ALLOWED = {'basic', 'metrics', 'data'}
 client = tasks_v2.CloudTasksClient()
 
 
@@ -43,34 +44,43 @@ def try_task(parent, task):
     return response  # .name if response else None
 
 
-def get_queue_path(queue_name):
+def get_queue_path(process):
     """Creates or gets a queue for either the Capture API or the collect process. """
-    if not queue_name:
-        queue_name = 'test'
-    parent = f"projects/{PROJECT_ID}/locations/{PROJECT_REGION}"
-    if queue_name in capture_names:
+    override_service = None
+    if not process:
+        process = 'test'
+    if process in CAPTURE_IMAGE_QUEUE_NAMES:
         is_capture = True
-        queue_name = f"{CAPTURE_QUEUE}-{CURRENT_SERVICE}-{queue_name}".lower()
-        routing_override = {'service': CAPTURE_SERVICE}
-    else:
+        service = CAPTURE_SERVICE
+        override_service = service
+        queue_type = CAPTURE_QUEUE
+    elif process in COLLECT_PROCESS_ALLOWED:
         is_capture = False
-        queue_name = f"{COLLECT_QUEUE}-{CURRENT_SERVICE}-{queue_name}".lower()
-        routing_override = {'service': COLLECT_SERVICE}
-    queue_path = client.queue_path(PROJECT_ID, PROJECT_REGION, queue_name)
+        service = CURRENT_SERVICE
+        if service != COLLECT_SERVICE:
+            override_service = service
+        queue_type = COLLECT_QUEUE
+    else:
+        is_capture, service, queue_type = False, None, None
+        raise ValueError("The process must be one of CAPTURE_IMAGE_QUEUE_NAMES or COLLECT_PROCESS_ALLOWED. ")
+    short_queue_name = f"{queue_type}-{service}-{process}".lower()
+    full_queue_name = client.queue_path(PROJECT_ID, PROJECT_REGION, short_queue_name)
     try:
-        q = client.get_queue(name=queue_path)
+        q = client.get_queue(name=full_queue_name)
         app.logger.info(f"===== FOUND QUEUE: {q} =====")
         app.logger.info(dir(q))
         app.logger.info("-----------------------------")
     except Exception as e:
-        app.logger.info(f"The {queue_path} queue does not exist, or could not be found. Attempting to create it. ")
+        app.logger.info(f"The {full_queue_name} queue does not exist, or could not be found. Attempting to create it. ")
         app.logger.info(e)
         q = None
     if q:
         # TODO: Check for critical parameters, update if needed.
-        return queue_path
-    rate_limits = {'max_concurrent_dispatches': 2 if is_capture else 1, 'max_dispatches_per_second': 1}
-    queue_settings = {'name': queue_path, 'app_engine_routing_override': routing_override, 'rate_limits': rate_limits}
+        return full_queue_name
+    rate_limits = {'max_concurrent_dispatches': 2 if is_capture else 1, 'max_dispatches_per_second': 500}
+    queue_settings = {'name': full_queue_name, 'rate_limits': rate_limits}
+    if override_service:
+        queue_settings['app_engine_routing_override'] = {'service': override_service}
     min_backoff, max_backoff, max_life = duration_pb2.Duration(), duration_pb2.Duration(), duration_pb2.Duration()
     min_backoff.FromJsonString('10s' if is_capture else '7s')
     max_backoff.FromJsonString('3900s')  # 65 minutes, shortens last 1 of collect, last 2 of capture.
@@ -78,29 +88,30 @@ def get_queue_path(queue_name):
     retry_config = {'max_attempts': 32, 'min_backoff': min_backoff, 'max_backoff': max_backoff, 'max_doublings': 10}
     retry_config['max_retry_duration'] = max_life
     queue_settings['retry_config'] = retry_config
+    parent = f"projects/{PROJECT_ID}/locations/{PROJECT_REGION}"
     try:
         q = client.create_queue(parent=parent, queue=queue_settings)
         app.logger.info("============ CREATED QUEUE ============")
         app.logger.info(q)
     except AlreadyExists as exists:
-        app.logger.info(f"Already Exists on get/create/update {queue_name} ")
+        app.logger.info(f"Already Exists on get/create/update {short_queue_name} ")
         app.logger.info(exists)
-        q = queue_path
+        q = full_queue_name
     except ValueError as error:
-        app.logger.info(f"Value Error on get/create/update the {queue_name} ")
+        app.logger.info(f"Value Error on get/create/update the {short_queue_name} ")
         app.logger.error(error)
         q = None
     except GoogleAPICallError as error:
-        app.logger.info(f"Google API Call Error on get/create/update {queue_name} ")
+        app.logger.info(f"Google API Call Error on get/create/update {short_queue_name} ")
         app.logger.error(error)
         q = None
-    return queue_path if q else None
+    return full_queue_name if q else None
 
 
 def get_or_create_queue(queue_name, logging=0):
     """Updated process for queue path. """
     # parent = client.queue_path(PROJECT_ID, PROJECT_REGION, queue_name)
-    # if queue_name in capture_names:
+    # if queue_name in CAPTURE_IMAGE_QUEUE_NAMES:
     #     is_capture = True
     #     queue_name = f"{CAPTURE_QUEUE}-{queue_name}".lower()
     #     routing_override = {'service': CAPTURE_SERVICE}
@@ -182,20 +193,25 @@ def add_to_capture(post, queue_name='test-on-db-b', task_name=None, in_seconds=9
     return try_task(parent, task)
 
 
-def add_to_collect(media_data, queue_name='basic-post', task_name=None, in_seconds=180):
-    """Adds a task to a Collect Queue to make a request to the Graph API for data on media posts. """
+def add_to_collect(media_data, process='basic', task_name=None, in_seconds=180):
+    """Add tasks to a specific (depending on process) Collect Queue to request Graph API data on media posts.
+    Input media_data: Expected get_media_lists output, a list of dicts for each User (containing a list of media info).
+    Input process: Indicates if the task is to get the 'basic' post content, the 'metrics', or (data?)
+    Input task_name: Usually not set, available for further expansion.
+    Input in_seconds: The first task will be scheduled this number of seconds from now.
+    Consequences: A task is created for each User in the media_data (later, a Graph API call for each media post).
+    Output: A list for each attempted task. Each will be the create task response, or None for caught exceptions.
+    """
     mod = 'post'
-    process_lookup = {'basic-post': 'basic', 'metrics-post': 'metrics', 'data-post': 'data'}
-    process = process_lookup.get(queue_name, None)
-    if queue_name not in process_lookup:
-        info = f"Unknown process name: {queue_name} "
+    if process not in COLLECT_PROCESS_ALLOWED:
+        info = f"Unknown process name: {process} "
         app.logger.error(info)
         raise ValueError(info)
     if not isinstance(task_name, (str, type(None))):
         raise TypeError("Usually the task_name for add_to_capture should be None, but should be a string if set. ")
-    parent = get_queue_path(queue_name)
+    parent = get_queue_path(process)
     relative_uri = url_for('collect_queue', mod=mod, process=process)  # f"/collect/{mod}/{process}"
-    source = {'queue_type': queue_name, 'queue_name': parent, 'service': CURRENT_SERVICE}
+    source = {'queue_type': process, 'queue_name': parent, 'service': CURRENT_SERVICE}  # Only used for debugging.
     # data = {'user_id': int, 'post_ids': [int, ] | None, 'media_ids': [int, ] | None, }  # must have post or media ids
     # optional in data: 'metrics': str|None, 'post_metrics': {int: str}|str|None
     timestamp = timestamp_pb2.Timestamp()

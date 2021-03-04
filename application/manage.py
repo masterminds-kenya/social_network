@@ -250,6 +250,7 @@ def media_posts_save(media_results, create_or_update='create', add_time=False):
             app.logger.error("========== CREATE MEDIA POSTS ERROR ==========")
             app.logger.error(info)
             app.logger.error(e)
+            db.session.rollback()
     elif create_or_update == 'update':
         count = len(media_results)
         try:

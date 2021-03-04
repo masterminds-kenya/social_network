@@ -1,4 +1,5 @@
 from flask import render_template, redirect, url_for, request, flash, session, current_app as app  # , abort
+from sqlalchemy import or_
 from flask_login import current_user, login_user, logout_user, login_required
 from werkzeug.security import generate_password_hash, check_password_hash
 import json
@@ -9,12 +10,14 @@ from .helper_functions import staff_required, admin_required, mod_lookup, prep_i
 from .manage import update_campaign, process_form, report_update, check_hash, add_edit, media_posts_save, process_hook
 from .api import (onboard_login, onboarding, user_permissions, get_insight, get_audience, get_online_followers,
                   get_media_lists, get_metrics_media, handle_collect_media)
-from .create_queue_task import add_to_collect
+from .create_queue_task import add_to_collect, COLLECT_PROCESS_ALLOWED
 from .sheets import create_sheet, update_sheet, perm_add, perm_list, all_files
 from pprint import pprint
 
 # Sentinels for errors recorded on the Post.caption field.
-caption_errors = ['NO_CREDENTIALS', 'AUTH_FACEBOOK', 'AUTH_TOKEN', 'AUTH_NONE', 'API_ERROR', 'INSIGHTS_CREATED']
+CAPTION_ERRORS = ['NO_CREDENTIALS', 'AUTH_FACEBOOK', 'AUTH_TOKEN', 'AUTH_NONE', 'API_ERROR', 'INSIGHTS_CREATED']
+POST_ERROR_DATE = '2021-02-28'
+MAX_ACTIVE_USER_NUM = app.config.get('MAX_ACTIVE_USER_NUM', 100)
 
 
 def test_local(*args, **kwargs):
@@ -159,17 +162,14 @@ def permission_check(mod, id):
 @admin_required()
 def problem_posts():
     """These media posts experienced problems that should be investigated. """
-    null_date = '2020-12-16'
-    problem_data = Post.query.filter(Post.caption.in_(caption_errors))
-    recent_null = Post.query.filter(Post.caption.is_(None), Post.created > null_date)
-    models = problem_data.union(recent_null)
-    problem_posts = models.all()
-    data = {'posts': problem_posts}
+    problem_data = Post.query.filter(or_(Post.caption.in_(CAPTION_ERRORS), Post.caption.is_(None)))
+    problem_data = problem_data.filter(Post.created > POST_ERROR_DATE)
+    data = {'posts': problem_data.all()}
     mod = 'error media posts'
     template = 'view.html'
-    flash(f"All media posts received with either NULL after {null_date} or assigned a caption error code. ")
-    flash(f"Known caption error codes: {', '.join(caption_errors)}. ")
-    return render_template(template, mod=mod, data=data, caption_errors=caption_errors)
+    flash(f"All media posts received after {POST_ERROR_DATE}  with either NULL or assigned a caption error code. ")
+    flash(f"Known caption error codes: {', '.join(CAPTION_ERRORS)}. ")
+    return render_template(template, mod=mod, data=data, caption_errors=CAPTION_ERRORS)
 
 
 @app.route('/admin/test')
@@ -422,7 +422,7 @@ def campaign(id, view='management'):
             app.logger.error(info)
             flash(info)
     related = campaign.related_posts(view)
-    return render_template(template, mod=mod, view=view, data=campaign, related=related, caption_errors=caption_errors)
+    return render_template(template, mod=mod, view=view, data=campaign, related=related, caption_errors=CAPTION_ERRORS)
 
 
 @app.route('/campaign/<int:id>/update', methods=['GET'])
@@ -457,13 +457,18 @@ def all_posts():
             app.logger.error(message)
             return redirect(url_for('error'))
     all_ig = get_daily_ig_accounts()
-    media_results = get_media_lists(all_ig)
-    count, success = media_posts_save(media_results, add_time=True)
     num_users = all_ig.distinct().count()
-    message = f"For {num_users} users, got {count} posts. Initial save: {success}. "
-    if success and count > 0:
-        task_list = add_to_collect(media_results, queue_name='basic-post', in_seconds=180)
-        success = all(ea is not None for ea in task_list)
+    if num_users > MAX_ACTIVE_USER_NUM:
+        count = 'NA'
+        success = False
+        message = f"Exceeded the current maximum of {MAX_ACTIVE_USER_NUM} active users. Found {num_users} users. "
+    else:
+        media_results = get_media_lists(all_ig)
+        count, success = media_posts_save(media_results, add_time=True)
+        message = f"For {num_users} users, got {count} posts. Initial save: {success}. "
+        if success and count > 0:
+            task_list = add_to_collect(media_results, process='basic', in_seconds=180)
+            success = all(ea is not None for ea in task_list)
     status = 201 if success else 500
     response = {'User_num': num_users, 'Post_num': count, 'message': message, 'status_code': status}
     if cron_run:
@@ -504,7 +509,7 @@ def capture_report():
 @app.route('/collect/<string:mod>/<string:process>', methods=['GET', 'POST'])
 def collect_queue(mod, process):
     """For backend handling requests for media post data from the Graph API with google cloud tasks. """
-    known_process = ('basic', 'metrics', 'data')
+    known_process = COLLECT_PROCESS_ALLOWED  # {'basic', 'metrics', 'data'}
     app.logger.debug(f"==================== collect queue: {mod} {process} ====================")
     if mod != 'post' or process not in known_process:
         return "Unknown Data Type or Process in Request", 404
@@ -748,7 +753,7 @@ def view(mod, id):
             model['value'] = value
     # TODO: Remove these temporary logs
     # app.logger.info(f"Current User: {current_user} ")
-    return render_template(template, mod=mod, data=model, caption_errors=caption_errors)
+    return render_template(template, mod=mod, data=model, caption_errors=CAPTION_ERRORS)
 
 
 @app.route('/<string:mod>/add', methods=['GET', 'POST'])

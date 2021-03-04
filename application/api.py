@@ -450,12 +450,13 @@ def clean_valid_user_list(id_or_users, instagram_required=True, token_required=T
 
 
 def get_media_lists(id_or_users, stories=True, only_ids=True, facebook=None, only_new=True):
-    """Returns a list of saved Post objects created for the single or list of Users or User id(s).
+    """Returns a list of dicts for each User. Each dict contains a 'media_list' list of media info from Graph API.
+    The media info contains at least the media_id for Graph API, and possibly other data depending on input parameters.
     If stories parameter is 'only', then it will only get STORY media posts for these user(s).
     Otherwise stories parameter indicates if STORY media posts should or should not be included.
-    This function is likely called by 'all_posts' for daily download or 'new_post' for a specific user.
-    The Graph API is called to get all basic and metrics data, and creates or updates Posts in the database.
-    Returns an array of the saved (created or updated) Post instances.
+    If only_ids is False then basic post content is also retrieved, otherwise the default (True) gets only media_ids.
+    The Graph API is called to get all media_id and (optional) basic content. Metrics data is fetched via other methods.
+    This function is likely called by 'all_posts' for daily download for many users or 'new_post' for a specific user.
     """
     users = clean_valid_user_list(id_or_users)
     results = []
