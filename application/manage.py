@@ -231,31 +231,31 @@ def report_update(reports, Model):
 
 
 def media_posts_save(media_results, bulk_db_operation='create', return_ids=False, add_time=False):
-    """Use bulk database processes to 'create', 'update', or 'save', Posts based on a list of mapped objects (dicts). """
+    """Use bulk database processes to 'create', 'update', or 'save' Posts based on a list of mapped objects (dicts). """
     if isinstance(media_results, list) and len(media_results) == 0:
         return 0, True
-    kwargs = {}  # Only changed for 'create' or 'save' bulk_db_operation if return_ids is True.
-    if bulk_db_operation in ('save', 'create'):
+    if bulk_db_operation == 'create':
         mediaset = reduce(lambda result, ea: result + ea.get('media_list', []), media_results, [])
-        if return_ids:
-            kwargs = {'return_defaults': True}
-        if bulk_db_operation == 'save':  # Will INSERT or UPDATE as needed.
-            db_process = db.session.bulk_save_objects
-        else:
-            db_process = db.session.bulk_insert_mappings
+        args = [Post, mediaset]
+        db_process = db.session.bulk_insert_mappings
     elif bulk_db_operation == 'update':
         mediaset = media_results  # For 'update', expect to only have a list of mappings (dicts).
         db_process = db.session.bulk_update_mappings
+    elif bulk_db_operation == 'save':  # Will INSERT or UPDATE as needed. Requires a list of Post objects.
+        mediaset = reduce(lambda result, ea: result + ea.get('media_list', []), media_results, [])
+        db_process = db.session.bulk_save_objects
     else:
-        # mediaset = media_results  # Unclear process, so just using the input value.
-        # success = False
         raise ValueError(f"Not a valid 'bulk_db_operation' value: {bulk_db_operation}")
+    if add_time and bulk_db_operation == 'save':
+        raise NotImplementedError("This function is unable to add a timestamp for bulk saving of objects. ")
     if add_time:
         ts = str(make_missing_timestamp(0))
         mediaset = [fix_date(Post, dict(**ea, timestamp=ts)) for ea in mediaset]
+    args = [Post, mediaset] if bulk_db_operation != 'save' else [mediaset]
+    kwargs = {'return_defaults': True} if return_ids and bulk_db_operation in ('save', 'create') else {}
     count = len(mediaset)
     try:
-        db_response = db_process(Post, mediaset, **kwargs)
+        db_response = db_process(*args, **kwargs)
         db.session.commit()
         success = True
     except Exception as e:
