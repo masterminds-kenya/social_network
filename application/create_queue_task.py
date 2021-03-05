@@ -223,7 +223,11 @@ def add_to_collect(media_data, process='basic', task_name=None, in_seconds=180):
     for data in media_data:  # There is a data for each User in this batch of media_data.
         # data format: {'user_id': user.id, 'media_ids': media_ids, 'media_list': cur}
         source['start_time'] = d.isoformat()  # Must be serializable.
-        payload = {'source': source, 'dataset': data}
+        for data in batch['media_list']:
+            for k, v in data.items():
+                if isinstance(v, dt):
+                    data[k] = v.isoformat()
+        payload = {'source': source, 'dataset': batch}
         task = {
                 'app_engine_http_request': {  # Specify the type of request.
                     'http_method': 'POST',
