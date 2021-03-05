@@ -251,7 +251,9 @@ def media_posts_save(media_results, bulk_db_operation='create', return_ids=False
         raise NotImplementedError("This function is unable to add a timestamp for bulk saving of objects. ")
     if add_time:
         ts = str(make_missing_timestamp(0))
-        mediaset = [fix_date(Post, dict(**ea, timestamp=ts)) for ea in mediaset]
+        for d in mediaset:
+            d.update(timestamp=ts)
+            fix_date(Post, d)
     args = [Post, mediaset] if bulk_db_operation != 'save' else [mediaset]
     kwargs = {'return_defaults': True} if return_ids and bulk_db_operation in ('save', 'create') else {}
     count = len(mediaset)
