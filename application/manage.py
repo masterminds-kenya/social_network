@@ -272,7 +272,7 @@ def media_posts_save(media_results, bulk_db_operation='create', return_ids=False
         app.logger.error(error_info)
         app.logger.error(e)
         db.session.rollback()
-    return count, success, None
+    return count, success
 
 
 def process_hook(req):
