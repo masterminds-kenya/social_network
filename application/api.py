@@ -562,7 +562,7 @@ def handle_collect_media(data, process):
         return dataset
     user = None
     collected = []
-    for data in dataset:
+    for data in dataset:  # For each media post.
         post_id = data.pop('id')
         user = data.pop('user')
         facebook = data.pop('facebook')
