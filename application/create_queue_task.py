@@ -193,13 +193,13 @@ def add_to_capture(post, queue_name='test-on-db-b', task_name=None, in_seconds=9
     return try_task(parent, task)
 
 
-def add_to_collect(media_data, process='basic', task_name=None, in_seconds=180):
+def add_to_collect(media_results, process='basic', task_name=None, in_seconds=180):
     """Add tasks to a specific (depending on process) Collect Queue to request Graph API data on media posts.
-    Input media_data: Expected get_media_lists output, a list of dicts for each User (containing a list of media info).
-    Input process: Indicates if the task is to get the 'basic' post content, the 'metrics', or (data?)
+    Input media_results: Expected get_media_lists output, a list of dicts for each User (containing media info list).
+    Input process: Indicates if the task is to get the 'basic' post content, the 'metrics', or both for 'data'.
     Input task_name: Usually not set, available for further expansion.
     Input in_seconds: The first task will be scheduled this number of seconds from now.
-    Consequences: A task is created for each User in the media_data (later, a Graph API call for each media post).
+    Consequences: A task is created for each User in the media_results (later, a Graph API call for each media post).
     Output: A list for each attempted task. Each will be the create task response, or None for caught exceptions.
     """
     mod = 'post'
@@ -217,10 +217,10 @@ def add_to_collect(media_data, process='basic', task_name=None, in_seconds=180):
     timestamp = timestamp_pb2.Timestamp()
     d = dt.utcnow() + timedelta(seconds=in_seconds)
     delay = timedelta(seconds=BETWEEN_COLLECT)
-    if isinstance(media_data, dict):  # Normalizes input for a single user to match a list of users.
-        media_data = [media_data]
+    if isinstance(media_results, dict):  # Normalizes input for a single user to match a list of users.
+        media_results = [media_results]
     task_list = []
-    for data in media_data:  # There is a data for each User in this batch of media_data.
+    for batch in media_results:  # There is a data for each User in this batch of media_results.
         # data format: {'user_id': user.id, 'media_ids': media_ids, 'media_list': cur}
         source['start_time'] = d.isoformat()  # Must be serializable.
         for data in batch['media_list']:
