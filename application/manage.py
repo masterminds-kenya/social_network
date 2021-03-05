@@ -242,8 +242,9 @@ def media_posts_save(media_results, bulk_db_operation='create', return_ids=False
         mediaset = media_results  # For 'update', expect to only have a list of mappings (dicts).
         db_process = db.session.bulk_update_mappings
     elif bulk_db_operation == 'save':  # Will INSERT or UPDATE as needed. Requires a list of Post objects.
-        mediaset = reduce(lambda result, ea: result + ea.get('media_list', []), media_results, [])
+        # mediaset = reduce(lambda result, ea: result + ea.get('media_list', []), media_results, [])
         db_process = db.session.bulk_save_objects
+        raise NotImplementedError("The UPSERT, or INSERT | UPDATE as needed, feature is not yet implemented. ")
     else:
         raise ValueError(f"Not a valid 'bulk_db_operation' value: {bulk_db_operation}")
     if add_time and bulk_db_operation == 'save':
@@ -255,7 +256,7 @@ def media_posts_save(media_results, bulk_db_operation='create', return_ids=False
     kwargs = {'return_defaults': True} if return_ids and bulk_db_operation in ('save', 'create') else {}
     count = len(mediaset)
     try:
-        db_response = db_process(*args, **kwargs)
+        db_process(*args, **kwargs)  # If return_results, the mediaset will be modified.
         db.session.commit()
         success = True
     except Exception as e:
@@ -265,9 +266,7 @@ def media_posts_save(media_results, bulk_db_operation='create', return_ids=False
         app.logger.error(error_info)
         app.logger.error(e)
         db.session.rollback()
-    if not return_ids:
-        db_response = None
-    return count, success, db_response
+    return count, success, None
 
 
 def process_hook(req):
