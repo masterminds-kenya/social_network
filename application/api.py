@@ -533,7 +533,6 @@ def clean_collect_dataset(data):
     if isinstance(metrics, dict) and 'error' in metrics:
         return metrics  # Will raise error for mon-resolvable error in the metrics structure.
     if posts:  # TODO: Determine if it is okay, or preferred, to leave in the 'user_id' field.
-        posts = [{k: v for k, v in p.items() if k != 'user_id'} for p in posts]
         q = None
     elif post_ids:
         q = db.session.query(Post.id, Post.media_id, Post.media_type).filter(Post.id.in_(post_ids))
