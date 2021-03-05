@@ -1,6 +1,5 @@
 from flask import flash, redirect, render_template, url_for, request, current_app as app
 from flask_login import current_user, login_user
-from sqlalchemy.sql.sqltypes import DateTime
 from werkzeug.security import generate_password_hash
 from collections import defaultdict
 from functools import reduce
@@ -273,7 +272,7 @@ def media_posts_save(media_results, bulk_db_operation='create', return_ids=False
         app.logger.error(error_info)
         app.logger.error(e)
         db.session.rollback()
-    if add_time and bulk_db_operation == 'create':
+    if add_time and bulk_db_operation == 'create':  # TODO: When implementing 'save', handle add_time deletion.
         datefield = 'recorded' if args[0] == Post else 'end_time'
         for data in mediaset:
             data.pop(datefield)
