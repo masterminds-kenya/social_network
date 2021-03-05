@@ -59,7 +59,7 @@ def from_sql(row, related=False, safe=True):
     data = {k: getattr(row, k) for k in dir(row.__mapper__.all_orm_descriptors) if not k.startswith('_')}
     # check_stuff(row, related, safe)  # TODO: Remove after resolved.
     unwanted_keys = set()
-    if not related:
+    if not related:  # TODO: Does not seem to work, but maybe not needed and should be cut.
         unwanted_keys.update(row.__mapper__.relationships)
     if safe:
         unwanted_keys.update(row.__class__.UNSAFE)

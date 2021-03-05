@@ -555,8 +555,7 @@ def handle_collect_media(data, process):
     # already confirmed process is one of: 'basic', 'metrics', 'data'
     # data format: {'user_id': user.id, 'media_ids': media_ids, 'media_list': cur}
     # format of each in data['media_list']: {'media_id': media_id, 'user_id': user.id, [media_type': 'STORY']}
-    app.logger.debug("========== HANDLE COLLECT MEDIA ==========")
-    # return handle_collect_media_no_post_id(data, process)
+    # app.logger.debug("========== HANDLE COLLECT MEDIA ==========")
     dataset = clean_collect_dataset(data)
     app.logger.debug(len(dataset))
     if isinstance(dataset, dict) and 'error' in dataset:
