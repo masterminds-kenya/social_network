@@ -231,7 +231,11 @@ def report_update(reports, Model):
 
 
 def media_posts_save(media_results, bulk_db_operation='create', return_ids=False, add_time=False):
-    """Use bulk database processes to 'create', 'update', or 'save' Posts based on a list of mapped objects (dicts). """
+    """Use bulk database processes to 'create', 'update', or 'save' Posts based on a list of mapped objects (dicts).
+    If return_ids is True, then each dict of post data will be updated with its assigned id in the database.
+    The add_time parameter should be True if the post data is being created in the database (vs updated).
+    Besides modifying the media_results, this function returns two values: a count of posts, and a success boolean.
+    """
     if isinstance(media_results, list) and len(media_results) == 0:
         return 0, True
     if bulk_db_operation == 'create':
