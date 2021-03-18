@@ -432,7 +432,7 @@ def update_campaign_metrics(id):
     camp = Campaign.query.get(id)
     prep_data = camp.prep_metrics_update()
     post_data = [get_metrics_media(media, facebook, metrics) for media, facebook, metrics in prep_data]
-    count, success = media_posts_save(post_data, create_or_update='update')
+    count, success = media_posts_save(post_data, bulk_db_operation='update')
     if success:
         info = f"Updated metrics for {count} non-story media posts. "
     else:
@@ -464,7 +464,7 @@ def all_posts():
         message = f"Exceeded the current maximum of {MAX_ACTIVE_USER_NUM} active users. Found {num_users} users. "
     else:
         media_results = get_media_lists(all_ig)
-        count, success = media_posts_save(media_results, add_time=True)
+        count, success = media_posts_save(media_results, return_ids=True, add_time=True)
         message = f"For {num_users} users, got {count} posts. Initial save: {success}. "
         if success and count > 0:
             task_list = add_to_collect(media_results, process='basic', in_seconds=180)
@@ -534,18 +534,19 @@ def collect_queue(mod, process):
     app.logger.debug("------------------------ SOURCE ------------------------")
     app.logger.debug(source)
     service_request = source.get('service', None)
-    expect_service = app.config.get('COLLECT_SERVICE', '')
+    expect_service = app.config.get('CURRENT_SERVICE', '')
     if service_request != expect_service:
         info = f"Request from {service_request} does not match expected {expect_service} service. "
         app.logger.error(info)
         return info, 404
-    dataset = req_body.get('dataset', [])
+    dataset = req_body.get('dataset', {})  # format: {'user_id': user.id, 'media_ids': media_ids, 'media_list': cur}
+    # format of each in dataset['media_list']: {'media_id': media_id, 'user_id': user.id, [media_type': 'STORY']}
     user_id = dataset.get('user_id', 'NOT FOUND')
     media_count = len(dataset.get('media_list', []))
     app.logger.info(f"------------------------ Media: {media_count} for User ID: {user_id} ------------------------")
     result = handle_collect_media(dataset, process)
     if isinstance(result, list):
-        count, success = media_posts_save(result, create_or_update='update')
+        count, success = media_posts_save(result, bulk_db_operation='update')
         if success:
             info = f"Updated {count} Post records with media {process} info for user ID: {user_id} - SUCCESS. "
             app.logger.info(info)

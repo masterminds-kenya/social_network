@@ -230,44 +230,52 @@ def report_update(reports, Model):
     return message, status_code
 
 
-def media_posts_save(media_results, create_or_update='create', add_time=False):
-    """Save the initial media posts data. The basic media and media metrics will be updated later. """
+def media_posts_save(media_results, bulk_db_operation='create', return_ids=False, add_time=False):
+    """Use bulk database processes to 'create', 'update', or 'save' Posts based on a list of mapped objects (dicts).
+    If return_ids is True, then each dict of post data will be updated with its assigned id in the database.
+    The add_time parameter should be True if the post data is being created in the database (vs updated).
+    Besides modifying the media_results, this function returns two values: a count of posts, and a success boolean.
+    """
     if isinstance(media_results, list) and len(media_results) == 0:
         return 0, True
-    if create_or_update == 'create':
+    if bulk_db_operation == 'create':
         mediaset = reduce(lambda result, ea: result + ea.get('media_list', []), media_results, [])
-        count = len(mediaset)
-        if add_time:
-            ts = str(make_missing_timestamp(0))
-            mediaset = [fix_date(Post, dict(**ea, timestamp=ts)) for ea in mediaset]
-        try:
-            db.session.bulk_insert_mappings(Post, mediaset)
-            db.session.commit()
-            success = True
-        except Exception as e:
-            info = "There was a problem with saving media posts "
-            success = False
-            app.logger.error("========== CREATE MEDIA POSTS ERROR ==========")
-            app.logger.error(info)
-            app.logger.error(e)
-            db.session.rollback()
-    elif create_or_update == 'update':
-        count = len(media_results)
-        try:
-            db.session.bulk_update_mappings(Post, media_results)
-            db.session.commit()
-            success = True
-        except Exception as e:
-            info = "There was a problem with updating media posts "
-            success = False
-            app.logger.error("========== UPDATE MEDIA POSTS ERROR ==========")
-            app.logger.error(info)
-            app.logger.error(e)
-            db.session.rollback()
-    else:  # May have some to update, some to create. Filter accordingly for bulk processes.
-        # TODO: Possibly update or create.
-        count = len(media_results)
-        success = False  # Not Implemented yet.
+        args = [Post, mediaset]
+        db_process = db.session.bulk_insert_mappings
+    elif bulk_db_operation == 'update':
+        mediaset = media_results  # For 'update', expect to only have a list of mappings (dicts).
+        db_process = db.session.bulk_update_mappings
+    elif bulk_db_operation == 'save':  # Will INSERT or UPDATE as needed. Requires a list of Post objects.
+        # mediaset = reduce(lambda result, ea: result + ea.get('media_list', []), media_results, [])
+        db_process = db.session.bulk_save_objects
+        raise NotImplementedError("The UPSERT, or INSERT | UPDATE as needed, feature is not yet implemented. ")
+    else:
+        raise ValueError(f"Not a valid 'bulk_db_operation' value: {bulk_db_operation}")
+    if add_time and bulk_db_operation == 'save':
+        raise NotImplementedError("This function is unable to add a timestamp for bulk saving of objects. ")
+    if add_time:
+        ts = str(make_missing_timestamp(0))
+        for d in mediaset:
+            d.update(timestamp=ts)
+            fix_date(Post, d)
+    args = [Post, mediaset] if bulk_db_operation != 'save' else [mediaset]
+    kwargs = {'return_defaults': True} if return_ids and bulk_db_operation in ('save', 'create') else {}
+    count = len(mediaset)
+    try:
+        db_process(*args, **kwargs)  # If return_results, the mediaset will be modified.
+        db.session.commit()
+        success = True
+    except Exception as e:
+        error_info = f"There was a problem with the bulk '{bulk_db_operation}' process. "
+        success = False
+        app.logger.error(f"========== MEDIA POSTS {bulk_db_operation} ERROR ==========")
+        app.logger.error(error_info)
+        app.logger.error(e)
+        db.session.rollback()
+    if add_time and bulk_db_operation == 'create':  # TODO: When implementing 'save', handle add_time deletion.
+        datefield = 'recorded' if args[0] == Post else 'end_time'
+        for data in mediaset:
+            data.pop(datefield)
     return count, success
 
 

@@ -85,7 +85,19 @@ Requirements for live updates by Webhooks for Instagram (STORY updates):
 
 During a given sqlalchemy database session, we are using `session.info` to track which of the current User objects in the session are in need of page and story_metrics subscription. Whenever the `page_token` property is set for a user (triggered by using [SQAlchemy Events](https://docs.sqlalchemy.org/en/13/orm/events.html)), this User object is added to the `session.info` dictionary under the appropriate key indicating it is ready for this process. By waiting to process them until triggered by a `before_flush` session event, we can be certain to have both the `page_token` and `page_id` field values we need. So, just before all these records are saved in the database, the function to send a request to the Graph API to subscribe to the page is called for each of these Users. If page subscription is successful, as expected in most cases, this will set `story_subscribed` as true for a User. When the page is subscribed, our platform will also be subscribed to receive all `story_metrics` for the associated Instagram account. The Instagram Story Media posts, and the API data about them and their metrics, are only available for about 24 hours from when they are published by the user. This `story_metrics` subscription ensures that our platform will be updated with the final metrics data of the Story when it expires.
 
-## Task Queue on Google Cloud Platform
+## Data Retrieval with Cron Jobs and Task Queue on Google Cloud Platform
+
+Step 1) A daily download from the Graph API retrieves the media ids for users currently in an active campaign.
+
+Step 2) For each user, a task is created to fetch more data on the targeted media.
+
+Step 3) The tasks are processed, collecting media content (metrics retrieved later).
+
+Step 4) Media Metrics Retrieval:
+  a) For STORY media posts, the metrics are collected via webhooks at the time of expiration.
+  b) For other media posts, the metrics must be requested by the managers. 
+
+## Capture Media Image with Task Queue on Google Cloud Platform
 
 During a given sqlalchemy database session, we are using `session.info` to track which of the current Post objects in the session should be added to a capture task queue. We are using [SQAlchemy Events](https://docs.sqlalchemy.org/en/13/orm/events.html) to notice when a media post is being saved to the database. This Post will be added to the capture queue for stories if the Post is a 'STORY' media post, it does not already have a value for `saved_media` field (indication if we have already captured media image files), and it does not have a value for `capture_name` field (indication if it has already been added to a capture queue). When the Event listener first identifies a targeted STORY post, the Post object is added to an appropriate key in the `session.info` dictionary to be processed later. This slight delay is required since we can not be certain that the Post has set all the values that we need for crafting our Capture API call.
 
