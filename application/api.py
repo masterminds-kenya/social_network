@@ -575,7 +575,8 @@ def handle_collect_media(data, process):
         else:  # metrics exist, and process is either 'basic' or 'data'.
             mets = metrics if process == 'basic' else None
             media = get_basic_media(data['media_id'], metrics=mets, id_or_user=user.id, facebook=facebook)
-            media['media_type'] = 'STORY' if is_story else media.get('media_type', '')
+            if is_story:
+                media['media_type'] = 'STORY'
             if process == 'data':
                 media = get_metrics_media(media, facebook, metrics=metrics)
         media['id'] = post_id

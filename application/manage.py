@@ -298,7 +298,7 @@ def process_hook(req):
     if data_count != insight_count:
         data_log += f", {data_count} total"
     # app.logger.info(f"============ PROCESS HOOK: {data_log} ============")
-    timestamp = str(make_missing_timestamp(1))  # timestamp = str(dt.utcnow() - 1 day)
+    timestamp = str(make_missing_timestamp(1))  # timestamp only for creating if not present = str(dt.utcnow() - 1 day)
     total, new, modified, skipped, message = 0, 0, 0, 0, ''
     for story in story_insights:
         story['media_type'] = 'STORY'
@@ -335,11 +335,12 @@ def process_hook(req):
             if 'caption' not in story:
                 story['caption'] = 'INSIGHTS_CREATED'
             message += f"STORY post CREATE for user: {user_id} | Timestamp: {timestamp} \n"
-            model = Post(**story)
+            model = Post(**story)  # Also fixes the timestamp to appropriate date format.
             new += 1
         if not model:
-            app.logger.info("Expected a model, but do not have one. ")
-        db.session.add(model)
+            app.logger.error("Expected a model, but do not have one. ")
+        else:
+            db.session.add(model)
     message += ', '.join([f"{key}: {len(value)}" for key, value in hook_data.items()]) + ' '
     if modified + new > 0:
         message += '\n' + f"STORY posts: update {modified}, create {new}, TOTAL {total}. "
@@ -350,7 +351,7 @@ def process_hook(req):
         except Exception as e:
             response_code = 401
             message += "Unable to to commit story hook updates to database. "
-            app.logger.info(e)
+            app.logger.error(e)
             db.session.rollback()
     elif total == skipped:
         message = ''
