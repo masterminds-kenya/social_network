@@ -463,7 +463,7 @@ def all_posts():
         success = False
         message = f"Exceeded the current maximum of {MAX_ACTIVE_USER_NUM} active users. Found {num_users} users. "
     else:
-        media_results = get_media_lists(all_ig)
+        media_results = get_media_lists(all_ig, only_ids=True)
         count, success = media_posts_save(media_results, return_ids=True, add_time=True)
         message = f"For {num_users} users, got {count} posts. Initial save: {success}. "
         if success and count > 0:

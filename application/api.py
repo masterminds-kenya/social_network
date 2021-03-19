@@ -549,13 +549,13 @@ def clean_collect_dataset(data):
     return posts
 
 
-def handle_collect_media(data, process):
+def handle_collect_media(dataset, process):
     """With the given dataset and post process, call the Graph API and update the database. Return dict with status. """
     # already confirmed process is one of: 'basic', 'metrics', 'data'
     # data format: {'user_id': user.id, 'media_ids': media_ids, 'media_list': cur}
     # format of each in data['media_list']: {'media_id': media_id, 'user_id': user.id, [media_type': 'STORY']}
     # app.logger.debug("========== HANDLE COLLECT MEDIA ==========")
-    dataset = clean_collect_dataset(data)
+    dataset = clean_collect_dataset(dataset)
     app.logger.debug(len(dataset))
     if isinstance(dataset, dict) and 'error' in dataset:
         return dataset
