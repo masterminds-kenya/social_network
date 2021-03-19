@@ -302,8 +302,8 @@ def process_hook(req):
     total, new, modified, skipped, message = 0, 0, 0, 0, ''
     for story in story_insights:
         story['media_type'] = 'STORY'
-        media_id = story.pop('media_id', None)  # Will be put back if creating, but already exists if updating.
-        ig_id = story.pop('ig_id', None)  # Used to find the user if creating.
+        media_id = int(story.pop('media_id', 0))  # Will be put back if creating, but already exists if updating.
+        ig_id = int(story.pop('ig_id', 0))  # Used to find the user if creating.
         total += 1
         if not media_id or not ig_id:
             missed = 'media_id ' if not media_id else 'ig_id'
