@@ -22,6 +22,7 @@ cryptography = "*"
 google-cloud-tasks = "*"
 googleapis-common-protos = "*"
 sqlalchemy = "<1.4"
+google-cloud-logging = "*"
 
 [requires]
 python_version = "3.7"
