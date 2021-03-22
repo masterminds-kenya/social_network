@@ -1,7 +1,7 @@
 {
     "_meta": {
         "hash": {
-            "sha256": "55ba734638bf5700c1ec289e119e2b366c384bb1044cc992f0fb276b53b8cac8"
+            "sha256": "073555ccb35fbe9029065c020a2e95189009e8e324d1fdf1a2c46018bc85d4e0"
         },
         "pipfile-spec": 6,
         "requires": {
@@ -181,6 +181,22 @@
             ],
             "index": "pypi",
             "version": "==0.1.0"
+        },
+        "google-cloud-core": {
+            "hashes": [
+                "sha256:40d9c2da2d03549b5ac3dcccf289d4f15e6d1210044c6381ce45c92913e62904",
+                "sha256:c6abb18527545379fc82efc4de75ce9a3772ccad2fc645adace593ba097cbb02"
+            ],
+            "markers": "python_version >= '2.7' and python_version not in '3.0, 3.1, 3.2, 3.3, 3.4, 3.5'",
+            "version": "==1.6.0"
+        },
+        "google-cloud-logging": {
+            "hashes": [
+                "sha256:7e630800223315dafdfde5e23073cff2b609d823fba3f9c809f43c3c50db8828",
+                "sha256:b5675ce159db4e9c1d755003b76190460766f426a7c3c1519014cdd5ce66e890"
+            ],
+            "index": "pypi",
+            "version": "==2.3.0"
         },
         "google-cloud-tasks": {
             "hashes": [
@@ -396,11 +412,11 @@
         },
         "proto-plus": {
             "hashes": [
-                "sha256:18f43cdeb66e326e4392a0f20662f3e826f0a35489780510a9d3dc1d8135ce30",
-                "sha256:bae25ef9e7d4290802d56ec81faba0a7cfe58843276eb15b320677b5b8b3f63d"
+                "sha256:600e2793ec1a0bf2b9e5ba18cd9eccbc1bc690a03c73b571bbe59789fbaaeecc",
+                "sha256:cfc45474c7eda0fe3c4b9eca2542124f2a0ff5543242bec61e8d08bce0f5bd48"
             ],
             "markers": "python_version >= '3.6'",
-            "version": "==1.18.0"
+            "version": "==1.18.1"
         },
         "protobuf": {
             "hashes": [
