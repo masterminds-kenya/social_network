@@ -1,50 +1,5 @@
-import logging
 from flask import Flask
 from flask_login import LoginManager
-
-# from google.cloud import logging as g_log
-# logging_client = g_log.Client()
-# log_name = "my-log"  # The name of the log to write to
-# logger = logging_client.logger(log_name)  # Selects the log to write to
-# text = "Hello, world!"  # The data to log
-# logger.log_text(text)  # Writes the log entry
-# print("Logged: {}".format(text))
-
-# # FROM: https://cloud.google.com/logging/docs/setup/python
-# import google.cloud.logging  # Imports the Cloud Logging client library
-# client = google.cloud.logging.Client()  # Instantiates a client
-
-# # Retrieves a Cloud Logging handler based on the environment
-# # you're running in and integrates the handler with the
-# # Python logging module. By default this captures all logs
-# # at INFO level and higher
-# client.get_default_handler()
-# client.setup_logging()
-# import logging  # Imports Python standard library logging
-# text = "Hello, world!"  # The data to log
-# logging.warning(text)  # Emits the data using the standard logging module
-
-# FROM: https://googleapis.dev/python/logging/latest/stdlib-usage.html
-# import logging
-# import google.cloud.logging # Don't conflict with standard logging
-# from google.cloud.logging.handlers import CloudLoggingHandler
-# client = google.cloud.logging.Client()
-# handler = CloudLoggingHandler(client)
-# cloud_logger = logging.getLogger('cloudLogger')
-# cloud_logger.setLevel(logging.INFO)  # defaults to WARN
-# cloud_logger.addHandler(handler)
-# cloud_logger.error('bad news')
-# handler = CloudLoggingHandler(client, name="mycustomlog")
-
-# Also possible to attach the handler to the root Pythong logger.
-# import logging
-# import google.cloud.logging # Don't conflict with standard logging
-# from google.cloud.logging.handlers import CloudLoggingHandler, setup_logging
-# client = google.cloud.logging.Client()
-# handler = CloudLoggingHandler(client)
-# logging.getLogger().setLevel(logging.INFO) # defaults to WARN
-# setup_logging(handler)
-# logging.error('bad news')
 
 
 def create_app(config, debug=False, testing=False, config_overrides=None):
