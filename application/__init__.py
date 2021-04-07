@@ -1,5 +1,8 @@
 from flask import Flask
 from flask_login import LoginManager
+import logging
+import google.cloud.logging
+from google.cloud.logging.handlers import CloudLoggingHandler, setup_logging
 
 
 def create_app(config, debug=False, testing=False, config_overrides=None):
@@ -12,7 +15,13 @@ def create_app(config, debug=False, testing=False, config_overrides=None):
     # Configure logging depth: ?NOTSET?, DEBUG, INFO, WARNING, ERROR, CRITICAL
     if not app.testing:
         log_level = logging.DEBUG if app.debug else logging.INFO
-        logging.basicConfig(level=log_level)
+        # logging.basicConfig(level=log_level)
+        client = google.cloud.logging.Client()
+        handler = CloudLoggingHandler(client)
+        logging.getLogger().setLevel(log_level)
+        setup_logging(handler)
+        logging.info('Setup Google Cloud Logging. ')
+
     # Configure flask_login
     login_manager = LoginManager()
     login_manager.login_view = 'signup'  # where to find the login route
