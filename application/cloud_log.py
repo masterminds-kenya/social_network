@@ -50,3 +50,18 @@ def log_setup(log_type, log_level=logging.WARN):
     # logging.getLogger().setLevel(log_level)
     # setup_logging(handler)
     return g_log
+
+
+def test_log(app, g_log):
+    """Used for testing the log setups. """
+    logging.info('Root logging message. ')
+    app.logger.info('App logging. ')
+    if hasattr(g_log, 'info'):
+        g_log.info('Constructed Logger Info. ')
+    else:
+        print(f"No 'info' method on g_log: {g_log} ")
+        print("-------------------------------------------------")
+        for attr in dir(g_log):
+            print(f"{attr:<18} {getattr(g_log, attr)} ")
+        print("-------------------------------------------------")
+    # app.alert.info('Alert logging info. ')

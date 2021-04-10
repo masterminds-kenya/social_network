@@ -1,7 +1,7 @@
 from flask import Flask
 from flask_login import LoginManager
 import logging
-from .cloud_log import log_setup
+from .cloud_log import log_setup, test_log
 
 
 def create_app(config, debug=False, testing=False, config_overrides=None):
@@ -15,11 +15,7 @@ def create_app(config, debug=False, testing=False, config_overrides=None):
         log_level = logging.DEBUG if app.debug else logging.INFO
         log_type = 'BASIC'  # 'ALL', 'ROOT', <NAMED>
         g_log = log_setup(log_type, log_level)
-
-        logging.info('Root logging message. ')
-        app.logger.info('App logging. ')
-        g_log.info('Constructed Logger Info. ')
-        # app.alert.info('Alert logging info. ')
+        test_log(app, g_log)
 
     # Configure flask_login
     login_manager = LoginManager()
