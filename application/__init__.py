@@ -13,7 +13,7 @@ def create_app(config, debug=False, testing=False, config_overrides=None):
         app.config.update(config_overrides)
     if not app.testing:
         log_level = logging.DEBUG if app.debug else logging.INFO
-        log_type = 'BASIC'
+        log_type = 'BASIC'  # 'ALL', 'ROOT', <NAMED>
         g_log = log_setup(log_type, log_level)
 
         logging.info('Root logging message. ')
