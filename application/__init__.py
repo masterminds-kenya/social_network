@@ -1,9 +1,8 @@
 from flask import Flask
 from flask_login import LoginManager
+from google.cloud import logging as cloud_logging
 import logging
-from google.cloud import logging as google_logging
-# from google.cloud.logging.resource import Resource
-# from google.cloud.logging.handlers import CloudLoggingHandler, setup_logging
+from google.cloud.logging.handlers import CloudLoggingHandler  # , setup_logging
 
 
 def create_app(config, debug=False, testing=False, config_overrides=None):
@@ -13,35 +12,20 @@ def create_app(config, debug=False, testing=False, config_overrides=None):
     app.testing = getattr(config, 'TESTING', None) or testing
     if config_overrides:
         app.config.update(config_overrides)
-    # Configure logging depth: ?NOTSET?, DEBUG, INFO, WARNING, ERROR, CRITICAL
     if not app.testing:
-        # log_level = logging.DEBUG if app.debug else logging.INFO
-        # logging.basicConfig(level=log_level)
-        log_client = google_logging.Client()
-        log_name = 'daily_download'
-        daily_log = log_client.logger(log_name)
-        app.glog = log_client
-        app.daily_log = daily_log
-
-        # resource_type = 'generic_task'
-        # resource = Resource(
-        #     type=resource_type,
-        #     labels={
-        #         'service_name': app.config.GAE_SERVICE,
-        #         'location': app.config.PROJECT_REGION,
-        #     })
-        # struct = {
-        #     'content': 'Initial Content. '
-        # }
-
-        # daily_log.log_struct(struct, resource=resource, severity='INFO')
-        # client.get_default_handler()
-        # client.setup_logging(log_level=log_level)
-        # handler = CloudLoggingHandler(client)
-        # logging.getLogger().setLevel(log_level)
-        # setup_logging(handler)
-        logging.info('Root logging message. ')
-        app.logger.info('App logging. ')
+        log_level = logging.DEBUG if app.debug else logging.INFO
+        logging.basicConfig(level=log_level)
+        app_log = logging.getLogger(app.name)
+        # alert_log = logging.getLogger('ALERT')
+        # alert_log.setLevel(log_level)
+        log_client = cloud_logging.Client()
+        app_log.addHandler(CloudLoggingHandler(log_client))
+        # alert_log.addHandler(CloudLoggingHandler(log_client, name='alert'))
+        # app.alert = alert_log
+        app.log_client = log_client
+        # log_type = 'BASIC'  # 'ALL', 'ROOT', <NAMED>
+        # g_log = log_setup(log_type, log_level)
+        # test_log(app, g_log)
 
     # Configure flask_login
     login_manager = LoginManager()
