@@ -1,5 +1,9 @@
 from flask import Flask
 from flask_login import LoginManager
+import logging
+from google.cloud import logging as google_logging
+# from google.cloud.logging.resource import Resource
+# from google.cloud.logging.handlers import CloudLoggingHandler, setup_logging
 
 
 def create_app(config, debug=False, testing=False, config_overrides=None):
@@ -11,8 +15,34 @@ def create_app(config, debug=False, testing=False, config_overrides=None):
         app.config.update(config_overrides)
     # Configure logging depth: ?NOTSET?, DEBUG, INFO, WARNING, ERROR, CRITICAL
     if not app.testing:
-        log_level = logging.DEBUG if app.debug else logging.INFO
-        logging.basicConfig(level=log_level)
+        # log_level = logging.DEBUG if app.debug else logging.INFO
+        # logging.basicConfig(level=log_level)
+        log_client = google_logging.Client()
+        log_name = 'daily_download'
+        daily_log = log_client.logger(log_name)
+        app.glog = log_client
+        app.daily_log = daily_log
+
+        # resource_type = 'generic_task'
+        # resource = Resource(
+        #     type=resource_type,
+        #     labels={
+        #         'service_name': app.config.GAE_SERVICE,
+        #         'location': app.config.PROJECT_REGION,
+        #     })
+        # struct = {
+        #     'content': 'Initial Content. '
+        # }
+
+        # daily_log.log_struct(struct, resource=resource, severity='INFO')
+        # client.get_default_handler()
+        # client.setup_logging(log_level=log_level)
+        # handler = CloudLoggingHandler(client)
+        # logging.getLogger().setLevel(log_level)
+        # setup_logging(handler)
+        logging.info('Root logging message. ')
+        app.logger.info('App logging. ')
+
     # Configure flask_login
     login_manager = LoginManager()
     login_manager.login_view = 'signup'  # where to find the login route
