@@ -5,7 +5,7 @@ from google.cloud.logging.handlers import CloudLoggingHandler, setup_logging
 
 
 class CloudLog(logging.getLoggerClass()):
-    """Use for Google Cloud Logging to gather context values and have the expected log level methods. """
+    """Extended python Logger class that attaches a google cloud log handler. """
     DEFAULT_LOGGER_NAME = 'application'
     DEFAULT_LEVEL = logging.INFO
     DEFAULT_HANDLER_NAME = 'ALERT'
@@ -17,7 +17,8 @@ class CloudLog(logging.getLoggerClass()):
         name = self.get_handler_name(handler_name)
         # cloud_log = self.get_parent_logger(parent_name)
         self.setLevel(level)
-        log_client = google_logging.Client()
+        if not isinstance(log_client, google_logging.Client):
+            log_client = google_logging.Client()
         self.addHandler(CloudLoggingHandler(log_client, name=name))
 
     def get_level(self, level=None):
