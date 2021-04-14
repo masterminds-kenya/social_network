@@ -60,8 +60,8 @@ def test_log(app, g_log):
         g_log.info('Constructed Logger Info. ')
     else:
         print(f"No 'info' method on g_log: {g_log} ")
-        print("-------------------------------------------------")
-        for attr in dir(g_log):
-            print(f"{attr:<18} {getattr(g_log, attr)} ")
-        print("-------------------------------------------------")
+    print("-------------------------------------------------")
+    for attr in dir(g_log):
+        print(f"{attr:<18} {getattr(g_log, attr)} ")
+    print("-------------------------------------------------")
     # app.alert.info('Alert logging info. ')
