@@ -10,14 +10,14 @@ class CloudLog(logging.getLoggerClass()):
     DEFAULT_HANDLER_NAME = 'ALERT'
 
     def __init__(self, name=None, handler_name=None, level=None, log_client=None):
-        name = self.get_parent_name(name)
+        name = self.get_name(name)
         super().__init__(name)
         level = self.get_level(level)
-        name = self.get_handler_name(handler_name)
+        handler_name = self.get_handler_name(handler_name)
         self.setLevel(level)
         if not isinstance(log_client, google_logging.Client):
             log_client = google_logging.Client()
-        self.addHandler(CloudLoggingHandler(log_client, name=name))
+        self.addHandler(CloudLoggingHandler(log_client, name=handler_name))
 
     def get_level(self, level=None):
         """Returns the level value, based on the input string or integer if provided, or by using the default value. """
@@ -36,9 +36,9 @@ class CloudLog(logging.getLoggerClass()):
         return level
 
     def get_name(self, parent_name=None):
-        """Returns a parent name for a logger based on provided input or default value. """
+        """Returns name for a logging.Logger based on provided input or default value. """
         if not parent_name or not isinstance(parent_name, str):
-            parent_name = getattr(self, 'DEFAULT_PARENT_LOGGER_NAME', 'root')
+            parent_name = getattr(self, 'DEFAULT_LOGGER_NAME', 'root')
         if not parent_name:
             raise TypeError("Either a parent_name, or a default, string must be provided. ")
         return parent_name
@@ -46,7 +46,7 @@ class CloudLog(logging.getLoggerClass()):
     def get_handler_name(self, name=None):
         """Returns an uppercase name based on the given input or default value. """
         if not name or not isinstance(name, str):
-            name = getattr(self, 'DEFAULT_NAME', None)
+            name = getattr(self, 'DEFAULT_HANDLER_NAME', None)
         if not name:
             raise TypeError("Either a name, or a default name, string must be provided. ")
         return name.upper()
