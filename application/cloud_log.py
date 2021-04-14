@@ -1,7 +1,6 @@
 import logging
 from google.cloud import logging as google_logging
-# from google.cloud.logging.resource import Resource
-from google.cloud.logging.handlers import CloudLoggingHandler, setup_logging
+from google.cloud.logging.handlers import CloudLoggingHandler
 
 
 class CloudLog(logging.getLoggerClass()):
@@ -10,12 +9,11 @@ class CloudLog(logging.getLoggerClass()):
     DEFAULT_LEVEL = logging.INFO
     DEFAULT_HANDLER_NAME = 'ALERT'
 
-    def __init__(self, name=None, handler_name=None, level=None):
+    def __init__(self, name=None, handler_name=None, level=None, log_client=None):
         name = self.get_parent_name(name)
         super().__init__(name)
         level = self.get_level(level)
         name = self.get_handler_name(handler_name)
-        # cloud_log = self.get_parent_logger(parent_name)
         self.setLevel(level)
         if not isinstance(log_client, google_logging.Client):
             log_client = google_logging.Client()
