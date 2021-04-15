@@ -76,14 +76,19 @@ class CloudLog(logging.getLoggerClass()):
     @staticmethod
     def test_loggers(app, logger_names=list(), loggers=list()):
         """Used for testing the log setups. """
-    logging.info('Root logging message. ')
-    app.logger.info('App logging. ')
-    if hasattr(g_log, 'info'):
-        g_log.info('Constructed Logger Info. ')
-    else:
-        print(f"No 'info' method on g_log: {g_log} ")
-    print("-------------------------------------------------")
-    for attr in dir(g_log):
-        print(f"{attr:<18} {getattr(g_log, attr)} ")
-    print("-------------------------------------------------")
-    # app.alert.info('Alert logging info. ')
+        app_loggers = [(name, getattr(app, name)) for name in logger_names if hasattr(app, name)]
+        logging.info(f"Expected {len(logger_names)} and found {len(app_loggers)} named loggers. ")
+        if hasattr(app, 'logger'):
+            app_loggers.insert(0, ('Default', app.logger))
+        if loggers:
+            logging.info(f"Investigating {len(loggers)} independent loggers. ")
+            loggers = [('root', logging)] + app_loggers + [(num, ea) for num, ea in enumerate(loggers)]
+        else:
+            loggers = [('root', logging)] + app_loggers
+        logging.info(f"Total loggers: {len(loggers)} ")
+        logging.info("================ Warning messages for each Logger ==========================")
+        for name, logger in loggers:
+            if hasattr(logger, 'warning'):
+                logger.warning(f"from logger - {name} ")
+            else:
+                logging.warning(f"No 'warning' method on logger {name} ")
