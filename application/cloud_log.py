@@ -1,6 +1,6 @@
 import logging
 from google.cloud import logging as google_logging
-from google.cloud.logging.handlers import CloudLoggingHandler
+from google.cloud.logging.handlers import CloudLoggingHandler  # , setup_logging
 
 
 class CloudLog(logging.getLoggerClass()):
@@ -40,7 +40,7 @@ class CloudLog(logging.getLoggerClass()):
     def get_name(cls, parent_name=None):
         """Returns name for a logging.Logger based on provided input or default value. """
         if not parent_name or not isinstance(parent_name, str):
-            parent_name = getattr(self, 'DEFAULT_LOGGER_NAME', 'root')
+            parent_name = getattr(cls, 'DEFAULT_LOGGER_NAME', 'root')
         if not parent_name:
             raise TypeError("Either a parent_name, or a default, string must be provided. ")
         return parent_name
@@ -49,7 +49,7 @@ class CloudLog(logging.getLoggerClass()):
     def get_handler_name(cls, name=None):
         """Returns an uppercase name based on the given input or default value. """
         if not name or not isinstance(name, str):
-            name = getattr(self, 'DEFAULT_HANDLER_NAME', None)
+            name = getattr(cls, 'DEFAULT_HANDLER_NAME', None)
         if not name:
             raise TypeError("Either a name, or a default name, string must be provided. ")
         return name.upper()
