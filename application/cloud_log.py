@@ -9,15 +9,15 @@ class CloudLog(logging.getLoggerClass()):
     DEFAULT_LEVEL = logging.INFO
     DEFAULT_HANDLER_NAME = 'ALERT'
 
-    def __init__(self, name=None, handler_name=None, level=None, log_client=None):
+    def __init__(self, name=None, handler_name=None, level=None, log_client=None, rooted=True):
         name = self.get_name(name)
         super().__init__(name)
         level = self.get_level(level)
-        handler_name = self.get_handler_name(handler_name)
         self.setLevel(level)
-        if not isinstance(log_client, google_logging.Client):
-            log_client = google_logging.Client()
-        self.addHandler(CloudLoggingHandler(log_client, name=handler_name))
+        handler = self.make_cloud_handler(handler_name, log_client)
+        self.addHandler(handler)
+        if rooted:
+            self.parent = logging.root
 
     @classmethod
     def get_level(cls, level=None):
