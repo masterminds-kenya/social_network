@@ -8,8 +8,8 @@ from .cloud_log import CloudLog
 def create_app(config, debug=False, testing=False, config_overrides=None):
     app = Flask(__name__)
     app.config.from_object(config)
-    app.debug = getattr(config, 'DEBUG', None) or debug
-    app.testing = getattr(config, 'TESTING', None) or testing
+    app.debug = debug or getattr(config, 'DEBUG', None)
+    app.testing = testing or getattr(config, 'TESTING', None)
     if config_overrides:
         app.config.update(config_overrides)
     if not app.testing:
