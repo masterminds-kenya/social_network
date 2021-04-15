@@ -2,19 +2,19 @@ from flask import Flask
 from flask_login import LoginManager
 from google.cloud import logging as cloud_logging
 import logging
-from google.cloud.logging.handlers import CloudLoggingHandler  # , setup_logging
+from .cloud_log import CloudLog
 
 
 def create_app(config, debug=False, testing=False, config_overrides=None):
     app = Flask(__name__)
     app.config.from_object(config)
-    app.debug = getattr(config, 'DEBUG') or debug
+    app.debug = getattr(config, 'DEBUG', None) or debug
     app.testing = getattr(config, 'TESTING', None) or testing
     if config_overrides:
         app.config.update(config_overrides)
     if not app.testing:
         base_log_level = logging.DEBUG if app.debug else logging.INFO
-        cloud_log_level = logging.WARN
+        cloud_log_level = logging.WARNING
         logging.basicConfig(level=base_log_level)
         base_log = logging.getLogger(__name__)
         log_client = cloud_logging.Client()
