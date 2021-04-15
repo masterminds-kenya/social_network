@@ -62,8 +62,20 @@ class CloudLog(logging.getLoggerClass()):
             log_client = google_logging.Client()
         return CloudLoggingHandler(log_client, name=handler_name)
 
-def test_log(app, g_log):
-    """Used for testing the log setups. """
+    @staticmethod
+    def create_base_logger(name=None, handler_name=None, level=None, log_client=None):
+        """Create a logger with a google cloud logger handler, according to the passed parameters. """
+        name = CloudLog.get_name(name)
+        level = CloudLog.get_level(level)
+        handler = CloudLog.make_cloud_handler(handler_name, log_client)
+        logger = logging.getLogger(name)
+        logger.setLevel(level)
+        logger.addHandler(handler)
+        return logger
+
+    @staticmethod
+    def test_loggers(app, logger_names=list(), loggers=list()):
+        """Used for testing the log setups. """
     logging.info('Root logging message. ')
     app.logger.info('App logging. ')
     if hasattr(g_log, 'info'):
