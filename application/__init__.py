@@ -16,13 +16,9 @@ def create_app(config, debug=False, testing=False, config_overrides=None):
         base_log_level = logging.DEBUG if app.debug else logging.INFO
         cloud_log_level = logging.WARN
         logging.basicConfig(level=base_log_level)
-        app_log = logging.getLogger(app.name)
-        alert_log = logging.getLogger('ALERT')
-        alert_log.setLevel(cloud_log_level)
+        base_log = logging.getLogger(__name__)
         log_client = cloud_logging.Client()
-        app_log.addHandler(CloudLoggingHandler(log_client, name='LOG'))
-        alert_log.addHandler(CloudLoggingHandler(log_client, name='alert'))
-        app.alert = alert_log
+        base_log.addHandler(CloudLog.make_cloud_handler('LOG', log_client))
         app.log_client = log_client
         # log_type = 'BASIC'  # 'ALL', 'ROOT', <NAMED>
         # g_log = log_setup(log_type, log_level)
