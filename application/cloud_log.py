@@ -19,7 +19,8 @@ class CloudLog(logging.getLoggerClass()):
             log_client = google_logging.Client()
         self.addHandler(CloudLoggingHandler(log_client, name=handler_name))
 
-    def get_level(self, level=None):
+    @classmethod
+    def get_level(cls, level=None):
         """Returns the level value, based on the input string or integer if provided, or by using the default value. """
         if level is None:
             level = getattr(level, 'DEFAULT_LEVEL', logging.warn)
@@ -35,7 +36,8 @@ class CloudLog(logging.getLoggerClass()):
             raise TypeError("The level, or default level, must be an appropriate str or int value. ")
         return level
 
-    def get_name(self, parent_name=None):
+    @classmethod
+    def get_name(cls, parent_name=None):
         """Returns name for a logging.Logger based on provided input or default value. """
         if not parent_name or not isinstance(parent_name, str):
             parent_name = getattr(self, 'DEFAULT_LOGGER_NAME', 'root')
@@ -43,7 +45,8 @@ class CloudLog(logging.getLoggerClass()):
             raise TypeError("Either a parent_name, or a default, string must be provided. ")
         return parent_name
 
-    def get_handler_name(self, name=None):
+    @classmethod
+    def get_handler_name(cls, name=None):
         """Returns an uppercase name based on the given input or default value. """
         if not name or not isinstance(name, str):
             name = getattr(self, 'DEFAULT_HANDLER_NAME', None)
@@ -51,6 +54,13 @@ class CloudLog(logging.getLoggerClass()):
             raise TypeError("Either a name, or a default name, string must be provided. ")
         return name.upper()
 
+    @classmethod
+    def make_cloud_handler(cls, handler_name=None, log_client=None):
+        """Creates a handler for cloud logging with the provided name. """
+        handler_name = cls.get_handler_name(handler_name)
+        if not isinstance(log_client, google_logging.Client):
+            log_client = google_logging.Client()
+        return CloudLoggingHandler(log_client, name=handler_name)
 
 def test_log(app, g_log):
     """Used for testing the log setups. """
