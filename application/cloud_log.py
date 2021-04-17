@@ -10,7 +10,7 @@ class CloudLog(logging.getLoggerClass()):
     DEFAULT_HANDLER_NAME = 'alert'
 
     def __init__(self, name=None, handler_name=None, level=None, log_client=None, rooted=True):
-        name = self.get_name(name)
+        name = self.make_logger_name(name)
         super().__init__(name)
         level = self.get_level(level)
         self.setLevel(level)
@@ -37,7 +37,7 @@ class CloudLog(logging.getLoggerClass()):
         return level
 
     @classmethod
-    def get_name(cls, parent_name=None):
+    def make_logger_name(cls, parent_name=None):
         """Returns a lowercase name for a logger based on provided input or default value. """
         if not parent_name or not isinstance(parent_name, str):
             parent_name = getattr(cls, 'DEFAULT_LOGGER_NAME', 'root')
@@ -46,7 +46,7 @@ class CloudLog(logging.getLoggerClass()):
         return parent_name.lower()
 
     @classmethod
-    def get_handler_name(cls, name=None):
+    def make_handler_name(cls, name=None):
         """Returns an lowercase name based on the given input or default value. """
         if not name or not isinstance(name, str):
             name = getattr(cls, 'DEFAULT_HANDLER_NAME', None)
@@ -57,15 +57,15 @@ class CloudLog(logging.getLoggerClass()):
     @classmethod
     def make_cloud_handler(cls, handler_name=None, log_client=None):
         """Creates a handler for cloud logging with the provided name. """
-        handler_name = cls.get_handler_name(handler_name)
+        handler_name = cls.make_handler_name(handler_name)
         if not isinstance(log_client, google_logging.Client):
             log_client = google_logging.Client()
         return CloudLoggingHandler(log_client, name=handler_name)
 
     @staticmethod
-    def create_base_logger(name=None, handler_name=None, level=None, log_client=None):
+    def make_base_logger(name=None, handler_name=None, level=None, log_client=None):
         """Create a logger with a google cloud logger handler, according to the passed parameters. """
-        name = CloudLog.get_name(name)
+        name = CloudLog.make_logger_name(name)
         level = CloudLog.get_level(level)
         handler = CloudLog.make_cloud_handler(handler_name, log_client)
         logger = logging.getLogger(name)
