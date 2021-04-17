@@ -2,31 +2,25 @@ from flask import Flask
 from flask_login import LoginManager
 from google.cloud import logging as cloud_logging
 import logging
-from google.cloud.logging.handlers import CloudLoggingHandler  # , setup_logging
+from .cloud_log import CloudLog
 
 
 def create_app(config, debug=False, testing=False, config_overrides=None):
     app = Flask(__name__)
     app.config.from_object(config)
-    app.debug = getattr(config, 'DEBUG') or debug
-    app.testing = getattr(config, 'TESTING', None) or testing
+    app.debug = debug or getattr(config, 'DEBUG', None)
+    app.testing = testing or getattr(config, 'TESTING', None)
     if config_overrides:
         app.config.update(config_overrides)
     if not app.testing:
         base_log_level = logging.DEBUG if app.debug else logging.INFO
-        cloud_log_level = logging.WARN
+        cloud_log_level = logging.WARNING
         logging.basicConfig(level=base_log_level)
-        app_log = logging.getLogger(app.name)
-        alert_log = logging.getLogger('ALERT')
-        alert_log.setLevel(cloud_log_level)
+        base_log = logging.getLogger(__name__)
         log_client = cloud_logging.Client()
-        app_log.addHandler(CloudLoggingHandler(log_client, name='LOG'))
-        alert_log.addHandler(CloudLoggingHandler(log_client, name='alert'))
-        app.alert = alert_log
+        base_log.addHandler(CloudLog.make_cloud_handler('app', log_client, level=cloud_log_level))
         app.log_client = log_client
-        # log_type = 'BASIC'  # 'ALL', 'ROOT', <NAMED>
-        # g_log = log_setup(log_type, log_level)
-        # test_log(app, g_log)
+        app.alert = CloudLog('alert', 'alert', base_log_level, log_client)
 
     # Configure flask_login
     login_manager = LoginManager()

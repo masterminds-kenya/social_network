@@ -2,6 +2,24 @@
 
 The following, non-exhaustive references, where discovered and influenced choices made when developing this platform application. Expanding on the main README "Development Notes" section, the "Running Locally ..." section(s) below cover details to help the workflow for developers of this platform application.
 
+## Logging Structure Design
+
+Logs control using [google.cloud.logging](https://cloud.google.com/logging/docs/quickstart-sdk).
+
+- `app.log_client` instance of google.cloud.logging.Client for investigating cloud logging info.
+- `CloudLog` class for useful class/static methods, and making logging.Logger instances with cloud handlers.
+- `app.alert` is a CloudLog instance to write (all levels) to the `alert` global log and standard out.
+- `app.logger` has all written out as standard, but warning or higher also written to `app` global log.
+
+### CLI Options
+
+```Bash
+gcloud logging sinks list
+gcloud logging metrics list
+gcloud logging logs list
+gcloud logging logs delete <log_name>
+```
+
 ## Deploying to Production, Development or Service
 
 The default service, set with the `app.yaml` file, is our deployed production site. The development site and code is being deployed to the `dev` service with the `dev.yaml` file. To create or update a service named `service_name`, we create a `service_name.yaml` file that has a line to set `service: service_name`. Then we run the command below.
@@ -95,7 +113,7 @@ Step 3) The tasks are processed, collecting media content (metrics retrieved lat
 
 Step 4) Media Metrics Retrieval:
   a) For STORY media posts, the metrics are collected via webhooks at the time of expiration.
-  b) For other media posts, the metrics must be requested by the managers. 
+  b) For other media posts, the metrics must be requested by the managers.
 
 ## Capture Media Image with Task Queue on Google Cloud Platform
 
