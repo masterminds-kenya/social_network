@@ -8,8 +8,8 @@ Logs control using [google.cloud.logging](https://cloud.google.com/logging/docs/
 
 - `app.log_client` instance of google.cloud.logging.Client for investigating cloud logging info.
 - `CloudLog` class for useful class/static methods, and making logging.Logger instances with cloud handlers.
-- `app.alert` is a CloudLog instance to write to the `ALERT` global log.
-- `app.logger` has a cloud handler to write to `LOG` global log.
+- `app.alert` is a CloudLog instance to write (all levels) to the `alert` global log and standard out.
+- `app.logger` has all written out as standard, but warning or higher also written to `app` global log.
 
 ### CLI Options
 
