@@ -184,7 +184,8 @@ def test_method():
     info = {'key1': 1, 'key2': 'two', 'key3': '3rd', 'meaningful': False, 'testing': 'app.alert'}
     # pprint(info)
     app.alert.warning("Test alert warning message. ")
-    app.logger.warning("App logger warning. ")
+    app.logger.warning("App logger - warning. ")
+    app.logger.info("App logger - info. ")
     app.logger.info('-------------------------------------------------------------')
     return redirect(url_for('admin', data=info))
 
