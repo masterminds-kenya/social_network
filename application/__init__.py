@@ -20,7 +20,7 @@ def create_app(config, debug=False, testing=False, config_overrides=None):
         log_client = cloud_logging.Client()
         base_log.addHandler(CloudLog.make_cloud_handler('app', log_client, level=cloud_log_level))
         app.log_client = log_client
-        app.alert = CloudLog('alert', 'alert', cloud_log_level, log_client)
+        app.alert = CloudLog('alert', 'alert', base_log_level, log_client)
 
     # Configure flask_login
     login_manager = LoginManager()
