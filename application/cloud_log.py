@@ -7,7 +7,7 @@ class CloudLog(logging.getLoggerClass()):
     """Extended python Logger class that attaches a google cloud log handler. """
     DEFAULT_LOGGER_NAME = 'application'
     DEFAULT_LEVEL = logging.INFO
-    DEFAULT_HANDLER_NAME = 'ALERT'
+    DEFAULT_HANDLER_NAME = 'alert'
 
     def __init__(self, name=None, handler_name=None, level=None, log_client=None, rooted=True):
         name = self.get_name(name)
@@ -38,21 +38,21 @@ class CloudLog(logging.getLoggerClass()):
 
     @classmethod
     def get_name(cls, parent_name=None):
-        """Returns name for a logging.Logger based on provided input or default value. """
+        """Returns a lowercase name for a logger based on provided input or default value. """
         if not parent_name or not isinstance(parent_name, str):
             parent_name = getattr(cls, 'DEFAULT_LOGGER_NAME', 'root')
         if not parent_name:
             raise TypeError("Either a parent_name, or a default, string must be provided. ")
-        return parent_name
+        return parent_name.lower()
 
     @classmethod
     def get_handler_name(cls, name=None):
-        """Returns an uppercase name based on the given input or default value. """
+        """Returns an lowercase name based on the given input or default value. """
         if not name or not isinstance(name, str):
             name = getattr(cls, 'DEFAULT_HANDLER_NAME', None)
         if not name:
             raise TypeError("Either a name, or a default name, string must be provided. ")
-        return name.upper()
+        return name.lower()
 
     @classmethod
     def make_cloud_handler(cls, handler_name=None, log_client=None):
