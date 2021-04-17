@@ -55,12 +55,15 @@ class CloudLog(logging.getLoggerClass()):
         return name.lower()
 
     @classmethod
-    def make_cloud_handler(cls, handler_name=None, log_client=None):
-        """Creates a handler for cloud logging with the provided name. """
+    def make_cloud_handler(cls, handler_name=None, log_client=None, level=None):
+        """Creates a handler for cloud logging with the provided name and optional level. """
         handler_name = cls.make_handler_name(handler_name)
         if not isinstance(log_client, google_logging.Client):
             log_client = google_logging.Client()
-        return CloudLoggingHandler(log_client, name=handler_name)
+        handler = CloudLoggingHandler(log_client, name=handler_name)
+        if level:
+            handler.setLevel(level)
+        return handler
 
     @staticmethod
     def make_base_logger(name=None, handler_name=None, level=None, log_client=None):
