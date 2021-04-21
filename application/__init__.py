@@ -3,24 +3,45 @@ from flask_login import LoginManager
 from google.cloud import logging as cloud_logging
 import logging
 from .cloud_log import CloudLog
+import google.auth
 
 
-def create_app(config, debug=False, testing=False, config_overrides=None):
+def create_app(config, debug=None, testing=None, config_overrides=dict()):
+
+    print("============ Google Auth Discovery: BEGIN ==========================")
+    credentials, project_id = google.auth.default()
+    reload = getattr(config, 'FLASK_RUN_RELOAD', 'RELOAD NOT SET')
+    print(f"Project ID: {project_id} ")
+    print(f"Credentials: {credentials} ")
+    print(f"Reload: {reload} ")
+    print("============ Google Auth Discovery: END ==========================")
+    if debug is None:
+        source = config_overrides if 'DEBUG' in config_overrides else config
+        debug = getattr(source, 'DEBUG', None)
+    if testing is None:
+        source = config_overrides if 'TESTING' in config_overrides else config
+        getattr(source, 'TESTING', None)
+    log_client, alert = None, None
+    if not testing:
+        base_log_level = logging.DEBUG if debug else logging.INFO
+        logging.basicConfig(level=base_log_level)
+        cloud_log_level = logging.WARNING
+        base_log = logging.getLogger(__name__)
+        print("================ CLOUD LOG CLIENT =======================")
+        log_client = cloud_logging.Client(credentials=credentials)
+        print("----------- MAKE (not add) CLOUD HANDLER -------------------------")
+        base_log.addHandler(CloudLog.make_cloud_handler('app', log_client, level=cloud_log_level))
+        print("----------- make CloudLog instance -------------------------")
+        alert = CloudLog('alert', 'alert', base_log_level, log_client)
+    print("-------------- MAKE FLASK APP ----------------------")
     app = Flask(__name__)
     app.config.from_object(config)
-    app.debug = debug or getattr(config, 'DEBUG', None)
-    app.testing = testing or getattr(config, 'TESTING', None)
+    app.debug = debug
+    app.testing = testing
+    app.log_client = log_client
+    app.alert = alert
     if config_overrides:
         app.config.update(config_overrides)
-    if not app.testing:
-        base_log_level = logging.DEBUG if app.debug else logging.INFO
-        cloud_log_level = logging.WARNING
-        logging.basicConfig(level=base_log_level)
-        base_log = logging.getLogger(__name__)
-        log_client = cloud_logging.Client()
-        base_log.addHandler(CloudLog.make_cloud_handler('app', log_client, level=cloud_log_level))
-        app.log_client = log_client
-        app.alert = CloudLog('alert', 'alert', base_log_level, log_client)
 
     # Configure flask_login
     login_manager = LoginManager()
@@ -50,4 +71,5 @@ def create_app(config, debug=False, testing=False, config_overrides=None):
             """.format(e), 500
         else:
             return "An internal error occurred. Contact admin. ", 500
+    print("======================= FINISH AND RETURN APP ================================")
     return app
