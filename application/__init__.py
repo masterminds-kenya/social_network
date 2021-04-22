@@ -16,11 +16,9 @@ def create_app(config, debug=None, testing=None, config_overrides=dict()):
     print(f"Reload: {reload} ")
     print("============ Google Auth Discovery: END ==========================")
     if debug is None:
-        source = config_overrides if 'DEBUG' in config_overrides else config
-        debug = getattr(source, 'DEBUG', None)
+        debug = config_overrides.get('DEBUG', getattr(config, 'DEBUG', None))
     if testing is None:
-        source = config_overrides if 'TESTING' in config_overrides else config
-        getattr(source, 'TESTING', None)
+        testing = config_overrides.get('TESTING', getattr(config, 'TESTING', None))
     log_client, alert = None, None
     if not testing:
         base_log_level = logging.DEBUG if debug else logging.INFO
