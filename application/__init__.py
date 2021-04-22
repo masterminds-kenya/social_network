@@ -7,14 +7,6 @@ import google.auth
 
 
 def create_app(config, debug=None, testing=None, config_overrides=dict()):
-
-    print("============ Google Auth Discovery: BEGIN ==========================")
-    credentials, project_id = google.auth.default()
-    reload = getattr(config, 'FLASK_RUN_RELOAD', 'RELOAD NOT SET')
-    print(f"Project ID: {project_id} ")
-    print(f"Credentials: {credentials} ")
-    print(f"Reload: {reload} ")
-    print("============ Google Auth Discovery: END ==========================")
     if debug is None:
         debug = config_overrides.get('DEBUG', getattr(config, 'DEBUG', None))
     if testing is None:
@@ -25,13 +17,10 @@ def create_app(config, debug=None, testing=None, config_overrides=dict()):
         logging.basicConfig(level=base_log_level)
         cloud_log_level = logging.WARNING
         base_log = logging.getLogger(__name__)
-        print("================ CLOUD LOG CLIENT =======================")
+        credentials, project_id = google.auth.default()
         log_client = cloud_logging.Client(credentials=credentials)
-        print("----------- MAKE (not add) CLOUD HANDLER -------------------------")
         base_log.addHandler(CloudLog.make_cloud_handler('app', log_client, level=cloud_log_level))
-        print("----------- make CloudLog instance -------------------------")
         alert = CloudLog('alert', 'alert', base_log_level, log_client)
-    print("-------------- MAKE FLASK APP ----------------------")
     app = Flask(__name__)
     app.config.from_object(config)
     app.debug = debug
