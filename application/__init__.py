@@ -3,24 +3,32 @@ from flask_login import LoginManager
 from google.cloud import logging as cloud_logging
 import logging
 from .cloud_log import CloudLog
+import google.auth
 
 
-def create_app(config, debug=False, testing=False, config_overrides=None):
+def create_app(config, debug=None, testing=None, config_overrides=dict()):
+    if debug is None:
+        debug = config_overrides.get('DEBUG', getattr(config, 'DEBUG', None))
+    if testing is None:
+        testing = config_overrides.get('TESTING', getattr(config, 'TESTING', None))
+    log_client, alert = None, None
+    if not testing:
+        base_log_level = logging.DEBUG if debug else logging.INFO
+        logging.basicConfig(level=base_log_level)
+        cloud_log_level = logging.WARNING
+        base_log = logging.getLogger(__name__)
+        credentials, project_id = google.auth.default()
+        log_client = cloud_logging.Client(credentials=credentials)
+        base_log.addHandler(CloudLog.make_cloud_handler('app', log_client, level=cloud_log_level))
+        alert = CloudLog('alert', 'alert', base_log_level, log_client)
     app = Flask(__name__)
     app.config.from_object(config)
-    app.debug = debug or getattr(config, 'DEBUG', None)
-    app.testing = testing or getattr(config, 'TESTING', None)
+    app.debug = debug
+    app.testing = testing
+    app.log_client = log_client
+    app.alert = alert
     if config_overrides:
         app.config.update(config_overrides)
-    if not app.testing:
-        base_log_level = logging.DEBUG if app.debug else logging.INFO
-        cloud_log_level = logging.WARNING
-        logging.basicConfig(level=base_log_level)
-        base_log = logging.getLogger(__name__)
-        log_client = cloud_logging.Client()
-        base_log.addHandler(CloudLog.make_cloud_handler('app', log_client, level=cloud_log_level))
-        app.log_client = log_client
-        app.alert = CloudLog('alert', 'alert', base_log_level, log_client)
 
     # Configure flask_login
     login_manager = LoginManager()
@@ -50,4 +58,5 @@ def create_app(config, debug=False, testing=False, config_overrides=None):
             """.format(e), 500
         else:
             return "An internal error occurred. Contact admin. ", 500
+    print("======================= FINISH AND RETURN APP ================================")
     return app

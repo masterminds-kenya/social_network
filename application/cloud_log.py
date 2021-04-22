@@ -47,7 +47,7 @@ class CloudLog(logging.getLoggerClass()):
 
     @classmethod
     def make_handler_name(cls, name=None):
-        """Returns an lowercase name based on the given input or default value. """
+        """Returns a lowercase name based on the given input or default value. """
         if not name or not isinstance(name, str):
             name = getattr(cls, 'DEFAULT_HANDLER_NAME', None)
         if not name:
@@ -67,7 +67,7 @@ class CloudLog(logging.getLoggerClass()):
 
     @staticmethod
     def make_base_logger(name=None, handler_name=None, level=None, log_client=None):
-        """Create a logger with a google cloud logger handler, according to the passed parameters. """
+        """Used to create a logger with a cloud handler when a CloudLog instance is not desired. """
         name = CloudLog.make_logger_name(name)
         level = CloudLog.get_level(level)
         handler = CloudLog.make_cloud_handler(handler_name, log_client)
