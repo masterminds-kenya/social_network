@@ -11,12 +11,13 @@ def create_app(config, debug=None, testing=None, config_overrides=dict()):
         debug = config_overrides.get('DEBUG', getattr(config, 'DEBUG', None))
     if testing is None:
         testing = config_overrides.get('TESTING', getattr(config, 'TESTING', None))
-    log_client, alert = None, None
+    log_client, alert, credentials = None, None, None
     if not testing:
         base_log_level = logging.DEBUG if debug else logging.INFO
         logging.basicConfig(level=base_log_level)
         cloud_log_level = logging.WARNING
         base_log = logging.getLogger(__name__)
+        # base_log.debug("================= GET CREDS ======================")
         credentials, project_id = google.auth.default()
         log_client = cloud_logging.Client(credentials=credentials)
         base_log.addHandler(CloudLog.make_cloud_handler('app', log_client, level=cloud_log_level))
@@ -58,5 +59,5 @@ def create_app(config, debug=None, testing=None, config_overrides=dict()):
             """.format(e), 500
         else:
             return "An internal error occurred. Contact admin. ", 500
-    print("======================= FINISH AND RETURN APP ================================")
+
     return app
