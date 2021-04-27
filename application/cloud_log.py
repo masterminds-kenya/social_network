@@ -66,6 +66,25 @@ class CloudLog(logging.getLoggerClass()):
         return handler
 
     @staticmethod
+    def move_handlers(source, target, log_level=None):
+        """Move all the google.cloud.logging handlers from source to target logger, applying log_level if provided. """
+        if not all(isinstance(logger, logging.getLoggerClass()) for logger in (source, target)):
+            raise ValueError('Both source and target must be loggers. ')
+        stay, move = [], []
+        for handler in source.handlers:
+            if isinstance(handler, CloudLoggingHandler):
+                if log_level:
+                    handler.level = log_level
+                move.append(handler)
+            else:
+                stay.append(handler)
+        if not move:
+            return
+        target.handlers.extend(move)
+        source.handlers = stay
+        return
+
+    @staticmethod
     def make_base_logger(name=None, handler_name=None, level=None, log_client=None):
         """Used to create a logger with a cloud handler when a CloudLog instance is not desired. """
         name = CloudLog.make_logger_name(name)
