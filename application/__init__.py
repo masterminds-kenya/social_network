@@ -3,7 +3,7 @@ from flask_login import LoginManager
 from google.cloud import logging as cloud_logging
 import logging
 from .cloud_log import CloudLog
-import google.auth
+# from google.auth import default as auth_default
 
 
 def create_app(config, debug=None, testing=None, config_overrides=dict()):
@@ -11,17 +11,17 @@ def create_app(config, debug=None, testing=None, config_overrides=dict()):
         debug = config_overrides.get('DEBUG', getattr(config, 'DEBUG', None))
     if testing is None:
         testing = config_overrides.get('TESTING', getattr(config, 'TESTING', None))
-    log_client, alert, credentials = None, None, None
+    log_client, alert, cloud_log_level = None, None, None
     if not testing:
         base_log_level = logging.DEBUG if debug else logging.INFO
         logging.basicConfig(level=base_log_level)
         cloud_log_level = logging.WARNING
-        base_log = logging.getLogger(__name__)
-        # base_log.debug("================= GET CREDS ======================")
-        credentials, project_id = google.auth.default()
-        log_client = cloud_logging.Client(credentials=credentials)
-        base_log.addHandler(CloudLog.make_cloud_handler('app', log_client, level=cloud_log_level))
+        logging.basicConfig(level=base_log_level)  # Ensures a StreamHandler to stderr is attached.
+        log_client = cloud_logging.Client()
+        log_client.setup_logging(log_level=base_log_level)  # log_level sets the logger, not the handler.
+        logging.root.addHandler(CloudLog.make_cloud_handler('app', log_client, level=cloud_log_level))
         alert = CloudLog('alert', 'alert', base_log_level, log_client)
+    print("========== MAKE APP =====================")
     app = Flask(__name__)
     app.config.from_object(config)
     app.debug = debug
@@ -60,4 +60,35 @@ def create_app(config, debug=None, testing=None, config_overrides=dict()):
         else:
             return "An internal error occurred. Contact admin. ", 500
 
+    app.logger.debug("============ Setup Report =========================\n")
+    print('Root Handlers: ', logging.root.handlers)
+    print('App Logger Handlers: ', app.logger.handlers)
+    print('--------------- move them ---------------------')
+    CloudLog.move_handlers(logging.root, app.logger, log_level=cloud_log_level)
+    print('Root Handlers: ', logging.root.handlers)
+    print('App Logger Handlers: ', app.logger.handlers)
+    # handler = log_client.get_default_handler()
+    # handler.level = cloud_log_level  # Lower logger levels go out standard, higher go to special tracking.
+    # print(handler)
+
+    # # app.logger.debug(f"Project ID: {project_id} ")
+    # app.logger.debug(f"Credentials: {credentials} ")
+    # app.logger.debug(credentials.expired)
+    # app.logger.debug(credentials.valid)
+    # app.logger.debug("--------------------------------------------------")
+    # app.logger.debug(credentials.__dict__)
+    # app.logger.debug("--------------------------------------------------")
+    app.logger.debug("----------------- App Log Client Credentials ---------------------")
+    log_creds = log_client._credentials if log_client else None
+    if log_creds:
+        app.logger.debug(f"App Log Client Creds: {log_creds} ")
+        app.logger.debug(log_creds.expired)
+        app.logger.debug(log_creds.valid)
+        app.logger.debug("--------------------------------------------------")
+        app.logger.debug(log_creds.__dict__)
+    else:
+        app.logger.debug("Log Creds not found. ")
+    app.logger.debug("--------------------------------------------------")
+
+    print("======================= FINISH AND RETURN APP ================================")
     return app
