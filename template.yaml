@@ -7,7 +7,7 @@ env_variables:
   FB_CLIENT_ID: 'from-fb-dashboard'
   FB_CLIENT_SECRET: 'from-fb-dashboard'
   FB_HOOK_SECRET: 'value-set-for-webhooks-in-Facebook-dashboard'
-  GOOGLE_APPLICATION_CREDENTIALS: 'location-of-credential-file'
+  # GOOGLE_APPLICATION_CREDENTIALS: 'location-of-credential-file'
   PROJECT_NAME: 'from-GCP-dashboard'
   PROJECT_ID: 'from-GCP-dashboard'
   PROJECT_NUMBER: 'from-GCP-dashboard'
