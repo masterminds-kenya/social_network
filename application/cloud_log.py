@@ -96,7 +96,7 @@ class CloudLog(logging.getLoggerClass()):
         return logger
 
     @staticmethod
-    def test_loggers(app, logger_names=list(), loggers=list()):
+    def test_loggers(app, logger_names=list(), loggers=list(), levels=('warning', 'info', 'debug')):
         """Used for testing the log setups. """
         app_loggers = [(name, getattr(app, name)) for name in logger_names if hasattr(app, name)]
         logging.info(f"Expected {len(logger_names)} and found {len(app_loggers)} named loggers. ")
@@ -108,9 +108,11 @@ class CloudLog(logging.getLoggerClass()):
         else:
             loggers = [('root', logging)] + app_loggers
         logging.info(f"Total loggers: {len(loggers)} ")
-        logging.info("================ Warning messages for each Logger ==========================")
+        code = app.config.get('CODE_ENVIRONMENT', 'UNKNOWN')
+        logging.info("--------------- Logger Tests --------------")
         for name, logger in loggers:
-            if hasattr(logger, 'warning'):
-                logger.warning(f"from logger - {name} ")
-            else:
-                logging.warning(f"No 'warning' method on logger {name} ")
+            for level in levels:
+                if hasattr(logger, level):
+                    getattr(logger, level)(' - '.join((name, level, code)))
+                else:
+                    logging.warning(f"In {code}: No {level} method on logger {name} ")
