@@ -67,6 +67,8 @@ def create_app(config, debug=None, testing=None, config_overrides=dict()):
     CloudLog.move_handlers(logging.root, app.logger, log_level=cloud_log_level)
     print('Root Handlers: ', logging.root.handlers)
     print('App Logger Handlers: ', app.logger.handlers)
+    print('---------------- CloudLog Logger Tests -------------------')
+    CloudLog.test_loggers(app, ['alert'])
     # handler = log_client.get_default_handler()
     # handler.level = cloud_log_level  # Lower logger levels go out standard, higher go to special tracking.
     # print(handler)
