@@ -43,6 +43,7 @@ class Config:
 
     def __init__(self) -> None:
         self.LOCAL_ENV = self.get_LOCAL_ENV()
+        self.CODE_ENVIRONMENT = 'LOCAL' if self.LOCAL_ENV else self.GAE_SERVICE
         self.URL = self.get_URL()
         self.SQLALCHEMY_DATABASE_URI = self.get_SQLALCHEMY_DATABASE_URI()
         self.SERVER_NAME = self.URL.split('//', 1).pop()
