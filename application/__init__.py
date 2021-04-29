@@ -3,7 +3,6 @@ from flask_login import LoginManager
 from google.cloud import logging as cloud_logging
 import logging
 from .cloud_log import CloudLog
-# from google.auth import default as auth_default
 
 
 def create_app(config, debug=None, testing=None, config_overrides=dict()):
@@ -14,7 +13,6 @@ def create_app(config, debug=None, testing=None, config_overrides=dict()):
     log_client, alert, cloud_log_level = None, None, None
     if not testing:
         base_log_level = logging.DEBUG if debug else logging.INFO
-        logging.basicConfig(level=base_log_level)
         cloud_log_level = logging.WARNING
         logging.basicConfig(level=base_log_level)  # Ensures a StreamHandler to stderr is attached.
         log_client = cloud_logging.Client()
@@ -66,23 +64,15 @@ def create_app(config, debug=None, testing=None, config_overrides=dict()):
     app.logger.debug("============ Setup Report =========================\n")
     print('Root Handlers: ', logging.root.handlers)
     print('App Logger Handlers: ', app.logger.handlers)
-    print('--------------- move them ---------------------')
-    CloudLog.move_handlers(logging.root, app.logger, log_level=cloud_log_level)
-    print('Root Handlers: ', logging.root.handlers)
-    print('App Logger Handlers: ', app.logger.handlers)
-    print('---------------- CloudLog Logger Tests -------------------')
-    CloudLog.test_loggers(app, ['alert'])
-    # handler = log_client.get_default_handler()
-    # handler.level = cloud_log_level  # Lower logger levels go out standard, higher go to special tracking.
-    # print(handler)
-
-    # # app.logger.debug(f"Project ID: {project_id} ")
-    # app.logger.debug(f"Credentials: {credentials} ")
-    # app.logger.debug(credentials.expired)
-    # app.logger.debug(credentials.valid)
-    # app.logger.debug("--------------------------------------------------")
-    # app.logger.debug(credentials.__dict__)
-    # app.logger.debug("--------------------------------------------------")
+    if alert:
+        print('Alert logger handlers: ', app.alert.handlers)
+    else:
+        print('Alert logger is not set. ')
+    # print('--------------- move them ---------------------')
+    # CloudLog.move_handlers(logging.root, app.logger, log_level=cloud_log_level)
+    # print('Root Handlers: ', logging.root.handlers)
+    # print('App Logger Handlers: ', app.logger.handlers)
+    # print('---------------- CloudLog Logger Tests -------------------')
     app.logger.debug("----------------- App Log Client Credentials ---------------------")
     log_creds = log_client._credentials if log_client else None
     if log_creds:
