@@ -12,6 +12,7 @@ from .api import (onboard_login, onboarding, user_permissions, get_insight, get_
                   get_media_lists, get_metrics_media, handle_collect_media)
 from .create_queue_task import add_to_collect, COLLECT_PROCESS_ALLOWED
 from .sheets import create_sheet, update_sheet, perm_add, perm_list, all_files
+from .cloud_log import CloudLog
 from pprint import pprint
 
 # Sentinels for errors recorded on the Post.caption field.
@@ -176,15 +177,14 @@ def problem_posts():
 @admin_required()
 def test_method():
     """Temporary restricted to admin route and function for developer to test components. """
-    from .cloud_log import CloudLog
     # from .create_queue_task import list_queues
     app.logger.info("========== Test Method for admin:  ==========")
     # info = list_queues()
     # info = get_daily_ig_accounts()
     # pprint([f"{ea}: {len(ea.campaigns)} | {len(ea.brand_campaigns)} " for ea in info])
     info = {'key1': 1, 'key2': 'two', 'key3': '3rd', 'meaningful': False, 'testing': 'app.alert'}
-    # pprint(info)
-    CloudLog.test_loggers(app, ['test'], context='Admin test')
+    pprint(info)
+    CloudLog.test_loggers(app, ['alert'], context='Admin test')
     app.logger.info('-------------------------------------------------------------')
     return redirect(url_for('admin', data=info))
 

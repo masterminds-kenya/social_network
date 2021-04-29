@@ -99,17 +99,17 @@ class CloudLog(logging.getLoggerClass()):
     def test_loggers(app, logger_names=list(), loggers=list(), levels=('warning', 'info', 'debug'), context=''):
         """Used for testing the log setups. """
         app_loggers = [(name, getattr(app, name)) for name in logger_names if hasattr(app, name)]
-        logging.info(f"Expected {len(logger_names)} and found {len(app_loggers)} named loggers. ")
+        print(f"Expected {len(logger_names)} and found {len(app_loggers)} named loggers. ")
         if hasattr(app, 'logger'):
             app_loggers.insert(0, ('Default', app.logger))
         if loggers:
-            logging.info(f"Investigating {len(loggers)} independent loggers. ")
+            print(f"Investigating {len(loggers)} independent loggers. ")
             loggers = [('root', logging)] + app_loggers + [(num, ea) for num, ea in enumerate(loggers)]
         else:
             loggers = [('root', logging)] + app_loggers
-        logging.info(f"Total loggers: {len(loggers)} ")
+        print(f"Total loggers: {len(loggers)} ")
         code = app.config.get('CODE_ENVIRONMENT', 'UNKNOWN')
-        logging.info("--------------- Logger Tests --------------")
+        print("--------------- Logger Tests --------------")
         for name, logger in loggers:
             for level in levels:
                 if hasattr(logger, level):
