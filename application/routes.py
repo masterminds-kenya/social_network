@@ -12,6 +12,7 @@ from .api import (onboard_login, onboarding, user_permissions, get_insight, get_
                   get_media_lists, get_metrics_media, handle_collect_media)
 from .create_queue_task import add_to_collect, COLLECT_PROCESS_ALLOWED
 from .sheets import create_sheet, update_sheet, perm_add, perm_list, all_files
+from .cloud_log import CloudLog
 from pprint import pprint
 
 # Sentinels for errors recorded on the Post.caption field.
@@ -176,17 +177,40 @@ def problem_posts():
 @admin_required()
 def test_method():
     """Temporary restricted to admin route and function for developer to test components. """
+    import logging
     # from .create_queue_task import list_queues
     app.logger.info("========== Test Method for admin:  ==========")
     # info = list_queues()
     # info = get_daily_ig_accounts()
     # pprint([f"{ea}: {len(ea.campaigns)} | {len(ea.brand_campaigns)} " for ea in info])
     info = {'key1': 1, 'key2': 'two', 'key3': '3rd', 'meaningful': False, 'testing': 'app.alert'}
-    # pprint(info)
-    app.alert.warning("Test alert warning message. ")
-    app.logger.warning("App logger - warning. ")
-    app.logger.info("App logger - info. ")
+    pprint(info)
+    CloudLog.test_loggers(app, ['alert'], context='Admin test')
     app.logger.info('-------------------------------------------------------------')
+    app.logger.debug("============ Setup Report =========================\n")
+    print('Root Handlers: ', logging.root.handlers)
+    print('App Logger Handlers: ', app.logger.handlers)
+    if hasattr(app, 'alert'):
+        print('Alert logger handlers: ', app.alert.handlers)
+    else:
+        print('Alert logger is not set. ')
+    # print('--------------- move them ---------------------')
+    # CloudLog.move_handlers(logging.root, app.logger, log_level=cloud_log_level)
+    # print('Root Handlers: ', logging.root.handlers)
+    # print('App Logger Handlers: ', app.logger.handlers)
+    # print('---------------- CloudLog Logger Tests -------------------')
+    app.logger.debug("----------------- App Log Client Credentials ---------------------")
+    log_creds = app.log_client._credentials if hasattr(app, 'log_client') else None
+    if log_creds:
+        app.logger.debug(f"App Log Client Creds: {log_creds} ")
+        app.logger.debug(log_creds.expired)
+        app.logger.debug(log_creds.valid)
+        app.logger.debug("--------------------------------------------------")
+        app.logger.debug(log_creds.__dict__)
+    else:
+        app.logger.debug("Log Creds not found. ")
+    app.logger.debug("--------------------------------------------------")
+
     return redirect(url_for('admin', data=info))
 
 

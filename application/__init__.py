@@ -3,7 +3,6 @@ from flask_login import LoginManager
 from google.cloud import logging as cloud_logging
 import logging
 from .cloud_log import CloudLog
-import google.auth
 
 
 def create_app(config, debug=None, testing=None, config_overrides=dict()):
@@ -14,13 +13,15 @@ def create_app(config, debug=None, testing=None, config_overrides=dict()):
     log_client, alert = None, None
     if not testing:
         base_log_level = logging.DEBUG if debug else logging.INFO
-        logging.basicConfig(level=base_log_level)
         cloud_log_level = logging.WARNING
-        base_log = logging.getLogger(__name__)
-        credentials, project_id = google.auth.default()
-        log_client = cloud_logging.Client(credentials=credentials)
-        base_log.addHandler(CloudLog.make_cloud_handler('app', log_client, level=cloud_log_level))
+        logging.basicConfig(level=base_log_level)  # Ensures a StreamHandler to stderr is attached.
+        log_client = cloud_logging.Client()
+        log_client.setup_logging(log_level=base_log_level)  # log_level sets the logger, not the handler.
+        cloud_handler = CloudLog.get_named_handler()
+        cloud_handler.set_name('app')
+        cloud_handler.level = cloud_log_level
         alert = CloudLog('alert', 'alert', base_log_level, log_client)
+
     app = Flask(__name__)
     app.config.from_object(config)
     app.debug = debug
@@ -58,5 +59,5 @@ def create_app(config, debug=None, testing=None, config_overrides=dict()):
             """.format(e), 500
         else:
             return "An internal error occurred. Contact admin. ", 500
-    print("======================= FINISH AND RETURN APP ================================")
+
     return app

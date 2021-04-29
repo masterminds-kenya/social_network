@@ -66,6 +66,34 @@ class CloudLog(logging.getLoggerClass()):
         return handler
 
     @staticmethod
+    def move_handlers(source, target, log_level=None):
+        """Move all the google.cloud.logging handlers from source to target logger, applying log_level if provided. """
+        if not all(isinstance(logger, logging.getLoggerClass()) for logger in (source, target)):
+            raise ValueError('Both source and target must be loggers. ')
+        stay, move = [], []
+        for handler in source.handlers:
+            if isinstance(handler, CloudLoggingHandler):
+                if log_level:
+                    handler.level = log_level
+                move.append(handler)
+            else:
+                stay.append(handler)
+        if not move:
+            return
+        target.handlers.extend(move)
+        source.handlers = stay
+        return
+
+    @staticmethod
+    def get_named_handler(logger=logging.root, name="python"):
+        """Returns the CloudLoggingHandler with the matching name attached to the provided logger. """
+        handlers = getattr(logger, 'handlers', [])
+        for handle in handlers:
+            if isinstance(handle, CloudLoggingHandler) and handle.name == name:
+                return handle
+        return None
+
+    @staticmethod
     def make_base_logger(name=None, handler_name=None, level=None, log_client=None):
         """Used to create a logger with a cloud handler when a CloudLog instance is not desired. """
         name = CloudLog.make_logger_name(name)
@@ -77,21 +105,23 @@ class CloudLog(logging.getLoggerClass()):
         return logger
 
     @staticmethod
-    def test_loggers(app, logger_names=list(), loggers=list()):
+    def test_loggers(app, logger_names=list(), loggers=list(), levels=('warning', 'info', 'debug'), context=''):
         """Used for testing the log setups. """
         app_loggers = [(name, getattr(app, name)) for name in logger_names if hasattr(app, name)]
-        logging.info(f"Expected {len(logger_names)} and found {len(app_loggers)} named loggers. ")
+        print(f"Expected {len(logger_names)} and found {len(app_loggers)} named loggers. ")
         if hasattr(app, 'logger'):
             app_loggers.insert(0, ('Default', app.logger))
         if loggers:
-            logging.info(f"Investigating {len(loggers)} independent loggers. ")
+            print(f"Investigating {len(loggers)} independent loggers. ")
             loggers = [('root', logging)] + app_loggers + [(num, ea) for num, ea in enumerate(loggers)]
         else:
             loggers = [('root', logging)] + app_loggers
-        logging.info(f"Total loggers: {len(loggers)} ")
-        logging.info("================ Warning messages for each Logger ==========================")
+        print(f"Total loggers: {len(loggers)} ")
+        code = app.config.get('CODE_ENVIRONMENT', 'UNKNOWN')
+        print("--------------- Logger Tests --------------")
         for name, logger in loggers:
-            if hasattr(logger, 'warning'):
-                logger.warning(f"from logger - {name} ")
-            else:
-                logging.warning(f"No 'warning' method on logger {name} ")
+            for level in levels:
+                if hasattr(logger, level):
+                    getattr(logger, level)(' - '.join((context, name, level, code)))
+                else:
+                    logging.warning(f"{context} in {code}: No {level} method on logger {name} ")
