@@ -19,7 +19,10 @@ def create_app(config, debug=None, testing=None, config_overrides=dict()):
         logging.basicConfig(level=base_log_level)  # Ensures a StreamHandler to stderr is attached.
         log_client = cloud_logging.Client()
         log_client.setup_logging(log_level=base_log_level)  # log_level sets the logger, not the handler.
-        logging.root.addHandler(CloudLog.make_cloud_handler('app', log_client, level=cloud_log_level))
+        cloud_handler = CloudLog.get_named_handler()
+        cloud_handler.set_name('app')
+        cloud_handler.level = cloud_log_level
+        # logging.root.addHandler(CloudLog.make_cloud_handler('app', log_client, level=cloud_log_level))
         alert = CloudLog('alert', 'alert', base_log_level, log_client)
     print("========== MAKE APP =====================")
     app = Flask(__name__)
