@@ -85,6 +85,15 @@ class CloudLog(logging.getLoggerClass()):
         return
 
     @staticmethod
+    def get_named_handler(logger=logging.root, name="python"):
+        """Returns the CloudLoggingHandler with the matching name attached to the provided logger. """
+        handlers = getattr(logger, 'handlers', [])
+        for handle in handlers:
+            if isinstance(handle, CloudLoggingHandler) and handle.name == name:
+                return handle
+        return None
+
+    @staticmethod
     def make_base_logger(name=None, handler_name=None, level=None, log_client=None):
         """Used to create a logger with a cloud handler when a CloudLog instance is not desired. """
         name = CloudLog.make_logger_name(name)
