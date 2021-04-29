@@ -10,7 +10,7 @@ def create_app(config, debug=None, testing=None, config_overrides=dict()):
         debug = config_overrides.get('DEBUG', getattr(config, 'DEBUG', None))
     if testing is None:
         testing = config_overrides.get('TESTING', getattr(config, 'TESTING', None))
-    log_client, alert, cloud_log_level = None, None, None
+    log_client, alert = None, None
     if not testing:
         base_log_level = logging.DEBUG if debug else logging.INFO
         cloud_log_level = logging.WARNING
@@ -20,9 +20,8 @@ def create_app(config, debug=None, testing=None, config_overrides=dict()):
         cloud_handler = CloudLog.get_named_handler()
         cloud_handler.set_name('app')
         cloud_handler.level = cloud_log_level
-        # logging.root.addHandler(CloudLog.make_cloud_handler('app', log_client, level=cloud_log_level))
         alert = CloudLog('alert', 'alert', base_log_level, log_client)
-    print("========== MAKE APP =====================")
+
     app = Flask(__name__)
     app.config.from_object(config)
     app.debug = debug
@@ -61,29 +60,4 @@ def create_app(config, debug=None, testing=None, config_overrides=dict()):
         else:
             return "An internal error occurred. Contact admin. ", 500
 
-    app.logger.debug("============ Setup Report =========================\n")
-    print('Root Handlers: ', logging.root.handlers)
-    print('App Logger Handlers: ', app.logger.handlers)
-    if alert:
-        print('Alert logger handlers: ', app.alert.handlers)
-    else:
-        print('Alert logger is not set. ')
-    # print('--------------- move them ---------------------')
-    # CloudLog.move_handlers(logging.root, app.logger, log_level=cloud_log_level)
-    # print('Root Handlers: ', logging.root.handlers)
-    # print('App Logger Handlers: ', app.logger.handlers)
-    # print('---------------- CloudLog Logger Tests -------------------')
-    app.logger.debug("----------------- App Log Client Credentials ---------------------")
-    log_creds = log_client._credentials if log_client else None
-    if log_creds:
-        app.logger.debug(f"App Log Client Creds: {log_creds} ")
-        app.logger.debug(log_creds.expired)
-        app.logger.debug(log_creds.valid)
-        app.logger.debug("--------------------------------------------------")
-        app.logger.debug(log_creds.__dict__)
-    else:
-        app.logger.debug("Log Creds not found. ")
-    app.logger.debug("--------------------------------------------------")
-
-    print("======================= FINISH AND RETURN APP ================================")
     return app
