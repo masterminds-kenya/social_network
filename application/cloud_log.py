@@ -8,6 +8,12 @@ class CloudLog(logging.getLoggerClass()):
     DEFAULT_LOGGER_NAME = 'application'
     DEFAULT_LEVEL = logging.INFO
     DEFAULT_HANDLER_NAME = 'alert'
+    LOG_SCOPES = (
+        'https://www.googleapis.com/auth/logging.read',
+        'https://www.googleapis.com/auth/logging.write',
+        'https://www.googleapis.com/auth/logging.admin',
+        'https://www.googleapis.com/auth/cloud-platform',
+        )
 
     def __init__(self, name=None, handler_name=None, level=None, log_client=None, rooted=True):
         name = self.make_logger_name(name)
