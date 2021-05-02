@@ -179,37 +179,54 @@ def test_method():
     """Temporary restricted to admin route and function for developer to test components. """
     import logging
     # from .create_queue_task import list_queues
-    app.logger.info("========== Test Method for admin:  ==========")
+    pprint("========== Test Method for admin:  ==========")
     # info = list_queues()
     # info = get_daily_ig_accounts()
     # pprint([f"{ea}: {len(ea.campaigns)} | {len(ea.brand_campaigns)} " for ea in info])
     info = {'key1': 1, 'key2': 'two', 'key3': '3rd', 'meaningful': False, 'testing': 'app.alert'}
     pprint(info)
     CloudLog.test_loggers(app, ['alert'], context='Admin test')
-    app.logger.info('-------------------------------------------------------------')
-    app.logger.debug("============ Setup Report =========================\n")
-    print('Root Handlers: ', logging.root.handlers)
-    print('App Logger Handlers: ', app.logger.handlers)
+    pprint('-------------------------------------------------------------')
+    pprint("============ Setup Report =========================\n")
+    root_handlers = logging.root.handlers
+    app_handlers = app.logger.handlers
+    all_handlers = [*root_handlers, *app_handlers]
+    print('Root Handlers: ', root_handlers)
+    print('App Logger Handlers: ', app_handlers)
     if hasattr(app, 'alert'):
         print('Alert logger handlers: ', app.alert.handlers)
+        all_handlers.extend(app.alert.handlers)
     else:
         print('Alert logger is not set. ')
+    # handler = getattr(app, 'handler', None)
+    # if handler:
+    #     print(f"Constructed handler: {handler} ")
+    #     all_handlers.append(app.handler)
+    # else:
+    #     print("Constructed handler not found. ")
+    print(f"----------- Details for each of {len(all_handlers)} handlers ")
+    for handle in all_handlers:
+        pprint(handle.__dict__)
+        print("-------------------------------------------------")
+
     # print('--------------- move them ---------------------')
     # CloudLog.move_handlers(logging.root, app.logger, log_level=cloud_log_level)
     # print('Root Handlers: ', logging.root.handlers)
     # print('App Logger Handlers: ', app.logger.handlers)
     # print('---------------- CloudLog Logger Tests -------------------')
-    app.logger.debug("----------------- App Log Client Credentials ---------------------")
-    log_creds = app.log_client._credentials if hasattr(app, 'log_client') else None
-    if log_creds:
-        app.logger.debug(f"App Log Client Creds: {log_creds} ")
-        app.logger.debug(log_creds.expired)
-        app.logger.debug(log_creds.valid)
-        app.logger.debug("--------------------------------------------------")
-        app.logger.debug(log_creds.__dict__)
-    else:
-        app.logger.debug("Log Creds not found. ")
-    app.logger.debug("--------------------------------------------------")
+    pprint("----------------- App Log Client Credentials ---------------------")
+    creds_list = []
+    if hasattr(app, '_creds'):
+        creds_list.append(('_creds', app._creds))
+    if hasattr(app, 'log_client'):
+        creds_list.append(('App Log Client Creds', app.log_client._credentials))
+    for name, creds in creds_list:
+        pprint(f"{name}: {creds} ")
+        pprint(creds.expired)
+        pprint(creds.valid)
+        pprint(creds.__dict__)
+        pprint("--------------------------------------------------")
+    pprint("--------------------------------------------------")
 
     return redirect(url_for('admin', data=info))
 
