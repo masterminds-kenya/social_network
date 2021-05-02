@@ -86,10 +86,9 @@ class CloudLog(logging.getLoggerClass()):
                 move.append(handler)
             else:
                 stay.append(handler)
-        if not move:
-            return
-        target.handlers.extend(move)
-        source.handlers = stay
+        if move:
+            target.handlers.extend(move)
+            source.handlers = stay
         return
 
     @staticmethod
@@ -103,7 +102,7 @@ class CloudLog(logging.getLoggerClass()):
 
     @staticmethod
     def make_base_logger(name=None, handler_name=None, level=None, log_client=None):
-        """Used to create a logger with a cloud handler when a CloudLog instance is not desired. """
+        """Used to create a logger with an optional cloud handler when a CloudLog instance is not desired. """
         name = CloudLog.make_logger_name(name)
         level = CloudLog.get_level(level)
         logger = logging.getLogger(name)
