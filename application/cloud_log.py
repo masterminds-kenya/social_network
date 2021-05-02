@@ -104,10 +104,11 @@ class CloudLog(logging.getLoggerClass()):
         """Used to create a logger with a cloud handler when a CloudLog instance is not desired. """
         name = CloudLog.make_logger_name(name)
         level = CloudLog.get_level(level)
-        handler = CloudLog.make_cloud_handler(handler_name, log_client)
         logger = logging.getLogger(name)
+        if handler_name:
+            handler = CloudLog.make_cloud_handler(handler_name, log_client)
+            logger.addHandler(handler)
         logger.setLevel(level)
-        logger.addHandler(handler)
         return logger
 
     @staticmethod
