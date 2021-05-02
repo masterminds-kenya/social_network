@@ -1,8 +1,7 @@
 from flask import Flask
 from flask_login import LoginManager
-from google.cloud import logging as cloud_logging
 import logging
-from .cloud_log import CloudLog
+from .cloud_log import setup_cloud_logging
 
 
 def create_app(config, debug=None, testing=None, config_overrides=dict()):
@@ -15,12 +14,9 @@ def create_app(config, debug=None, testing=None, config_overrides=dict()):
         base_log_level = logging.DEBUG if debug else logging.INFO
         cloud_log_level = logging.WARNING
         logging.basicConfig(level=base_log_level)  # Ensures a StreamHandler to stderr is attached.
-        log_client = cloud_logging.Client()
-        log_client.setup_logging(log_level=base_log_level)  # log_level sets the logger, not the handler.
-        cloud_handler = CloudLog.get_named_handler()
-        cloud_handler.set_name('app')
-        cloud_handler.level = cloud_log_level
-        alert = CloudLog('alert', 'alert', base_log_level, log_client)
+        gae_env = getattr(config, 'GAE_ENV', None)
+        if not getattr(config, 'LOCAL_ENV', None) and gae_env != 'standard':
+            log_client, alert = setup_cloud_logging(config, base_log_level, cloud_log_level)
 
     app = Flask(__name__)
     app.config.from_object(config)

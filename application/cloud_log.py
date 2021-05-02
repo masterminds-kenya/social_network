@@ -1,6 +1,8 @@
 import logging
 from google.cloud import logging as google_logging
+from google.cloud import logging as cloud_logging
 from google.cloud.logging.handlers import CloudLoggingHandler  # , setup_logging
+from google.oauth2 import service_account
 
 
 class CloudLog(logging.getLoggerClass()):
@@ -8,6 +10,12 @@ class CloudLog(logging.getLoggerClass()):
     DEFAULT_LOGGER_NAME = 'application'
     DEFAULT_LEVEL = logging.INFO
     DEFAULT_HANDLER_NAME = 'alert'
+    LOG_SCOPES = (
+        'https://www.googleapis.com/auth/logging.read',
+        'https://www.googleapis.com/auth/logging.write',
+        'https://www.googleapis.com/auth/logging.admin',
+        'https://www.googleapis.com/auth/cloud-platform',
+        )
 
     def __init__(self, name=None, handler_name=None, level=None, log_client=None, rooted=True):
         name = self.make_logger_name(name)
@@ -98,10 +106,11 @@ class CloudLog(logging.getLoggerClass()):
         """Used to create a logger with a cloud handler when a CloudLog instance is not desired. """
         name = CloudLog.make_logger_name(name)
         level = CloudLog.get_level(level)
-        handler = CloudLog.make_cloud_handler(handler_name, log_client)
         logger = logging.getLogger(name)
+        if handler_name:
+            handler = CloudLog.make_cloud_handler(handler_name, log_client)
+            logger.addHandler(handler)
         logger.setLevel(level)
-        logger.addHandler(handler)
         return logger
 
     @staticmethod
@@ -125,3 +134,20 @@ class CloudLog(logging.getLoggerClass()):
                     getattr(logger, level)(' - '.join((context, name, level, code)))
                 else:
                     logging.warning(f"{context} in {code}: No {level} method on logger {name} ")
+
+
+def setup_cloud_logging(config, base_log_level, cloud_log_level, make_alert=True):
+    """Function to setup logging with google.cloud.logging when not on Google Cloud App Standard. """
+    service_account_path = getattr(config, 'GOOGLE_APPLICATION_CREDENTIALS', None)
+    creds = service_account.Credentials.from_service_account_file(service_account_path)
+    creds = creds.with_scopes(CloudLog.LOG_SCOPES)
+    log_client = cloud_logging.Client(credentials=creds)
+    log_client.setup_logging(log_level=base_log_level)  # log_level sets the logger, not the handler.
+    # Note: any modifications to the default 'python' handler from setup_logging will invalidate creds.
+    # cloud_handler = CloudLog.get_named_handler()
+    handler = CloudLog.make_cloud_handler('app', log_client, cloud_log_level)
+    logging.root.addHandler(handler)
+    alert = None
+    if make_alert:
+        alert = CloudLog('alert', 'alert', base_log_level, log_client)
+    return log_client, alert
