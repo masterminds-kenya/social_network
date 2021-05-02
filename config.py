@@ -5,6 +5,7 @@ class Config:
     """Flask configuration variables and application settings. """
     # ####### #
     # Environment Parameters for Local, Dev, or Production.
+    GAE_ENV = environ.get('GAE_ENV')  # expected: standard
     GAE_SERVICE = environ.get('GAE_SERVICE')
     GAE_INSTANCE = environ.get('GAE_INSTANCE')
     URL_SETTING = environ.get('URL')
