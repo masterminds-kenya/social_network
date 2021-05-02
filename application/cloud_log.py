@@ -132,3 +132,20 @@ class CloudLog(logging.getLoggerClass()):
                     getattr(logger, level)(' - '.join((context, name, level, code)))
                 else:
                     logging.warning(f"{context} in {code}: No {level} method on logger {name} ")
+
+
+def setup_cloud_logging(config, base_log_level, cloud_log_level, make_alert=True):
+    """Function to setup logging with google.cloud.logging when not on Google Cloud App Standard. """
+    service_account_path = getattr(config, 'GOOGLE_APPLICATION_CREDENTIALS', None)
+    creds = service_account.Credentials.from_service_account_file(service_account_path)
+    creds = creds.with_scopes(CloudLog.LOG_SCOPES)
+    log_client = cloud_logging.Client(credentials=creds)
+    log_client.setup_logging(log_level=base_log_level)  # log_level sets the logger, not the handler.
+    # Note: any modifications to the default 'python' handler from setup_logging will invalidate creds.
+    # cloud_handler = CloudLog.get_named_handler()
+    handler = CloudLog.make_cloud_handler('app', log_client, cloud_log_level)
+    logging.root.addHandler(handler)
+    alert = None
+    if make_alert:
+        alert = CloudLog('alert', 'alert', base_log_level, log_client)
+    return log_client, alert
