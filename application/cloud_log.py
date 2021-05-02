@@ -1,6 +1,8 @@
 import logging
 from google.cloud import logging as google_logging
+from google.cloud import logging as cloud_logging
 from google.cloud.logging.handlers import CloudLoggingHandler  # , setup_logging
+from google.oauth2 import service_account
 
 
 class CloudLog(logging.getLoggerClass()):
