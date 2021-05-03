@@ -64,6 +64,7 @@ def get_queue_path(process):
         is_capture, service, queue_type = False, None, None
         raise ValueError("The process must be one of CAPTURE_IMAGE_QUEUE_NAMES or COLLECT_PROCESS_ALLOWED. ")
     short_queue_name = f"{queue_type}-{service}-{process}".lower()
+    # e.g. collect-[default|dev]-[basic|metrics|data]  OR capture-capture-[test-on-db-b|post|test]
     full_queue_name = client.queue_path(PROJECT_ID, PROJECT_REGION, short_queue_name)
     try:
         q = client.get_queue(name=full_queue_name)

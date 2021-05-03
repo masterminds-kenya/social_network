@@ -4,14 +4,30 @@ The following, non-exhaustive references, where discovered and influenced choice
 
 ## Logging Structure Design
 
-Logs control using [google.cloud.logging](https://cloud.google.com/logging/docs/quickstart-sdk).
+Logs control using [google.cloud.logging](https://cloud.google.com/logging/docs/quickstart-sdk). Already setup for GAE - standard. If this code is running in a different environment, additional setups will be called (but will need to be checked).
 
-- `app.log_client` instance of google.cloud.logging.Client for investigating cloud logging info.
-- `CloudLog` class for useful class/static methods, and making logging.Logger instances with cloud handlers.
-- `app.alert` is a CloudLog instance to write (all levels) to the `alert` global log and standard out.
-- `app.logger` has all written out as standard, but warning or higher also written to `app` global log.
+- `app.logger` has all written out as standard out or standard error, but warning or higher also written to `important_app_logs` sink and stored in `alert` logs bucket.
+- `app.alert` is a logger (or CloudLog instance if not on GAE - standard) to write (all levels) to the `alert` sink and stored in the `alert` logs bucket.
+- `app.log_client` (only if not on GAE - standard) Instance of google.cloud.logging.Client for investigating cloud logging info.
+- `CloudLog` Class for useful class/static methods, and making logging.Logger instances with cloud handlers (used more if not on GAE - standard).
 
-### CLI Options
+### [Logging Sinks](https://console.cloud.google.com/logs/router?authuser=0&project=engaged-builder-257615)
+
+- `_Default` Standard setup for Google Cloud Platform (GCP)
+- `_Required` Standard setup for GCP
+- `alert` all logging levels sent to the 'alert' logger.
+- `capture_tasks` for resource_type 'cloud_tasks_queue' of our capture tasks.
+- `collect_tasks` for resource_type 'cloud_tasks_queue' of our collect tasks.
+- `important_app_logs` application logs of warning or higher.
+
+### [Log Storage Buckets](https://console.cloud.google.com/logs/storage?authuser=0&project=engaged-builder-257615)
+
+- `_Default` - 30 days - Standard setup for GCP
+- `_Required` - 400 days - Standard setup for GCP
+- `alert` - 180 days - All levels of 'alert' logger and warning or higher for application.
+- `task_queues` - 90 days - All 'collect' and 'capture' task queues.
+
+### Useful CLI Options
 
 ```Bash
 gcloud logging sinks list
