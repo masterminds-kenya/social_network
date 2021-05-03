@@ -1,5 +1,4 @@
 import logging
-from google.cloud import logging as google_logging
 from google.cloud import logging as cloud_logging
 from google.cloud.logging.handlers import CloudLoggingHandler  # , setup_logging
 from google.oauth2 import service_account
@@ -66,8 +65,8 @@ class CloudLog(logging.getLoggerClass()):
     def make_cloud_handler(cls, handler_name=None, log_client=None, level=None):
         """Creates a handler for cloud logging with the provided name and optional level. """
         handler_name = cls.make_handler_name(handler_name)
-        if not isinstance(log_client, google_logging.Client):
-            log_client = google_logging.Client()
+        if not isinstance(log_client, cloud_logging.Client):
+            log_client = cloud_logging.Client()
         handler = CloudLoggingHandler(log_client, name=handler_name)
         if level:
             handler.setLevel(level)
