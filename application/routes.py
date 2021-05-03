@@ -193,9 +193,10 @@ def test_method():
     all_handlers = [*root_handlers, *app_handlers]
     print('Root Handlers: ', root_handlers)
     print('App Logger Handlers: ', app_handlers)
-    if hasattr(app, 'alert'):
-        print('Alert logger handlers: ', app.alert.handlers)
-        all_handlers.extend(app.alert.handlers)
+    alert = getattr(app, 'alert', None)
+    if alert:
+        print('Alert logger handlers: ', alert.handlers)
+        all_handlers.extend(alert.handlers)
     else:
         print('Alert logger is not set. ')
     # handler = getattr(app, 'handler', None)
@@ -208,18 +209,13 @@ def test_method():
     for handle in all_handlers:
         pprint(handle.__dict__)
         print("-------------------------------------------------")
-
-    # print('--------------- move them ---------------------')
-    # CloudLog.move_handlers(logging.root, app.logger, log_level=cloud_log_level)
-    # print('Root Handlers: ', logging.root.handlers)
-    # print('App Logger Handlers: ', app.logger.handlers)
-    # print('---------------- CloudLog Logger Tests -------------------')
     pprint("----------------- App Log Client Credentials ---------------------")
     creds_list = []
     if hasattr(app, '_creds'):
         creds_list.append(('_creds', app._creds))
-    if hasattr(app, 'log_client'):
-        creds_list.append(('App Log Client Creds', app.log_client._credentials))
+    log_client = getattr(app, 'log_client', None)
+    if log_client:
+        creds_list.append(('App Log Client Creds', log_client._credentials))
     for name, creds in creds_list:
         pprint(f"{name}: {creds} ")
         pprint(creds.expired)
