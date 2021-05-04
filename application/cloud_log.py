@@ -62,6 +62,18 @@ class CloudLog(logging.getLoggerClass()):
         return name.lower()
 
     @classmethod
+    def make_cloud_log_client(cls, credential_path=None, credentials=None):
+        """Creates the appropriate client to be used by other methods. """
+        # service_account_path = getattr(config, 'GOOGLE_APPLICATION_CREDENTIALS', None)
+        if credential_path:
+            credentials = service_account.Credentials.from_service_account_file(credential_path)
+        if credentials:
+            log_client = cloud_logging.Client(credentials=credentials)
+        else:
+            log_client = cloud_logging.Client()
+        return log_client
+
+    @classmethod
     def make_cloud_handler(cls, handler_name=None, log_client=None, level=None):
         """Creates a handler for cloud logging with the provided name and optional level. """
         handler_name = cls.make_handler_name(handler_name)
