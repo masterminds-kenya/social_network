@@ -188,6 +188,7 @@ def test_method():
     CloudLog.test_loggers(app, ['alert'], context='Admin test')
     pprint('-------------------------------------------------------------')
     pprint("============ Setup Report =========================\n")
+    creds_list = []
     root_handlers = logging.root.handlers
     app_handlers = app.logger.handlers
     all_handlers = [*root_handlers, *app_handlers]
@@ -197,6 +198,8 @@ def test_method():
     if alert:
         print('Alert logger handlers: ', alert.handlers)
         all_handlers.extend(alert.handlers)
+        print("------------- Alert Logger Info ----------------------")
+        pprint(alert.__dict__)
     else:
         print('Alert logger is not set. ')
     # handler = getattr(app, 'handler', None)
@@ -205,12 +208,18 @@ def test_method():
     #     all_handlers.append(app.handler)
     # else:
     #     print("Constructed handler not found. ")
-    print(f"----------- Details for each of {len(all_handlers)} handlers ")
+    print(f"----------- Details for each of {len(all_handlers)} handlers -----")
     for handle in all_handlers:
         pprint(handle.__dict__)
+        temp_client = getattr(handle, 'client', object)
+        temp_creds = getattr(temp_client, '_credentials', None)
+        if temp_creds:
+            creds_list.append(temp_creds)
         print("-------------------------------------------------")
     pprint("----------------- App Log Client Credentials ---------------------")
-    creds_list = []
+    print(f"Currently have {len(creds_list)} creds from logger clients. ")
+    creds_list = [(f"client_cred_{num}", ea) for num, ea in enumerate(set(creds_list))]
+    print(f"With {len(creds_list)} unique client credentials. ")
     if hasattr(app, '_creds'):
         creds_list.append(('_creds', app._creds))
     log_client = getattr(app, 'log_client', None)
