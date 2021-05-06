@@ -9,7 +9,7 @@ def create_app(config, debug=None, testing=None, config_overrides=dict()):
         debug = config_overrides.get('DEBUG', getattr(config, 'DEBUG', None))
     if testing is None:
         testing = config_overrides.get('TESTING', getattr(config, 'TESTING', None))
-    log_client, alert = None, None
+    log_client, alert, app_handler = None, None, None
     if not testing:
         base_log_level = logging.DEBUG if debug else logging.INFO
         cloud_log_level = logging.WARNING
@@ -20,6 +20,9 @@ def create_app(config, debug=None, testing=None, config_overrides=dict()):
         handler_name = log_name if local_env else None
         if gae_env == 'standard' or local_env:
             alert = CloudLog.make_base_logger(log_name, handler_name, base_log_level)
+            cred_path = getattr(config, 'GOOGLE_APPLICATION_CREDENTIALS', None)
+            log_client = CloudLog.make_cloud_log_client(credential_path=cred_path)
+            app_handler = CloudLog.make_cloud_handler('app', log_client, cloud_log_level)
         elif not local_env:
             log_client, alert, *ignore = setup_cloud_logging(config, base_log_level, cloud_log_level, extra=log_name)
 
@@ -29,6 +32,8 @@ def create_app(config, debug=None, testing=None, config_overrides=dict()):
     app.testing = testing
     app.log_client = log_client
     app.alert = alert
+    if app_handler:
+        app.logger.addHandler(app_handler)
     if config_overrides:
         app.config.update(config_overrides)
 
