@@ -76,7 +76,7 @@ class CloudLog(logging.getLoggerClass()):
         """Creates a handler for cloud logging with the provided name and optional level. """
         handler_name = cls.make_handler_name(handler_name)
         if not isinstance(log_client, cloud_logging.Client):
-            log_client = cloud_logging.Client()
+            log_client = cls.make_cloud_log_client()
         handler = CloudLoggingHandler(log_client, name=handler_name)
         if level:
             handler.setLevel(level)
@@ -124,24 +124,72 @@ class CloudLog(logging.getLoggerClass()):
     @staticmethod
     def test_loggers(app, logger_names=list(), loggers=list(), levels=('warning', 'info', 'debug'), context=''):
         """Used for testing the log setups. """
+        from pprint import pprint
         app_loggers = [(name, getattr(app, name)) for name in logger_names if hasattr(app, name)]
         print(f"Expected {len(logger_names)} and found {len(app_loggers)} named loggers. ")
         if hasattr(app, 'logger'):
-            app_loggers.insert(0, ('Default', app.logger))
+            app_loggers.insert(0, ('App_Logger', app.logger))
         if loggers:
             print(f"Investigating {len(loggers)} independent loggers. ")
-            loggers = [('root', logging)] + app_loggers + [(num, ea) for num, ea in enumerate(loggers)]
-        else:
-            loggers = [('root', logging)] + app_loggers
+        loggers = [('root', logging.root)] + app_loggers + [(num, ea) for num, ea in enumerate(loggers)]
         print(f"Total loggers: {len(loggers)} ")
         code = app.config.get('CODE_ENVIRONMENT', 'UNKNOWN')
-        print("--------------- Logger Tests --------------")
+        print("=================== Logger Tests & Info ===================")
+        log_count_str = ''
+        all_handlers = []
         for name, logger in loggers:
+            handlers = getattr(logger, 'handlers', 'not found')
+            if isinstance(handlers, list):
+                all_handlers.extend(handlers)
+            log_count_str += f"{name} handlers: {str(handlers)} " + '\n'
             for level in levels:
                 if hasattr(logger, level):
                     getattr(logger, level)(' - '.join((context, name, level, code)))
                 else:
                     logging.warning(f"{context} in {code}: No {level} method on logger {name} ")
+            print(f"--------------- {name} Logger Settings ------------------")
+            pprint(logger.__dict__)
+            print('-------------------------------------------------------------')
+        # root_handlers = logging.root.handlers
+        # app_handlers = app.logger.handlers
+        # all_handlers = [*root_handlers, *app_handlers]
+        # print('Root Handlers: ', root_handlers)
+        # print('App Logger Handlers: ', app_handlers)
+        # alert = getattr(app, 'alert', None)
+        # if alert:
+        #     print('Alert logger handlers: ', alert.handlers)
+        #     all_handlers.extend(alert.handlers)
+        #     print("------------- Alert Logger Info ----------------------")
+        #     pprint(alert.__dict__)
+        # else:
+        #     print('Alert logger is not set. ')
+
+        print(f"=================== Details for each of {len(all_handlers)} handlers ===================")
+        creds_list = []
+        for handle in all_handlers:
+            pprint(handle.__dict__)
+            temp_client = getattr(handle, 'client', object)
+            temp_creds = getattr(temp_client, '_credentials', None)
+            if temp_creds:
+                creds_list.append(temp_creds)
+            print("-------------------------------------------------")
+        pprint("=================== App Log Client Credentials ===================")
+        print(f"Currently have {len(creds_list)} creds from logger clients. ")
+        creds_list = [(f"client_cred_{num}", ea) for num, ea in enumerate(set(creds_list))]
+        print(f"With {len(creds_list)} unique client credentials. " + '\n')
+        if hasattr(app, '_creds'):
+            creds_list.append(('_creds', app._creds))
+        log_client = getattr(app, 'log_client', None)
+        if log_client:
+            creds_list.append(('App Log Client Creds', log_client._credentials))
+        for name, creds in creds_list:
+            pprint(f"{name}: {creds} ")
+            pprint(creds.expired)
+            pprint(creds.valid)
+            pprint(creds.__dict__)
+            pprint("--------------------------------------------------")
+        if not creds_list:
+            print("No credentials found to report.")
 
 
 def setup_cloud_logging(config, base_log_level, cloud_log_level, extra=None):
@@ -150,7 +198,6 @@ def setup_cloud_logging(config, base_log_level, cloud_log_level, extra=None):
     log_client = CloudLog.make_cloud_log_client(service_account_path)
     log_client.setup_logging(log_level=base_log_level)  # log_level sets the logger, not the handler.
     # Note: any modifications to the default 'python' handler from setup_logging will invalidate creds.
-    # cloud_handler = CloudLog.get_named_handler()
     handler = CloudLog.make_cloud_handler('app', log_client, cloud_log_level)
     logging.root.addHandler(handler)
     if extra is None:
