@@ -177,7 +177,6 @@ def problem_posts():
 @admin_required()
 def test_method():
     """Temporary restricted to admin route and function for developer to test components. """
-    import logging
     # from .create_queue_task import list_queues
     pprint("========== Test Method for admin:  ==========")
     # info = list_queues()
@@ -186,44 +185,6 @@ def test_method():
     info = {'key1': 1, 'key2': 'two', 'key3': '3rd', 'meaningful': False, 'testing': 'app.alert'}
     pprint(info)
     CloudLog.test_loggers(app, ['alert'], context='Admin test')
-    pprint('-------------------------------------------------------------')
-    pprint("============ Setup Report =========================\n")
-    root_handlers = logging.root.handlers
-    app_handlers = app.logger.handlers
-    all_handlers = [*root_handlers, *app_handlers]
-    print('Root Handlers: ', root_handlers)
-    print('App Logger Handlers: ', app_handlers)
-    alert = getattr(app, 'alert', None)
-    if alert:
-        print('Alert logger handlers: ', alert.handlers)
-        all_handlers.extend(alert.handlers)
-    else:
-        print('Alert logger is not set. ')
-    # handler = getattr(app, 'handler', None)
-    # if handler:
-    #     print(f"Constructed handler: {handler} ")
-    #     all_handlers.append(app.handler)
-    # else:
-    #     print("Constructed handler not found. ")
-    print(f"----------- Details for each of {len(all_handlers)} handlers ")
-    for handle in all_handlers:
-        pprint(handle.__dict__)
-        print("-------------------------------------------------")
-    pprint("----------------- App Log Client Credentials ---------------------")
-    creds_list = []
-    if hasattr(app, '_creds'):
-        creds_list.append(('_creds', app._creds))
-    log_client = getattr(app, 'log_client', None)
-    if log_client:
-        creds_list.append(('App Log Client Creds', log_client._credentials))
-    for name, creds in creds_list:
-        pprint(f"{name}: {creds} ")
-        pprint(creds.expired)
-        pprint(creds.valid)
-        pprint(creds.__dict__)
-        pprint("--------------------------------------------------")
-    if not creds_list:
-        print("No credentials found to report.")
     pprint("--------------------------------------------------")
 
     return redirect(url_for('admin', data=info))
