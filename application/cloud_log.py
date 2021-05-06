@@ -62,6 +62,16 @@ class CloudLog(logging.getLoggerClass()):
         return name.lower()
 
     @classmethod
+    def make_cloud_log_client(cls, credential_path=None, credentials=None):
+        """Creates the appropriate client to be used by other methods. """
+        if credential_path:
+            credentials = service_account.Credentials.from_service_account_file(credential_path)
+            credentials = credentials.with_scopes(cls.LOG_SCOPES)
+        kwargs = {'credentials': credentials} if credentials else {}
+        log_client = cloud_logging.Client(**kwargs)
+        return log_client
+
+    @classmethod
     def make_cloud_handler(cls, handler_name=None, log_client=None, level=None):
         """Creates a handler for cloud logging with the provided name and optional level. """
         handler_name = cls.make_handler_name(handler_name)
@@ -137,9 +147,7 @@ class CloudLog(logging.getLoggerClass()):
 def setup_cloud_logging(config, base_log_level, cloud_log_level, extra=None):
     """Function to setup logging with google.cloud.logging when not on Google Cloud App Standard. """
     service_account_path = getattr(config, 'GOOGLE_APPLICATION_CREDENTIALS', None)
-    creds = service_account.Credentials.from_service_account_file(service_account_path)
-    creds = creds.with_scopes(CloudLog.LOG_SCOPES)
-    log_client = cloud_logging.Client(credentials=creds)
+    log_client = CloudLog.make_cloud_log_client(service_account_path)
     log_client.setup_logging(log_level=base_log_level)  # log_level sets the logger, not the handler.
     # Note: any modifications to the default 'python' handler from setup_logging will invalidate creds.
     # cloud_handler = CloudLog.get_named_handler()

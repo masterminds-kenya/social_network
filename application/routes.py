@@ -222,6 +222,8 @@ def test_method():
         pprint(creds.valid)
         pprint(creds.__dict__)
         pprint("--------------------------------------------------")
+    if not creds_list:
+        print("No credentials found to report.")
     pprint("--------------------------------------------------")
 
     return redirect(url_for('admin', data=info))

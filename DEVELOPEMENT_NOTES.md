@@ -6,7 +6,7 @@ The following, non-exhaustive references, where discovered and influenced choice
 
 Logs control using [google.cloud.logging](https://cloud.google.com/logging/docs/quickstart-sdk). Already setup for GAE - standard. If this code is running in a different environment, additional setups will be called (but will need to be checked).
 
-- `app.logger` has all written out as standard out or standard error, but warning or higher also written to `important_app_logs` sink and stored in `alert` logs bucket.
+- `app.logger` (default setup in Flask) has all written out as standard out or standard error, but warning or higher also written to `important_app_logs` sink and stored in `alert` logs bucket.
 - `app.alert` is a logger (or CloudLog instance if not on GAE - standard) to write (all levels) to the `alert` sink and stored in the `alert` logs bucket.
 - `app.log_client` (only if not on GAE - standard) Instance of google.cloud.logging.Client for investigating cloud logging info.
 - `CloudLog` Class for useful class/static methods, and making logging.Logger instances with cloud handlers (used more if not on GAE - standard).
