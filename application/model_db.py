@@ -999,7 +999,7 @@ def create_many(dataset, Model=User):
 
 def db_create_or_update_many(dataset, user_id=None, Model=Post):
     """Create or Update if the record exists for all of the dataset list. Returns a list of Model objects. """
-    logger = current_app.logger
+    logger = getattr(current_app, 'alert', None) or current_app.logger
     logger.debug(f'============== Create or Update Many {Model.__name__} ====================')
     allowed_models = {Post, Insight, Audience, OnlineFollowers}
     if Model not in allowed_models:
