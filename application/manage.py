@@ -15,14 +15,14 @@ def check_hash(signed, payload):
     """Checks if the 'signed' value is a SHA1 hash made with our app secret and the given 'payload' """
     pre, signed = signed.split('=', 1)
     if pre != 'sha1':
-        app.logger.debug("Signed does not look right. ")
+        app.logger.error("Signed value does not look right for check_hash function. ")
         return False
     if isinstance(payload, dict):
         payload = json.dumps(payload).encode()
     elif isinstance(payload, str):
         payload = payload.encode()
     if not isinstance(payload, bytes):
-        app.logger.debug("Unable to prepare payload. ")
+        app.logger.error("Unable to prepare payload for check_hash function. ")
         return False
     secret = app.config.get('FB_CLIENT_SECRET').encode()
     test = hmac.new(secret, payload, hashlib.sha1).hexdigest()
@@ -47,6 +47,7 @@ def update_campaign(campaign, request):
         # TODO: ?handle error somehow?
         return False
     modified = Post.query.filter(Post.id.in_(data.keys())).all()
+    # TODO: Check for better DB query approach for these updates.
     for post in modified:
         code = data[post.id]
         if code == -2:  # un-process if processed, un-relate if related
@@ -166,7 +167,7 @@ def add_edit(mod, id=None):
                             flash(message)
                             return redirect(url_for('home'))
                         login_user(found_user, force=True, remember=True)
-                        db_delete(id, Model=User)
+                        db_delete(id, Model=User)  # Deleting the created duplicate, use the existing user account.
                         flash("You are logged in. ")
                         # this case will follow the normal return for request.method == 'POST'
                     else:
@@ -219,7 +220,7 @@ def report_update(reports, Model):
             setattr(model, k, v)
         results.append(model)
         message += f"Updated Model in capture_report: {str(model)} \n"
-    else:
+    if not reports:
         message += "The report_update function received no reports. "
     if len(results):
         db.session.commit()
