@@ -224,8 +224,8 @@ def capture(id):
 
     post = Post.query.get(id)
     if not post:
-        message = "Post not found. "
-        app.logger.debug(message)
+        message = "Post not found for capture process. "
+        app.logger.error(message)
         flash(message)
         return redirect(url_for('admin'))
     value = post.media_type
