@@ -333,7 +333,9 @@ def process_hook(req):
             user_id = user.id
             story.update(media_id=media_id, user_id=user_id, timestamp=timestamp)
             if 'caption' not in story:
-                story['caption'] = 'INSIGHTS_CREATED'
+                problem = 'INSIGHTS_CREATED'
+                app.alert.error(f"{problem} story | media id: {media_id} | user: {user_id} | time: {timestamp}  ")
+                story['caption'] = problem
             message += f"STORY post CREATE for user: {user_id} | Timestamp: {timestamp} \n"
             model = Post(**story)  # Also fixes the timestamp to appropriate date format.
             new += 1
