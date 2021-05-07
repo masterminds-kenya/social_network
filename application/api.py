@@ -78,7 +78,7 @@ def generate_app_access_token():
     """When an App access token (as proof the request is from BIP App) is needed instead of the app client secret. """
     params = {'client_id': FB_CLIENT_ID, 'client_secret': FB_CLIENT_SECRET}
     params['grant_type'] = 'client_credentials'
-    app.logger.info('----------- generate_app_access_token ----------------')
+    app.logger.debug('----------- generate_app_access_token ----------------')
     res = requests.get(FB_TOKEN_URL, params=params).json()
     if 'error' in res:
         app.logger.info('Got an error in generate_app_access_token')
@@ -117,7 +117,7 @@ def inspect_access_token(input_token, app_access_token=None):
     params = {'input_token': input_token, 'access_token': app_access_token}
     res = requests.get(FB_INSPECT_TOKEN_URL, params=params).json()
     if 'error' in res:
-        app.logger.info('---------------- Error in inspect_access_token response ----------------')
+        app.logger.debug('---------------- Error in inspect_access_token response ----------------')
         err = res.get('error', 'Empty Error')
         app.logger.error(f"Error: {err} ")
         return res  # err
@@ -152,7 +152,7 @@ def user_permissions(id_or_user, facebook=None, token=None, app_access_token=Non
             params['access_token'] = token
         res = facebook.get(url, params=params).json() if facebook else requests.get(url, params=params).json()
         if 'error' in res:
-            app.logger.info('---------------- Error in user_permissions response ----------------')
+            app.logger.debug('---------------- Error in user_permissions response ----------------')
             app.logger.error(f"Error: {res.get('error', 'Empty Error')} ")
         res_data = res.get('data', [{}])
         perm_info.update({ea.get('permission', ''): ea.get('status', '') for ea in res_data})
@@ -249,7 +249,7 @@ def get_insight(user_id, first=1, influence_last=30*12, profile_last=30*3, ig_id
     if profile_date:
         profile_last = max(30, int(min(profile_last, (now - profile_date).days)))
         app.logger.debug('Updated Profile Last')
-    app.logger.info("------------ Get Insight: Influence, Profile ------------")
+    app.logger.debug("------------ Get Insight: Influence, Profile ------------")
     app.logger.debug(influence_last)
     app.logger.debug(profile_last)
 
@@ -277,7 +277,7 @@ def get_insight(user_id, first=1, influence_last=30*12, profile_last=30*3, ig_id
 
 def get_online_followers(user_id, ig_id=None, facebook=None):
     """Just want to get Facebook API response for online_followers for the maximum of the previous 30 days. """
-    # app.logger.info('================ Get Online Followers data ================')
+    app.logger.debug('================ Get Online Followers data ================')
     # TODO Priority 2: Is pagination a concern?
     ig_period, token = 'lifetime', ''
     metric = METRICS[OnlineFollowers]
@@ -305,7 +305,7 @@ def get_online_followers(user_id, ig_id=None, facebook=None):
 
 def get_audience(user_id, ig_id=None, facebook=None):
     """Get the audience data for the (influencer or brand) user with given user_id """
-    # app.logger.info('================ Get Audience Data ================')
+    app.logger.debug('================ Get Audience Data ================')
     # TODO Priority 2: Is pagination a concern?
     metric = METRICS[Audience]
     ig_period = 'lifetime'
@@ -363,13 +363,13 @@ def get_basic_media(media_id, metrics=None, id_or_user=None, facebook=None):
     try:
         res = facebook.get(url).json()
     except Exception as e:
-        app.logger.info('------------- Error in get_basic_media FB API response -------------')
+        app.logger.debug('------------- Error in get_basic_media FB API response -------------')
         app.logger.error(f"API fail for Post with media_id {media_id} | Auth: {auth} ")
         app.logger.exception(e)
         empty_res['caption'] = 'AUTH_' + auth
         return empty_res
     if 'error' in res:
-        app.logger.info('------------- Error in get_basic_media FB API response -------------')
+        app.logger.debug('------------- Error in get_basic_media FB API response -------------')
         app.logger.error(f"User: {id_or_user} | Media: {media_id} | Error: {res.get('error', 'Empty Error')} ")
         empty_res['caption'] = 'API_ERROR'
         return empty_res
@@ -400,7 +400,7 @@ def get_metrics_media(media, facebook, metrics=None):
             temp = {metric_clean(key): val for key, val in temp.items()}
         media.update(temp)
     else:
-        app.logger.info(f"media {media_id} had NO INSIGHTS for type {media_type} --- {res_insight}. ")
+        app.logger.warning(f"media {media_id} had NO INSIGHTS for type {media_type} --- {res_insight}. ")
     return media
 
 
@@ -490,7 +490,7 @@ def construct_metrics_lookup(group_metrics, metrics, media_ids):
         except TypeError as e:
             err = "Not properly formatted metrics dict for data. "
             app.logger.error(err)
-            app.logger.error(e)
+            app.logger.exception()(e)
             return {'error': e, 'status_code': 500}
         for ea in media_ids:
             metrics.setdefault(ea, group_metrics)  # group_metrics is None or a str
@@ -554,7 +554,7 @@ def handle_collect_media(dataset, process):
     # already confirmed process is one of: 'basic', 'metrics', 'data'
     # data format: {'user_id': user.id, 'media_ids': media_ids, 'media_list': cur}
     # format of each in data['media_list']: {'media_id': media_id, 'user_id': user.id, [media_type': 'STORY']}
-    # app.logger.debug("========== HANDLE COLLECT MEDIA ==========")
+    app.logger.debug("========== HANDLE COLLECT MEDIA ==========")
     dataset = clean_collect_dataset(dataset)
     app.logger.debug(len(dataset))
     if isinstance(dataset, dict) and 'error' in dataset:
@@ -623,9 +623,9 @@ def handle_collect_media_no_post_id(data, process):
         result = {'reason': info, 'status_code': 201}
     except Exception as e:
         info = "There was a problem with updating the collect media results. "
-        app.logger.error("========== HANDLE COLLECT MEDIA ERROR ==========")
+        app.logger.debug("========== HANDLE COLLECT MEDIA ERROR ==========")
         app.logger.error(info)
-        app.logger.error(e)
+        app.logger.exception()(e)
         result = {'error': [info, e], 'status_code': 500}
     return result
 
@@ -650,7 +650,7 @@ def get_fb_page_for_users_ig_account(user, ignore_current=False, facebook=None, 
                 app.logger.error(message)
                 return None
         url = f"https://graph.facebook.com/{fb_id}"
-        # app.logger.info(f"========== get_fb_page_for_users_ig_account {user} ==========")
+        app.logger.debug(f"========== get_fb_page_for_users_ig_account {user} ==========")
         params = {'fields': 'accounts'}
         if not facebook:
             params['access_token'] = token
@@ -669,7 +669,7 @@ def install_app_on_user_for_story_updates(id_or_user, page=None, facebook=None, 
     """Accurate Story Post metrics can be pushed to the Platform only if the App is installed on the related Page. """
     # TODO: Is pagination a concern?
     user = find_valid_user(id_or_user)
-    # app.logger.info(f"========== INSTALL APP for: {user} ==========")
+    app.logger.debug(f"========== INSTALL APP for: {user} ==========")
     if not isinstance(page, dict) or not page.get('id') or not page.get('token'):
         page = get_fb_page_for_users_ig_account(user, facebook=facebook, token=token)
         if not page:
@@ -682,7 +682,7 @@ def install_app_on_user_for_story_updates(id_or_user, page=None, facebook=None, 
     params = {} if facebook else {'access_token': page['token']}  # TODO: Determine if always need page access token.
     params['subscribed_fields'] = field
     res = facebook.post(url, params=params).json() if facebook else requests.post(url, params=params).json()
-    app.logger.info(f"======== Install App for {user.name} - Success: {res.get('success', False)} ========")
+    app.logger.debug(f"======== Install App for {user.name} - Success: {res.get('success', False)} ========")
     errors = []
     if 'error' in res:
         common_error_strings = {
@@ -709,7 +709,7 @@ def install_app_on_user_for_story_updates(id_or_user, page=None, facebook=None, 
 def remove_app_on_user_for_story_updates(id_or_user, page=None, facebook=None, token=None):
     """This User is no longer having their Story Posts tracked, so uninstall the App on their related Page. """
     user = find_valid_user(id_or_user)
-    app.logger.info(f"========== remove_app_on_user_for_story_updates: {user} ==========")
+    app.logger.debug(f"========== remove_app_on_user_for_story_updates: {user} ==========")
     return True
     # if not isinstance(page, dict) or not page.get('id') or not page.get('token'):
     #     page = get_fb_page_for_users_ig_account(user, facebook=facebook, token=token)
@@ -734,7 +734,7 @@ def get_ig_info(ig_id, facebook=None, token=None):
     # profile_picture_url, username*, website*
     # TODO: Is pagination a concern?
     fields = ','.join(['username', *Audience.IG_DATA])  # 'media_count', 'followers_count'
-    app.logger.info('============ Get IG Info ===================')
+    app.logger.debug('============ Get IG Info ===================')
     if not token and not facebook:
         logstring = "You must pass a 'token' or 'facebook' reference. "
         app.logger.error(logstring)
@@ -755,7 +755,7 @@ def find_pages_for_fb_id(fb_id, facebook=None, token=None):
     """
     # TODO Priority 2: CHECK FOR PAGINATION
     url = f"https://graph.facebook.com/v7.0/{fb_id}/accounts"
-    # app.logger.info("========================== The find_pages_for_fb_id was called ==========================")
+    app.logger.debug("========================== The find_pages_for_fb_id was called ==========================")
     if not facebook and not token:
         message = "This function requires at least one value for either 'facebook' or 'token' keyword arguments. "
         app.logger.error(message)
@@ -788,7 +788,7 @@ def find_instagram_id(accounts, facebook=None, token=None, app_token=None):
         # TODO: Handle paging in results.
     ig_list = []
     pages = [{'id': page.get('id'), 'token': page.get('access_token')} for page in accounts.get('data')]
-    app.logger.info(f"============ Pages count: {len(pages)} ============")
+    app.logger.debug(f"============ Pages count: {len(pages)} ============")
     for page in pages:
         # url = f"https://graph.facebook.com/v4.0/{page['id']}?fields=instagram_business_account"
         url = f"https://graph.facebook.com/{page['id']}?fields=instagram_business_account"
@@ -830,12 +830,12 @@ def onboard_login(mod):
     facebook = facebook_compliance_fix(facebook)  # we need to apply a fix for Facebook here
     authorization_url, state = facebook.authorization_url(FB_AUTHORIZATION_BASE_URL)
     session['oauth_state'] = state.strip()
-    app.logger.info("================ Login Function Paramters ================")
-    app.logger.info(f"mod: {mod} ")
-    app.logger.info(f"callback: {callback} ")
-    app.logger.info(f"authorization_url: {authorization_url} ")
-    app.logger.info(f"Session State: {session['oauth_state']} ")
-    app.logger.info("=========================================================")
+    app.logger.debug("================ Login Function Paramters ================")
+    app.logger.debug(f"mod: {mod} ")
+    app.logger.debug(f"callback: {callback} ")
+    app.logger.debug(f"authorization_url: {authorization_url} ")
+    app.logger.debug(f"Session State: {session['oauth_state']} ")
+    app.logger.debug("=========================================================")
     return authorization_url
 
 
@@ -854,7 +854,7 @@ def onboard_new(data, facebook=None, token=None):
     ig_list = find_instagram_id(accounts, facebook=facebook, token=token)
     ig_id, user = None, None
     if len(ig_list) == 0:
-        app.logger.info("No valid instagram accounts were found. ")
+        app.logger.warning("No valid instagram accounts were found. ")
         return ('not_found', ig_list)
     if current_user.is_authenticated and getattr(current_user, 'facebook_id', None) == fb_id:
         # This is the case when a current user is creating another user account with a different Instagram account.
@@ -978,21 +978,21 @@ def onboarding(mod, request):
     params = request.args
     state = params.get('state', None)
     url_diff = str(request.url).lstrip(request_url)
-    app.logger.info("================ Onboarding Function Paramters ================")
-    app.logger.info(f"mod: {mod} ")
-    app.logger.info(f"callback: {callback} ")
-    app.logger.info(f"Url Cleaned unchanged: {str(request.url) == request_url} ")
-    app.logger.info(f"Url diff: {url_diff} ")
-    app.logger.info(f"Session-State: {session.get('oauth_state')} ")
-    app.logger.info(f"Params--State: {state} ")
-    app.logger.info(state == session.get('oauth_state', ''))
-    app.logger.info("=========================================================")
+    app.logger.debug("================ Onboarding Function Paramters ================")
+    app.logger.debug(f"mod: {mod} ")
+    app.logger.debug(f"callback: {callback} ")
+    app.logger.debug(f"Url Cleaned unchanged: {str(request.url) == request_url} ")
+    app.logger.debug(f"Url diff: {url_diff} ")
+    app.logger.debug(f"Session-State: {session.get('oauth_state')} ")
+    app.logger.debug(f"Params--State: {state} ")
+    app.logger.debug(state == session.get('oauth_state', ''))
+    app.logger.debug("=========================================================")
     facebook = OAuth2Session(FB_CLIENT_ID, scope=FB_SCOPE, redirect_uri=callback)  # , state=session.get('oauth_state')
     facebook = facebook_compliance_fix(facebook)  # we need to apply a fix for Facebook here
     # TODO: ? Modify input parameters to only pass the request.url value since that is all we use?
     token = facebook.fetch_token(FB_TOKEN_URL, client_secret=FB_CLIENT_SECRET, authorization_response=request_url)
     # The previous line likely does the exchange of 'code' for the Access Token (probably long-lasting. )
-    app.logger.info(token)
+    app.logger.debug(token)
     if 'error' in token:
         app.logger.info(token['error'])
         return ('error', token['error'])
@@ -1007,11 +1007,7 @@ def onboarding(mod, request):
     data['token'] = token
     fb_id = data.get('id', None)  # TODO: Change to .pop once confirmed elsewhere always looks for 'facebook_id'.
     data['facebook_id'] = fb_id
-    # app.logger.info('================ Prepared Data and Users ================')
-    # app.logger.info(data)
     users = User.query.filter(User.facebook_id == fb_id).all() if fb_id else None
-    # app.logger.info(users)
-    # app.logger.info('=========================================================')
     if users:
         return onboard_existing(users, data, facebook=facebook)
     else:

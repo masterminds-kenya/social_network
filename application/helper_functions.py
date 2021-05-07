@@ -22,7 +22,7 @@ def mod_lookup(mod):
 
 def prep_ig_decide(data):
     """Some needed changes to prepare for the user to select amongst various Instagram accounts and data. """
-    app.logger.info("Decide which IG account")
+    app.logger.debug("Decide which IG account")
     ig_list = []
     for ig_info in data:
         cleaned = {}

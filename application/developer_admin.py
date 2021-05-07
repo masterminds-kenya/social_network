@@ -152,7 +152,7 @@ def permission_report(group):
 def subscribe_pages(group):
     """Used by admin to subscribe to all current platform user's facebook page, if they are not already subscribed. """
 
-    app.logger.info(f"=============== subscribe_pages: {group} ===============")
+    app.logger.debug(f"=============== subscribe_pages: {group} ===============")
     if group == 'active':  # For every user in an active campaign, add them to db.session.info['subscribe_page'] set.
         active_campaigns = Campaign.query.filter(Campaign.completed is False)
         for ea in active_campaigns:
@@ -170,9 +170,9 @@ def subscribe_pages(group):
     }
     column_args = param_lookup.get(group, {})
     all_response = get_pages_for_users(**column_args)
-    app.logger.info(f"--------------- Results subscribe {group} ---------------")
+    app.logger.debug(f"--------------- Results subscribe {group} ---------------")
     pprint(all_response)
-    app.logger.info(f"--------------- End subscribe {group} ---------------")
+    app.logger.debug(f"--------------- End subscribe {group} ---------------")
     return admin_view(data=all_response)
 
 

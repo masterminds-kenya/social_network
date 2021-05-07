@@ -23,9 +23,9 @@ MAX_ACTIVE_USER_NUM = app.config.get('MAX_ACTIVE_USER_NUM', 100)
 
 def test_local(*args, **kwargs):
     """Useful for constructing tests, but will only work when running locally. """
-    app.logger.info("========== Home route run locally ==========")
+    app.logger.debug("========== Home route run locally ==========")
     session['hello'] = 'Hello Session World'
-    app.logger.info(session)
+    app.logger.debug(session)
     local_data = {
         'page': 'Proof of Life',
         'text': 'Does this text get there?',
@@ -47,7 +47,7 @@ def home():
 @app.route('/signup', methods=['GET', 'POST'])
 def signup():
     """Using Flask-Login to create a new user (manager or admin) account """
-    app.logger.info('--------- Sign Up User ------------')
+    app.logger.debug('--------- Sign Up User ------------')
     ignore = ['influencer', 'brand']
     signup_roles = [role for role in User.ROLES if role not in ignore]
     if request.method == 'POST':
@@ -154,7 +154,7 @@ def permission_check(mod, id):
     if not data:
         flash("Error in looking up permission granted by the user to the platform. ")
         return redirect(request.referrer)
-    app.logger.info(f"========== PERMISSION CHECK: {user} ===========")
+    app.logger.debug(f"========== PERMISSION CHECK: {user} ===========")
     pprint(data)
     return render_template('view.html', mod=mod, data=data)
 
@@ -195,14 +195,14 @@ def open_test(**kwargs):
     """Temporary open public route and function for developer to test components without requiring a login. """
     # TODO: Confirm this open route is closed before pushing to production.
     if not app.config.get('LOCAL_ENV', False):
-        app.logger.info("========== Test Method Open: Error  ==========")
+        app.logger.debug("========== Test Method Open: Error  ==========")
         return redirect(url_for('error', **request.args))
-    app.logger.info("========== Test Method Open  ==========")
+    app.logger.debug("========== Test Method Open  ==========")
     hello_val = session.get('hello', 'NOT FOUND')
-    app.logger.info(hello_val)
-    app.logger.info("----------------------------------------------------")
-    app.logger.info(session)
-    app.logger.info("----------------------------------------------------")
+    app.logger.debug(hello_val)
+    app.logger.debug("----------------------------------------------------")
+    app.logger.debug(session)
+    app.logger.debug("----------------------------------------------------")
     params = request.args.to_dict(flat=False)
     params = {k: params[k][0] if len(params[k]) < 2 else params[k] for k in params}
     kwargs.update(params)
@@ -225,7 +225,7 @@ def capture(id):
     post = Post.query.get(id)
     if not post:
         message = "Post not found. "
-        app.logger.info(message)
+        app.logger.debug(message)
         flash(message)
         return redirect(url_for('admin'))
     value = post.media_type
@@ -242,7 +242,7 @@ def capture(id):
 @staff_required()
 def export(mod, id):
     """Export data to google sheet, generally for influencer or brand Users. Linked in the view template. """
-    app.logger.info(f"==== {mod} Create Sheet ====")
+    app.logger.debug(f"==== {mod} Create Sheet ====")
     Model = mod_lookup(mod)
     model = Model.query.get(id)
     sheet = create_sheet(model)
@@ -263,7 +263,7 @@ def update_data(mod, id, sheet_id):
 @staff_required()
 def data_permissions(mod, id, sheet_id, perm_id=None):
     """Used for managing permissions for who has access to a worksheet """
-    app.logger.info(f'===== {mod} data permissions for sheet {sheet_id} ====')
+    app.logger.debug(f'===== {mod} data permissions for sheet {sheet_id} ====')
     template = 'form_permission.html'
     sheet = perm_list(sheet_id)
     data = next((x for x in sheet.get('permissions', []) if x.id == perm_id), {}) if perm_id else {}
@@ -287,7 +287,7 @@ def data_permissions(mod, id, sheet_id, perm_id=None):
 @app.route('/login/<string:mod>')
 def fb_login(mod):
     """Initiate the creation of a new Influencer or Brand, as indicated by 'mod' """
-    app.logger.info(f'====================== NEW {mod} Account =========================')
+    app.logger.debug(f'====================== NEW {mod} Account =========================')
     if app.config.get('LOCAL_ENV') is True:
         app.logger.error("Can not call the Facebook auth function when running locally. ")
         flash("This does not work when running locally. Redirecting to the home page. ")
@@ -384,9 +384,9 @@ def results_campaign(id):
     campaign = Campaign.query.get(id)
     if request.method == 'POST':
         sheet = create_sheet(campaign)
-        app.logger.info(f"==== Campaign {view} Create Sheet ====")
+        app.logger.debug(f"==== Campaign {view} Create Sheet ====")
         return render_template('data.html', mod=mod, id=id, sheet=sheet)
-    app.logger.info(f'=========== Campaign {view} ===========')
+    app.logger.debug(f'=========== Campaign {view} ===========')
     related = campaign.get_results()
     return render_template(template, mod=mod, view=view, data=campaign, related=related)
 
@@ -417,7 +417,7 @@ def campaign(id, view='management'):
     mod = 'campaign'
     template, related = f"{mod}.html", {}
     campaign = Campaign.query.get(id)
-    app.logger.info(f'=========== Campaign {view} ===========')
+    app.logger.debug(f'=========== Campaign {view} ===========')
     if request.method == 'POST':
         success = update_campaign(campaign, request)
         if not success:
@@ -490,7 +490,7 @@ def all_posts():
 @app.route('/capture/report/', methods=['GET', 'POST'])
 def capture_report():
     """After the capture work is processed, the results are sent here to update the models. """
-    app.logger.info("======================== capture report route =============================")
+    app.logger.debug("======================== capture report route =============================")
     message = ''
     # pprint(request.headers)
     # TODO: Check request.headers or source info for signs this came from a task queue, and reject if not a valid source
@@ -498,14 +498,16 @@ def capture_report():
     data = json.loads(data.decode())
     # # data = {'success': Bool, 'message': '', 'source': {}, 'error': <answer remains>, 'changes':[change_vals, ...]}
     # # data['changes'] is a list of dict to be used as update content.
-    app.logger.info('------------------  Source  -------------------------------------')
-    pprint(data.get('source'))
-    app.logger.info('------------------ Message  -------------------------------------')
     message += data.get('message')
-    app.logger.info(message)
+    if app.config.get('DEBUG'):
+        app.logger.info('------------------  Source  -------------------------------------')
+        pprint(data.get('source'))
+        app.logger.info('------------------ Message  -------------------------------------')
+        app.logger.info(message)
     if data.get('success', False) is False:
-        app.logger.info('------------------ Answer Remains -------------------------------------')
-        pprint(data.get('error'))
+        if app.config.get('DEBUG'):
+            app.logger.info('------------------ Answer Remains -------------------------------------')
+            pprint(data.get('error'))
         return message, 500
     mod = data.get('source', {}).get('object_type', '')
     Model = mod_lookup(mod)
@@ -549,13 +551,13 @@ def collect_queue(mod, process):
     # format of each in dataset['media_list']: {'media_id': media_id, 'user_id': user.id, [media_type': 'STORY']}
     user_id = dataset.get('user_id', 'NOT FOUND')
     media_count = len(dataset.get('media_list', []))
-    app.logger.info(f"------------------------ Media: {media_count} for User ID: {user_id} ------------------------")
+    app.logger.debug(f"------------------------ Media: {media_count} for User ID: {user_id} ------------------------")
     result = handle_collect_media(dataset, process)
     if isinstance(result, list):
         count, success = media_posts_save(result, bulk_db_operation='update')
         if success:
             info = f"Updated {count} Post records with media {process} info for user ID: {user_id} - SUCCESS. "
-            app.logger.info(info)
+            app.logger.debug(info)
             result = {'reason': info, 'status_code': 201}
         else:
             info = f"Updating {count} Posts with the media {process} results for user ID: {user_id} - FAILED. "
@@ -657,7 +659,7 @@ def new_audience(mod, id):
         return redirect(url_for('home'))
     audience = get_audience(id)
     logstring = f"New Audience data for {mod} - {id}. " if audience else f"No audience insight data, {mod}. "
-    app.logger.info(logstring)
+    app.logger.debug(logstring)
     flash(logstring)
     return redirect(url_for('view', mod=mod, id=id))
 
@@ -671,7 +673,7 @@ def followers(mod, id):
         return redirect(url_for('home'))
     follow_report = get_online_followers(id)
     logstring = "New Online Followers for {mod} - {id}. " if follow_report else "No new Online Followers data. "
-    app.logger.info(logstring)
+    app.logger.debug(logstring)
     flash(logstring)
     return redirect(url_for('view', mod=mod, id=id))
 
@@ -687,7 +689,7 @@ def new_insight(mod, id):
     logstring = f"For {mod} - {id}: "
     logstring += "New Insight data added. " if insights else "No new insight data found. "
     logstring += "New Online Followers data added. " if follow_report else "No new online followers data found. "
-    app.logger.info(logstring)
+    app.logger.debug(logstring)
     flash(logstring)
     return redirect(url_for('insights', mod=mod, id=id))
 
@@ -758,8 +760,6 @@ def view(mod, id):
             if not isinstance(value, dict):  # For the id_data Audience records
                 value = {'value': value}
             model['value'] = value
-    # TODO: Remove these temporary logs
-    # app.logger.info(f"Current User: {current_user} ")
     return render_template(template, mod=mod, data=model, caption_errors=CAPTION_ERRORS)
 
 
@@ -785,7 +785,7 @@ def edit(mod, id):
         flash(f"Editing a {mod} is not working right now. Contact an Admin. ")
         return redirect(request.referrer)
     if current_user.role not in ['admin', 'manager'] and (current_user.id != id or current_user.role != mod):
-        app.logger.info(f"Error in edit route | mod: {mod} | id: {id} | current_user: {current_user} ")
+        app.logger.warning(f"Error in edit route | mod: {mod} | id: {id} | current_user: {current_user} ")
         flash("Something went wrong. Contact an admin or manager. Redirecting to the home page. ")
         return redirect(url_for('home'))
     return add_edit(mod, id=id)
