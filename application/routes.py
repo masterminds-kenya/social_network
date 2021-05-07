@@ -520,7 +520,9 @@ def collect_queue(mod, process):
     known_process = COLLECT_PROCESS_ALLOWED  # {'basic', 'metrics', 'data'}
     app.logger.debug(f"==================== collect queue: {mod} {process} ====================")
     if mod != 'post' or process not in known_process:
-        return "Unknown Data Type or Process in Request", 404
+        message = f"Request in 'collect_queue' - Process: {process} Model: {mod} "
+        app.alert.error(message)
+        return message, 404
     head = {}
     head['x_queue_name'] = request.headers.get('X-AppEngine-QueueName', None)
     head['x_task_id'] = request.headers.get('X-Appengine-Taskname', None)
@@ -532,10 +534,12 @@ def collect_queue(mod, process):
     head['x_fail_fast'] = request.headers.get('X-AppEngine-FailFast', None)
     req_body = request.json if request.is_json else request.data
     if not head['x_queue_name'] or not head['x_task_id']:
-        app.logger.error("This request is not coming from our project. It should be rejected. ")
+        app.logger.error("This 'collect_queue' request is not coming from our project. It should be rejected. ")
         return "Unknown Request", 404
     if not req_body:
-        return "No request body. ", 404
+        message = "The 'collect_queue' request had no body content. "
+        app.logger.error(message)
+        return message, 404
     req_body = json.loads(req_body.decode())  # The request body from a Task API is byte encoded
     source = req_body.get('source', {})
     source.update(head)
@@ -544,8 +548,8 @@ def collect_queue(mod, process):
     service_request = source.get('service', None)
     expect_service = app.config.get('CURRENT_SERVICE', '')
     if service_request != expect_service:
-        info = f"Request from {service_request} does not match expected {expect_service} service. "
-        app.logger.error(info)
+        info = f"Request from {service_request} does not match expected {expect_service} service for 'collect_queue'. "
+        app.alert.error(info)
         return info, 404
     dataset = req_body.get('dataset', {})  # format: {'user_id': user.id, 'media_ids': media_ids, 'media_list': cur}
     # format of each in dataset['media_list']: {'media_id': media_id, 'user_id': user.id, [media_type': 'STORY']}
@@ -557,11 +561,11 @@ def collect_queue(mod, process):
         count, success = media_posts_save(result, bulk_db_operation='update')
         if success:
             info = f"Updated {count} Post records with media {process} info for user ID: {user_id} - SUCCESS. "
-            app.logger.debug(info)
+            app.alert.debug(info)
             result = {'reason': info, 'status_code': 201}
         else:
             info = f"Updating {count} Posts with the media {process} results for user ID: {user_id} - FAILED. "
-            app.logger.error(info)
+            app.alert.error(info)
             result = {'error': info, 'status_code': 500}
     status_code = 500 if 'error' in result else 201
     status_code = result.pop('status_code', status_code)
