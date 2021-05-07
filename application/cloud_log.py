@@ -30,7 +30,7 @@ class CloudLog(logging.getLoggerClass()):
     def get_level(cls, level=None):
         """Returns the level value, based on the input string or integer if provided, or by using the default value. """
         if level is None:
-            level = getattr(level, 'DEFAULT_LEVEL', logging.warn)
+            level = getattr(level, 'DEFAULT_LEVEL', logging.WARNING)
         name_to_level = logging._nameToLevel
         if isinstance(level, str):
             level = name_to_level.get(level.upper(), None)
@@ -150,20 +150,6 @@ class CloudLog(logging.getLoggerClass()):
             print(f"--------------- {name} Logger Settings ------------------")
             pprint(logger.__dict__)
             print('-------------------------------------------------------------')
-        # root_handlers = logging.root.handlers
-        # app_handlers = app.logger.handlers
-        # all_handlers = [*root_handlers, *app_handlers]
-        # print('Root Handlers: ', root_handlers)
-        # print('App Logger Handlers: ', app_handlers)
-        # alert = getattr(app, 'alert', None)
-        # if alert:
-        #     print('Alert logger handlers: ', alert.handlers)
-        #     all_handlers.extend(alert.handlers)
-        #     print("------------- Alert Logger Info ----------------------")
-        #     pprint(alert.__dict__)
-        # else:
-        #     print('Alert logger is not set. ')
-
         print(f"=================== Details for each of {len(all_handlers)} handlers ===================")
         creds_list = []
         for handle in all_handlers:

@@ -30,12 +30,12 @@ def create_app(config, debug=None, testing=None, config_overrides=dict()):
     app.config.from_object(config)
     app.debug = debug
     app.testing = testing
+    if config_overrides:
+        app.config.update(config_overrides)
     app.log_client = log_client
     app.alert = alert
     if app_handler:
         app.logger.addHandler(app_handler)
-    if config_overrides:
-        app.config.update(config_overrides)
 
     # Configure flask_login
     login_manager = LoginManager()
