@@ -46,19 +46,19 @@ class CloudLog(logging.getLoggerClass()):
         return level
 
     @classmethod
-    def make_logger_name(cls, parent_name=None):
+    def make_logger_name(cls, name=None):
         """Returns a lowercase name for a logger based on provided input or default value. """
-        if not parent_name or not isinstance(parent_name, str):
-            parent_name = getattr(cls, 'DEFAULT_LOGGER_NAME', 'root')
-        if not parent_name:
+        if not name or not isinstance(name, str):
+            name = cls.DEFAULT_LOGGER_NAME
+        if not name:
             raise TypeError("Either a parent_name, or a default, string must be provided. ")
-        return parent_name.lower()
+        return name.lower()
 
     @classmethod
     def make_handler_name(cls, name=None):
         """Returns a lowercase name based on the given input or default value. """
         if not name or not isinstance(name, str):
-            name = getattr(cls, 'DEFAULT_HANDLER_NAME', None)
+            name = cls.DEFAULT_HANDLER_NAME
         if not name:
             raise TypeError("Either a name, or a default name, string must be provided. ")
         return name.lower()
