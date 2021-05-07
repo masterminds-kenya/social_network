@@ -6,9 +6,11 @@ from google.oauth2 import service_account
 
 class CloudLog(logging.getLoggerClass()):
     """Extended python Logger class that attaches a google cloud log handler. """
-    DEFAULT_LOGGER_NAME = 'application'
+    APP_LOGGER_NAME = 'application'
+    APP_HANDLER_NAME = 'app'
+    DEFAULT_LOGGER_NAME = None
+    DEFAULT_HANDLER_NAME = None
     DEFAULT_LEVEL = logging.INFO
-    DEFAULT_HANDLER_NAME = 'alert'
     LOG_SCOPES = (
         'https://www.googleapis.com/auth/logging.read',
         'https://www.googleapis.com/auth/logging.write',
@@ -184,7 +186,7 @@ def setup_cloud_logging(config, base_log_level, cloud_log_level, extra=None):
     log_client = CloudLog.make_cloud_log_client(service_account_path)
     log_client.setup_logging(log_level=base_log_level)  # log_level sets the logger, not the handler.
     # Note: any modifications to the default 'python' handler from setup_logging will invalidate creds.
-    handler = CloudLog.make_cloud_handler('app', log_client, cloud_log_level)
+    handler = CloudLog.make_cloud_handler(CloudLog.APP_HANDLER_NAME, log_client, cloud_log_level)
     logging.root.addHandler(handler)
     if extra is None:
         extra = []
