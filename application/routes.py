@@ -480,7 +480,10 @@ def all_posts():
         message += "Admin requested getting posts for all active users. "
         flash(message)
         response = redirect(url_for('admin', data=response))
-    app.logger.info(message)
+    if not success:
+        app.alert.critical(message)
+    else:
+        app.logger.info(message)
     return response
 
 
