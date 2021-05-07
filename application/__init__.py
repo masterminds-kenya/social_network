@@ -17,9 +17,8 @@ def create_app(config, debug=None, testing=None, config_overrides=dict()):
         gae_env = getattr(config, 'GAE_ENV', None)
         local_env = getattr(config, 'LOCAL_ENV')
         log_name = 'alert'
-        handler_name = log_name if local_env else None
         if gae_env == 'standard' or local_env:
-            alert = CloudLog.make_base_logger(log_name, handler_name, base_log_level)
+            alert = CloudLog.make_base_logger(log_name, log_name, base_log_level)
             cred_path = getattr(config, 'GOOGLE_APPLICATION_CREDENTIALS', None)
             log_client = CloudLog.make_cloud_log_client(credential_path=cred_path)
             app_handler = CloudLog.make_cloud_handler('app', log_client, cloud_log_level)
