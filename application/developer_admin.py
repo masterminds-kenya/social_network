@@ -170,9 +170,10 @@ def subscribe_pages(group):
     }
     column_args = param_lookup.get(group, {})
     all_response = get_pages_for_users(**column_args)
-    app.logger.debug(f"--------------- Results subscribe {group} ---------------")
-    pprint(all_response)
-    app.logger.debug(f"--------------- End subscribe {group} ---------------")
+    if app.config.get('DEBUG'):
+        app.logger.debug(f"--------------- Results subscribe {group} ---------------")
+        pprint(all_response)
+        app.logger.debug(f"--------------- End subscribe {group} ---------------")
     return admin_view(data=all_response)
 
 
