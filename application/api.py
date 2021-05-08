@@ -364,18 +364,20 @@ def get_basic_media(media_id, metrics=None, id_or_user=None, facebook=None):
         res = facebook.get(url).json()
     except Exception as e:
         app.logger.debug('------------- Error in get_basic_media FB API response -------------')
-        app.logger.error(f"API fail for Post with media_id {media_id} | Auth: {auth} ")
+        app.alert.error(f"API fail for 'get_basic_media' on Post with media_id {media_id} | Auth: {auth} ")
         app.logger.exception(e)
         empty_res['caption'] = 'AUTH_' + auth
         return empty_res
     if 'error' in res:
         app.logger.debug('------------- Error in get_basic_media FB API response -------------')
-        app.logger.error(f"User: {id_or_user} | Media: {media_id} | Error: {res.get('error', 'Empty Error')} ")
+        err = "FB API ERROR get_basic_media | "
+        err += f"User: {id_or_user} | Media: {media_id} | Error: {res.get('error', 'Empty Error')} "
+        app.alert.error(err)
         empty_res['caption'] = 'API_ERROR'
         return empty_res
     res_media_id = int(res.pop('id', 0))
     if res_media_id != media_id:
-        app.logger.error(f"Mismatch media_id: Request {media_id} | Response {res_media_id} ")
+        app.alert.error(f"Func: get_basic_media | Mismatch media_id: Request {media_id} | Response {res_media_id} ")
     res['media_id'] = media_id
     res['user_id'] = user_id
     return res
@@ -390,7 +392,7 @@ def get_metrics_media(media, facebook, metrics=None):
         post_metrics = METRICS[Post]
         metrics = post_metrics.get(media_type, post_metrics['insight'])
         if metrics == post_metrics['insight']:
-            app.logger.error(f" Match not found for {media_type} media_type parameter. ")
+            app.alert.error(f"Func: get_metrics_media - Match not found for {media_type} media_type parameter. ")
     url = f"https://graph.facebook.com/{media_id}/insights?metric={metrics}"
     res_insight = facebook.get(url).json()
     insights = res_insight.get('data')
@@ -400,7 +402,7 @@ def get_metrics_media(media, facebook, metrics=None):
             temp = {metric_clean(key): val for key, val in temp.items()}
         media.update(temp)
     else:
-        app.logger.warning(f"media {media_id} had NO INSIGHTS for type {media_type} --- {res_insight}. ")
+        app.alert.warning(f"media {media_id} had NO INSIGHTS for type {media_type} --- {res_insight}. ")
     return media
 
 
@@ -524,8 +526,8 @@ def clean_collect_dataset(data):
             media_ids = [int(ea) for ea in media_ids]
         except TypeError as e:
             err = f"Not properly formatted post or media ids for {user} user data. "
-            app.logger.error(err)
-            app.logger.error(e)
+            app.alert.error(err)
+            app.logger.exception(e)
             return {'error': e, 'status_code': 500}
     if posts and not media_ids:
         media_ids = [p['media_id'] for p in posts]
