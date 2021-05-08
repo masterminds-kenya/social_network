@@ -45,7 +45,7 @@ def clean(obj):
     if isinstance(obj, dt):
         return obj.isoformat()
     if isinstance(obj, (list, tuple)):
-        current_app.logger.info(f"================= Clean for obj: {obj} ====================")
+        current_app.logger.debug(f"================= Clean for obj: {obj} ====================")
         return ' | '.join(obj)
     return obj
 
@@ -155,7 +155,7 @@ class User(UserMixin, db.Model):
             # media_id = recent.first().media_id
         except Exception as e:
             current_app.logger.debug("========== ERROR IN LAST STORY ==========")
-            current_app.logger.debug(e)
+            current_app.logger.exception(e)
             media_id = None
         return media_id
 
@@ -170,7 +170,7 @@ class User(UserMixin, db.Model):
             # media_id = recent.first().media_id
         except Exception as e:
             current_app.logger.debug("========== ERROR IN LAST MEDIA ==========")
-            current_app.logger.debug(e)
+            current_app.logger.exception(e)
             media_id = None
         return media_id
 
@@ -199,14 +199,14 @@ class User(UserMixin, db.Model):
 
     @full_token.setter
     def full_token(self, token):
-        current_app.logger.info(f"Called full_token setter for {self} user. ")
-        current_app.logger.info(token)
+        current_app.logger.debug(f"Called full_token setter for {self} user. ")
+        current_app.logger.debug(token)
         # refresh_token = token.get('refresh_token', None)
         data = translate_api_user_token({'token': token})
         if 'token_expires' in data and 'token' in data:
             self.token_expires = data['token_expires']
             self.token = data['token']
-        # current_app.logger.info(f"The {self} user has an unsaved refresh_token of {refresh_token} ")
+        # current_app.logger.debug(f"The {self} user has an unsaved refresh_token of {refresh_token} ")
 
     def get_auth_session(self):
         """Create an OAuth2Session for retrieving Graph API data for this user. """
@@ -956,12 +956,12 @@ def db_update(data, id, related=False, Model=User):
         flash(message)
         raise ValueError(e)
     except Exception as e:  # TODO: Remove this except catch and log after confirming no consistant issues.
-        current_app.logger.info("===== Got a non-IntegrityError in db_update =====")
-        current_app.logger.info(model)
-        current_app.logger.info(associated)
-        current_app.logger.info("-------------------------------------------------")
+        current_app.logger.debug("===== Got a non-IntegrityError in db_update =====")
+        current_app.logger.debug(model)
+        current_app.logger.debug(associated)
+        current_app.logger.debug("-------------------------------------------------")
         current_app.logger.error(e)
-        current_app.logger.info("-------------------------------------------------")
+        current_app.logger.debug("-------------------------------------------------")
         raise e
     return from_sql(model, related=related, safe=True)
 
@@ -999,7 +999,8 @@ def create_many(dataset, Model=User):
 
 def db_create_or_update_many(dataset, user_id=None, Model=Post):
     """Create or Update if the record exists for all of the dataset list. Returns a list of Model objects. """
-    current_app.logger.info(f'============== Create or Update Many {Model.__name__} ====================')
+    logger = getattr(current_app, 'alert', None) or current_app.logger
+    logger.debug(f'============== Create or Update Many {Model.__name__} ====================')
     allowed_models = {Post, Insight, Audience, OnlineFollowers}
     if Model not in allowed_models:
         return []
@@ -1007,7 +1008,7 @@ def db_create_or_update_many(dataset, user_id=None, Model=Post):
     all_results, add_count, update_count, error_set = [], 0, 0, []
     if composite_unique and user_id:
         match = Model.query.filter(Model.user_id == user_id).all()
-        current_app.logger.debug(f'------ Composite Unique for {Model.__name__}: {len(match)} possible matches ------')
+        logger.debug(f'------ Composite Unique for {Model.__name__}: {len(match)} possible matches ------')
         lookup = {tuple([getattr(ea, key) for key in composite_unique]): ea for ea in match}
         for data in dataset:
             data = fix_date(Model, data)  # fix incoming data 'recorded' as needed for this Model
@@ -1018,7 +1019,7 @@ def db_create_or_update_many(dataset, user_id=None, Model=Post):
                 data.pop('id', None)
             key = tuple([data.get(ea) for ea in composite_unique])
             model = lookup.get(key, None)
-            current_app.logger.debug(f'------- {key} -------')
+            logger.debug(f'------- {key} -------')
             if model:  # TODO: Look into Model.update method
                 associated = {name: data.pop(name) for name in model.__mapper__.relationships.keys() if data.get(name)}
                 for k, v in data.items():
@@ -1027,7 +1028,7 @@ def db_create_or_update_many(dataset, user_id=None, Model=Post):
                     getattr(model, k).append(v)
                 update_count += 1
             else:
-                current_app.logger.debug('No match in existing data')
+                logger.debug('No match in existing data')
                 model = Model(**data)
                 db.session.add(model)
                 add_count += 1
@@ -1070,14 +1071,14 @@ def db_create_or_update_many(dataset, user_id=None, Model=Post):
                 db.session.add(model)
                 add_count += 1
                 all_results.append(model)
-    current_app.logger.info('------------------------------------------------------------------------------')
-    current_app.logger.info(f'The all results has {len(all_results)} records to commit')
-    current_app.logger.info(f'This includes {update_count} updated records')
-    current_app.logger.info(f'This includes {add_count} added records')
-    current_app.logger.info(f'There was a problem handling {len(error_set)} of the incoming dataset items')
-    current_app.logger.info('------------------------------------------------------------------------------')
+    logger.info('------------------------------------------------------------------------------')
+    logger.info(f'The all results has {len(all_results)} records to commit')
+    logger.info(f'This includes {update_count} updated records')
+    logger.info(f'This includes {add_count} added records')
+    logger.info(f'There was a problem handling {len(error_set)} of the incoming dataset items')
+    logger.info('------------------------------------------------------------------------------')
     db.session.commit()
-    current_app.logger.info('All records saved')
+    logger.info('All records saved')
     # return [from_sql(ea, related=False, safe=True) for ea in all_results]
     return all_results
 

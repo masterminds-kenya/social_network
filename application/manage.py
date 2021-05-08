@@ -15,14 +15,14 @@ def check_hash(signed, payload):
     """Checks if the 'signed' value is a SHA1 hash made with our app secret and the given 'payload' """
     pre, signed = signed.split('=', 1)
     if pre != 'sha1':
-        app.logger.debug("Signed does not look right. ")
+        app.logger.error("Signed value does not look right for check_hash function. ")
         return False
     if isinstance(payload, dict):
         payload = json.dumps(payload).encode()
     elif isinstance(payload, str):
         payload = payload.encode()
     if not isinstance(payload, bytes):
-        app.logger.debug("Unable to prepare payload. ")
+        app.logger.error("Unable to prepare payload for check_hash function. ")
         return False
     secret = app.config.get('FB_CLIENT_SECRET').encode()
     test = hmac.new(secret, payload, hashlib.sha1).hexdigest()
@@ -33,7 +33,7 @@ def check_hash(signed, payload):
 
 def update_campaign(campaign, request):
     """Handle adding or removing posts assigned to a campaign, as well as removing posts from the processing Queue. """
-    app.logger.info('=========== Update Campaign ==================')
+    app.logger.debug('=========== Update Campaign ==================')
     form_dict = request.form.to_dict(flat=True)
     # Radio Button | Management | Results | Manage Outcome  | Result Outcome
     # accept       |  data.id   |    0    | camp_id = val   | leave alone
@@ -43,10 +43,11 @@ def update_campaign(campaign, request):
         data = {int(key.replace('assign_', '')): int(val) for (key, val) in form_dict.items() if val != '0'}
     except ValueError as e:
         app.logger.error("Error in update_campaign, ValueError translating form to data dict. ")
-        app.logger.error(e)
+        app.logger.exception(e)
         # TODO: ?handle error somehow?
         return False
     modified = Post.query.filter(Post.id.in_(data.keys())).all()
+    # TODO: Check for better DB query approach for these updates.
     for post in modified:
         code = data[post.id]
         if code == -2:  # un-process if processed, un-relate if related
@@ -128,7 +129,7 @@ def add_edit(mod, id=None):
            or mod != 'brand':
             flash("Using Signup. ")
             return redirect(url_for('signup'))
-    app.logger.info(f'------- {action} {mod} ----------')
+    app.logger.debug(f'------- {action} {mod} ----------')
     if request.method == 'POST':
         data = process_form(mod, request)
         if mod == 'brand' and data.get('instagram_id', '') in ('None', None, ''):
@@ -166,7 +167,7 @@ def add_edit(mod, id=None):
                             flash(message)
                             return redirect(url_for('home'))
                         login_user(found_user, force=True, remember=True)
-                        db_delete(id, Model=User)
+                        db_delete(id, Model=User)  # Deleting the created duplicate, use the existing user account.
                         flash("You are logged in. ")
                         # this case will follow the normal return for request.method == 'POST'
                     else:
@@ -200,11 +201,11 @@ def add_edit(mod, id=None):
 def report_update(reports, Model):
     """Input is a list of dictionaries, with each being the update values to apply to the 'mod' Model. """
     message, results, had_error = '', [], False
-    app.logger.info("===================== report update =====================")
+    app.logger.debug("===================== report update =====================")
     # TODO: CRITICAL before pushed to production. Confirm the the source of this update.
     if Model != Post:
         message += "The Report process is not available for that data. "
-        app.logger.info(message)
+        app.logger.warning(message)
         return message, 500
     for report in reports:
         media_id = report.get('media_id', '')
@@ -219,13 +220,13 @@ def report_update(reports, Model):
             setattr(model, k, v)
         results.append(model)
         message += f"Updated Model in capture_report: {str(model)} \n"
-    else:
+    if not reports:
         message += "The report_update function received no reports. "
     if len(results):
         db.session.commit()
         message += ', '.join([str(model) for model in results])
         message += "\n Updates committed. "
-    app.logger.info(message)
+    app.logger.debug(message)
     status_code = 422 if had_error else 200
     return message, status_code
 
@@ -270,7 +271,7 @@ def media_posts_save(media_results, bulk_db_operation='create', return_ids=False
         success = False
         app.logger.error(f"========== MEDIA POSTS {bulk_db_operation} ERROR ==========")
         app.logger.error(error_info)
-        app.logger.error(e)
+        app.logger.exception(e)
         db.session.rollback()
     if add_time and bulk_db_operation == 'create':  # TODO: When implementing 'save', handle add_time deletion.
         datefield = 'recorded' if args[0] == Post else 'end_time'
@@ -297,7 +298,7 @@ def process_hook(req):
     data_log = f"{insight_count} story"
     if data_count != insight_count:
         data_log += f", {data_count} total"
-    # app.logger.info(f"============ PROCESS HOOK: {data_log} ============")
+    # app.logger.debug(f"============ PROCESS HOOK: {data_log} ============")
     timestamp = str(make_missing_timestamp(1))  # timestamp only for creating if not present = str(dt.utcnow() - 1 day)
     total, new, modified, skipped, message = 0, 0, 0, 0, ''
     for story in story_insights:
@@ -333,7 +334,9 @@ def process_hook(req):
             user_id = user.id
             story.update(media_id=media_id, user_id=user_id, timestamp=timestamp)
             if 'caption' not in story:
-                story['caption'] = 'INSIGHTS_CREATED'
+                problem = 'INSIGHTS_CREATED'
+                app.alert.error(f"{problem} story | media id: {media_id} | user: {user_id} | time: {timestamp}  ")
+                story['caption'] = problem
             message += f"STORY post CREATE for user: {user_id} | Timestamp: {timestamp} \n"
             model = Post(**story)  # Also fixes the timestamp to appropriate date format.
             new += 1
@@ -359,5 +362,5 @@ def process_hook(req):
     else:
         message += "No needed record updates. "
         response_code = 200
-    app.logger.info(f"===== PROCESS HOOK: {data_log} =====")
+    app.logger.debug(f"===== PROCESS HOOK: {data_log} =====")
     return message, response_code

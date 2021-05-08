@@ -28,16 +28,16 @@ def try_task(parent, task):
     try:
         response = client.create_task(parent=parent, task=task)
     except ValueError as e:
-        app.logger.info(f"Invalid parameters for creating a task: \n {task}")
-        app.logger.error(e)
+        app.logger.waring(f"Invalid parameters for creating a task: \n {task}")
+        app.logger.exception(e)
         response = None
     except RetryError as e:
-        app.logger.info(f"Retry Attempts exhausted for a task: \n {task}")
-        app.logger.error(e)
+        app.logger.warning(f"Retry Attempts exhausted for a task: \n {task}")
+        app.logger.exception(e)
         response = None
     except GoogleAPICallError as e:
-        app.logger.info(f"Google API Call Error on creating a task: \n {task}")
-        app.logger.error(e)
+        app.logger.warning(f"Google API Call Error on creating a task: \n {task}")
+        app.logger.exception(e)
         response = None
     if response is not None:
         app.logger.info(f"Created task: {response} ")
@@ -68,12 +68,12 @@ def get_queue_path(process):
     full_queue_name = client.queue_path(PROJECT_ID, PROJECT_REGION, short_queue_name)
     try:
         q = client.get_queue(name=full_queue_name)
-        app.logger.info(f"===== FOUND QUEUE: {q} =====")
-        app.logger.info(dir(q))
-        app.logger.info("-----------------------------")
+        app.logger.debug(f"===== FOUND QUEUE: {q} =====")
+        app.logger.debug(dir(q))
+        app.logger.debug("-----------------------------")
     except Exception as e:
-        app.logger.info(f"The {full_queue_name} queue does not exist, or could not be found. Attempting to create it. ")
-        app.logger.info(e)
+        app.logger.warning(f"The {full_queue_name} queue does not exist, or could not be found. Attempting to create it. ")
+        app.logger.exception(e)
         q = None
     if q:
         # TODO: Check for critical parameters, update if needed.
@@ -92,19 +92,19 @@ def get_queue_path(process):
     parent = f"projects/{PROJECT_ID}/locations/{PROJECT_REGION}"
     try:
         q = client.create_queue(parent=parent, queue=queue_settings)
-        app.logger.info("============ CREATED QUEUE ============")
-        app.logger.info(q)
+        app.logger.debug("============ CREATED QUEUE ============")
+        app.logger.debug(q)
     except AlreadyExists as exists:
         app.logger.info(f"Already Exists on get/create/update {short_queue_name} ")
         app.logger.info(exists)
         q = full_queue_name
     except ValueError as error:
         app.logger.info(f"Value Error on get/create/update the {short_queue_name} ")
-        app.logger.error(error)
+        app.logger.exception(error)
         q = None
     except GoogleAPICallError as error:
         app.logger.info(f"Google API Call Error on get/create/update {short_queue_name} ")
-        app.logger.error(error)
+        app.logger.exception(error)
         q = None
     return full_queue_name if q else None
 
@@ -124,8 +124,8 @@ def get_or_create_queue(queue_name, logging=0):
     # try:
     #     q = client.get_queue(name=queue_path)
     # except Exception as e:
-    #     app.logger.info(f"The {queue_path} queue does not exist, or could not be found. Attempting to create it. ")
-    #     app.logger.info(e)
+    #     app.logger.warning(f"The {queue_path} queue does not exist, or could not be found. Attempting to create it. ")
+    #     app.logger.exception(e)
     #     q = None
     # if q:
     #     return queue_path
@@ -157,7 +157,7 @@ def list_queues():
     parent = f"projects/{PROJECT_ID}/locations/{PROJECT_REGION}"
     queue_list = [ea for ea in client.list_queues(parent=parent)]
     for ea in queue_list:
-        app.logger.info(ea)
+        app.logger.debug(ea)
     return queue_list
 
 
