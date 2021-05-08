@@ -17,7 +17,7 @@ from pprint import pprint
 
 # Sentinels for errors recorded on the Post.caption field.
 CAPTION_ERRORS = ['NO_CREDENTIALS', 'AUTH_FACEBOOK', 'AUTH_TOKEN', 'AUTH_NONE', 'API_ERROR', 'INSIGHTS_CREATED']
-POST_ERROR_DATE = '2021-02-28'
+POST_ERROR_DATE = '2021-03-06'
 MAX_ACTIVE_USER_NUM = app.config.get('MAX_ACTIVE_USER_NUM', 100)
 
 
