@@ -64,15 +64,6 @@ def find_valid_user(id_or_user, instagram_required=True, token_required=True):
         return None
     return user
 
-# def generate_backend_token():
-#     """When an App access token (as proof the request is from BIP App) is needed instead of the app client secret. """
-#     client = BackendApplicationClient(client_id=FB_CLIENT_ID)
-#     oauth = OAuth2Session(client=client)
-#     token = oauth.fetch_token(token_url=FB_TOKEN_URL, client_id=FB_CLIENT_ID, client_secret=FB_CLIENT_SECRET)
-#     # What about the params['grant_type'] = 'client_credentials' in generate_app_access_token ?
-#     # token = token.get('access_token')  ??
-#     return token
-
 
 def generate_app_access_token():
     """When an App access token (as proof the request is from BIP App) is needed instead of the app client secret. """
@@ -585,51 +576,6 @@ def handle_collect_media(dataset, process):
         collected.append(media)
     app.logger.debug(f"-------------------- collected: {len(collected)} --------------------------------")
     return collected  # The media posts are updated by a different process.
-
-
-def handle_collect_media_no_post_id(data, process):
-    """With the given dataset and post process, call the Graph API and update the database. Return success status. """
-    # already confirmed process is one of: 'basic', 'metrics', 'data'
-    user_id = data.get('user_id', None)
-    user = find_valid_user(user_id) if user_id else None
-    facebook = user.get_auth_session() if user else None
-    if not user or not facebook:
-        err = f"Unable to find a valid user id: {user_id} for data. "
-        app.logger.error(err)  # TODO: Change to raise error and catch the exception.
-        return {'error': err, 'status_code': 500}
-    metrics = construct_metrics_lookup(data.get('metrics'), data.get('post_metrics'), data.get('media_ids'))
-    if isinstance(metrics, dict) and 'error' in metrics:
-        return metrics  # TODO: Change to raise error and catch the exception.
-    collected = []
-    for cur in data.get('media_list', []):
-        is_story = True if cur.get('media_type', None) == 'STORY' else False
-        mets = metrics if isinstance(metrics, (str, type(None))) else metrics.get(cur.get('media_id'))
-        if process == 'metrics':
-            media = get_metrics_media(data, facebook, metrics=mets)
-        elif not mets:
-            full = False if process == 'basic' else True
-            media = get_media_data(cur['media_id'], user, is_story=is_story, full=full, facebook=facebook)
-        else:  # metrics exist, and process is either 'basic' or 'data'.
-            basic_mets = mets if process == 'basic' else None
-            media = get_basic_media(cur['media_id'], metrics=basic_mets, id_or_user=user.id, facebook=facebook)
-            media['media_type'] = 'STORY' if is_story else media.get('media_type', '')
-            if process == 'data':
-                media = get_metrics_media(media, facebook, metrics=mets)
-        collected.append(media)
-    try:
-        db.session.bulk_update_mappings(Post, collected)  # primary keys are required.
-        db.session.commit()
-        app.logger.debug("========== HANDLE COLLECT MEDIA SUCCESS! ==========")
-        info = f"Updated {len(collected)} Post records with media {process} info. "
-        app.logger.debug(info)
-        result = {'reason': info, 'status_code': 201}
-    except Exception as e:
-        info = "There was a problem with updating the collect media results. "
-        app.logger.debug("========== HANDLE COLLECT MEDIA ERROR ==========")
-        app.logger.error(info)
-        app.logger.exception()(e)
-        result = {'error': [info, e], 'status_code': 500}
-    return result
 
 
 def get_fb_page_for_users_ig_account(user, ignore_current=False, facebook=None, token=None):
