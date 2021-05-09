@@ -19,7 +19,7 @@ FB_CLIENT_APP_NAME = app.config.get('FB_CLIENT_APP_NAME', 'Bacchus Influencer Pl
 FB_CLIENT_ID = app.config.get('FB_CLIENT_ID')
 FB_CLIENT_SECRET = app.config.get('FB_CLIENT_SECRET')
 FB_AUTHORIZATION_BASE_URL = "https://www.facebook.com/dialog/oauth"
-# GRAPH_URL = "https://graph.facebook.com/"
+GRAPH_URL = "https://graph.facebook.com/"
 FB_TOKEN_URL = "https://graph.facebook.com/oauth/access_token"
 FB_INSPECT_TOKEN_URL = 'https://graph.facebook.com/debug_token'
 FB_SCOPE = [
@@ -137,7 +137,7 @@ def user_permissions(id_or_user, facebook=None, token=None, app_access_token=Non
     token = token or user.token  # TODO: Determine if it should be user.full_token
     perm_info = {permission: False for permission in FB_SCOPE}  # Each will be overwritten if later found as True
     if facebook or token:
-        url = f"https://graph.facebook.com/{user.facebook_id}/permissions"
+        url = f"{GRAPH_URL}{user.facebook_id}/permissions"
         params = {}
         if not facebook:
             params['access_token'] = token
@@ -248,7 +248,7 @@ def get_insight(user_id, first=1, influence_last=30*12, profile_last=30*3, ig_id
         for i in range(first, last + first + 1 - 30, 30):
             until = now - timedelta(days=i)
             since = until - timedelta(days=30)
-            url = f"https://graph.facebook.com/{ig_id}/insights"
+            url = f"{GRAPH_URL}{ig_id}/insights"
             url += f"?metric={metric}&period={ig_period}&since={since}&until={until}"
             response = facebook.get(url).json() if facebook else requests.get(f"{url}&access_token={token}").json()
             insights = response.get('data', None)
@@ -279,7 +279,7 @@ def get_online_followers(user_id, ig_id=None, facebook=None):
     start_days_ago = 1
     until = make_missing_timestamp(start_days_ago)
     since = make_missing_timestamp(start_days_ago + 30)
-    url = f"https://graph.facebook.com/{ig_id}/insights"
+    url = f"{GRAPH_URL}{ig_id}/insights"
     url += f"?metric={metric}&period={ig_period}&since={since}&until={until}"
     response = facebook.get(url).json() if facebook else requests.get(f"{url}&access_token={token}").json()
     data = response.get('data')
@@ -305,7 +305,7 @@ def get_audience(user_id, ig_id=None, facebook=None):
         user = User.query.get(user_id)
         ig_id = ig_id or user.instagram_id
         token = user.token
-    url = f"https://graph.facebook.com/{ig_id}/insights"
+    url = f"{GRAPH_URL}{ig_id}/insights"
     url += f"?metric={metric}&period={ig_period}"
     audience = facebook.get(url).json() if facebook else requests.get(f"{url}&access_token={token}").json()
     if not audience.get('data'):
@@ -350,7 +350,7 @@ def get_basic_media(media_id, metrics=None, id_or_user=None, facebook=None):
     empty_res = {'media_id': media_id, 'user_id': user_id, 'timestamp': timestamp, 'caption': 'NO_CREDENTIALS'}
     if not metrics:
         metrics = METRICS[Post]['basic']
-    url = f"https://graph.facebook.com/{media_id}?fields={metrics}"
+    url = f"{GRAPH_URL}{media_id}?fields={metrics}"
     try:
         res = facebook.get(url).json()
     except Exception as e:
@@ -384,7 +384,7 @@ def get_metrics_media(media, facebook, metrics=None):
         metrics = post_metrics.get(media_type, post_metrics['insight'])
         if metrics == post_metrics['insight']:
             app.alert.error(f"Func: get_metrics_media - Match not found for {media_type} media_type parameter. ")
-    url = f"https://graph.facebook.com/{media_id}/insights?metric={metrics}"
+    url = f"{GRAPH_URL}{media_id}/insights?metric={metrics}"
     res_insight = facebook.get(url).json()
     insights = res_insight.get('data')
     if insights:
@@ -597,7 +597,7 @@ def get_fb_page_for_users_ig_account(user, ignore_current=False, facebook=None, 
                 message = f"We do not have the permission token for this user: {user} "
                 app.logger.error(message)
                 return None
-        url = f"https://graph.facebook.com/{fb_id}"
+        url = f"{GRAPH_URL}{fb_id}"
         app.logger.debug(f"========== get_fb_page_for_users_ig_account {user} ==========")
         params = {'fields': 'accounts'}
         if not facebook:
@@ -623,8 +623,8 @@ def install_app_on_user_for_story_updates(id_or_user, page=None, facebook=None, 
         if not page:
             app.logger.error(f"Unable to find the page for user: {user} ")
             return False
-    url = f"https://graph.facebook.com/{page['id']}/subscribed_apps"  # TODO: Works, but FB docs indicate v# required.
-    # url = f"https://graph.facebook.com/v9.0/{page['id']}/subscribed_apps",  # TODO: v3.1 out of date, is v# needed?
+    url = f"{GRAPH_URL}{page['id']}/subscribed_apps"  # TODO: Works, but FB docs indicate v# required.
+    # url = f"{GRAPH_URL}v9.0/{page['id']}/subscribed_apps",  # TODO: v3.1 out of date, is v# needed?
     field = 'name'  # OPTIONS: 'category', 'website' # NOT VALID: 'has_added_app', 'is_owned'
     # TODO: Check if permission needed: pages_manage_metadata or pages_read_user_content
     params = {} if facebook else {'access_token': page['token']}  # TODO: Determine if always need page access token.
@@ -664,7 +664,7 @@ def remove_app_on_user_for_story_updates(id_or_user, page=None, facebook=None, t
     #     if not page:
     #         app.logger.error(f"Unable to find the page for user: {user} ")
     #         return False
-    # url = f"https://graph.facebook.com/v3.1/{page['id']}/subscribed_apps"  # TODO: v3.1 it out of date?
+    # url = f"{GRAPH_URL}v3.1/{page['id']}/subscribed_apps"  # TODO: v3.1 it out of date?
     # TODO: Check if permission needed: pages_manage_metadata or pages_read_user_content
     # params = {} if facebook else {'access_token': page['token']}
     # params['subscribed_fields'] = ''  # Remove all despite docs saying parameter cannot configure Instagram Webhooks
@@ -687,7 +687,7 @@ def get_ig_info(ig_id, facebook=None, token=None):
         logstring = "You must pass a 'token' or 'facebook' reference. "
         app.logger.error(logstring)
         raise ValueError(logstring)
-    url = f"https://graph.facebook.com/v4.0/{ig_id}?fields={fields}"
+    url = f"{GRAPH_URL}v4.0/{ig_id}?fields={fields}"
     res = facebook.get(url).json() if facebook else requests.get(f"{url}&access_token={token}").json()
     end_time = make_missing_timestamp(0).isoformat(timespec='seconds') + '+0000'
     for name in Audience.IG_DATA:  # {'media_count', 'followers_count'}
@@ -702,7 +702,7 @@ def find_pages_for_fb_id(fb_id, facebook=None, token=None):
     Returns the response received from the Graph API.
     """
     # TODO Priority 2: CHECK FOR PAGINATION
-    url = f"https://graph.facebook.com/v7.0/{fb_id}/accounts"
+    url = f"{GRAPH_URL}v7.0/{fb_id}/accounts"
     app.logger.debug("========================== The find_pages_for_fb_id was called ==========================")
     if not facebook and not token:
         message = "This function requires at least one value for either 'facebook' or 'token' keyword arguments. "
@@ -738,8 +738,8 @@ def find_instagram_id(accounts, facebook=None, token=None, app_token=None):
     pages = [{'id': page.get('id'), 'token': page.get('access_token')} for page in accounts.get('data')]
     app.logger.debug(f"============ Pages count: {len(pages)} ============")
     for page in pages:
-        # url = f"https://graph.facebook.com/v4.0/{page['id']}?fields=instagram_business_account"
-        url = f"https://graph.facebook.com/{page['id']}?fields=instagram_business_account"
+        # url = f"{GRAPH_URL}v4.0/{page['id']}?fields=instagram_business_account"
+        url = f"{GRAPH_URL}{page['id']}?fields=instagram_business_account"
         # Docs: https://developers.facebook.com/docs/instagram-api/reference/page
         req_token, err, res = page['token'], 10, None
         while err > 1:
@@ -944,7 +944,7 @@ def onboarding(mod, request):
     if 'error' in token:
         app.logger.info(token['error'])
         return ('error', token['error'])
-    url = "https://graph.facebook.com/me?fields=id,accounts"  # For FB Pages.
+    url = f"{GRAPH_URL}me?fields=id,accounts"  # For FB Pages.
     facebook_user_data = facebook.get(url).json()  # Docs don't mention pagination, imply not a concern yet.
     # TODO UNLIKELY?: Is pagination a concern?
     if 'error' in facebook_user_data:
