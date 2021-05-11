@@ -268,15 +268,14 @@ def get_insight(user_id, first=1, influence_last=30*12, profile_last=30*3, ig_id
             url = make_fb_url(ig_id, 'insights', ver=None)
             # url = f"{GRAPH_URL}{ig_id}/insights"
             response = req.get(url, params=params).json()
-            insights = response.get('data', None)
+            insights = response.get('data', [])
             if not insights:
-                app.logger.error('Error: ', response.get('error'))
-                return None
+                app.logger.error('Error: ', response.get('error', 'No user insights found. '))
             for ea in insights:
                 for val in ea.get('values'):
                     val['name'], val['user_id'] = ea.get('name'), user_id
                     results.append(val)
-    models = db_create_or_update_many(results, user_id=user_id, Model=Insight)
+    models = db_create_or_update_many(results, user_id=user_id, Model=Insight) if results else []
     follow_report = get_online_followers(user_id, ig_id=ig_id, facebook=facebook)
     logstring = "Added Online Followers data. " if follow_report else "No follow report. "
     app.logger.debug(logstring)
