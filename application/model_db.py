@@ -1008,7 +1008,7 @@ def db_create_or_update_many(dataset, user_id=None, Model=Post):
     all_results, add_count, update_count, error_set = [], 0, 0, []
     if composite_unique and user_id:
         match = Model.query.filter(Model.user_id == user_id).all()
-        logger.debug(f'------ Composite Unique for {Model.__name__}: {len(match)} possible matches ------')
+        # logger.debug(f'------ Composite Unique for {Model.__name__}: {len(match)} possible matches ------')
         lookup = {tuple([getattr(ea, key) for key in composite_unique]): ea for ea in match}
         for data in dataset:
             data = fix_date(Model, data)  # fix incoming data 'recorded' as needed for this Model
@@ -1019,7 +1019,7 @@ def db_create_or_update_many(dataset, user_id=None, Model=Post):
                 data.pop('id', None)
             key = tuple([data.get(ea) for ea in composite_unique])
             model = lookup.get(key, None)
-            logger.debug(f'------- {key} -------')
+            # logger.debug(f'------- {key} -------')
             if model:  # TODO: Look into Model.update method
                 associated = {name: data.pop(name) for name in model.__mapper__.relationships.keys() if data.get(name)}
                 for k, v in data.items():
@@ -1028,7 +1028,7 @@ def db_create_or_update_many(dataset, user_id=None, Model=Post):
                     getattr(model, k).append(v)
                 update_count += 1
             else:
-                logger.debug('No match in existing data')
+                # logger.debug('No match in existing data')
                 model = Model(**data)
                 db.session.add(model)
                 add_count += 1
