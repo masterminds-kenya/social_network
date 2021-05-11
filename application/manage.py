@@ -241,7 +241,6 @@ def media_posts_save(media_results, bulk_db_operation='create', return_ids=False
         return 0, True
     if bulk_db_operation == 'create':
         mediaset = reduce(lambda result, ea: result + ea.get('media_list', []), media_results, [])
-        args = [Post, mediaset]
         db_process = db.session.bulk_insert_mappings
     elif bulk_db_operation == 'update':
         mediaset = media_results  # For 'update', expect to only have a list of mappings (dicts).
@@ -267,10 +266,12 @@ def media_posts_save(media_results, bulk_db_operation='create', return_ids=False
         db.session.commit()
         success = True
     except Exception as e:
-        error_info = f"There was a problem with the bulk '{bulk_db_operation}' process. "
+        text_kwargs = f"return_defaults as {kwargs.get('return_defaults', False)}"
+        error_info = f"Error in the bulk '{bulk_db_operation}' process with {text_kwargs}. "
         success = False
         app.logger.error(f"========== MEDIA POSTS {bulk_db_operation} ERROR ==========")
-        app.logger.error(error_info)
+        app.alert.error(error_info)
+        app.alert.info(mediaset)
         app.logger.exception(e)
         db.session.rollback()
     if add_time and bulk_db_operation == 'create':  # TODO: When implementing 'save', handle add_time deletion.
