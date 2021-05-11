@@ -622,15 +622,16 @@ def insights(mod, id):
         for metric in metrics:
             # TODO: Undo the following temporary ignore a lot of the metrics
             if metric in ('impressions', 'reach', 'profile_views'):
+                temp_data = None
                 if metrics == OnlineFollowers.METRICS:
                     query = OnlineFollowers.query.filter_by(user_id=id).order_by('recorded', 'hour').all()
                     if len(query):
                         temp_data = {(ea.recorded.strftime("%d %b, %Y"), int(ea.hour)): int(ea.value) for ea in query}
-                    else:
-                        temp_data = {'key1': 1, 'key2': 0}
                 else:
                     query = Insight.query.filter_by(user_id=id, name=metric).order_by('recorded').all()
                     temp_data = {ea.recorded.strftime("%d %b, %Y"): int(ea.value) for ea in query}
+                if not temp_data:
+                    temp_data = {'key1': 1, 'key2': 0}
                 max_curr = max(*temp_data.values())
                 min_curr = min(*temp_data.values())
                 max_val = max(max_val, max_curr)
