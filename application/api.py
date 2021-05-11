@@ -44,7 +44,7 @@ METRICS = {
 
 
 def make_fb_url(*args, ver=FB_VER):
-    """Constructs a Graph Url based on the pass path args  and params dict using the passed or default API ver. """
+    """Constructs a Graph Url based on the pass path args, optional or default API version. """
     if ver:
         args.insert(0, ver)
     path = '/'.join((GRAPH_URL[:-1], *args))
@@ -81,7 +81,7 @@ def generate_app_access_token():
     app.logger.debug('----------- generate_app_access_token ----------------')
     res = requests.get(FB_TOKEN_URL, params=params).json()
     if 'error' in res:
-        app.logger.info('Got an error in generate_app_access_token')
+        app.alert.info('Got an error in generate_app_access_token')
         app.logger.error(res.get('error', 'Empty Error'))
     token = res.get('access_token', '')
     return token
@@ -686,7 +686,8 @@ def install_app_on_user_for_story_updates(id_or_user, page=None, facebook=None, 
                 errors.append(key)
     if errors:
         app.logger.error(f"Found errors: {errors} ")
-    else:
+        app.alert.error(f"User: {user} Subscribe Errors: {errors} ")
+    elif app.config.get('DEBUG', None):
         pprint(res)
     return res.get('success', False)
 
@@ -757,7 +758,7 @@ def find_pages_for_fb_id(fb_id, facebook=None, token=None):
     res = req.get(url, params=params).json()
     # res = facebook.get(url).json() if facebook else requests.get(url, params=params).json()
     if 'error' in res:
-        app.logger.error('Got error in find_pages_for_fb_id function')
+        app.alert.error('Got error in find_pages_for_fb_id function')
         app.logger.error(res['error'])
         # TODO: Handle error.
     # TODO: Confirm 'res' is formatted to match what is expected for 'accounts'
