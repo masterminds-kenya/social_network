@@ -45,6 +45,7 @@ METRICS = {
 
 def make_fb_url(*args, ver=FB_VER):
     """Constructs a Graph Url based on the pass path args, optional or default API version. """
+    args = [str(ea) for ea in args]
     if ver:
         args.insert(0, ver)
     path = '/'.join((GRAPH_URL[:-1], *args))
