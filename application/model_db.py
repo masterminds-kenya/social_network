@@ -1,4 +1,4 @@
-from flask import Flask, flash, current_app
+from flask import Flask, json, flash, current_app
 from flask_login import UserMixin
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy import or_, desc
@@ -17,7 +17,6 @@ from datetime import datetime as dt, timedelta
 from dateutil import parser
 import re
 from statistics import mean, median, stdev
-import json
 # from .db_introspect_functions import check_stuff
 
 db = SQLAlchemy()

@@ -1,11 +1,10 @@
-from flask import flash, redirect, render_template, url_for, request, current_app as app
+from flask import json, flash, redirect, render_template, url_for, request, current_app as app
 from flask_login import current_user, login_user
 from werkzeug.security import generate_password_hash
 from collections import defaultdict
 from functools import reduce
 import hmac
 import hashlib
-import json
 from .model_db import fix_date, db, User, Post, Audience
 from .model_db import db_read, db_create, db_update, db_delete
 from .helper_functions import mod_lookup, make_missing_timestamp
@@ -145,7 +144,7 @@ def add_edit(mod, id=None):
                 # if form password field was blank, process_form has already removed the key by now.
                 data['password'] = generate_password_hash(data.get('password'))
             try:
-                model = db_update(data, id, Model=Model)
+                model = db_update(data, id, Model=Model)  # TODO: db_<methods> refactored to query syntax.
             except ValueError as e:
                 app.logger.error('------- Came back as ValueError from Integrity Error -----')
                 app.logger.exception(e)
@@ -160,6 +159,7 @@ def add_edit(mod, id=None):
                     if current_user.facebook_id == found_user.facebook_id:
                         try:
                             model = db_update(data, found_user_id, Model=Model)
+                            # TODO: db_<methods> refactored to query syntax.
                         except ValueError as e:
                             message = "Unable to update existing user. "
                             app.logger.error(f'----- {message} ----')
@@ -181,7 +181,7 @@ def add_edit(mod, id=None):
                     return redirect(url_for('home'))
         else:  # action == 'Add' and request.method == 'POST'
             try:
-                model = db_create(data, Model=Model)
+                model = db_create(data, Model=Model)  # TODO: db_<methods> refactored to query syntax.
             except ValueError as e:
                 app.logger.error('------- Came back as ValueError from Integrity Error -----')
                 app.logger.exception(e)
@@ -190,7 +190,7 @@ def add_edit(mod, id=None):
         return redirect(url_for('view', mod=mod, id=model['id']))
     # else: request.method == 'GET'
     template, related = 'form.html', {}
-    model = db_read(id, Model=Model) if action == 'Edit' else {}
+    model = db_read(id, Model=Model) if action == 'Edit' else {}  # TODO: db_<methods> refactored to query syntax.
     if mod == 'campaign':
         template = f"{mod}_{template}"
         related['users'] = User.query.filter_by(role='influencer').all()
@@ -241,7 +241,6 @@ def media_posts_save(media_results, bulk_db_operation='create', return_ids=False
         return 0, True
     if bulk_db_operation == 'create':
         mediaset = reduce(lambda result, ea: result + ea.get('media_list', []), media_results, [])
-        args = [Post, mediaset]
         db_process = db.session.bulk_insert_mappings
     elif bulk_db_operation == 'update':
         mediaset = media_results  # For 'update', expect to only have a list of mappings (dicts).
@@ -267,10 +266,12 @@ def media_posts_save(media_results, bulk_db_operation='create', return_ids=False
         db.session.commit()
         success = True
     except Exception as e:
-        error_info = f"There was a problem with the bulk '{bulk_db_operation}' process. "
+        text_kwargs = f"return_defaults as {kwargs.get('return_defaults', False)}"
+        error_info = f"Error in the bulk '{bulk_db_operation}' process with {text_kwargs}. "
         success = False
         app.logger.error(f"========== MEDIA POSTS {bulk_db_operation} ERROR ==========")
-        app.logger.error(error_info)
+        app.alert.error(error_info)
+        app.alert.info(mediaset)
         app.logger.exception(e)
         db.session.rollback()
     if add_time and bulk_db_operation == 'create':  # TODO: When implementing 'save', handle add_time deletion.
@@ -314,18 +315,12 @@ def process_hook(req):
             app.logger.error(f"---------- media_id: {media_id} | ig_id: {ig_id} | SKIP BAD {missed} ----------")
             continue
         model = Post.query.filter_by(media_id=media_id).first()  # Returns none if not in DB
-        if model:
+        if model:  # update
             message += f"STORY post UPDATE for user: {getattr(model, 'user', 'UNKNOWN USER')} \n"
-            # update
             for k, v in story.items():
                 setattr(model, k, v)
             modified += 1
-        else:  # We did not see this STORY post in our daily download.
-            # create, but we need to fill in some data about this story Post.
-            # if media_id == '17887498072083520':  # This the test data sent by FB console
-            #     user_id = '190'  # or other testing user_id.
-            #     message += f"Test update, added to user # {user_id} "
-            # else:
+        else:  # create since we did not see this STORY post in our daily download.
             user = User.query.filter_by(instagram_id=ig_id).first()  # returns None if not found.
             if not user or not user.has_active_all:
                 data_log += f", for {user or 'not-found-user'} SKIP"
@@ -333,7 +328,7 @@ def process_hook(req):
                 continue
             user_id = user.id
             story.update(media_id=media_id, user_id=user_id, timestamp=timestamp)
-            if 'caption' not in story:
+            if 'caption' not in story:  # For a STORY media post that was not already in the database.
                 problem = 'INSIGHTS_CREATED'
                 app.alert.error(f"{problem} story | media id: {media_id} | user: {user_id} | time: {timestamp}  ")
                 story['caption'] = problem

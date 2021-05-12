@@ -1,4 +1,4 @@
-from flask import current_app as app
+from flask import json, current_app as app
 from flask.helpers import url_for
 from google.api_core.exceptions import RetryError, AlreadyExists, GoogleAPICallError
 from google.cloud import tasks_v2
@@ -8,7 +8,6 @@ from google.protobuf import timestamp_pb2, duration_pb2
 from datetime import timedelta, datetime as dt
 from .model_db import Post
 from os import environ
-import json
 
 PROJECT_ID = app.config.get('PROJECT_ID')
 PROJECT_REGION = app.config.get('PROJECT_REGION')  # Google Docs said PROJECT_ZONE, but confirmed PROJECT_REGION works
