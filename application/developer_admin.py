@@ -236,7 +236,7 @@ def save(mod, id, Model):
     filename = None
     if mod in {'brand', 'influencer', 'user'}:
         filename = USER_FILE
-    model = db_read(id, Model=Model, safe=False)
+    model = db_read(id, Model=Model, safe=False)  # TODO: db_<methods> refactored to query syntax.
     del model['id']
     model.pop('created', None)
     model.pop('modified', None)

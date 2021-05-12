@@ -888,7 +888,7 @@ def onboard_new(data, facebook=None, token=None):
     # TODO: Create and use a User method that will create or use existing User, and returns a User object.
     # Refactor next three lines to utilize this method so we don't need the extra query based on id.
     if not user:
-        account = db_create(data)
+        account = db_create(data)  # TODO: db_<methods> refactored to query syntax.
         user = User.query.get(account.get('id'))
     else:
         app.logger.info(f"Found existing user account {user}. ")

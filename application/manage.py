@@ -144,7 +144,7 @@ def add_edit(mod, id=None):
                 # if form password field was blank, process_form has already removed the key by now.
                 data['password'] = generate_password_hash(data.get('password'))
             try:
-                model = db_update(data, id, Model=Model)
+                model = db_update(data, id, Model=Model)  # TODO: db_<methods> refactored to query syntax.
             except ValueError as e:
                 app.logger.error('------- Came back as ValueError from Integrity Error -----')
                 app.logger.exception(e)
@@ -159,6 +159,7 @@ def add_edit(mod, id=None):
                     if current_user.facebook_id == found_user.facebook_id:
                         try:
                             model = db_update(data, found_user_id, Model=Model)
+                            # TODO: db_<methods> refactored to query syntax.
                         except ValueError as e:
                             message = "Unable to update existing user. "
                             app.logger.error(f'----- {message} ----')
@@ -180,7 +181,7 @@ def add_edit(mod, id=None):
                     return redirect(url_for('home'))
         else:  # action == 'Add' and request.method == 'POST'
             try:
-                model = db_create(data, Model=Model)
+                model = db_create(data, Model=Model)  # TODO: db_<methods> refactored to query syntax.
             except ValueError as e:
                 app.logger.error('------- Came back as ValueError from Integrity Error -----')
                 app.logger.exception(e)
@@ -189,7 +190,7 @@ def add_edit(mod, id=None):
         return redirect(url_for('view', mod=mod, id=model['id']))
     # else: request.method == 'GET'
     template, related = 'form.html', {}
-    model = db_read(id, Model=Model) if action == 'Edit' else {}
+    model = db_read(id, Model=Model) if action == 'Edit' else {}  # TODO: db_<methods> refactored to query syntax.
     if mod == 'campaign':
         template = f"{mod}_{template}"
         related['users'] = User.query.filter_by(role='influencer').all()

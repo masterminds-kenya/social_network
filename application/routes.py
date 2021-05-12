@@ -12,7 +12,6 @@ from .api import (onboard_login, onboarding, user_permissions, get_insight, get_
 from .create_queue_task import add_to_collect, COLLECT_PROCESS_ALLOWED
 from .sheets import create_sheet, update_sheet, perm_add, perm_list, all_files
 from .cloud_log import CloudLog
-from pprint import pprint
 
 # Sentinels for errors recorded on the Post.caption field.
 CAPTION_ERRORS = ['NO_CREDENTIALS', 'AUTH_FACEBOOK', 'AUTH_TOKEN', 'AUTH_NONE', 'API_ERROR', 'INSIGHTS_CREATED']
@@ -71,7 +70,7 @@ def signup():
         if user:
             flash("That email address is already in use. ")
             return redirect(url_for('signup'))
-        user = db_create(data)
+        user = db_create(data)  # TODO: db_<methods> refactored to query syntax.
         flash("You have created a new user account! ")
         return redirect(url_for('view', mod=mod, id=user['id']))
 
@@ -145,6 +144,7 @@ def admin():
 @staff_required()
 def permission_check(mod, id):
     """Used by admin to see what permissions a given user has granted the platform """
+    from pprint import pprint
     if mod_lookup(mod) != User:
         flash("Not a valid mod value for this function. ")
         return redirect(request.referrer)
@@ -176,15 +176,16 @@ def problem_posts():
 @admin_required()
 def test_method():
     """Temporary restricted to admin route and function for developer to test components. """
+    from pprint import pprint
     # from .create_queue_task import list_queues
-    pprint("========== Test Method for admin:  ==========")
+    app.logger.debug("========== Test Method for admin:  ==========")
     # info = list_queues()
     # info = get_daily_ig_accounts()
     # pprint([f"{ea}: {len(ea.campaigns)} | {len(ea.brand_campaigns)} " for ea in info])
     info = {'key1': 1, 'key2': 'two', 'key3': '3rd', 'meaningful': False, 'testing': 'app.alert'}
     pprint(info)
     CloudLog.test_loggers(app, ['alert'], context='Admin test')
-    pprint("--------------------------------------------------")
+    print("--------------------------------------------------")
 
     return redirect(url_for('admin', data=info))
 
@@ -489,6 +490,7 @@ def all_posts():
 @app.route('/capture/report/', methods=['GET', 'POST'])
 def capture_report():
     """After the capture work is processed, the results are sent here to update the models. """
+    from pprint import pprint
     app.logger.debug("======================== capture report route =============================")
     message = ''
     # pprint(request.headers)
@@ -612,7 +614,7 @@ def insights(mod, id):
     if error_message:
         flash(error_message)
         return return_path
-    user = db_read(id)
+    user = db_read(id)  # TODO: db_<methods> refactored to query syntax.
     scheme_color = ['gold', 'purple', 'green', 'blue']
     dataset, i = {}, 0
     max_val, min_val = 4, float('inf')
@@ -819,7 +821,7 @@ def delete(mod, id):
             flash(message)
             return redirect(request.form.get('next') or request.referrer)
         return redirect(url_for('home'))
-    model = db_read(id, related=False, Model=Model)
+    model = db_read(id, related=False, Model=Model)  # TODO: db_<methods> refactored to query syntax.
     return render_template('delete_confirm.html', data=model, next=request.referrer)
 
 
