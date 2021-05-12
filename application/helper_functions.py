@@ -1,11 +1,10 @@
-from flask import current_app as app
+from flask import json, current_app as app
 from functools import wraps
 from flask_login import current_user
 from sqlalchemy import or_
 from .model_db import User, Insight, Audience, Post, Campaign, db  # , user_campaign, brand_campaign,
 from datetime import timedelta, datetime as dt
 from time import time
-import json
 
 
 def mod_lookup(mod):

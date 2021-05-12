@@ -1,11 +1,10 @@
-from flask import flash, redirect, render_template, url_for, request, current_app as app
+from flask import json, flash, redirect, render_template, url_for, request, current_app as app
 from flask_login import current_user, login_user
 from werkzeug.security import generate_password_hash
 from collections import defaultdict
 from functools import reduce
 import hmac
 import hashlib
-import json
 from .model_db import fix_date, db, User, Post, Audience
 from .model_db import db_read, db_create, db_update, db_delete
 from .helper_functions import mod_lookup, make_missing_timestamp
@@ -315,18 +314,12 @@ def process_hook(req):
             app.logger.error(f"---------- media_id: {media_id} | ig_id: {ig_id} | SKIP BAD {missed} ----------")
             continue
         model = Post.query.filter_by(media_id=media_id).first()  # Returns none if not in DB
-        if model:
+        if model:  # update
             message += f"STORY post UPDATE for user: {getattr(model, 'user', 'UNKNOWN USER')} \n"
-            # update
             for k, v in story.items():
                 setattr(model, k, v)
             modified += 1
-        else:  # We did not see this STORY post in our daily download.
-            # create, but we need to fill in some data about this story Post.
-            # if media_id == '17887498072083520':  # This the test data sent by FB console
-            #     user_id = '190'  # or other testing user_id.
-            #     message += f"Test update, added to user # {user_id} "
-            # else:
+        else:  # create since we did not see this STORY post in our daily download.
             user = User.query.filter_by(instagram_id=ig_id).first()  # returns None if not found.
             if not user or not user.has_active_all:
                 data_log += f", for {user or 'not-found-user'} SKIP"
@@ -334,7 +327,7 @@ def process_hook(req):
                 continue
             user_id = user.id
             story.update(media_id=media_id, user_id=user_id, timestamp=timestamp)
-            if 'caption' not in story:
+            if 'caption' not in story:  # For a STORY media post that was not already in the database.
                 problem = 'INSIGHTS_CREATED'
                 app.alert.error(f"{problem} story | media id: {media_id} | user: {user_id} | time: {timestamp}  ")
                 story['caption'] = problem

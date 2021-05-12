@@ -1,8 +1,7 @@
-from flask import render_template, redirect, url_for, request, flash, session, current_app as app  # , abort
+from flask import json, render_template, redirect, url_for, request, flash, session, current_app as app  # abort
 from sqlalchemy import or_
 from flask_login import current_user, login_user, logout_user, login_required
 from werkzeug.security import generate_password_hash, check_password_hash
-import json
 from .model_db import db_create, db_read, db_delete, db_all, from_sql  # , metric_clean
 from .model_db import User, OnlineFollowers, Insight, Post, Campaign  # , db, Audience
 from .developer_admin import admin_view
@@ -475,7 +474,7 @@ def all_posts():
     status = 201 if success else 500
     response = {'User_num': num_users, 'Post_num': count, 'message': message, 'status_code': status}
     if cron_run:
-        response = json.dumps(response)
+        response = json.dumps(response)  # Response headers added when jsonify automatically called on returned dict.
     else:  # Process run by an admin.
         message += "Admin requested getting posts for all active users. "
         flash(message)

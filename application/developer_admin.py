@@ -1,6 +1,5 @@
-from flask import redirect, render_template, url_for, flash, request, current_app as app
+from flask import json, redirect, render_template, url_for, flash, request, current_app as app
 from flask_login import current_user
-import json
 from .helper_functions import staff_required, admin_required  # , mod_lookup
 from .model_db import Campaign, db_read, User, db  # , create_many
 from .api import get_fb_page_for_users_ig_account, user_permissions, generate_app_access_token  # , get_ig_info
