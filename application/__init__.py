@@ -22,7 +22,7 @@ def create_app(config, debug=None, testing=None, config_overrides=dict()):
             log_client, alert, *ignore = setup_cloud_logging(cred_path, base_log_level, cloud_log_level, extra=log_name)
         else:
             log_client = logging if gae_standard else CloudLog.make_client(credential_path=cred_path)
-            alert = CloudLog.make_base_logger(log_name, log_name, base_log_level)
+            alert = CloudLog.make_base_logger(log_name, log_name, base_log_level, log_client)
             app_handler = CloudLog.make_handler(CloudLog.APP_HANDLER_NAME, log_client, cloud_log_level)
     app = Flask(__name__)
     app.config.from_object(config)
