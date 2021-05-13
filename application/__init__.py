@@ -21,7 +21,7 @@ def create_app(config, debug=None, testing=None, config_overrides=dict()):
         if gae_env == 'standard' or local_env:
             alert = CloudLog.make_base_logger(log_name, log_name, base_log_level)
             log_client = CloudLog.make_cloud_log_client(credential_path=cred_path)
-            app_handler = CloudLog.make_cloud_handler(CloudLog.APP_HANDLER_NAME, log_client, cloud_log_level)
+            app_handler = CloudLog.make_handler(CloudLog.APP_HANDLER_NAME, log_client, cloud_log_level)
         elif not local_env:
             log_client, alert, *ignore = setup_cloud_logging(cred_path, base_log_level, cloud_log_level, extra=log_name)
 

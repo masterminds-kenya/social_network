@@ -23,7 +23,7 @@ class CloudLog(logging.getLoggerClass()):
         super().__init__(name)
         level = self.get_level(level)
         self.setLevel(level)
-        handler = self.make_cloud_handler(handler_name, log_client)
+        handler = self.make_handler(handler_name, log_client)
         self.addHandler(handler)
         if rooted:
             self.parent = logging.root
@@ -74,12 +74,17 @@ class CloudLog(logging.getLoggerClass()):
         return log_client
 
     @classmethod
-    def make_cloud_handler(cls, handler_name=None, log_client=None, level=None):
+    def make_handler(cls, handler_name=None, log_client=None, level=None, cloud=True):
         """Creates a handler for cloud logging with the provided name and optional level. """
         handler_name = cls.make_handler_name(handler_name)
-        if not isinstance(log_client, cloud_logging.Client):
-            log_client = cls.make_cloud_log_client()
-        handler = CloudLoggingHandler(log_client, name=handler_name)
+        if cloud:
+            if not isinstance(log_client, cloud_logging.Client):
+                log_client = cls.make_cloud_log_client()
+            handler = CloudLoggingHandler(log_client, name=handler_name)
+        else:
+            handler = logging.StreamHandler()
+            if handler_name:
+                handler.set_name(handler_name)
         if level:
             handler.setLevel(level)
         return handler
@@ -118,7 +123,7 @@ class CloudLog(logging.getLoggerClass()):
         level = CloudLog.get_level(level)
         logger = logging.getLogger(name)
         if handler_name:
-            handler = CloudLog.make_cloud_handler(handler_name, log_client)
+            handler = CloudLog.make_handler(handler_name, log_client)
             logger.addHandler(handler)
         logger.setLevel(level)
         return logger
@@ -185,7 +190,7 @@ def setup_cloud_logging(service_account_path, base_log_level, cloud_log_level, e
     log_client = CloudLog.make_cloud_log_client(service_account_path)
     log_client.setup_logging(log_level=base_log_level)  # log_level sets the logger, not the handler.
     # Note: any modifications to the default 'python' handler from setup_logging will invalidate creds.
-    handler = CloudLog.make_cloud_handler(CloudLog.APP_HANDLER_NAME, log_client, cloud_log_level)
+    handler = CloudLog.make_handler(CloudLog.APP_HANDLER_NAME, log_client, cloud_log_level)
     logging.root.addHandler(handler)
     if extra is None:
         extra = []
