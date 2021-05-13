@@ -83,9 +83,11 @@ class CloudLog(logging.getLoggerClass()):
 
     @classmethod
     def make_handler(cls, handler_name=None, log_client=None, level=None, cloud=True):
-        """Creates a handler for cloud logging with the provided name and optional level. """
+        """Creates a cloud logging handler, or a standard library StreamHandler if log_client is logging. """
         handler_name = cls.make_handler_name(handler_name)
-        if cloud:
+        if not cloud:
+            log_client = logging
+        if log_client is not logging:
             if not isinstance(log_client, cloud_logging.Client):
                 log_client = cls.make_client()
             handler = CloudLoggingHandler(log_client, name=handler_name)
@@ -94,6 +96,7 @@ class CloudLog(logging.getLoggerClass()):
             if handler_name:
                 handler.set_name(handler_name)
         if level:
+            level = cls.get_level(level)
             handler.setLevel(level)
         return handler
 
