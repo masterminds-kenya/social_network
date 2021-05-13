@@ -182,9 +182,11 @@ class CloudLog(logging.getLoggerClass()):
         creds_list = [(f"client_cred_{num}", ea) for num, ea in enumerate(set(creds_list))]
         print(f"With {len(creds_list)} unique client credentials. " + '\n')
         if hasattr(app, '_creds'):
+            print("Adding _creds. ")
             creds_list.append(('_creds', app._creds))
         log_client = getattr(app, 'log_client', None)
-        if log_client:
+        if log_client and log_client is not logging:
+            print("Adding App Log Client Creds. ")
             creds_list.append(('App Log Client Creds', log_client._credentials))
         for name, creds in creds_list:
             pprint(f"{name}: {creds} ")
