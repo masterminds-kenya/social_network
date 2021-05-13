@@ -18,15 +18,24 @@ class CloudLog(logging.getLoggerClass()):
         'https://www.googleapis.com/auth/cloud-platform',
         )
 
-    def __init__(self, name=None, handler_name=None, level=None, log_client=None, rooted=True):
+    def __init__(self, name=None, handler_name=None, level=None, log_client=None, parent='root'):
         name = self.make_logger_name(name)
         super().__init__(name)
         level = self.get_level(level)
         self.setLevel(level)
         handler = self.make_handler(handler_name, log_client)
         self.addHandler(handler)
-        if rooted:
-            self.parent = logging.root
+
+        if parent == name:
+            parent = None
+        elif parent == 'root':
+            parent = logging.root
+        elif parent and isinstance(parent, str):
+            parent = logging.getLogger(parent.lower())
+        elif parent and not isinstance(parent, logging.getLoggerClass()):
+            raise TypeError("The 'parent' value must be a string, None, or an existing logger. ")
+        if parent:
+            self.parent = parent
 
     @classmethod
     def get_level(cls, level=None):
