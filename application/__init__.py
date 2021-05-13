@@ -14,14 +14,14 @@ def create_app(config, debug=None, testing=None, config_overrides=dict()):
         base_log_level = logging.DEBUG if debug else logging.INFO
         cloud_log_level = logging.WARNING
         logging.basicConfig(level=base_log_level)  # Ensures a StreamHandler to stderr is attached.
-        gae_env = getattr(config, 'GAE_ENV', None)
+        gae_standard = getattr(config, 'GAE_ENV', None) == 'standard'
         local_env = getattr(config, 'LOCAL_ENV')
         log_name = 'alert'
         cred_path = getattr(config, 'GOOGLE_APPLICATION_CREDENTIALS', None)
-        if gae_env != 'standard' and not local_env:
+        if not gae_standard and not local_env:
             log_client, alert, *ignore = setup_cloud_logging(cred_path, base_log_level, cloud_log_level, extra=log_name)
         else:
-            log_client = logging if gae_env == 'standard' else CloudLog.make_client(credential_path=cred_path)
+            log_client = logging if gae_standard else CloudLog.make_client(credential_path=cred_path)
             alert = CloudLog.make_base_logger(log_name, log_name, base_log_level)
             app_handler = CloudLog.make_handler(CloudLog.APP_HANDLER_NAME, log_client, cloud_log_level)
     app = Flask(__name__)
