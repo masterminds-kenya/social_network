@@ -124,15 +124,15 @@ class CloudLog(logging.getLoggerClass()):
                 return handle
         return None
 
-    @staticmethod
-    def make_base_logger(name=None, handler_name=None, level=None, log_client=None):
+    @classmethod
+    def make_base_logger(cls, name=None, handler_name=None, level=None, log_client=None):
         """Used to create a logger with an optional cloud handler when a CloudLog instance is not desired. """
-        name = CloudLog.make_logger_name(name)
-        level = CloudLog.get_level(level)
+        name = cls.make_logger_name(name)
         logger = logging.getLogger(name)
         if handler_name:
-            handler = CloudLog.make_handler(handler_name, log_client)
+            handler = cls.make_handler(handler_name, log_client)
             logger.addHandler(handler)
+        level = cls.get_level(level)
         logger.setLevel(level)
         return logger
 
