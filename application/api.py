@@ -605,7 +605,7 @@ def handle_collect_media(dataset, process):
                 media = get_metrics_media(media, facebook, metrics=metrics)
         media['id'] = post_id
         collected.append(media)
-    app.logger.debug(f"-------------------- collected: {len(collected)} --------------------------------")
+    app.logger.debug("-------------------- collected: %s --------------------------------", str(len(collected)))
     return collected  # The media posts are updated by a different process.
 
 
@@ -630,7 +630,7 @@ def get_fb_page_for_users_ig_account(user, ignore_current=False, facebook=None, 
                 return None
         url = make_fb_url(fb_id, ver=None)
         # url = f"{GRAPH_URL}{fb_id}"
-        app.logger.debug(f"========== get_fb_page_for_users_ig_account {user} ==========")
+        app.logger.debug("========== get_fb_page_for_users_ig_account %s ==========", str(user))
         params = {'fields': 'accounts'}
         if not facebook:
             params['access_token'] = token
@@ -651,7 +651,7 @@ def install_app_on_user_for_story_updates(id_or_user, page=None, facebook=None, 
     """Accurate Story Post metrics can be pushed to the Platform only if the App is installed on the related Page. """
     # TODO: Is pagination a concern?
     user = find_valid_user(id_or_user)
-    app.logger.debug(f"========== INSTALL APP for: {user} ==========")
+    app.logger.debug("========== INSTALL APP for: %s ==========", str(user))
     if not isinstance(page, dict) or not page.get('id') or not page.get('token'):
         page = get_fb_page_for_users_ig_account(user, facebook=facebook, token=token)
         if not page:
@@ -667,7 +667,7 @@ def install_app_on_user_for_story_updates(id_or_user, page=None, facebook=None, 
     req = facebook or requests
     res = req.post(url, params=params).json()
     # res = facebook.post(url, params=params).json() if facebook else requests.post(url, params=params).json()
-    app.logger.debug(f"======== Install App for {user.name} - Success: {res.get('success', False)} ========")
+    app.logger.debug("======== Install App for %s - Success: %s ========", user.name, str(res.get('success', False)))
     errors = []
     if 'error' in res:
         common_error_strings = {
@@ -695,7 +695,7 @@ def install_app_on_user_for_story_updates(id_or_user, page=None, facebook=None, 
 def remove_app_on_user_for_story_updates(id_or_user, page=None, facebook=None, token=None):
     """This User is no longer having their Story Posts tracked, so uninstall the App on their related Page. """
     user = find_valid_user(id_or_user)
-    app.logger.debug(f"========== remove_app_on_user_for_story_updates: {user} ==========")
+    app.logger.debug("========== remove_app_on_user_for_story_updates: %s ==========", str(user))
     return True
     # if not isinstance(page, dict) or not page.get('id') or not page.get('token'):
     #     page = get_fb_page_for_users_ig_account(user, facebook=facebook, token=token)
@@ -783,7 +783,7 @@ def find_instagram_id(accounts, facebook=None, token=None, app_token=None):
         # TODO: Handle paging in results.
     ig_list = []
     pages = [{'id': page.get('id'), 'token': page.get('access_token')} for page in accounts.get('data')]
-    app.logger.debug(f"============ Pages count: {len(pages)} ============")
+    app.logger.debug("============ Pages count: %s ============", str(len(pages)))
     for page in pages:
         # Docs: https://developers.facebook.com/docs/instagram-api/reference/page
         # url = f"{GRAPH_URL}v4.0/{page['id']}?fields=instagram_business_account"
@@ -833,10 +833,10 @@ def onboard_login(mod):
     authorization_url, state = facebook.authorization_url(FB_AUTHORIZATION_BASE_URL)
     session['oauth_state'] = state.strip()
     app.logger.debug("================ Login Function Paramters ================")
-    app.logger.debug(f"mod: {mod} ")
-    app.logger.debug(f"callback: {callback} ")
-    app.logger.debug(f"authorization_url: {authorization_url} ")
-    app.logger.debug(f"Session State: {session['oauth_state']} ")
+    app.logger.debug("mod: %s ", mod)
+    app.logger.debug("callback: %s ", callback)
+    app.logger.debug("authorization_url: %s ", authorization_url)
+    app.logger.debug("Session State: %s ", session['oauth_state'])
     app.logger.debug("=========================================================")
     return authorization_url
 
@@ -867,7 +867,7 @@ def onboard_new(data, facebook=None, token=None):
         user = User.query.filter(User.name == fb_id, User.facebook_id == fb_id, User.id != current_user.id).first()
         logout_user()
         # TODO: Complete modifications needed for creating another user account.
-        app.logger.debug(f'------ Found {len(ig_list)} potential IG accounts ------')
+        app.logger.debug('------ Found %s potential IG accounts ------', str(len(ig_list)))
     elif len(ig_list) == 1:
         ig_info = ig_list[0]
         data['name'] = ig_info.get('name', None)
@@ -884,7 +884,7 @@ def onboard_new(data, facebook=None, token=None):
         app.logger.debug('------ Only 1 InstaGram business account ------')
     else:
         data['name'] = data.get('facebook_id', data.get('id', None)) if 'name' not in data else data['name']
-        app.logger.debug(f'------ Found {len(ig_list)} potential IG accounts ------')
+        app.logger.debug('------ Found %s potential IG accounts ------', str(len(ig_list)))
     # TODO: Create and use a User method that will create or use existing User, and returns a User object.
     # Refactor next three lines to utilize this method so we don't need the extra query based on id.
     if not user:
@@ -924,7 +924,7 @@ def user_update_on_login(user, data, ig_list):
             user.audiences.extend(models)
         app.logger.debug('------ Only 1 InstaGram business account for onboard_existing ------')
     elif len(ig_list) > 1:  # this user is missing page_id or page_token, unsure which to use.
-        app.logger.debug(f'------ Found {len(ig_list)} IG Pages for onboard_existing ------')
+        app.logger.debug('------ Found %s IG Pages for onboard_existing ------', str(len(ig_list)))
     return user
 
 
@@ -981,12 +981,12 @@ def onboarding(mod, request):
     state = params.get('state', None)
     url_diff = str(request.url).lstrip(request_url)
     app.logger.debug("================ Onboarding Function Paramters ================")
-    app.logger.debug(f"mod: {mod} ")
-    app.logger.debug(f"callback: {callback} ")
-    app.logger.debug(f"Url Cleaned unchanged: {str(request.url) == request_url} ")
-    app.logger.debug(f"Url diff: {url_diff} ")
-    app.logger.debug(f"Session-State: {session.get('oauth_state')} ")
-    app.logger.debug(f"Params--State: {state} ")
+    app.logger.debug("mod: %s ", mod)
+    app.logger.debug("callback: %s ", callback)
+    app.logger.debug("Url Cleaned unchanged: %s ", str(request.url) == request_url)
+    app.logger.debug("Url diff: %s ", url_diff)
+    app.logger.debug("Session-State: %s ", session.get('oauth_state'))
+    app.logger.debug("Params--State: %s ", state)
     app.logger.debug(state == session.get('oauth_state', ''))
     app.logger.debug("=========================================================")
     facebook = OAuth2Session(FB_CLIENT_ID, scope=FB_SCOPE, redirect_uri=callback)  # , state=session.get('oauth_state')

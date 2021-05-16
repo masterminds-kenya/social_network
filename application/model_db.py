@@ -44,7 +44,7 @@ def clean(obj):
     if isinstance(obj, dt):
         return obj.isoformat()
     if isinstance(obj, (list, tuple)):
-        current_app.logger.debug(f"================= Clean for obj: {obj} ====================")
+        current_app.logger.debug("================= Clean for obj: %s ====================", str(obj))
         return ' | '.join(obj)
     return obj
 
@@ -198,14 +198,14 @@ class User(UserMixin, db.Model):
 
     @full_token.setter
     def full_token(self, token):
-        current_app.logger.debug(f"Called full_token setter for {self} user. ")
+        current_app.logger.debug("Called full_token setter for %s user. ", str(self))
         current_app.logger.debug(token)
-        # refresh_token = token.get('refresh_token', None)
+        refresh_token = token.get('refresh_token', None)
         data = translate_api_user_token({'token': token})
         if 'token_expires' in data and 'token' in data:
             self.token_expires = data['token_expires']
             self.token = data['token']
-        # current_app.logger.debug(f"The {self} user has an unsaved refresh_token of {refresh_token} ")
+        current_app.logger.debug("The %s user has an unsaved refresh_token of %s ", str(self), str(refresh_token))
 
     def get_auth_session(self):
         """Create an OAuth2Session for retrieving Graph API data for this user. """
@@ -259,7 +259,7 @@ class User(UserMixin, db.Model):
         media, request_count, finished = [], 0, False
         while not finished:
             response = facebook.get(url).json()
-            current_app.logger.debug(f"================ GET {edge} MEDIA for {self}: #{request_count} ================")
+            current_app.logger.debug("======== GET %s MEDIA for %s: #%s ========", edge, str(self), str(request_count))
             current_app.logger.debug(response)
             cur = response.get('data', [])
             if isinstance(cur, list):
@@ -400,7 +400,7 @@ class User(UserMixin, db.Model):
         q = q.filter(Insight.user_id == self.id, Insight.name.in_(metrics))
         recent = q.order_by(desc('recorded')).first()
         date = recent[0] if recent else 0
-        current_app.logger.debug(f"Recent Insight: {metrics} | {recent} ")
+        current_app.logger.debug("Recent Insight: %s | %s ", metrics, recent)
         current_app.logger.debug('-------------------------------------')
         current_app.logger.debug(date)
         return date
@@ -771,7 +771,7 @@ class Campaign(db.Model):
         post_metrics = {key: ','.join(val) for key, val in Post.METRICS.items()}
         targets = db.session.query(Post.id, Post.media_id, Post.media_type, User.token).filter(Post.user_id == User.id)
         targets = targets.filter(Post.media_type != 'STORY', Post.campaigns.contains(self))
-        current_app.logger.debug(f"=============== PREP METRICS UPDATE on {self} ===============")
+        current_app.logger.debug("=============== PREP METRICS UPDATE on %s ===============", str(self))
         data = [({'id': pid, 'media_id': mid}, make_fb(tkn), post_metrics.get(mt)) for pid, mid, mt, tkn in targets]
         current_app.logger.debug(data)
         return data

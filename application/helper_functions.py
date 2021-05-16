@@ -28,7 +28,7 @@ def prep_ig_decide(data):
         for key, value in ig_info.items():
             cleaned[key] = json.dumps(value) if key in Audience.IG_DATA else value
         ig_list.append(cleaned)
-    app.logger.debug(f"Amongst these IG options: {ig_list}. ")
+    app.logger.debug("Amongst these IG options: %s. ", ig_list)
     return ig_list
 
 

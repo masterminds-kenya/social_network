@@ -54,13 +54,13 @@ def session_user_subscribe(user, remove=False):
 @event.listens_for(User.page_token, 'set', retval=True)
 def handle_user_page(user, value, oldvalue, initiator):
     """Triggered when a value is being set for User.page_token """
-    app.logger.debug(f"============ Listener page_token for {user} ============")
+    app.logger.debug("============ Listener page_token for %s ============", str(user))
     if value in (None, ''):
         user.story_subscribed = False
-        app.logger.debug(f"Empty page_token for {user} user. Set story_subscribed to False. ")
+        app.logger.debug("Empty page_token for %s user. Set story_subscribed to False. ", str(user))
         return None
     if user.has_active_all:
-        app.logger.debug(f"The {user} has an active campaign. Set to subscribe. ")
+        app.logger.debug("The %s has an active campaign. Set to subscribe. ", str(user))
         session_user_subscribe(user)
     return value
 
@@ -69,35 +69,35 @@ def handle_user_page(user, value, oldvalue, initiator):
 @event.listens_for(Campaign.users, "bulk_replace")
 def handle_campaign_users(campaign, users, initiator):
     """Triggered when a User is associated with a Campaign. """
-    app.logger.debug(f"============ campaign related: {getattr(initiator, 'impl', initiator)} ============")
+    app.logger.debug("============ campaign related: %s ============", getattr(initiator, 'impl', initiator))
     oldvalue = getattr(campaign, initiator.key, None)
-    # app.logger.debug(f"Initiator Slots: {initiator.__slots__} ")  # ('impl', 'key', 'op', parent_token, ... ?)
+    # app.logger.debug("Initiator Slots: %s ", initiator.__slots__)  # ('impl', 'key', 'op', parent_token, ... ?)
     oldset = set(oldvalue or [])
     newset = set(users)
     new_subscribes = [session_user_subscribe(u) for u in newset - oldset if not u.story_subscribed]
     new_removes = [session_user_subscribe(u, remove=True) for u in oldset - newset if not u.has_active(campaign)]
-    app.logger.debug(f"New Subscribe: {new_subscribes} ")
-    app.logger.debug(f"New Removes:   {new_removes} ")
-    app.logger.debug(f"--------- End related: {getattr(initiator, 'key', getattr(initiator, 'impl', 'XX'))} ---------")
+    app.logger.debug("New Subscribe: %s ", new_subscribes)
+    app.logger.debug("New Removes:   %s ", new_removes)
+    app.logger.debug("--------- End related: %s ---------", getattr(initiator, 'key', getattr(initiator, 'impl', 'XX')))
     return users
 
 
 @event.listens_for(Campaign.completed, 'set', retval=True)
 def handle_campaign_stories(campaign, value, oldvalue, initiator):
     """Triggered when a Campaign is marked completed. """
-    app.logger.debug(f"************** Campaign Listener: {getattr(initiator, 'impl', initiator)} **************")
+    app.logger.debug("************** Campaign Listener: %s **************", getattr(initiator, 'impl', initiator))
     if value == oldvalue:
         return value
     related_users = getattr(campaign, 'users', []) + getattr(campaign, 'brands', [])
     for user in related_users:
         if value is True:
             if user.story_subscribed and not user.has_active(campaign):
-                app.logger.debug(f"The {user} is being removed for completed {campaign} ")
+                app.logger.debug("The %s is being removed for completed %s ", str(user), campaign)
                 session_user_subscribe(user, remove=True)
         else:
             has_token = getattr(user, 'page_token', None)
             if has_token and not user.story_subscribed:
-                app.logger.debug(f"The {user} is being subscribed for NOT completed {campaign} ")
+                app.logger.debug("The %s is being subscribed for NOT completed %s ", str(user), campaign)
                 session_user_subscribe(user)
     app.logger.debug("---------- Campaign Listener DONE ----------")
     return value
@@ -185,4 +185,4 @@ def process_session_before_flush(session, flush_context, instances):
             session.info['unsubscribe_page'].discard(user)
     # TODO: Handle deletion of Posts not assigned to a Campaign when deleting a User.
     # session.deleted  # The set of all instances marked as 'deleted' within this Session
-    app.logger.debug(f"===== Process Flush | {message} | {session.info} =====")
+    app.logger.debug("===== Process Flush | %s | %s =====", message, session.info)

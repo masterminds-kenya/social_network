@@ -67,7 +67,7 @@ def get_queue_path(process):
     full_queue_name = client.queue_path(PROJECT_ID, PROJECT_REGION, short_queue_name)
     try:
         q = client.get_queue(name=full_queue_name)
-        app.logger.debug(f"===== FOUND QUEUE: {q} =====")
+        app.logger.debug("===== FOUND QUEUE: %s =====", str(q))
         app.logger.debug(dir(q))
         app.logger.debug("-----------------------------")
     except Exception as e:

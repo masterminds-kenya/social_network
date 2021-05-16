@@ -52,9 +52,7 @@ def perm_add(sheet_id, add_users, service=None):
             # TODO: Handle error
             app.logger.exception(exception)
         else:
-            app.logger.debug(f"Permission Id: {response.get('id')} Request Id: {request_id}. ")
-            pass
-
+            app.logger.debug("Permission Id: %s Request Id: %s. ", str(response.get('id')), str(request_id))
     if not service:
         creds = get_creds(service_config['sheets'])
         service = build('drive', 'v3', credentials=creds, cache_discovery=False)
@@ -80,7 +78,7 @@ def perm_add(sheet_id, add_users, service=None):
 
 def all_files(*args, service=None):
     """List, and possibly manage, all files owned by the app. """
-    app.logger.debug(f"======== List all Google Sheet Files ========")
+    app.logger.debug("======== List all Google Sheet Files ========")
     if not service:
         creds = get_creds(service_config['sheets'])
         service = build('drive', 'v3', credentials=creds, cache_discovery=False)
@@ -108,7 +106,7 @@ def perm_list(sheet_id, service=None):
 
 def create_sheet(model, service=None):
     """Takes in a Model instance, usually from Campaign or User (must have a name property) and create a worksheet. """
-    app.logger.debug(f'======== create {model.name} sheet ========')
+    app.logger.debug('======== create %s sheet ========', model.name)
     if not service:
         creds = get_creds(service_config['sheets'])
         service = build('sheets', 'v4', credentials=creds, cache_discovery=False)
@@ -142,7 +140,7 @@ def read_sheet_full(id=SHARED_SHEET_ID, service=None):
 
 def read_sheet(id=SHARED_SHEET_ID, ranges=None, service=None):
     """Read a sheet that our app service account has been given permission for. """
-    app.logger.debug(f'============== read sheet: {id} =====================')
+    app.logger.debug('============== read sheet: %s =====================', str(id))
     if not service:
         creds = get_creds(service_config['sheets'])
         service = build('sheets', 'v4', credentials=creds, cache_discovery=False)
@@ -240,7 +238,7 @@ def compute_A1(arr2d, start='A1', sheet='Sheet1'):
     # maybe: final_col is the correct string, even if in the AA to ZZ range or beyond
     final_row = row_count + row
     result = f"{sheet}!{start}:{final_col}{final_row}"
-    app.logger.debug(f"A1 format is {result} for {row_count} rows & {col_count} columns. ")
+    app.logger.debug("A1 format is %s for %s rows & %s columns. ", result, str(row_count), str(col_count))
     return result
 
 
@@ -275,7 +273,7 @@ def add_page(sheet_rows, range_, sheet_id, service):
 
 def update_sheet(model, id=SHARED_SHEET_ID, service=None):
     """Get the data we want from the model instance, then append it to the worksheet. """
-    app.logger.debug(f'================== update sheet {id} =======================')
+    app.logger.debug('================== update sheet %s =======================', str(id))
     if not service:
         creds = get_creds(service_config['sheets'])
         service = build('sheets', 'v4', credentials=creds, cache_discovery=False)

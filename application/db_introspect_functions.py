@@ -29,7 +29,8 @@ def filtered(start, under=False, dunder=True, sa=True, caps=True, special=True):
 def check_stuff(row, related, safe):
     """Determining which properties and methods are tracked through various techniques. """
     # We expect that all "properties" should be in the Mapper.attrs, or perhaps the Mapper.all_orm_descriptors
-    app.logger.debug(f"==== Check stuff {row.__class__.__name__} id: {row.id} | related: {related} | safe: {safe} ====")
+    args = (str(row.__class__.__name__), str(row.id), str(related), str(safe))
+    app.logger.debug("==== Check stuff %s id: %s | related: %s | safe: %s ====", *args)
     # both __dict__ and vars on row.__mapper__.all_orm_descriptors are empty.
     # mapper_less_dunder = [ea for ea in dir_mapper if not ea.startswith('__')]
     # orm_less_dunder = [ea for ea in dir_orm if not ea.startswith('__')]
@@ -49,10 +50,10 @@ def check_stuff(row, related, safe):
     # base_mapper, column_attrs, columns. c
     app.logger.debug('---------------------------------------------------------------------')
     for item in test_items:
-        app.logger.debug(f"*-*-*-*-*-*-*-*-*-*-*-*-* {item} *-*-*-*-*-*-*-*-*-*-*-*-*")
+        app.logger.debug("*-*-*-*-*-*-*-*-*-*-*-*-* %s *-*-*-*-*-*-*-*-*-*-*-*-*", item)
         for report in record_type:
             val = ', '.join([str(i in report[1]) for i in item]) if isinstance(item, tuple) else str(item in report[1])
-            app.logger.debug(f"{report[0]}: {val}")
+            app.logger.debug("%s: %s", report[0], val)
     app.logger.debug('---------------------------------------------------------------------')
     for i, first in record_type[:2]:
         # i = 0 if i == len(record_type) else i
@@ -60,15 +61,15 @@ def check_stuff(row, related, safe):
             # j = 0 if i == len(record_type) else j
             if i == j:
                 continue
-            app.logger.debug(f'------------------------------ {i} without {j} ---------------------------------------')
+            app.logger.debug('------------------------- {i} without {j} -------------------------', str(i), str(j))
             unique_in_current = first - second
             pprint(unique_in_current)
-            app.logger.debug(f'******************* {j} without {i} *******************')
+            app.logger.debug('******************* %s without %s *******************', str(j), str(i))
             unique_in_current = second - first
             pprint(unique_in_current)
 
     for name, rec in record_type:
-        app.logger.debug(f"================ {name} ================")
+        app.logger.debug("================ %s ================", name)
         pprint(rec)
     # app.logger.debug('--------------------------------- data ------------------------------------')
     # pprint(data)
