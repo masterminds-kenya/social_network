@@ -779,7 +779,7 @@ def find_instagram_id(accounts, facebook=None, token=None, app_token=None):
         app.logger.error(message)
         return []
     if 'paging' in accounts:
-        app.logger.info(f"Have paging in accounts: {accounts['paging']} ")
+        app.logger.info("Have paging in accounts: %s ", str(accounts['paging']))
         # TODO: Handle paging in results.
     ig_list = []
     pages = [{'id': page.get('id'), 'token': page.get('access_token')} for page in accounts.get('data')]
@@ -819,9 +819,9 @@ def find_instagram_id(accounts, facebook=None, token=None, app_token=None):
             ig_info['page_token'] = page['token']
             ig_list.append(ig_info)
         elif 'error' in res:
-            app.logger.error(f"Error on getting info from {page['id']} Page. ")
+            app.logger.error("Error on getting info from %s Page. ", page['id'])
         else:
-            app.logger.info(f"No appropriate account on {page['id']} Page. ")
+            app.logger.info("No appropriate account on %s Page. ", page['id'])
     return ig_list
 
 
@@ -891,7 +891,7 @@ def onboard_new(data, facebook=None, token=None):
         account = db_create(data)  # TODO: db_<methods> refactored to query syntax.
         user = User.query.get(account.get('id'))
     else:
-        app.logger.info(f"Found existing user account {user}. ")
+        app.logger.info("Found existing user account %s. ", user)
         # TODO: Update user with data values.
     login_user(user, force=True, remember=True)
     for ig_info in ig_list:

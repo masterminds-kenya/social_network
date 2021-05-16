@@ -298,7 +298,7 @@ def fb_login(mod):
 @app.route('/callback/<string:mod>')
 def callback(mod):
     """Handle the callback for Facebook authorization. Create new influencer or brand user as indicated by 'mod'. """
-    app.logger.info(f'================= Authorization Callback {mod}===================')
+    app.logger.info('================= Authorization Callback %s ===================', mod)
     view, data = onboarding(mod, request)
     if view == 'decide':
         data = prep_ig_decide(data)

@@ -39,7 +39,7 @@ def try_task(parent, task):
         app.logger.exception(e)
         response = None
     if response is not None:
-        app.logger.info(f"Created task: {response} ")
+        app.logger.info("Created task: %s ", response)
     return response  # .name if response else None
 
 
@@ -94,15 +94,15 @@ def get_queue_path(process):
         app.logger.debug("============ CREATED QUEUE ============")
         app.logger.debug(q)
     except AlreadyExists as exists:
-        app.logger.info(f"Already Exists on get/create/update {short_queue_name} ")
+        app.logger.info("Already Exists on get/create/update %s ", short_queue_name)
         app.logger.info(exists)
         q = full_queue_name
     except ValueError as error:
-        app.logger.info(f"Value Error on get/create/update the {short_queue_name} ")
+        app.logger.info("Value Error on get/create/update the %s ", short_queue_name)
         app.logger.exception(error)
         q = None
     except GoogleAPICallError as error:
-        app.logger.info(f"Google API Call Error on get/create/update {short_queue_name} ")
+        app.logger.info("Google API Call Error on get/create/update %s ", short_queue_name)
         app.logger.exception(error)
         q = None
     return full_queue_name if q else None
