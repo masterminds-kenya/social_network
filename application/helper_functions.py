@@ -186,7 +186,8 @@ def get_test_ig(version):
     elif version == 'z':
         start_z = time()
         is_active = Campaign.completed.is_(False)
-        users_z = User.query.filter(User.instagram_id.isnot(None), (or_(User.campaigns.any(is_active), User.brand_campaigns.any(is_active))))
+        user_has_active = (or_(User.campaigns.any(is_active), User.brand_campaigns.any(is_active)))
+        users_z = User.query.filter(User.instagram_id.isnot(None), user_has_active)
         result_z = users_z.all()
         end_z = time()
         results = (users_z, result_z, len(result_z), end_z - start_z, )

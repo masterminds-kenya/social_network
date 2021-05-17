@@ -104,9 +104,10 @@ def login():
         attempt = login_user(user, remember=data.get('remember', False))  # , duration=timedelta(days=61)
         if not attempt:
             app.logger.debug("The login attempt response: %s ", str(attempt))
-        # app.logger.debug(f"Current User: {current_user}, is a good match: {current_user == user} ")
-        # if current_user == user:
-        #     app.logger.debug(f"Current details | role: {user.role} | id: {user.id} | is_active: {getattr(user, 'is_active', 'NOT FOUND')} ")
+        app.logger.debug("Current User: %s, is a good match: %s ", str(current_user), str(current_user == user))
+        if current_user == user:
+            args = (user.role, str(user.id), getattr(user, 'is_active', 'NOT FOUND'))
+            app.logger.debug("Current details | role: %s | id: %s | is_active: %s ", *args)
         return view(user.role, user.id)
         # return redirect(url_for('view', mod=user.role, id=user.id))
     return render_template('signup.html', signup_roles=None, mods=['influencer', 'brand'])

@@ -115,8 +115,8 @@ def create_sheet(model, service=None):
     title = f"{name}_{timestamp}"
     spreadsheet = {'properties': {'title': title}, 'sheets': [{}, {}]}
     spreadsheet = service.spreadsheets().create(body=spreadsheet, fields='spreadsheetId').execute()
-    message = f"Before you can view the Google Sheet, you must give yourself access "
-    message += f"with the View and Manage Access link. "
+    message = "Before you can view the Google Sheet, you must give yourself access "
+    message += "with the View and Manage Access link. "
     flash(message)
     return update_sheet(model, id=spreadsheet.get('spreadsheetId'), service=service)
 

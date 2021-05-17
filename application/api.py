@@ -1001,7 +1001,7 @@ def onboarding(mod, request):
     url = make_fb_url('me', ver=None)
     params = {'fields': 'id,accounts'}
     # url = f"{GRAPH_URL}me?fields=id,accounts"  # For FB Pages.
-    facebook_user_data = facebook.get(url, params=params).json()  # Docs don't mention pagination, imply not a concern yet.
+    facebook_user_data = facebook.get(url, params=params).json()  # Docs don't mention pagination, not a concern yet?
     # TODO UNLIKELY?: Is pagination a concern?
     if 'error' in facebook_user_data:
         app.logger.info(facebook_user_data['error'])

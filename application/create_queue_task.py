@@ -71,7 +71,7 @@ def get_queue_path(process):
         app.logger.debug(dir(q))
         app.logger.debug("-----------------------------")
     except Exception as e:
-        app.logger.warning(f"The {full_queue_name} queue does not exist, or could not be found. Attempting to create it. ")
+        app.logger.warning(f"The {full_queue_name} queue not found or does not exist. Attempting to create it. ")
         app.logger.exception(e)
         q = None
     if q:

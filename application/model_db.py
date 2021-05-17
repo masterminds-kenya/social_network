@@ -332,7 +332,8 @@ class User(UserMixin, db.Model):
     #         return False
     #     is_active = Campaign.completed.is_(False)
     #     active = User.campaigns.any(is_active) if cls.role == 'influencer' else User.campaigns.any(is_active)
-    #     # users_z = User.query.filter(User.instagram_id.isnot(None), (or_(User.campaigns.any(is_active), User.brand_campaigns.any(is_active))))
+    #     user_has_active = (or_(User.campaigns.any(is_active), User.brand_campaigns.any(is_active)))
+    #     # users_z = User.query.filter(User.instagram_id.isnot(None), user_has_active)
     #     return active
 
     # @hybrid_property
