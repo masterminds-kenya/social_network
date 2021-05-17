@@ -12,6 +12,7 @@ from .api import (onboard_login, onboarding, user_permissions, get_insight, get_
 from .create_queue_task import add_to_collect, COLLECT_PROCESS_ALLOWED
 from .sheets import create_sheet, update_sheet, perm_add, perm_list, all_files
 from .cloud_log import CloudLog
+from datetime import time
 
 # Sentinels for errors recorded on the Post.caption field.
 CAPTION_ERRORS = ['NO_CREDENTIALS', 'AUTH_FACEBOOK', 'AUTH_TOKEN', 'AUTH_NONE', 'API_ERROR', 'INSIGHTS_CREATED']
@@ -450,6 +451,7 @@ def update_campaign_metrics(id):
 @app.route('/all_posts')
 def all_posts():
     """Used for daily downloads, or can be called manually by an admin (but not managers). """
+    start_time = time.time()
     app.logger.debug("===================== All Posts Process Run =====================")
     cron_run = request.headers.get('X-Appengine-Cron', None)
     if not cron_run:
@@ -472,7 +474,9 @@ def all_posts():
             task_list = add_to_collect(media_results, process='basic', in_seconds=180)
             success = all(ea is not None for ea in task_list)
     status = 201 if success else 500
+    end_time = time.time()
     response = {'User_num': num_users, 'Post_num': count, 'message': message, 'status_code': status}
+    response['duration'] = start_time - end_time
     if cron_run:
         response = json.dumps(response)  # Response headers added when jsonify automatically called on returned dict.
     else:  # Process run by an admin.
