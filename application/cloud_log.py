@@ -96,7 +96,7 @@ class CloudLog(logging.getLoggerClass()):
         return Resource(type=ty, labels=labels)
 
     @classmethod
-    def make_handler(cls, handler_name=None, log_client=None, level=None, config=None, cloud=True, **kwargs):
+    def make_handler(cls, handler_name=None, log_client=None, level=None, res=None, cloud=True):
         """Creates a cloud logging handler, or a standard library StreamHandler if log_client is logging. """
         handler_name = cls.make_handler_name(handler_name)
         if not cloud:
@@ -107,12 +107,9 @@ class CloudLog(logging.getLoggerClass()):
             handler_kwargs = {}
             if handler_name:
                 handler_kwargs['name'] = handler_name
-            if config or kwargs:
-                config = config or object
-                if isinstance(config, Resource):
-                    res = config
-                else:
-                    res = cls.make_resource(config, **kwargs)
+            if not isinstance(res, Resource):
+                res = cls.make_resource(res)
+            if res:
                 handler_kwargs['resource'] = res
             handler = CloudLoggingHandler(log_client, **handler_kwargs)
         else:
@@ -152,12 +149,12 @@ class CloudLog(logging.getLoggerClass()):
         return None
 
     @classmethod
-    def make_base_logger(cls, name=None, handler_name=None, level=None, log_client=None, config=None, **kwargs):
+    def make_base_logger(cls, name=None, handler_name=None, level=None, log_client=None, res=None):
         """Used to create a logger with an optional cloud handler when a CloudLog instance is not desired. """
         name = cls.make_logger_name(name)
         logger = logging.getLogger(name)
         if handler_name:
-            handler = cls.make_handler(handler_name, log_client, config=config, **kwargs)
+            handler = cls.make_handler(handler_name, log_client, res=res)
             logger.addHandler(handler)
         level = cls.get_level(level)
         logger.setLevel(level)
