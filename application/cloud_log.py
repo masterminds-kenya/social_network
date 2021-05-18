@@ -2,6 +2,7 @@ import logging
 from google.cloud import logging as cloud_logging
 from google.cloud.logging.handlers import CloudLoggingHandler  # , setup_logging
 from google.oauth2 import service_account
+from google.cloud.logging import Resource
 
 
 class CloudLog(logging.getLoggerClass()):
@@ -83,7 +84,20 @@ class CloudLog(logging.getLoggerClass()):
         return log_client
 
     @classmethod
-    def make_handler(cls, handler_name=None, log_client=None, level=None, cloud=True):
+    def make_resource(cls, config, **kwargs):
+        """Creates an appropriate resource to help with logging. """
+        # labels = {'project_id': config.get('PROJECT_ID'), 'zone': config.get('PROJECT_ZONE')}
+        labels = {'project_id': getattr(config, 'PROJECT_ID', None), 'zone': getattr(config, 'PROJECT_ZONE', None)}
+        # if config.get('GAE_ENV'):
+        #     labels['module_id'] = config.get('GAE_SERVICE')
+        if getattr(config, 'GAE_ENV', None):
+            labels['module_id'] = getattr(config, 'GAE_SERVICE', None)
+        labels.update(kwargs)
+        ty = 'global'  # 'logging_log', 'pubsub_subscription', 'pubsub_topic', 'reported_errors'
+        return Resource(type=ty, labels=labels)
+
+    @classmethod
+    def make_handler(cls, handler_name=None, log_client=None, level=None, config=None, cloud=True, **kwargs):
         """Creates a cloud logging handler, or a standard library StreamHandler if log_client is logging. """
         handler_name = cls.make_handler_name(handler_name)
         if not cloud:
