@@ -12,6 +12,7 @@ class CloudLog(logging.getLoggerClass()):
     DEFAULT_LOGGER_NAME = None
     DEFAULT_HANDLER_NAME = None
     DEFAULT_LEVEL = logging.INFO
+    DEFAULT_FORMAT = '%(levelname)s:%(name)s:%(message)s'
     LOG_SCOPES = (
         'https://www.googleapis.com/auth/logging.read',
         'https://www.googleapis.com/auth/logging.write',
@@ -96,7 +97,12 @@ class CloudLog(logging.getLoggerClass()):
         return Resource(type=ty, labels=labels)
 
     @classmethod
-    def make_handler(cls, handler_name=None, log_client=None, level=None, res=None, cloud=True):
+    def make_formatter(cls, fmt=DEFAULT_FORMAT, datefmt=None):
+        """Creates a standard library formatter to attach to a handler. """
+        return logging.Formatter(fmt, datefmt=datefmt)
+
+    @classmethod
+    def make_handler(cls, handler_name=None, log_client=None, level=None, res=None, fmt=None, cloud=True):
         """Creates a cloud logging handler, or a standard library StreamHandler if log_client is logging. """
         handler_name = cls.make_handler_name(handler_name)
         if not cloud:
@@ -107,7 +113,7 @@ class CloudLog(logging.getLoggerClass()):
             handler_kwargs = {}
             if handler_name:
                 handler_kwargs['name'] = handler_name
-            if not isinstance(res, Resource):
+            if res and not isinstance(res, Resource):
                 res = cls.make_resource(res)
             if res:
                 handler_kwargs['resource'] = res
@@ -119,6 +125,10 @@ class CloudLog(logging.getLoggerClass()):
         if level:
             level = cls.get_level(level)
             handler.setLevel(level)
+        if isinstance(fmt, logging.Formatter):
+            handler.formatter = fmt
+        else:
+            handler.setFormatter(fmt or cls.DEFAULT_FORMAT)
         return handler
 
     @staticmethod
