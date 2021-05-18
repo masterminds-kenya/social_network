@@ -80,7 +80,6 @@ class CloudLog(logging.getLoggerClass()):
             credentials = credentials.with_scopes(cls.LOG_SCOPES)
         kwargs = {'credentials': credentials} if credentials else {}
         log_client = cloud_logging.Client(**kwargs)
-        log_client.get_default_handler()
         return log_client
 
     @classmethod
@@ -195,13 +194,23 @@ class CloudLog(logging.getLoggerClass()):
             print('-------------------------------------------------------------')
         print(f"=================== Details for each of {len(all_handlers)} handlers ===================")
         creds_list = []
+        resources = []
         for handle in all_handlers:
             pprint(handle.__dict__)
             temp_client = getattr(handle, 'client', object)
             temp_creds = getattr(temp_client, '_credentials', None)
             if temp_creds:
                 creds_list.append(temp_creds)
+            resources.append(getattr(handle, 'resource', None))
             print("-------------------------------------------------")
+        print("====================== Resources found attached to the Handlers ======================")
+        if hasattr(app, '_resource_test'):
+            resources.append(app._resource_test)
+        for res in resources:
+            if hasattr(res, '_to_dict'):
+                pprint(res._to_dict())
+            else:
+                pprint(f"Resource was: {res} ")
         pprint("=================== App Log Client Credentials ===================")
         print(f"Currently have {len(creds_list)} creds from logger clients. ")
         creds_list = [(f"client_cred_{num}", ea) for num, ea in enumerate(set(creds_list))]
