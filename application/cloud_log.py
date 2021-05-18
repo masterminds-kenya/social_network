@@ -105,7 +105,17 @@ class CloudLog(logging.getLoggerClass()):
         if log_client is not logging:
             if not isinstance(log_client, cloud_logging.Client):
                 log_client = cls.make_client()
-            handler = CloudLoggingHandler(log_client, name=handler_name)
+            handler_kwargs = {}
+            if handler_name:
+                handler_kwargs['name'] = handler_name
+            if config or kwargs:
+                config = config or object
+                if isinstance(config, Resource):
+                    res = config
+                else:
+                    res = cls.make_resource(config, **kwargs)
+                handler_kwargs['resource'] = res
+            handler = CloudLoggingHandler(log_client, **handler_kwargs)
         else:
             handler = logging.StreamHandler()
             if handler_name:
