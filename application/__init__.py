@@ -9,7 +9,7 @@ def create_app(config, debug=None, testing=None, config_overrides=dict()):
         debug = config_overrides.get('DEBUG', getattr(config, 'DEBUG', None))
     if testing is None:
         testing = config_overrides.get('TESTING', getattr(config, 'TESTING', None))
-    log_client, alert, app_handler, _resource_test = None, None, None, None
+    log_client, alert, app_handler, _res = None, None, None, None
     if not testing:
         base_log_level = logging.DEBUG if debug else logging.INFO
         cloud_log_level = logging.WARNING
@@ -26,8 +26,8 @@ def create_app(config, debug=None, testing=None, config_overrides=dict()):
                 log_client = logging
             else:
                 log_client = CloudLog.make_client(credential_path=cred_path)
-                _resource_test = CloudLog.make_resource(config)
-            alert = CloudLog.make_base_logger(log_name, log_name, base_log_level, log_client, _resource_test)
+                _res = CloudLog.make_resource(config)
+            alert = CloudLog.make_base_logger(log_name, log_name, base_log_level, log_client, _res)
             app_handler = CloudLog.make_handler(CloudLog.APP_HANDLER_NAME, log_client, cloud_log_level)
     app = Flask(__name__)
     app.config.from_object(config)
@@ -37,7 +37,7 @@ def create_app(config, debug=None, testing=None, config_overrides=dict()):
         app.config.update(config_overrides)
     app.log_client = log_client
     app.alert = alert
-    app._resource_test = _resource_test
+    app._resource_test = _res
     if app_handler:
         app.logger.addHandler(app_handler)
 
