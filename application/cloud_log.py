@@ -125,9 +125,9 @@ class CloudLog(logging.getLoggerClass()):
         if level:
             level = cls.get_level(level)
             handler.setLevel(level)
-        if isinstance(fmt, logging.Formatter):
-            handler.formatter = fmt
-        elif fmt:
+        if fmt and not isinstance(fmt, logging.Formatter):
+            fmt = cls.make_formatter(fmt)
+        if fmt:
             handler.setFormatter(fmt)
         return handler
 
