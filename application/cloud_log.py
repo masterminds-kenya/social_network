@@ -1,8 +1,36 @@
 import logging
+# from typing import Union
 from google.cloud import logging as cloud_logging
 from google.cloud.logging.handlers import CloudLoggingHandler  # , setup_logging
 from google.oauth2 import service_account
 from google.cloud.logging import Resource
+
+
+class LowPassFilter(logging.Filter):
+    """Only allows LogRecords that are below the specified log level, according to levelno. """
+
+    def __init__(self, name: str, level: int) -> None:  # deny: Union(str, list, tuple, None),
+        super().__init__(name=name)
+        self.below_level = level
+        # if isinstance(deny, str):
+        #     deny = [deny]
+        # elif deny is None:
+        #     deny = []
+        # self.deny = deny
+
+    def filter(self, record):
+        # if record.levelno < self.below_level:
+        #     return True
+        # print("========== FILTER ==========")
+        # print(f"Filter - name: {self.name} | level: {self.below_level} ")
+        # print(f"Record - name: {record.name} | level: {record.levelno} ")
+        if record.levelno >= self.below_level:
+            print(f"Rejected Record: {record} ")
+            return False
+        # if record.name in self.deny and record.levelno >= self.below_level:
+        #     return False
+        print(f"Accepted Record: {record} ")
+        return True
 
 
 class CloudLog(logging.getLoggerClass()):
