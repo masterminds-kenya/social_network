@@ -21,13 +21,13 @@ def create_app(config, debug=None, testing=None, config_overrides=dict()):
         if not gae_standard and not local_env:
             log_client, alert, *ignore = setup_cloud_logging(cred_path, base_log_level, cloud_log_level, extra=log_name)
         else:
-            # log_client = logging if gae_standard else CloudLog.make_client(credential_path=cred_path)
             if gae_standard:
                 log_client = logging
             else:
                 log_client = CloudLog.make_client(credential_path=cred_path)
                 # _res = CloudLog.make_resource(config)
             alert = CloudLog.make_base_logger(log_name, log_name, base_log_level, log_client, _res)
+            alert.propagate = False
             app_handler = CloudLog.make_handler(CloudLog.APP_HANDLER_NAME, log_client, cloud_log_level)
             # app_low_handler = CloudLog.make_handler('app_low', log_client, None, None, app_handler.formatter)
             low_filter = LowPassFilter(CloudLog.APP_LOGGER_NAME, cloud_log_level)
