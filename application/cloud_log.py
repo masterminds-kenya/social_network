@@ -215,7 +215,10 @@ class CloudLog(logging.getLoggerClass()):
         log_count_str = ''
         all_handlers = []
         for name, logger in loggers:
-            handlers = getattr(logger, 'handlers', 'not found')
+            adapter = None
+            if isinstance(logger, logging.LoggerAdapter):
+                adapter, logger = logger, logger.logger
+            handlers = getattr(logger, 'handlers', ['not found'])
             if isinstance(handlers, list):
                 all_handlers.extend(handlers)
             log_count_str += f"{name} handlers: {', '.join([str(ea) for ea in handlers])} " + '\n'
@@ -224,6 +227,9 @@ class CloudLog(logging.getLoggerClass()):
                     getattr(logger, level)(' - '.join((context, name, level, code)))
                 else:
                     logging.warning(f"{context} in {code}: No {level} method on logger {name} ")
+            if adapter:
+                print(f"--------------- {name} ADAPTER Settings ------------------")
+                pprint(adapter.__dict__)
             print(f"--------------- {name} Logger Settings ------------------")
             pprint(logger.__dict__)
             print('-------------------------------------------------------------')
@@ -248,16 +254,20 @@ class CloudLog(logging.getLoggerClass()):
             else:
                 pprint(f"Resource was: {res} ")
         pprint("=================== App Log Client Credentials ===================")
+        log_client = getattr(app, 'log_client', None)
+        if log_client is logging:
+            log_client = None
+        app_creds = log_client._credentials if log_client else None
+        if app_creds in creds_list:
+            app_creds = None
         print(f"Currently have {len(creds_list)} creds from logger clients. ")
         creds_list = [(f"client_cred_{num}", ea) for num, ea in enumerate(set(creds_list))]
         print(f"With {len(creds_list)} unique client credentials. " + '\n')
-        if hasattr(app, '_creds'):
-            print("Adding _creds. ")
-            creds_list.append(('_creds', app._creds))
-        log_client = getattr(app, 'log_client', None)
-        if log_client and log_client is not logging:
+        if log_client and not app_creds:
+            print("App Log Client Creds - already included in logger clients. ")
+        elif app_creds:
             print("Adding App Log Client Creds. ")
-            creds_list.append(('App Log Client Creds', log_client._credentials))
+            creds_list.append(('App Log Client Creds', app_creds))
         for name, creds in creds_list:
             pprint(f"{name}: {creds} ")
             pprint(creds.expired)
