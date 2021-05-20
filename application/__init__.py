@@ -1,7 +1,7 @@
 from flask import Flask
 from flask_login import LoginManager
 import logging
-from .cloud_log import CloudLog, setup_cloud_logging
+from .cloud_log import CloudLog, LowPassFilter, setup_cloud_logging
 
 
 def create_app(config, debug=None, testing=None, config_overrides=dict()):
@@ -9,7 +9,7 @@ def create_app(config, debug=None, testing=None, config_overrides=dict()):
         debug = config_overrides.get('DEBUG', getattr(config, 'DEBUG', None))
     if testing is None:
         testing = config_overrides.get('TESTING', getattr(config, 'TESTING', None))
-    log_client, alert, app_handler, _res = None, None, None, None
+    log_client, alert, app_handler, _res, low_filter = None, None, None, None, None
     if not testing:
         base_log_level = logging.DEBUG if debug else logging.INFO
         cloud_log_level = logging.WARNING
@@ -26,9 +26,13 @@ def create_app(config, debug=None, testing=None, config_overrides=dict()):
                 log_client = logging
             else:
                 log_client = CloudLog.make_client(credential_path=cred_path)
-                _res = CloudLog.make_resource(config)
+                # _res = CloudLog.make_resource(config)
             alert = CloudLog.make_base_logger(log_name, log_name, base_log_level, log_client, _res)
             app_handler = CloudLog.make_handler(CloudLog.APP_HANDLER_NAME, log_client, cloud_log_level)
+            # app_low_handler = CloudLog.make_handler('app_low', log_client, None, None, app_handler.formatter)
+            low_filter = LowPassFilter(CloudLog.APP_LOGGER_NAME, cloud_log_level)
+            # app_low_handler.addFilter(low_filter)
+            # app_low_handler.formatter
     app = Flask(__name__)
     app.config.from_object(config)
     app.debug = debug
