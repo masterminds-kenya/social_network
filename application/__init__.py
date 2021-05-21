@@ -19,7 +19,7 @@ def create_app(config, debug=None, testing=None, config_overrides=dict()):
         local_env = getattr(config, 'LOCAL_ENV')
         log_name = 'alert'
         cred_path = getattr(config, 'GOOGLE_APPLICATION_CREDENTIALS', None)
-        if not gae_standard and not local_env:
+        if not config.standard_env:
             log_client, alert, *ignore = setup_cloud_logging(cred_path, base_log_level, cloud_log_level, extra=log_name)
         else:
             if gae_standard:

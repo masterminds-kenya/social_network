@@ -6,7 +6,7 @@ class Config:
     # ####### #
     # Environment Parameters for Local, Dev, or Production.
     GAE_ENV = environ.get('GAE_ENV')  # expected: standard
-    GAE_SERVICE = environ.get('GAE_SERVICE')
+    GAE_SERVICE = environ.get('GAE_SERVICE', '')
     GAE_INSTANCE = environ.get('GAE_INSTANCE')
     URL_SETTING = environ.get('URL')
     # General Flask Settings
@@ -45,7 +45,7 @@ class Config:
 
     def __init__(self) -> None:
         self.LOCAL_ENV = self.get_LOCAL_ENV()
-        self.CODE_ENVIRONMENT = 'LOCAL' if self.LOCAL_ENV else self.GAE_SERVICE
+        self.CODE_SERVICE = self.get_CODE_SERVICE()
         self.URL = self.get_URL()
         self.SQLALCHEMY_DATABASE_URI = self.get_SQLALCHEMY_DATABASE_URI()
         self.SERVER_NAME = self.URL.split('//', 1).pop()
@@ -66,8 +66,26 @@ class Config:
         if GOOGLE_APPLICATION_CREDENTIALS:
             self.GOOGLE_APPLICATION_CREDENTIALS = GOOGLE_APPLICATION_CREDENTIALS
 
+    @property
+    def standard_env(self):
+        """Returns boolean for the environment is GAE-standard, or local. """
+        expected = ('local', 'standard')
+        code_environment = 'local' if self.LOCAL_ENV else self.GAE_ENV
+        if code_environment in expected:
+            return True
+        return False
+
     def get_LOCAL_ENV(self):
-        return not self.GAE_INSTANCE
+        if self.GAE_INSTANCE:
+            return False
+        return True
+
+    def get_CODE_SERVICE(self):
+        """Returns a str representing the environment the app is running on. """
+        if not hasattr(self, 'LOCAL_ENV'):
+            self.LOCAL_ENV = self.get_LOCAL_ENV()
+        code_service = 'local' if self.LOCAL_ENV else self.GAE_SERVICE
+        return code_service.lower()
 
     def get_GCLOUD_URL(self):
         service_string = ''
