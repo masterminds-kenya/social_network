@@ -115,11 +115,9 @@ class CloudLog(logging.getLoggerClass()):
         return logging.Formatter(fmt, datefmt=datefmt)
 
     @classmethod
-    def make_handler(cls, handler_name=None, log_client=None, level=None, res=None, fmt=DEFAULT_FORMAT, cloud=True):
+    def make_handler(cls, handler_name=None, log_client=None, level=None, fmt=DEFAULT_FORMAT, res=None, ):
         """Creates a cloud logging handler, or a standard library StreamHandler if log_client is logging. """
         handler_name = cls.make_handler_name(handler_name)
-        if not cloud:
-            log_client = logging
         if log_client is not logging:
             if not isinstance(log_client, cloud_logging.Client):
                 log_client = cls.make_client()
@@ -174,12 +172,12 @@ class CloudLog(logging.getLoggerClass()):
         return None
 
     @classmethod
-    def make_base_logger(cls, name=None, handler_name=None, level=None, fmt=DEFAULT_FORMAT, log_client=None, res=None):
+    def make_base_logger(cls, name=None, handler_name=None, log_client=None, level=None, fmt=DEFAULT_FORMAT, res=None):
         """Used to create a logger with an optional cloud handler when a CloudLog instance is not desired. """
         name = cls.make_logger_name(name)
         logger = logging.getLogger(name)
         if handler_name:
-            handler = cls.make_handler(handler_name, log_client, res=res, fmt=fmt)
+            handler = cls.make_handler(handler_name, log_client, None, fmt, res)
             logger.addHandler(handler)
         level = cls.get_level(level)
         logger.setLevel(level)

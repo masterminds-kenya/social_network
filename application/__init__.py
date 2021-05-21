@@ -27,9 +27,9 @@ def create_app(config, debug=None, testing=None, config_overrides=dict()):
             else:
                 log_client = CloudLog.make_client(credential_path=cred_path)
                 # _res = CloudLog.make_resource(config)
-            alert = CloudLog.make_base_logger(log_name, log_name, base_log_level, formatter, log_client, _res)
+            alert = CloudLog.make_base_logger(log_name, log_name, log_client, base_log_level, formatter, _res)
             alert.propagate = False
-            app_handler = CloudLog.make_handler(CloudLog.APP_HANDLER_NAME, log_client, cloud_log_level, fmt=formatter)
+            app_handler = CloudLog.make_handler(CloudLog.APP_HANDLER_NAME, log_client, cloud_log_level, formatter)
     app = Flask(__name__)
     app.config.from_object(config)
     app.debug = debug
