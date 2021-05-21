@@ -98,13 +98,15 @@ class CloudLog(logging.getLoggerClass()):
 
     @classmethod
     def make_resource(cls, config, **kwargs):
-        """Creates an appropriate resource to help with logging. """
-        # labels = {'project_id': config.get('PROJECT_ID'), 'zone': config.get('PROJECT_ZONE')}
-        labels = {'project_id': getattr(config, 'PROJECT_ID', None), 'zone': getattr(config, 'PROJECT_ZONE', None)}
-        # if config.get('GAE_ENV'):
-        #     labels['module_id'] = config.get('GAE_SERVICE')
-        if getattr(config, 'GAE_ENV', None):
-            labels['module_id'] = getattr(config, 'GAE_SERVICE', None)
+        """Creates an appropriate resource to help with logging. The 'config' can be a dict or config.Config object. """
+        if config and not isinstance(config, dict):
+            config = getattr(config, '__dict__', None)
+        labels = {'project_id': config.get('PROJECT_ID'), 'zone': config.get('PROJECT_ZONE')}
+        if config.get('GAE_ENV', None):
+            labels['module_id'] = config.get('GAE_SERVICE', None)
+        # labels = {'project_id': getattr(config, 'PROJECT_ID', None), 'zone': getattr(config, 'PROJECT_ZONE', None)}
+        # if getattr(config, 'GAE_ENV', None):
+        #     labels['module_id'] = getattr(config, 'GAE_SERVICE', None)
         labels.update(kwargs)
         ty = 'global'  # 'logging_log', 'pubsub_subscription', 'pubsub_topic', 'reported_errors'
         return Resource(type=ty, labels=labels)
