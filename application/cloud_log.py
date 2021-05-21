@@ -101,15 +101,14 @@ class CloudLog(logging.getLoggerClass()):
         """Creates an appropriate resource to help with logging. The 'config' can be a dict or config.Config object. """
         if config and not isinstance(config, dict):
             config = getattr(config, '__dict__', None)
+        if not config:
+            raise TypeError("The 'config' must be a dict or an object with needed values in __dict__. ")
         labels = {'project_id': config.get('PROJECT_ID'), 'zone': config.get('PROJECT_ZONE')}
         if config.get('GAE_ENV', None):
             labels['module_id'] = config.get('GAE_SERVICE', None)
-        # labels = {'project_id': getattr(config, 'PROJECT_ID', None), 'zone': getattr(config, 'PROJECT_ZONE', None)}
-        # if getattr(config, 'GAE_ENV', None):
-        #     labels['module_id'] = getattr(config, 'GAE_SERVICE', None)
         labels.update(kwargs)
-        ty = 'global'  # 'logging_log', 'pubsub_subscription', 'pubsub_topic', 'reported_errors'
-        return Resource(type=ty, labels=labels)
+        res_type = 'global'  # 'logging_log', 'pubsub_subscription', 'pubsub_topic', 'reported_errors'
+        return Resource(type=res_type, labels=labels)
 
     @classmethod
     def make_formatter(cls, fmt=DEFAULT_FORMAT, datefmt=None):
@@ -117,23 +116,21 @@ class CloudLog(logging.getLoggerClass()):
         return logging.Formatter(fmt, datefmt=datefmt)
 
     @classmethod
-    def make_handler(cls, handler_name=None, log_client=None, level=None, fmt=DEFAULT_FORMAT, res=None, ):
+    def make_handler(cls, handler_name=None, log_client=None, level=None, fmt=DEFAULT_FORMAT, res=None):
         """Creates a cloud logging handler, or a standard library StreamHandler if log_client is logging. """
         handler_name = cls.make_handler_name(handler_name)
         if log_client is not logging:
             if not isinstance(log_client, cloud_logging.Client):
                 log_client = cls.make_client()
-            print(f"Using cloud log with client: {log_client} ")
             handler_kwargs = {}
             if handler_name:
                 handler_kwargs['name'] = handler_name
-            if res and not isinstance(res, Resource):
-                res = cls.make_resource(res)
             if res:
+                if not isinstance(res, Resource):
+                    res = cls.make_resource(res)
                 handler_kwargs['resource'] = res
             handler = CloudLoggingHandler(log_client, **handler_kwargs)
         else:
-            print("Using standard library for loggers. ")
             handler = logging.StreamHandler()
             if handler_name:
                 handler.set_name(handler_name)
@@ -197,7 +194,7 @@ class CloudLog(logging.getLoggerClass()):
             print(f"Investigating {len(loggers)} independent loggers. ")
         loggers = [('root', logging.root)] + app_loggers + [(num, ea) for num, ea in enumerate(loggers)]
         print(f"Total loggers: {len(loggers)} ")
-        code = app.config.get('CODE_ENVIRONMENT', 'UNKNOWN')
+        code = app.config.get('CODE_SERVICE', 'UNKNOWN')
         print("=================== Logger Tests & Info ===================")
         log_count_str = ''
         all_handlers = []
