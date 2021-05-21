@@ -269,11 +269,15 @@ def setup_cloud_logging(service_account_path, base_log_level, cloud_log_level, e
     log_client.get_default_handler()
     log_client.setup_logging(log_level=base_log_level)  # log_level sets the logger, not the handler.
     # Note: any modifications to the default 'python' handler from setup_logging will invalidate creds.
-    handler = CloudLog.make_handler(CloudLog.APP_HANDLER_NAME, log_client, cloud_log_level)
+    root_handler = logging.root.handlers[0]
+    low_filter = LowPassFilter(CloudLog.APP_LOGGER_NAME, cloud_log_level)
+    root_handler.addFilter(low_filter)
+    fmt = getattr(root_handler, 'formatter', None) or CloudLog.DEFAULT_FORMAT
+    handler = CloudLog.make_handler(CloudLog.APP_HANDLER_NAME, log_client, cloud_log_level, fmt)
     logging.root.addHandler(handler)
     if extra is None:
         extra = []
     elif isinstance(extra, str):
         extra = [extra]
-    cloud_logs = [CloudLog(name, name, base_log_level, log_client) for name in extra]
+    cloud_logs = [CloudLog(name, name, log_client, base_log_level, fmt) for name in extra]
     return (log_client, *cloud_logs)
