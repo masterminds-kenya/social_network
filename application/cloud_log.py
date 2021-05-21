@@ -33,12 +33,12 @@ class CloudLog(logging.getLoggerClass()):
         'https://www.googleapis.com/auth/cloud-platform',
         )
 
-    def __init__(self, name=None, handler_name=None, level=None, log_client=None, parent='root'):
+    def __init__(self, name=None, handler_name=None, log_client=None, level=None, fmt=DEFAULT_FORMAT, parent='root'):
         name = self.make_logger_name(name)
         super().__init__(name)
         level = self.get_level(level)
         self.setLevel(level)
-        handler = self.make_handler(handler_name, log_client)
+        handler = self.make_handler(handler_name, log_client, None, fmt)
         self.addHandler(handler)
         if parent == name:
             parent = None
