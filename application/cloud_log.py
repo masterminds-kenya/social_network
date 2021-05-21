@@ -223,8 +223,8 @@ class CloudLog(logging.getLoggerClass()):
                 all_handlers.extend(handlers)
             log_count_str += f"{name} handlers: {', '.join([str(ea) for ea in handlers])} " + '\n'
             for level in levels:
-                if hasattr(logger, level):
-                    getattr(logger, level)(' - '.join((context, name, level, code)))
+                if hasattr(adapter or logger, level):
+                    getattr(adapter or logger, level)(' - '.join((context, name, level, code)))
                 else:
                     logging.warning(f"{context} in {code}: No {level} method on logger {name} ")
             if adapter:
