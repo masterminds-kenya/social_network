@@ -33,6 +33,18 @@ class LowPassFilter(logging.Filter):
         return True
 
 
+class SourceAdapter(logging.LoggerAdapter):
+    """Marks the source of the log record to assist in later filtering of messages. """
+
+    def process(self, msg, kwargs):
+        extra = self.extra
+        extra.update(kwargs.get('extra', {}))
+        extra['source'] = self.name
+        kwargs['extra'] = extra
+        print('^^^^^^^^^^^^^^^^^ ADAPTER ^^^^^^^^^^^^^^^^^')
+        return msg, kwargs
+
+
 class CloudLog(logging.getLoggerClass()):
     """Extended python Logger class that attaches a google cloud log handler. """
     APP_LOGGER_NAME = 'application'

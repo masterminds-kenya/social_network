@@ -1,7 +1,7 @@
 from flask import Flask
 from flask_login import LoginManager
 import logging
-from .cloud_log import CloudLog, LowPassFilter, setup_cloud_logging
+from .cloud_log import CloudLog, LowPassFilter, SourceAdapter, setup_cloud_logging
 
 
 def create_app(config, debug=None, testing=None, config_overrides=dict()):
@@ -9,7 +9,7 @@ def create_app(config, debug=None, testing=None, config_overrides=dict()):
         debug = config_overrides.get('DEBUG', getattr(config, 'DEBUG', None))
     if testing is None:
         testing = config_overrides.get('TESTING', getattr(config, 'TESTING', None))
-    log_client, alert, app_handler, _res, low_filter = None, None, None, None, None
+    log_client, alert, app_handler, _res = None, None, None, None
     if not testing:
         base_log_level = logging.DEBUG if debug else logging.INFO
         cloud_log_level = logging.WARNING
@@ -41,6 +41,11 @@ def create_app(config, debug=None, testing=None, config_overrides=dict()):
     app._resource_test = _res
     if app_handler:
         app.logger.addHandler(app_handler)
+        app.logger = SourceAdapter(app.logger, extra={'source': __name__})
+        root_handler = logging.root.handlers[0]
+        low_filter = LowPassFilter(CloudLog.APP_LOGGER_NAME, cloud_log_level)
+        root_handler.addFilter(low_filter)
+        # app.logger.addHandler(app_low_handler)
 
     # Configure flask_login
     login_manager = LoginManager()
