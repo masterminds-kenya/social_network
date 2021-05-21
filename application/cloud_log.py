@@ -1,5 +1,4 @@
 import logging
-# from typing import Union
 from google.cloud import logging as cloud_logging
 from google.cloud.logging.handlers import CloudLoggingHandler  # , setup_logging
 from google.oauth2 import service_account
@@ -9,40 +8,14 @@ from google.cloud.logging import Resource
 class LowPassFilter(logging.Filter):
     """Only allows LogRecords that are below the specified log level, according to levelno. """
 
-    def __init__(self, name: str, level: int) -> None:  # deny: Union(str, list, tuple, None),
+    def __init__(self, name: str, level: int) -> None:
         super().__init__(name=name)
         self.below_level = level
-        # if isinstance(deny, str):
-        #     deny = [deny]
-        # elif deny is None:
-        #     deny = []
-        # self.deny = deny
 
     def filter(self, record):
-        # if record.levelno < self.below_level:
-        #     return True
-        # print("========== FILTER ==========")
-        # print(f"Filter - name: {self.name} | level: {self.below_level} ")
-        # print(f"Record - name: {record.name} | level: {record.levelno} ")
-        if record.levelno >= self.below_level:
-            print(f"Rejected Record: {record} ")
+        if record.name == self.name and record.levelno > self.below_level - 1:
             return False
-        # if record.name in self.deny and record.levelno >= self.below_level:
-        #     return False
-        print(f"Accepted Record: {record} ")
         return True
-
-
-class SourceAdapter(logging.LoggerAdapter):
-    """Marks the source of the log record to assist in later filtering of messages. """
-
-    def process(self, msg, kwargs):
-        extra = self.extra
-        extra.update(kwargs.get('extra', {}))
-        extra['source'] = self.name
-        kwargs['extra'] = extra
-        print('^^^^^^^^^^^^^^^^^ ADAPTER ^^^^^^^^^^^^^^^^^')
-        return msg, kwargs
 
 
 class CloudLog(logging.getLoggerClass()):
@@ -150,6 +123,7 @@ class CloudLog(logging.getLoggerClass()):
         if log_client is not logging:
             if not isinstance(log_client, cloud_logging.Client):
                 log_client = cls.make_client()
+            print(f"Using cloud log with client: {log_client} ")
             handler_kwargs = {}
             if handler_name:
                 handler_kwargs['name'] = handler_name
@@ -159,6 +133,7 @@ class CloudLog(logging.getLoggerClass()):
                 handler_kwargs['resource'] = res
             handler = CloudLoggingHandler(log_client, **handler_kwargs)
         else:
+            print("Using standard library for loggers. ")
             handler = logging.StreamHandler()
             if handler_name:
                 handler.set_name(handler_name)
