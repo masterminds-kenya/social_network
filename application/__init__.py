@@ -9,13 +9,14 @@ def create_app(config, debug=None, testing=None, config_overrides=dict()):
         debug = config_overrides.get('DEBUG', getattr(config, 'DEBUG', None))
     if testing is None:
         testing = config_overrides.get('TESTING', getattr(config, 'TESTING', None))
-    log_client, alert, app_handler, _res = None, None, None, None
+    log_client, alert, app_handler, _res, root_handler = None, None, None, None, None
     if not testing:
         base_log_level = logging.DEBUG if debug else logging.INFO
         cloud_log_level = logging.WARNING
         logging.basicConfig(level=base_log_level)  # Ensures a StreamHandler to stderr is attached.
         if len(logging.root.handlers):
-            formatter = logging.root.handlers[0].formatter
+            root_handler = logging.root.handlers[0]
+            formatter = root_handler.formatter
         else:
             formatter = CloudLog.make_formatter()
         log_name = 'alert'
@@ -42,7 +43,6 @@ def create_app(config, debug=None, testing=None, config_overrides=dict()):
     app._resource_test = _res
     if app_handler:
         app.logger.addHandler(app_handler)
-        root_handler = logging.root.handlers[0]
         low_filter = LowPassFilter(CloudLog.APP_LOGGER_NAME, cloud_log_level)
         root_handler.addFilter(low_filter)
 
