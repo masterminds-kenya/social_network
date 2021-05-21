@@ -14,6 +14,7 @@ def create_app(config, debug=None, testing=None, config_overrides=dict()):
         base_log_level = logging.DEBUG if debug else logging.INFO
         cloud_log_level = logging.WARNING
         logging.basicConfig(level=base_log_level)  # Ensures a StreamHandler to stderr is attached.
+        formatter = logging.root.handlers[0].formatter
         gae_standard = getattr(config, 'GAE_ENV', None) == 'standard'
         local_env = getattr(config, 'LOCAL_ENV')
         log_name = 'alert'
@@ -26,13 +27,9 @@ def create_app(config, debug=None, testing=None, config_overrides=dict()):
             else:
                 log_client = CloudLog.make_client(credential_path=cred_path)
                 # _res = CloudLog.make_resource(config)
-            alert = CloudLog.make_base_logger(log_name, log_name, base_log_level, log_client, _res)
+            alert = CloudLog.make_base_logger(log_name, log_name, base_log_level, formatter, log_client, _res)
             alert.propagate = False
-            app_handler = CloudLog.make_handler(CloudLog.APP_HANDLER_NAME, log_client, cloud_log_level)
-            # app_low_handler = CloudLog.make_handler('app_low', log_client, None, None, app_handler.formatter)
-            low_filter = LowPassFilter(CloudLog.APP_LOGGER_NAME, cloud_log_level)
-            # app_low_handler.addFilter(low_filter)
-            # app_low_handler.formatter
+            app_handler = CloudLog.make_handler(CloudLog.APP_HANDLER_NAME, log_client, cloud_log_level, fmt=formatter)
     app = Flask(__name__)
     app.config.from_object(config)
     app.debug = debug
