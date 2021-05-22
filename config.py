@@ -3,7 +3,6 @@ from os import environ
 
 class Config:
     """Flask configuration variables and application settings. """
-    # ####### #
     # Environment Parameters for Local, Dev, or Production.
     GAE_ENV = environ.get('GAE_ENV')  # expected: standard
     GAE_SERVICE = environ.get('GAE_SERVICE', '')
@@ -68,7 +67,7 @@ class Config:
 
     @property
     def standard_env(self):
-        """Returns boolean for the environment is GAE-standard, or local. """
+        """Returns boolean for the environment is 'GAE Standard', or running local. """
         expected = ('local', 'standard')
         code_environment = 'local' if self.LOCAL_ENV else self.GAE_ENV
         if code_environment in expected:
@@ -76,34 +75,35 @@ class Config:
         return False
 
     def get_LOCAL_ENV(self):
+        """Currently assumes either it is running on GAE or it is local. """
         if self.GAE_INSTANCE:
             return False
         return True
 
     def get_CODE_SERVICE(self):
         """Returns a str representing the environment the app is running on. """
-        if not hasattr(self, 'LOCAL_ENV'):
-            self.LOCAL_ENV = self.get_LOCAL_ENV()
         code_service = 'local' if self.LOCAL_ENV else self.GAE_SERVICE
         return code_service.lower()
 
     def get_GCLOUD_URL(self):
+        """On GCP the default URL is computed from the 'service', 'project_id', and 'project_region'. """
         service_string = ''
         if self.GAE_SERVICE not in (None, 'default'):
             service_string = self.GAE_SERVICE + '-dot-'
         return f'https://{service_string}{self.PROJECT_ID}.{self.PROJECT_REGION}.r.appspot.com'
 
     def get_URL(self):
+        """Returns the appropriate URL depending on the context of where the code is running. """
         if self.LOCAL_ENV:
             LOCAL_URL = 'http://127.0.0.1:5000' if self.FLASK_APP and self.FLASK_ENV else 'http://127.0.0.1:8080'
             return LOCAL_URL
         return self.URL_SETTING or self.get_GCLOUD_URL()
 
     def get_DB_CLOUD_CONNECTION(self):
-        # Set the following value to the Cloud SQL connection name, e.g.
-        #   "project:region:cloudsql-instance".
-        # You must also update the value in app.yaml.
-        # When running on App Engine a unix socket is used to connect to the cloudsql instance.
+        """Part of the path string for database connection when running on GCP, using the expected unix socket for GAE.
+        The DB_CONNECTION_NAME should be in the format of 'project:region:cloudsql-instance'.
+        The deployment 'app.yaml' (and similar) file should be updated with the needed values.
+        """
         db_connection = self.DB_CONNECTION_NAME
         if not db_connection:
             params = (self.PROJECT_ID, self.PROJECT_REGION, self.DB_INSTANCE)
@@ -113,23 +113,22 @@ class Config:
         return f'localhost/{self.DB_NAME}?unix_socket=/cloudsql/{db_connection}&'
 
     def get_DB_LOCAL_CONNECTION(self):
-        # The CloudSQL proxy is used locally to connect to the cloudsql instance.
-        # To start the proxy, use:
-        #   $ cloud_sql_proxy -instances=your-connection-name=tcp:3306
-        # Port 3306 is the standard MySQL port, but change it if needed.
-        # Alternatively, you could use a local MySQL instance for testing.
-        return f'127.0.0.1:3306/{self.DB_NAME}?'
+        """Part of the path string - used for running locally but connecting to the database via CloudSQL proxy.
+        The MySQL default port is 3306, but change it if needed.
+        When running locally, start the proxy from a terminal using:
+            cloud_sql_proxy -instances=your-connection-name=tcp:3306
+        Alternatively, can use a local MySQL instance for testing.
+        """
+        db_port = getattr(self, 'DB_PORT', '3306')
+        return f'127.0.0.1:{db_port}/{self.DB_NAME}?'
 
     def get_SQLALCHEMY_DATABASE_URI(self):
+        """Returns a context specific (running locally or on GAE) for connecting to the database.
+        Expected on GAE:
+            'mysql+pymysql://{user}:{password}@localhost/{db_name}'
+            '?unix_socket=/cloudsql/{connection_name}&charset=utf8mb4'
+        Expected for local with CloudSQL proxy connection:
+            'mysql+pymysql://{user}:{password}@127.0.0.1:3306/{database}?charset=utf8mb4'
+        """
         db_string = self.get_DB_LOCAL_CONNECTION() if self.LOCAL_ENV else self.get_DB_CLOUD_CONNECTION()
-        # LIVE_SQLALCHEMY_DATABASE_URI = (
-        #     'mysql+pymysql://{user}:{password}@localhost/{database}'
-        #     '?unix_socket=/cloudsql/{connection_name}&charset=utf8mb4').format(
-        #         user=user, password=password,
-        #         database=db_name, connection_name=connection_name)
-        # LOCAL_SQLALCHEMY_DATABASE_URI = (
-        #     'mysql+pymysql://{user}:{password}@127.0.0.1:3306/{database}?charset=utf8mb4').format(
-        #         user=user, password=password,
-        #         database=db_name)
-        # return LOCAL_SQLALCHEMY_DATABASE_URI if self.LOCAL_ENV else LIVE_SQLALCHEMY_DATABASE_URI
         return f'mysql+pymysql://{self.DB_USER}:{self.DB_PASSWORD}@{db_string}charset=utf8mb4'
