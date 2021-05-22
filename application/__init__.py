@@ -9,7 +9,7 @@ def create_app(config, debug=None, testing=None, config_overrides=dict()):
         debug = config_overrides.get('DEBUG', getattr(config, 'DEBUG', None))
     if testing is None:
         testing = config_overrides.get('TESTING', getattr(config, 'TESTING', None))
-    log_client, alert, app_handler, _res, root_handler = None, None, None, None, None
+    log_client, alert, app_handler, root_handler = None, None, None, None
     if not testing:
         base_log_level = logging.DEBUG if debug else logging.INFO
         cloud_log_level = logging.WARNING
@@ -26,6 +26,7 @@ def create_app(config, debug=None, testing=None, config_overrides=dict()):
         else:
             if getattr(config, 'GAE_ENV', None) == 'standard':
                 log_client = logging
+                _res = None
             else:
                 log_client = CloudLog.make_client(credential_path=cred_path)
                 # _res = CloudLog.make_resource(config)
@@ -40,10 +41,9 @@ def create_app(config, debug=None, testing=None, config_overrides=dict()):
         app.config.update(config_overrides)
     app.log_client = log_client
     app.alert = alert
-    app._resource_test = _res
     if app_handler:
         app.logger.addHandler(app_handler)
-        low_filter = LowPassFilter(CloudLog.APP_LOGGER_NAME, cloud_log_level)
+        low_filter = LowPassFilter(app.logger.name, cloud_log_level)
         root_handler.addFilter(low_filter)
 
     # Configure flask_login
