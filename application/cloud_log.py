@@ -2,6 +2,20 @@ import logging
 from google.cloud import logging as cloud_logging
 from google.cloud.logging.handlers import CloudLoggingHandler  # , setup_logging
 from google.oauth2 import service_account
+from google.cloud.logging import Resource
+
+
+class LowPassFilter(logging.Filter):
+    """Only allows LogRecords that are below the specified log level, according to levelno. """
+
+    def __init__(self, name: str, level: int) -> None:
+        super().__init__(name=name)
+        self.below_level = level
+
+    def filter(self, record):
+        if record.name == self.name and record.levelno > self.below_level - 1:
+            return False
+        return True
 
 
 class CloudLog(logging.getLoggerClass()):
@@ -11,6 +25,7 @@ class CloudLog(logging.getLoggerClass()):
     DEFAULT_LOGGER_NAME = None
     DEFAULT_HANDLER_NAME = None
     DEFAULT_LEVEL = logging.INFO
+    DEFAULT_FORMAT = '%(levelname)s:%(name)s:%(message)s'
     LOG_SCOPES = (
         'https://www.googleapis.com/auth/logging.read',
         'https://www.googleapis.com/auth/logging.write',
@@ -18,15 +33,23 @@ class CloudLog(logging.getLoggerClass()):
         'https://www.googleapis.com/auth/cloud-platform',
         )
 
-    def __init__(self, name=None, handler_name=None, level=None, log_client=None, rooted=True):
+    def __init__(self, name=None, handler_name=None, log_client=None, level=None, fmt=DEFAULT_FORMAT, parent='root'):
         name = self.make_logger_name(name)
         super().__init__(name)
         level = self.get_level(level)
         self.setLevel(level)
-        handler = self.make_cloud_handler(handler_name, log_client)
+        handler = self.make_handler(handler_name, log_client, None, fmt)
         self.addHandler(handler)
-        if rooted:
-            self.parent = logging.root
+        if parent == name:
+            parent = None
+        elif parent == 'root':
+            parent = logging.root
+        elif parent and isinstance(parent, str):
+            parent = logging.getLogger(parent.lower())
+        elif parent and not isinstance(parent, logging.getLoggerClass()):
+            raise TypeError("The 'parent' value must be a string, None, or an existing logger. ")
+        if parent:
+            self.parent = parent
 
     @classmethod
     def get_level(cls, level=None):
@@ -64,8 +87,8 @@ class CloudLog(logging.getLoggerClass()):
         return name.lower()
 
     @classmethod
-    def make_cloud_log_client(cls, credential_path=None, credentials=None):
-        """Creates the appropriate client to be used by other methods. """
+    def make_client(cls, credential_path=None, credentials=None):
+        """Creates the appropriate client, with appropriate handler for the environment, as used by other methods. """
         if credential_path:
             credentials = service_account.Credentials.from_service_account_file(credential_path)
             credentials = credentials.with_scopes(cls.LOG_SCOPES)
@@ -74,14 +97,50 @@ class CloudLog(logging.getLoggerClass()):
         return log_client
 
     @classmethod
-    def make_cloud_handler(cls, handler_name=None, log_client=None, level=None):
-        """Creates a handler for cloud logging with the provided name and optional level. """
+    def make_resource(cls, config, **kwargs):
+        """Creates an appropriate resource to help with logging. The 'config' can be a dict or config.Config object. """
+        if config and not isinstance(config, dict):
+            config = getattr(config, '__dict__', None)
+        if not config:
+            raise TypeError("The 'config' must be a dict or an object with needed values in __dict__. ")
+        labels = {'project_id': config.get('PROJECT_ID'), 'zone': config.get('PROJECT_ZONE')}
+        if config.get('GAE_ENV', None):
+            labels['module_id'] = config.get('GAE_SERVICE', None)
+        labels.update(kwargs)
+        res_type = 'global'  # 'logging_log', 'pubsub_subscription', 'pubsub_topic', 'reported_errors'
+        return Resource(type=res_type, labels=labels)
+
+    @classmethod
+    def make_formatter(cls, fmt=DEFAULT_FORMAT, datefmt=None):
+        """Creates a standard library formatter to attach to a handler. """
+        return logging.Formatter(fmt, datefmt=datefmt)
+
+    @classmethod
+    def make_handler(cls, handler_name=None, log_client=None, level=None, fmt=DEFAULT_FORMAT, res=None):
+        """Creates a cloud logging handler, or a standard library StreamHandler if log_client is logging. """
         handler_name = cls.make_handler_name(handler_name)
-        if not isinstance(log_client, cloud_logging.Client):
-            log_client = cls.make_cloud_log_client()
-        handler = CloudLoggingHandler(log_client, name=handler_name)
+        if log_client is not logging:
+            if not isinstance(log_client, cloud_logging.Client):
+                log_client = cls.make_client()
+            handler_kwargs = {}
+            if handler_name:
+                handler_kwargs['name'] = handler_name
+            if res:
+                if not isinstance(res, Resource):
+                    res = cls.make_resource(res)
+                handler_kwargs['resource'] = res
+            handler = CloudLoggingHandler(log_client, **handler_kwargs)
+        else:
+            handler = logging.StreamHandler()
+            if handler_name:
+                handler.set_name(handler_name)
         if level:
+            level = cls.get_level(level)
             handler.setLevel(level)
+        if fmt and not isinstance(fmt, logging.Formatter):
+            fmt = cls.make_formatter(fmt)
+        if fmt:
+            handler.setFormatter(fmt)
         return handler
 
     @staticmethod
@@ -111,15 +170,15 @@ class CloudLog(logging.getLoggerClass()):
                 return handle
         return None
 
-    @staticmethod
-    def make_base_logger(name=None, handler_name=None, level=None, log_client=None):
+    @classmethod
+    def make_base_logger(cls, name=None, handler_name=None, log_client=None, level=None, fmt=DEFAULT_FORMAT, res=None):
         """Used to create a logger with an optional cloud handler when a CloudLog instance is not desired. """
-        name = CloudLog.make_logger_name(name)
-        level = CloudLog.get_level(level)
+        name = cls.make_logger_name(name)
         logger = logging.getLogger(name)
         if handler_name:
-            handler = CloudLog.make_cloud_handler(handler_name, log_client)
+            handler = cls.make_handler(handler_name, log_client, None, fmt, res)
             logger.addHandler(handler)
+        level = cls.get_level(level)
         logger.setLevel(level)
         return logger
 
@@ -135,41 +194,64 @@ class CloudLog(logging.getLoggerClass()):
             print(f"Investigating {len(loggers)} independent loggers. ")
         loggers = [('root', logging.root)] + app_loggers + [(num, ea) for num, ea in enumerate(loggers)]
         print(f"Total loggers: {len(loggers)} ")
-        code = app.config.get('CODE_ENVIRONMENT', 'UNKNOWN')
+        code = app.config.get('CODE_SERVICE', 'UNKNOWN')
         print("=================== Logger Tests & Info ===================")
         log_count_str = ''
         all_handlers = []
         for name, logger in loggers:
-            handlers = getattr(logger, 'handlers', 'not found')
+            adapter = None
+            if isinstance(logger, logging.LoggerAdapter):
+                adapter, logger = logger, logger.logger
+            handlers = getattr(logger, 'handlers', ['not found'])
             if isinstance(handlers, list):
                 all_handlers.extend(handlers)
-            log_count_str += f"{name} handlers: {str(handlers)} " + '\n'
+            log_count_str += f"{name} handlers: {', '.join([str(ea) for ea in handlers])} " + '\n'
             for level in levels:
-                if hasattr(logger, level):
-                    getattr(logger, level)(' - '.join((context, name, level, code)))
+                if hasattr(adapter or logger, level):
+                    getattr(adapter or logger, level)(' - '.join((context, name, level, code)))
                 else:
                     logging.warning(f"{context} in {code}: No {level} method on logger {name} ")
+            if adapter:
+                print(f"--------------- {name} ADAPTER Settings ------------------")
+                pprint(adapter.__dict__)
             print(f"--------------- {name} Logger Settings ------------------")
             pprint(logger.__dict__)
             print('-------------------------------------------------------------')
+        print(log_count_str)
         print(f"=================== Details for each of {len(all_handlers)} handlers ===================")
         creds_list = []
+        resources = []
         for handle in all_handlers:
             pprint(handle.__dict__)
             temp_client = getattr(handle, 'client', object)
             temp_creds = getattr(temp_client, '_credentials', None)
             if temp_creds:
                 creds_list.append(temp_creds)
+            resources.append(getattr(handle, 'resource', None))
             print("-------------------------------------------------")
+        print("====================== Resources found attached to the Handlers ======================")
+        if hasattr(app, '_resource_test'):
+            resources.append(app._resource_test)
+        for res in resources:
+            if hasattr(res, '_to_dict'):
+                pprint(res._to_dict())
+            else:
+                pprint(f"Resource was: {res} ")
         pprint("=================== App Log Client Credentials ===================")
+        log_client = getattr(app, 'log_client', None)
+        if log_client is logging:
+            log_client = None
+        app_creds = log_client._credentials if log_client else None
+        if app_creds in creds_list:
+            app_creds = None
         print(f"Currently have {len(creds_list)} creds from logger clients. ")
         creds_list = [(f"client_cred_{num}", ea) for num, ea in enumerate(set(creds_list))]
         print(f"With {len(creds_list)} unique client credentials. " + '\n')
-        if hasattr(app, '_creds'):
-            creds_list.append(('_creds', app._creds))
-        log_client = getattr(app, 'log_client', None)
-        if log_client:
-            creds_list.append(('App Log Client Creds', log_client._credentials))
+        if log_client and not app_creds:
+            print("App Log Client Creds - already included in logger clients. ")
+        elif app_creds:
+            print("Adding App Log Client Creds. ")
+            creds_list.append(('App Log Client Creds', app_creds))
         for name, creds in creds_list:
             pprint(f"{name}: {creds} ")
             pprint(creds.expired)
@@ -180,17 +262,21 @@ class CloudLog(logging.getLoggerClass()):
             print("No credentials found to report.")
 
 
-def setup_cloud_logging(config, base_log_level, cloud_log_level, extra=None):
+def setup_cloud_logging(service_account_path, base_log_level, cloud_log_level, extra=None):
     """Function to setup logging with google.cloud.logging when not on Google Cloud App Standard. """
-    service_account_path = getattr(config, 'GOOGLE_APPLICATION_CREDENTIALS', None)
-    log_client = CloudLog.make_cloud_log_client(service_account_path)
+    log_client = CloudLog.make_client(service_account_path)
+    log_client.get_default_handler()
     log_client.setup_logging(log_level=base_log_level)  # log_level sets the logger, not the handler.
     # Note: any modifications to the default 'python' handler from setup_logging will invalidate creds.
-    handler = CloudLog.make_cloud_handler(CloudLog.APP_HANDLER_NAME, log_client, cloud_log_level)
+    root_handler = logging.root.handlers[0]
+    low_filter = LowPassFilter(CloudLog.APP_LOGGER_NAME, cloud_log_level)
+    root_handler.addFilter(low_filter)
+    fmt = getattr(root_handler, 'formatter', None) or CloudLog.DEFAULT_FORMAT
+    handler = CloudLog.make_handler(CloudLog.APP_HANDLER_NAME, log_client, cloud_log_level, fmt)
     logging.root.addHandler(handler)
     if extra is None:
         extra = []
     elif isinstance(extra, str):
         extra = [extra]
-    cloud_logs = [CloudLog(ea, ea, base_log_level, log_client) for ea in extra]
+    cloud_logs = [CloudLog(name, name, log_client, base_log_level, fmt) for name in extra]
     return (log_client, *cloud_logs)

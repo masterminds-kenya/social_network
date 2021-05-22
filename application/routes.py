@@ -12,6 +12,7 @@ from .api import (onboard_login, onboarding, user_permissions, get_insight, get_
 from .create_queue_task import add_to_collect, COLLECT_PROCESS_ALLOWED
 from .sheets import create_sheet, update_sheet, perm_add, perm_list, all_files
 from .cloud_log import CloudLog
+from datetime import time
 
 # Sentinels for errors recorded on the Post.caption field.
 CAPTION_ERRORS = ['NO_CREDENTIALS', 'AUTH_FACEBOOK', 'AUTH_TOKEN', 'AUTH_NONE', 'API_ERROR', 'INSIGHTS_CREATED']
@@ -94,19 +95,19 @@ def login():
             flash("Password required. If you don't have one, you can try Facebook login, otherwise contact an admin. ")
             return redirect(url_for('login'))
         user = User.query.filter_by(email=data['email']).first()
-        # app.logger.debug(f"Found {user} user with role {getattr(user, 'role', 'NOT FOUND')}. ")
         if not user or not check_password_hash(user.password, data['password']):
             app.logger.debug("Problem with login credentials. ")
             if user:
-                app.logger.debug(f"Password problem for {user} ")
+                app.logger.debug("Password problem for %s ", str(user))
             flash("Those login details did not work. ")
             return redirect(url_for('login'))
         attempt = login_user(user, remember=data.get('remember', False))  # , duration=timedelta(days=61)
         if not attempt:
-            app.logger.debug(f"The login attempt response: {attempt} ")
-        # app.logger.debug(f"Current User: {current_user}, is a good match: {current_user == user} ")
-        # if current_user == user:
-        #     app.logger.debug(f"Current details | role: {user.role} | id: {user.id} | is_active: {getattr(user, 'is_active', 'NOT FOUND')} ")
+            app.logger.debug("The login attempt response: %s ", str(attempt))
+        app.logger.debug("Current User: %s, is a good match: %s ", str(current_user), str(current_user == user))
+        if current_user == user:
+            args = (user.role, str(user.id), getattr(user, 'is_active', 'NOT FOUND'))
+            app.logger.debug("Current details | role: %s | id: %s | is_active: %s ", *args)
         return view(user.role, user.id)
         # return redirect(url_for('view', mod=user.role, id=user.id))
     return render_template('signup.html', signup_roles=None, mods=['influencer', 'brand'])
@@ -153,7 +154,7 @@ def permission_check(mod, id):
     if not data:
         flash("Error in looking up permission granted by the user to the platform. ")
         return redirect(request.referrer)
-    app.logger.debug(f"========== PERMISSION CHECK: {user} ===========")
+    app.logger.debug("========== PERMISSION CHECK: %s ===========", str(user))
     pprint(data)
     return render_template('view.html', mod=mod, data=data)
 
@@ -242,7 +243,7 @@ def capture(id):
 @staff_required()
 def export(mod, id):
     """Export data to google sheet, generally for influencer or brand Users. Linked in the view template. """
-    app.logger.debug(f"==== {mod} Create Sheet ====")
+    app.logger.debug("==== %s Create Sheet ====", mod)
     Model = mod_lookup(mod)
     model = Model.query.get(id)
     sheet = create_sheet(model)
@@ -263,12 +264,12 @@ def update_data(mod, id, sheet_id):
 @staff_required()
 def data_permissions(mod, id, sheet_id, perm_id=None):
     """Used for managing permissions for who has access to a worksheet """
-    app.logger.debug(f'===== {mod} data permissions for sheet {sheet_id} ====')
+    app.logger.debug('===== %s data permissions for sheet %s ====', mod, str(sheet_id))
     template = 'form_permission.html'
     sheet = perm_list(sheet_id)
     data = next((x for x in sheet.get('permissions', []) if x.id == perm_id), {}) if perm_id else {}
     action = 'Edit' if perm_id else 'Add'
-    app.logger.debug(f'-------- {mod} Sheet {action} Permissions --------')
+    app.logger.debug('-------- %s Sheet %s Permissions --------', mod, action)
     if request.method == 'POST':
         data = request.form.to_dict(flat=True)
         if action == 'Edit':
@@ -287,7 +288,7 @@ def data_permissions(mod, id, sheet_id, perm_id=None):
 @app.route('/login/<string:mod>')
 def fb_login(mod):
     """Initiate the creation of a new Influencer or Brand, as indicated by 'mod' """
-    app.logger.debug(f'====================== NEW {mod} Account =========================')
+    app.logger.debug('====================== NEW %s Account =========================', mod)
     if app.config.get('LOCAL_ENV') is True:
         app.logger.error("Can not call the Facebook auth function when running locally. ")
         flash("This does not work when running locally. Redirecting to the home page. ")
@@ -299,14 +300,14 @@ def fb_login(mod):
 @app.route('/callback/<string:mod>')
 def callback(mod):
     """Handle the callback for Facebook authorization. Create new influencer or brand user as indicated by 'mod'. """
-    app.logger.info(f'================= Authorization Callback {mod}===================')
+    app.logger.info('================= Authorization Callback %s ===================', mod)
     view, data = onboarding(mod, request)
     if view == 'decide':
         data = prep_ig_decide(data)
         return render_template('decide_ig.html', mod=mod, view=view, ig_list=data)  # POST to edit
     elif view == 'existing':
         app.logger.info("Login Existing influencer or brand user. ")
-        app.logger.debug(f"Amongst these existing User options: {data}. ")
+        app.logger.debug("Amongst these existing User options: %s. ", data)
         return render_template('decide_ig.html', mod=mod, view=view, ig_list=data)  # POST to login_sel
     elif view == 'not_found':
         return render_template('decide_ig.html', mod=mod, view=view, ig_list=data)  # POST to edit, but no form.
@@ -384,9 +385,9 @@ def results_campaign(id):
     campaign = Campaign.query.get(id)
     if request.method == 'POST':
         sheet = create_sheet(campaign)
-        app.logger.debug(f"==== Campaign {view} Create Sheet ====")
+        app.logger.debug("==== Campaign %s Create Sheet ====", view)
         return render_template('data.html', mod=mod, id=id, sheet=sheet)
-    app.logger.debug(f'=========== Campaign {view} ===========')
+    app.logger.debug('=========== Campaign %s===========', view)
     related = campaign.get_results()
     return render_template(template, mod=mod, view=view, data=campaign, related=related)
 
@@ -417,7 +418,7 @@ def campaign(id, view='management'):
     mod = 'campaign'
     template, related = f"{mod}.html", {}
     campaign = Campaign.query.get(id)
-    app.logger.debug(f'=========== Campaign {view} ===========')
+    app.logger.debug('=========== Campaign %s ===========', view)
     if request.method == 'POST':
         success = update_campaign(campaign, request)
         if not success:
@@ -451,6 +452,7 @@ def update_campaign_metrics(id):
 @app.route('/all_posts')
 def all_posts():
     """Used for daily downloads, or can be called manually by an admin (but not managers). """
+    start_time = time.time()
     app.logger.debug("===================== All Posts Process Run =====================")
     cron_run = request.headers.get('X-Appengine-Cron', None)
     if not cron_run:
@@ -473,7 +475,9 @@ def all_posts():
             task_list = add_to_collect(media_results, process='basic', in_seconds=180)
             success = all(ea is not None for ea in task_list)
     status = 201 if success else 500
+    end_time = time.time()
     response = {'User_num': num_users, 'Post_num': count, 'message': message, 'status_code': status}
+    response['duration'] = start_time - end_time
     if cron_run:
         response = json.dumps(response)  # Response headers added when jsonify automatically called on returned dict.
     else:  # Process run by an admin.
@@ -519,7 +523,7 @@ def capture_report():
 def collect_queue(mod, process):
     """For backend handling requests for media post data from the Graph API with google cloud tasks. """
     known_process = COLLECT_PROCESS_ALLOWED  # {'basic', 'metrics', 'data'}
-    app.logger.debug(f"==================== collect queue: {mod} {process} ====================")
+    app.logger.debug("==================== collect queue: %s %s ====================", mod, process)
     if mod != 'post' or process not in known_process:
         message = f"Request in 'collect_queue' - Process: {process} Model: {mod} "
         app.alert.error(message)
@@ -556,7 +560,7 @@ def collect_queue(mod, process):
     # format of each in dataset['media_list']: {'media_id': media_id, 'user_id': user.id, [media_type': 'STORY']}
     user_id = dataset.get('user_id', 'NOT FOUND')
     media_count = len(dataset.get('media_list', []))
-    app.logger.debug(f"------------------------ Media: {media_count} for User ID: {user_id} ------------------------")
+    app.logger.debug("-------------------- Media: %s for User ID: %s --------------------", media_count, str(user_id))
     result = handle_collect_media(dataset, process)
     if isinstance(result, list):
         count, success = media_posts_save(result, bulk_db_operation='update')
@@ -576,7 +580,7 @@ def collect_queue(mod, process):
 @app.route('/post/hook/', methods=['GET', 'POST'])
 def hook():
     """Endpoint receives all webhook updates from Instagram/Facebook for Story Posts. """
-    app.logger.debug(f"========== The hook route has a {request.method} request ==========")
+    app.logger.debug("========== The hook route has a %s request ==========", request.method)
     if request.method == 'POST':
         signed = request.headers.get('X-Hub-Signature', '')
         data = request.json if request.is_json else request.data  # request.get_data() for byte_data
@@ -592,8 +596,8 @@ def hook():
         token_match = True if token_match == app.config.get('FB_HOOK_SECRET') else False
         res = request.args.get('hub.challenge', '') if token_match else 'Error. '
         response_code = 200 if token_match else 401
-        app.logger.debug(f"Mode: {mode} | Challenge: {res} | Token: {token_match} ")
-    app.logger.debug(f"==================== The hook route returns status code: {response_code} ====================")
+        app.logger.debug("Mode: %s | Challenge: %s | Token: %s ", str(mode), res, str(token_match))
+    app.logger.debug("================ The hook route returns status code: %s ================", str(response_code))
     app.logger.debug(res)
     return res, response_code
 

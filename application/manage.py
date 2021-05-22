@@ -128,7 +128,7 @@ def add_edit(mod, id=None):
            or mod != 'brand':
             flash("Using Signup. ")
             return redirect(url_for('signup'))
-    app.logger.debug(f'------- {action} {mod} ----------')
+    app.logger.debug('------- %s %s ----------', action, mod)
     if request.method == 'POST':
         data = process_form(mod, request)
         if mod == 'brand' and data.get('instagram_id', '') in ('None', None, ''):
@@ -299,7 +299,7 @@ def process_hook(req):
     data_log = f"{insight_count} story"
     if data_count != insight_count:
         data_log += f", {data_count} total"
-    # app.logger.debug(f"============ PROCESS HOOK: {data_log} ============")
+    # app.logger.debug("============ PROCESS HOOK: %s ============", data_log)
     timestamp = str(make_missing_timestamp(1))  # timestamp only for creating if not present = str(dt.utcnow() - 1 day)
     total, new, modified, skipped, message = 0, 0, 0, 0, ''
     for story in story_insights:
@@ -357,5 +357,5 @@ def process_hook(req):
     else:
         message += "No needed record updates. "
         response_code = 200
-    app.logger.debug(f"===== PROCESS HOOK: {data_log} =====")
+    app.logger.debug("===== PROCESS HOOK: %s =====", data_log)
     return message, response_code

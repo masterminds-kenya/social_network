@@ -1,7 +1,7 @@
 from flask import Flask
 from flask_login import LoginManager
 import logging
-from .cloud_log import CloudLog, setup_cloud_logging
+from .cloud_log import CloudLog, LowPassFilter, setup_cloud_logging
 
 
 def create_app(config, debug=None, testing=None, config_overrides=dict()):
@@ -9,22 +9,30 @@ def create_app(config, debug=None, testing=None, config_overrides=dict()):
         debug = config_overrides.get('DEBUG', getattr(config, 'DEBUG', None))
     if testing is None:
         testing = config_overrides.get('TESTING', getattr(config, 'TESTING', None))
-    log_client, alert, app_handler = None, None, None
+    log_client, alert, app_handler, root_handler = None, None, None, None
     if not testing:
         base_log_level = logging.DEBUG if debug else logging.INFO
         cloud_log_level = logging.WARNING
         logging.basicConfig(level=base_log_level)  # Ensures a StreamHandler to stderr is attached.
-        gae_env = getattr(config, 'GAE_ENV', None)
-        local_env = getattr(config, 'LOCAL_ENV')
+        if len(logging.root.handlers):
+            root_handler = logging.root.handlers[0]
+            formatter = root_handler.formatter
+        else:
+            formatter = CloudLog.make_formatter()
         log_name = 'alert'
-        if gae_env == 'standard' or local_env:
-            alert = CloudLog.make_base_logger(log_name, log_name, base_log_level)
-            cred_path = getattr(config, 'GOOGLE_APPLICATION_CREDENTIALS', None)
-            log_client = CloudLog.make_cloud_log_client(credential_path=cred_path)
-            app_handler = CloudLog.make_cloud_handler(CloudLog.APP_HANDLER_NAME, log_client, cloud_log_level)
-        elif not local_env:
-            log_client, alert, *ignore = setup_cloud_logging(config, base_log_level, cloud_log_level, extra=log_name)
-
+        cred_path = getattr(config, 'GOOGLE_APPLICATION_CREDENTIALS', None)
+        if not config.standard_env:
+            log_client, alert, *ignore = setup_cloud_logging(cred_path, base_log_level, cloud_log_level, extra=log_name)
+        else:
+            if getattr(config, 'GAE_ENV', None) == 'standard':
+                log_client = logging
+                _res = None
+            else:
+                log_client = CloudLog.make_client(credential_path=cred_path)
+                # _res = CloudLog.make_resource(config)
+            alert = CloudLog.make_base_logger(log_name, log_name, log_client, base_log_level, formatter, _res)
+            alert.propagate = False
+            app_handler = CloudLog.make_handler(CloudLog.APP_HANDLER_NAME, log_client, cloud_log_level, formatter)
     app = Flask(__name__)
     app.config.from_object(config)
     app.debug = debug
@@ -35,6 +43,8 @@ def create_app(config, debug=None, testing=None, config_overrides=dict()):
     app.alert = alert
     if app_handler:
         app.logger.addHandler(app_handler)
+        low_filter = LowPassFilter(app.logger.name, cloud_log_level)
+        root_handler.addFilter(low_filter)
 
     # Configure flask_login
     login_manager = LoginManager()

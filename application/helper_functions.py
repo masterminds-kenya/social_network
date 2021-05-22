@@ -28,7 +28,7 @@ def prep_ig_decide(data):
         for key, value in ig_info.items():
             cleaned[key] = json.dumps(value) if key in Audience.IG_DATA else value
         ig_list.append(cleaned)
-    app.logger.debug(f"Amongst these IG options: {ig_list}. ")
+    app.logger.debug("Amongst these IG options: %s. ", ig_list)
     return ig_list
 
 
@@ -186,7 +186,8 @@ def get_test_ig(version):
     elif version == 'z':
         start_z = time()
         is_active = Campaign.completed.is_(False)
-        users_z = User.query.filter(User.instagram_id.isnot(None), (or_(User.campaigns.any(is_active), User.brand_campaigns.any(is_active))))
+        user_has_active = (or_(User.campaigns.any(is_active), User.brand_campaigns.any(is_active)))
+        users_z = User.query.filter(User.instagram_id.isnot(None), user_has_active)
         result_z = users_z.all()
         end_z = time()
         results = (users_z, result_z, len(result_z), end_z - start_z, )
