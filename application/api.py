@@ -523,11 +523,12 @@ def construct_metrics_lookup(group_metrics, metrics, media_ids):
 
 
 def clean_collect_dataset(data):
-    """Return a list of dicts with Post id, and resources needed for the Graph API request. """
-    # data = {'user_id': int, 'post_ids': [int, ] | None, 'media_ids': [int, ] | None, }  # must have post or media ids
-    # optional in data: 'metrics': str|None, 'post_metrics': {int: str}|str|None
-    # daily download format: {'user_id': user.id, 'media_ids': media_ids, 'media_list': cur}
-    # format of each in data['media_list']: {'media_id': media_id, 'user_id': user.id, [media_type': 'STORY']}
+    """Return a list of dicts with Post id, and resources needed for the Graph API request.
+    data = {'user_id': int, 'post_ids': [int, ] | None, 'media_ids': [int, ] | None, }  # must have post or media ids
+    optional in data: 'metrics': str|None, 'post_metrics': {int: str}|str|None
+    daily download format: {'user_id': user.id, 'media_ids': media_ids, 'media_list': cur}
+    format of each in data['media_list']: {'media_id': media_id, 'user_id': user.id, [media_type': 'STORY']}
+    """
     if not isinstance(data, (dict)):
         err = "Input is not an expected dictionary. "
         app.logger.error(err)
@@ -574,10 +575,11 @@ def clean_collect_dataset(data):
 
 
 def handle_collect_media(dataset, process):
-    """With the given dataset and post process, call the Graph API and update the database. Return dict with status. """
-    # already confirmed process is one of: 'basic', 'metrics', 'data'
-    # data format: {'user_id': user.id, 'media_ids': media_ids, 'media_list': cur}
-    # format of each in data['media_list']: {'media_id': media_id, 'user_id': user.id, [media_type': 'STORY']}
+    """With the given dataset and post process, call the Graph API and update the database. Return dict with status.
+    Before this function, ensure that process is one of: 'basic', 'metrics', 'data'.
+    data format: {'user_id': user.id, 'media_ids': media_ids, 'media_list': cur}
+    format of each in data['media_list']: {'media_id': media_id, 'user_id': user.id, [media_type': 'STORY']}
+    """
     app.logger.debug("========== HANDLE COLLECT MEDIA ==========")
     dataset = clean_collect_dataset(dataset)
     app.logger.debug(len(dataset))
@@ -696,6 +698,7 @@ def remove_app_on_user_for_story_updates(id_or_user, page=None, facebook=None, t
     """This User is no longer having their Story Posts tracked, so uninstall the App on their related Page. """
     user = find_valid_user(id_or_user)
     app.logger.debug("========== remove_app_on_user_for_story_updates: %s ==========", str(user))
+    # TODO: URGENT - Does this now scaffolded function cause issues elsewhere?
     return True
     # if not isinstance(page, dict) or not page.get('id') or not page.get('token'):
     #     page = get_fb_page_for_users_ig_account(user, facebook=facebook, token=token)
@@ -714,10 +717,11 @@ def remove_app_on_user_for_story_updates(id_or_user, page=None, facebook=None, t
 
 
 def get_ig_info(ig_id, facebook=None, token=None):
-    """We already have their InstaGram Business Account id, but we need their IG username """
-    # Possible fields. Fields with asterisk (*) are public and can be returned by and edge using field expansion:
-    # biography*, id*, ig_id, followers_count*, follows_count, media_count*, name,
-    # profile_picture_url, username*, website*
+    """From knowing an InstaGram Business Account id, get their IG username and some other account data.
+    Possible fields. Fields with asterisk (*) are public and can be returned by and edge using field expansion:
+    biography*, id*, ig_id, followers_count*, follows_count, media_count*, name,
+    profile_picture_url, username*, website*
+    """
     # TODO: Is pagination a concern?
     fields = ','.join(['username', *Audience.IG_DATA])  # 'media_count', 'followers_count'
     app.logger.debug('============ Get IG Info ===================')
