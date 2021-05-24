@@ -566,7 +566,7 @@ def collect_queue(mod, process):
         count, success = media_posts_save(result, bulk_db_operation='update')
         if success:
             info = f"Updated {count} Post records with media {process} info for user ID: {user_id} - SUCCESS. "
-            app.alert.debug(info)
+            app.alert.info(info)  # TODO: Change to debug after confirmed it is working.
             result = {'reason': info, 'status_code': 201}
         else:
             info = f"Updating {count} Posts with the media {process} results for user ID: {user_id} - FAILED. "
@@ -590,7 +590,7 @@ def hook():
             app.logger.error(message)
             return message, 401  # 403 if we KNOW it was done wrong
         res, response_code = process_hook(data)
-    else:  # request.method == 'GET':
+    else:  # request.method == 'GET': Confirm Oauth tokens match.
         mode = request.args.get('hub.mode')
         token_match = request.args.get('hub.verify_token', '') if request.args.get('hub.mode') == 'subscribe' else ''
         token_match = True if token_match == app.config.get('FB_HOOK_SECRET') else False

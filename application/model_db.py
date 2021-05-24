@@ -986,8 +986,8 @@ def db_all(Model=User, role=None):
     return query.order_by(sort_field).all()
 
 
-def create_many(dataset, Model=User):
-    """Currently only used for temporary developer_admin function """
+def create_many(dataset, Model=User):  # TODO: Confirm this is no longer needed.
+    """DEPRECATED: Confirm no longer in use. Currently only used for temporary developer_admin function. """
     all_results = []
     for data in dataset:
         model = Model(**data)
