@@ -1,8 +1,10 @@
 import logging
 from google.cloud import logging as cloud_logging
 from google.cloud.logging.handlers import CloudLoggingHandler  # , setup_logging
+from google.auth import default as creds_id
 from google.oauth2 import service_account
 from google.cloud.logging import Resource
+from googleapiclient.discovery import build
 
 
 class LowPassFilter(logging.Filter):
@@ -16,6 +18,37 @@ class LowPassFilter(logging.Filter):
         if record.name == self.name and record.levelno > self.below_level - 1:
             return False
         return True
+
+
+class CloudHandler(logging.Handler):
+    """A handler that both uses the Google Logging API and writes to the standard outpout. """
+
+    def __init__(self, name='', level=0):
+        super().__init__(level=level)
+        self.name = name
+        creds, project_id = creds_id(CloudLog.LOG_SCOPES)
+        self.project_id = project_id
+        self.logging_api = build('logging', 'v2', credentials=creds)
+
+    def emit(self, record):
+        print("This is the print: " + str(record))
+        api_log = self.logging_api.entries().write
+        api_body = {
+            'entries': [
+                {
+                    'severity': record.levelno,
+                    'jsonPayload': {
+                        'module': record.module,
+                        'message': record.getMessage()
+                    },
+                    'logName': 'projects/' + self.project_id + '/logs/' + record.name,
+                    'resource': {
+                        'type': 'global',
+                    }
+                }
+            ]
+        }
+        api_log(body=api_body).execute()
 
 
 class CloudLog(logging.getLoggerClass()):
