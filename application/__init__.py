@@ -1,7 +1,7 @@
 from flask import Flask
 from flask_login import LoginManager
 import logging
-from .cloud_log import CloudLog, LowPassFilter, setup_cloud_logging
+from .cloud_log import CloudLog, LowPassFilter, setup_cloud_logging  # , CloudHandler
 
 
 def create_app(config, debug=None, testing=None, config_overrides=dict()):
@@ -29,9 +29,10 @@ def create_app(config, debug=None, testing=None, config_overrides=dict()):
                 _res = None
             else:
                 log_client = CloudLog.make_client(credential_path=cred_path)
-                # _res = CloudLog.make_resource(config)
+                _res = None  # _res = CloudLog.make_resource(config)
             alert = CloudLog.make_base_logger(log_name, log_name, log_client, base_log_level, formatter, _res)
             alert.propagate = False
+            # app_handler = CloudHandler(name=CloudLog.APP_HANDLER_NAME, level=cloud_log_level)
             app_handler = CloudLog.make_handler(CloudLog.APP_HANDLER_NAME, log_client, cloud_log_level, formatter)
     app = Flask(__name__)
     app.config.from_object(config)
