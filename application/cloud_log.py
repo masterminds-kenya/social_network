@@ -4,7 +4,8 @@ from google.cloud.logging.handlers import CloudLoggingHandler  # , setup_logging
 from google.auth import default as creds_id
 from google.oauth2 import service_account
 from google.cloud.logging import Resource
-from googleapiclient.discovery import build
+from os import environ
+# from googleapiclient.discovery import build
 
 
 class LowPassFilter(logging.Filter):
@@ -38,28 +39,44 @@ class CloudHandler(logging.StreamHandler):
             client = CloudLog.make_client(client)
         if not client:
             creds, project_id = creds_id(CloudLog.LOG_SCOPES)
+            kwargs = {'credentials': creds} if creds else {}
+            client = cloud_logging.Client(**kwargs)
+        else:
+            project_id = client.project
+        self.gae_service = environ.get('GAE_SERVICE', '')
+        self.client = client
         self.project_id = project_id
-        self.logging_api = build('logging', 'v2', credentials=creds)
 
     def emit(self, record):
-        print("This is the print: " + str(record))
-        api_log = self.logging_api.entries().write
-        api_body = {
-            'entries': [
-                {
-                    'severity': record.levelno,
-                    'jsonPayload': {
-                        'module': record.module,
-                        'message': record.getMessage()
-                    },
-                    'logName': 'projects/' + self.project_id + '/logs/' + record.name,
-                    'resource': {
-                        'type': 'global',
-                    }
-                }
-            ]
+        message = self.format(record)
+        print("This is the print: " + message)
+        g_log = self.client.logger(self.name or record.name)
+
+        info = {
+            'severity_number': record.levelno,
+            'severity_name': record.levelname,
+            'python_logger': record.name,
+            'service': self.gae_service,
+            'project': self.project_id,
+            'message': message,
         }
-        api_log(body=api_body).execute()
+        # api_body = {
+        #     'entries': [
+        #         {
+        #             'severity': record.levelno,
+        #             'jsonPayload': {
+        #                 'module': record.module,
+        #                 'message': record.getMessage()
+        #             },
+        #             'logName': 'projects/' + self.project_id + '/logs/' + record.name,
+        #             'resource': {
+        #                 'type': 'global',
+        #             }
+        #         }
+        #     ]
+        # }
+        # api_log(body=api_body).execute()
+        g_log.log_struct(info, severity=record.levelname)
 
 
 class CloudLog(logging.getLoggerClass()):
@@ -151,7 +168,7 @@ class CloudLog(logging.getLoggerClass()):
         if config.get('GAE_ENV', None):
             labels['module_id'] = config.get('GAE_SERVICE', None)
         labels.update(kwargs)
-        res_type = 'global'  # 'logging_log', 'pubsub_subscription', 'pubsub_topic', 'reported_errors'
+        res_type = 'global'  # 'gae_app', 'logging_log', 'pubsub_subscription', 'pubsub_topic', 'reported_errors'
         return Resource(type=res_type, labels=labels)
 
     @classmethod
