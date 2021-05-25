@@ -24,10 +24,20 @@ class CloudHandler(logging.StreamHandler):
     """EXPERIMENTAL. A handler that both uses the Google Logging API and writes to the standard outpout. """
     DEFAULT_FORMAT = '%(levelname)s:%(name)s:%(message)s'
 
-    def __init__(self, name='', level=0):
-        super().__init__(level=level)
-        self.name = name
-        creds, project_id = creds_id(CloudLog.LOG_SCOPES)
+    def __init__(self, name='', client=None, level=0, fmt=DEFAULT_FORMAT):
+        super().__init__()
+        if name:
+            self.set_name(name)
+        if level:
+            self.setLevel(level)
+        if fmt and not isinstance(fmt, logging.Formatter):
+            fmt = CloudLog.make_formatter(fmt)
+        if fmt:
+            self.setFormatter(fmt)
+        if not isinstance(client, cloud_logging.Client):  # Either None, or assume a credential filepath.
+            client = CloudLog.make_client(client)
+        if not client:
+            creds, project_id = creds_id(CloudLog.LOG_SCOPES)
         self.project_id = project_id
         self.logging_api = build('logging', 'v2', credentials=creds)
 
