@@ -30,7 +30,7 @@ def create_app(config, debug=None, testing=None, config_overrides=dict()):
                 log_client = logging
                 _res = None
             else:
-                log_client = CloudLog.make_client(credential_path=cred_path)
+                log_client = CloudLog.make_client(cred_path)
                 _res = None  # _res = CloudLog.make_resource(config)
             alert = CloudLog.make_base_logger(log_name, log_name, log_client, base_log_level, formatter, _res)
             alert.propagate = False
