@@ -1,7 +1,9 @@
 from flask import Flask
 from flask_login import LoginManager
 import logging
-from .cloud_log import CloudLog, LowPassFilter, setup_cloud_logging  # , CloudHandler
+from .cloud_log import CloudLog, LowPassFilter, setup_cloud_logging, CloudHandler
+
+ALWAYS_CLOUDlOG = False
 
 
 def create_app(config, debug=None, testing=None, config_overrides=dict()):
@@ -24,7 +26,7 @@ def create_app(config, debug=None, testing=None, config_overrides=dict()):
         if not config.standard_env:
             log_client, alert, *ignore = setup_cloud_logging(cred_path, base_log_level, cloud_log_level, extra=log_name)
         else:
-            if getattr(config, 'GAE_ENV', None) == 'standard':
+            if not ALWAYS_CLOUDlOG and getattr(config, 'GAE_ENV', None) == 'standard':
                 log_client = logging
                 _res = None
             else:
@@ -44,8 +46,9 @@ def create_app(config, debug=None, testing=None, config_overrides=dict()):
     app.alert = alert
     if app_handler:
         app.logger.addHandler(app_handler)
-        low_filter = LowPassFilter(app.logger.name, cloud_log_level)
-        root_handler.addFilter(low_filter)
+        if root_handler:
+            low_filter = LowPassFilter(app.logger.name, cloud_log_level)
+            root_handler.addFilter(low_filter)
 
     # Configure flask_login
     login_manager = LoginManager()
