@@ -20,8 +20,9 @@ class LowPassFilter(logging.Filter):
         return True
 
 
-class CloudHandler(logging.Handler):
-    """A handler that both uses the Google Logging API and writes to the standard outpout. """
+class CloudHandler(logging.StreamHandler):
+    """EXPERIMENTAL. A handler that both uses the Google Logging API and writes to the standard outpout. """
+    DEFAULT_FORMAT = '%(levelname)s:%(name)s:%(message)s'
 
     def __init__(self, name='', level=0):
         super().__init__(level=level)
