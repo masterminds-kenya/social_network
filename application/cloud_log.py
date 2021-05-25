@@ -35,6 +35,8 @@ class CloudHandler(logging.StreamHandler):
             fmt = CloudLog.make_formatter(fmt)
         if fmt:
             self.setFormatter(fmt)
+        if client is logging:
+            client = None
         if not isinstance(client, cloud_logging.Client):  # Either None, or assume a credential filepath.
             client = CloudLog.make_client(client)
         if not client:
