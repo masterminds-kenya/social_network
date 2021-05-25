@@ -150,10 +150,12 @@ class CloudLog(logging.getLoggerClass()):
         return name.lower()
 
     @classmethod
-    def make_client(cls, credential_path=None, credentials=None):
+    def make_client(cls, cred_or_path):
         """Creates the appropriate client, with appropriate handler for the environment, as used by other methods. """
-        if credential_path:
-            credentials = service_account.Credentials.from_service_account_file(credential_path)
+        if isinstance(cred_or_path, service_account.Credentials):
+            credentials = cred_or_path
+        elif cred_or_path:
+            credentials = service_account.Credentials.from_service_account_file(cred_or_path)
             credentials = credentials.with_scopes(cls.LOG_SCOPES)
         kwargs = {'credentials': credentials} if credentials else {}
         log_client = cloud_logging.Client(**kwargs)
