@@ -157,6 +157,8 @@ class CloudLog(logging.getLoggerClass()):
         elif cred_or_path:
             credentials = service_account.Credentials.from_service_account_file(cred_or_path)
             credentials = credentials.with_scopes(cls.LOG_SCOPES)
+        else:
+            credentials = None
         kwargs = {'credentials': credentials} if credentials else {}
         log_client = cloud_logging.Client(**kwargs)
         return log_client
