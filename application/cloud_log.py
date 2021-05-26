@@ -25,7 +25,7 @@ class CloudHandler(logging.StreamHandler):
     """EXPERIMENTAL. A handler that both uses the Google Logging API and writes to the standard outpout. """
     DEFAULT_FORMAT = '%(levelname)s:%(name)s:%(message)s'
 
-    def __init__(self, name='', client=None, level=0, fmt=DEFAULT_FORMAT):
+    def __init__(self, name='', client=None, level=0, fmt=DEFAULT_FORMAT, resource=None):
         super().__init__()
         if name:
             self.set_name(name)
@@ -45,6 +45,9 @@ class CloudHandler(logging.StreamHandler):
             client = cloud_logging.Client(**kwargs)
         else:
             project_id = client.project
+        if isinstance(resource, Resource):
+            self._resource = resource
+            self.resource = resource
         self.gae_service = environ.get('GAE_SERVICE', '')
         self.client = client
         self.project_id = project_id
