@@ -98,6 +98,32 @@ class CloudLog(logging.getLoggerClass()):
         'https://www.googleapis.com/auth/logging.admin',
         'https://www.googleapis.com/auth/cloud-platform',
         )
+    RESOURCE_REQUIRED_FIELDS = {
+        'cloud_tasks_queue': ['project_id', 'queue_id', 'target_type', 'location'],
+        'cloudsql_database': ['project_id', 'database_id', 'region'],
+        'container': ['project_id', 'cluster_name', 'namespace_id', 'instance_id', 'pod_id', 'container_name', 'zone'],
+        # 'k8s_container': RESOURCE_REQUIRED_FIELDS['container']
+        'dataflow_step': ['project_id', 'job_id', 'step_id', 'job_name', 'region'],
+        'dataproc_cluster': ['project_id', 'cluster_id', 'zone'],
+        'datastore_database': ['project_id', 'database_id'],
+        'datastore_index': ['project_id', 'database_id', 'index_id'],
+        'deployment': ['project_id', 'name'],
+        'folder': ['folder_id'],
+        'gae_app': ['project_id', 'module_id', 'version_id', 'zone'],
+        'gce_backend_service': ['project_id', 'backend_service_id', 'location'],
+        'gce_instance': ['project_id', 'instance_id', 'zone'],
+        'gce_project': ['project_id'],
+        'gcs_bucket': ['project_id', 'bucket_name', 'location'],
+        'generic_node': ['project_id', 'location', 'namespace', 'node_id'],
+        'generic_task': ['project_id', 'location', 'namespace', 'job', 'task_id'],
+        'global': ['project_id'],
+        'logging_log': ['project_id'],
+        'logging_sink': ['project_id', 'name', 'destination'],
+        'project': ['project_id'],
+        'pubsub_subscription': ['project_id', 'subscription_id'],
+        'pubsub_topic': ['project_id', 'topic_id'],
+        'reported_errors': ['project_id'],
+    }
 
     def __init__(self, name=None, handler_name=None, log_client=None, level=None, fmt=DEFAULT_FORMAT, parent='root'):
         name = self.make_logger_name(name)
@@ -167,18 +193,37 @@ class CloudLog(logging.getLoggerClass()):
         return log_client
 
     @classmethod
+    def get_resource_fields(cls, res_type, project_id, res_kwargs):
+        """For a given resource type, extract the expected required fields from the kwargs passed and project_id. """
+        default_type = 'gae_app'  # 'global', 'logging_log', 'pubsub_subscription', 'pubsub_topic', 'reported_errors'
+        res_type = res_kwargs.pop('res_type', default_type)
+        settings = {'type': res_type}
+        pid = 'project_id'
+        for key in cls.RESOURCE_REQUIRED_FIELDS[res_type]:
+            backup_value = project_id if key == pid else None
+            if key not in res_kwargs and not backup_value:
+                logging.warning(f"Could not find {key} for Resource {res_type}. ")
+            settings[key] = res_kwargs.pop(key, backup_value)
+        return settings
+
+    @classmethod
     def make_resource(cls, config, **kwargs):
         """Creates an appropriate resource to help with logging. The 'config' can be a dict or config.Config object. """
         if config and not isinstance(config, dict):
             config = getattr(config, '__dict__', None)
         if not config:
             raise TypeError("The 'config' must be a dict or an object with needed values in __dict__. ")
-        labels = {'project_id': config.get('PROJECT_ID'), 'zone': config.get('PROJECT_ZONE')}
-        if config.get('GAE_ENV', None):
-            labels['module_id'] = config.get('GAE_SERVICE', None)
-        labels.update(kwargs)
-        res_type = 'global'  # 'gae_app', 'logging_log', 'pubsub_subscription', 'pubsub_topic', 'reported_errors'
-        return Resource(type=res_type, labels=labels)
+        project_id = config.get('PROJECT_ID')
+        labels = {
+            'gae_env': config.get('GAE_ENV'),
+            'project_id': project_id,
+            'service': config.get('GAE_SERVICE'),
+            'zone': config.get('PROJECT_ZONE')
+            }
+        res_settings = cls.get_resource_fields(project_id, kwargs)  # May modify kwargs.
+        labels.update(kwargs)  # Must be after kwargs modified by cls.get_resource_fields.
+        res_settings['labels'] = labels
+        return Resource(**res_settings)
 
     @classmethod
     def make_formatter(cls, fmt=DEFAULT_FORMAT, datefmt=None):
