@@ -193,18 +193,17 @@ class CloudLog(logging.getLoggerClass()):
         return log_client
 
     @classmethod
-    def get_resource_fields(cls, res_type, project_id, res_kwargs):
+    def get_resource_fields(cls, project_id, settings):
         """For a given resource type, extract the expected required fields from the kwargs passed and project_id. """
         default_type = 'gae_app'  # 'global', 'logging_log', 'pubsub_subscription', 'pubsub_topic', 'reported_errors'
-        res_type = res_kwargs.pop('res_type', default_type)
-        settings = {'type': res_type}
+        res_type = settings.pop('res_type', default_type)
         pid = 'project_id'
         for key in cls.RESOURCE_REQUIRED_FIELDS[res_type]:
             backup_value = project_id if key == pid else None
-            if key not in res_kwargs and not backup_value:
+            if key not in settings and not backup_value:
                 logging.warning(f"Could not find {key} for Resource {res_type}. ")
-            settings[key] = res_kwargs.pop(key, backup_value)
-        return settings
+            settings.setdefault(key, backup_value)
+        return res_type, settings
 
     @classmethod
     def make_resource(cls, config, **kwargs):
@@ -220,10 +219,9 @@ class CloudLog(logging.getLoggerClass()):
             'service': config.get('GAE_SERVICE'),
             'zone': config.get('PROJECT_ZONE')
             }
-        res_settings = cls.get_resource_fields(project_id, kwargs)  # May modify kwargs.
-        labels.update(kwargs)  # Must be after kwargs modified by cls.get_resource_fields.
-        res_settings['labels'] = labels
-        return Resource(**res_settings)
+        res_type, settings = cls.get_resource_fields(project_id, kwargs)  # May modify kwargs.
+        labels.update(settings)  # Must be after kwargs modified by cls.get_resource_fields.
+        return Resource(res_type, labels)
 
     @classmethod
     def make_formatter(cls, fmt=DEFAULT_FORMAT, datefmt=None):
