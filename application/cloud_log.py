@@ -213,14 +213,16 @@ class CloudLog(logging.getLoggerClass()):
         if not config:
             raise TypeError("The 'config' must be a dict or an object with needed values in __dict__. ")
         project_id = config.get('PROJECT_ID')
-        labels = {
+        added_labels = {
             'gae_env': config.get('GAE_ENV'),
             'project_id': project_id,
+            'code_service': config.get('CODE_SERVICE'),  # Either local or GAE_SERVICE
             'service': config.get('GAE_SERVICE'),
             'zone': config.get('PROJECT_ZONE')
             }
-        res_type, settings = cls.get_resource_fields(project_id, kwargs)  # May modify kwargs.
-        labels.update(settings)  # Must be after kwargs modified by cls.get_resource_fields.
+        for key, val in added_labels.items():
+            kwargs.setdefault(key, val)
+        res_type, labels = cls.get_resource_fields(project_id, kwargs)
         return Resource(res_type, labels)
 
     @classmethod
