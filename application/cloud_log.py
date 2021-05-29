@@ -35,10 +35,10 @@ class CloudHandler(logging.StreamHandler):
             fmt = CloudLog.make_formatter(fmt)
         if fmt:
             self.setFormatter(fmt)
-        if client is logging:
+        if client is logging or not isinstance(client, cloud_logging.Client):
             client = None
-        if not isinstance(client, cloud_logging.Client):  # Either None, or assume a credential filepath.
-            client = CloudLog.make_client(client)
+        # if not isinstance(client, cloud_logging.Client):  # Either None, or assume a credential filepath.
+        #     client = CloudLog.make_client(client)
         if not client:
             creds, project_id = creds_id(CloudLog.LOG_SCOPES)
             kwargs = {'credentials': creds} if creds else {}
@@ -46,7 +46,6 @@ class CloudHandler(logging.StreamHandler):
         else:
             project_id = client.project
         if isinstance(resource, Resource):
-            self._resource = resource
             self.resource = resource
         self.gae_service = environ.get('GAE_SERVICE', '')
         self.client = client
@@ -81,7 +80,11 @@ class CloudHandler(logging.StreamHandler):
         #     ]
         # }
         # api_log(body=api_body).execute()
-        g_log.log_struct(info, severity=record.levelname)
+        kwargs = {'severity': record.levelno}
+        res = getattr(self, 'resource', None)
+        if res:
+            kwargs['resource'] = res
+        g_log.log_struct(info, **kwargs)
 
 
 class CloudLog(logging.getLoggerClass()):
