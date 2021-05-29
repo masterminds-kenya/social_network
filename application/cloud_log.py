@@ -178,7 +178,7 @@ class CloudLog(logging.getLoggerClass()):
         'https://www.googleapis.com/auth/logging.admin',
         'https://www.googleapis.com/auth/cloud-platform',
         )
-    RESOURCE_REQUIRED_FIELDS = {
+    RESOURCE_REQUIRED_FIELDS = {  # https://cloud.google.com/logging/docs/api/v2/resource-list
         'cloud_tasks_queue': ['project_id', 'queue_id', 'target_type', 'location'],
         'cloudsql_database': ['project_id', 'database_id', 'region'],
         'container': ['project_id', 'cluster_name', 'namespace_id', 'instance_id', 'pod_id', 'container_name', 'zone'],
@@ -197,7 +197,7 @@ class CloudLog(logging.getLoggerClass()):
         'generic_node': ['project_id', 'location', 'namespace', 'node_id'],
         'generic_task': ['project_id', 'location', 'namespace', 'job', 'task_id'],
         'global': ['project_id'],
-        'logging_log': ['project_id'],
+        'logging_log': ['project_id', 'name'],
         'logging_sink': ['project_id', 'name', 'destination'],
         'project': ['project_id'],
         'pubsub_subscription': ['project_id', 'subscription_id'],
