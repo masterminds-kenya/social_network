@@ -183,9 +183,9 @@ def test_method():
     # info = list_queues()
     # info = get_daily_ig_accounts()
     # pprint([f"{ea}: {len(ea.campaigns)} | {len(ea.brand_campaigns)} " for ea in info])
-    info = {'key1': 1, 'key2': 'two', 'key3': '3rd', 'meaningful': False, 'testing': 'app.alert'}
+    info = {'key1': 1, 'key2': 'two', 'key3': '3rd', 'meaningful': False, 'testing': 'logging'}
     pprint(info)
-    CloudLog.test_loggers(app, ['alert'], context='App CloudHandler')
+    CloudLog.test_loggers(app, app.log_list, context='s_log & c_log')
     print("--------------------------------------------------")
 
     return redirect(url_for('admin', data=info))

@@ -44,6 +44,10 @@ def create_app(config, debug=None, testing=None, config_overrides=dict()):
         app.config.update(config_overrides)
     app.log_client = log_client
     app.alert = alert
+    app.s_log = s_log
+    app.c_log = c_log
+    app.res_c = res_c
+    app.log_list = ['alert', 's_log', 'c_log', 'res_c']
     if app_handler:
         app.logger.addHandler(app_handler)
         if root_handler:
