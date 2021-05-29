@@ -1,9 +1,10 @@
 from flask import Flask
 from flask_login import LoginManager
 import logging
-from .cloud_log import CloudLog, LowPassFilter, setup_cloud_logging, CloudHandler
+from .cloud_log import CloudHandler, CloudLog, LowPassFilter, setup_cloud_logging, StructHandler
 
-ALWAYS_CLOUDlOG = False
+NEVER_CLOUDLOG = False
+FORCE_CLOUDlOG = False
 
 
 def create_app(config, debug=None, testing=None, config_overrides=dict()):
@@ -11,7 +12,7 @@ def create_app(config, debug=None, testing=None, config_overrides=dict()):
         debug = config_overrides.get('DEBUG', getattr(config, 'DEBUG', None))
     if testing is None:
         testing = config_overrides.get('TESTING', getattr(config, 'TESTING', None))
-    log_client, alert, app_handler, root_handler = None, None, None, None
+    log_client, alert, app_handler, root_handler, s_log, c_log, res_c = None, None, None, None, None, None, None
     if not testing:
         base_log_level = logging.DEBUG if debug else logging.INFO
         cloud_log_level = logging.WARNING
@@ -26,16 +27,27 @@ def create_app(config, debug=None, testing=None, config_overrides=dict()):
         if not config.standard_env:
             log_client, alert, *ignore = setup_cloud_logging(cred_path, base_log_level, cloud_log_level, extra=log_name)
         else:
-            if not ALWAYS_CLOUDlOG and getattr(config, 'GAE_ENV', None) == 'standard':
+            if NEVER_CLOUDLOG or (not FORCE_CLOUDlOG and getattr(config, 'GAE_ENV', None) == 'standard'):
                 log_client = logging
-                _res = None
+                _res, test = None, None
             else:
                 log_client = CloudLog.make_client(cred_path)
-                _res = None  # _res = CloudLog.make_resource(config)
+                _res = None
+                test = None
+                # test = CloudLog.make_resource(config, res_type='logging_log', name=CloudLog.APP_HANDLER_NAME)
             alert = CloudLog.make_base_logger(log_name, log_name, log_client, base_log_level, formatter, _res)
+            s_log = logging.getLogger('s_log')
+            c_log = logging.getLogger('c_log')
+            res_c = logging.getLogger('res_c')
+            c_resource = CloudLog.make_resource(config, res_type='logging_log', name='res_c')
+            c_res_handler = CloudHandler('res_c', log_client, base_log_level, formatter, c_resource)
+            s_handler = StructHandler('s_log', base_log_level, formatter)
+            c_handler = CloudHandler('c_log', log_client, base_log_level, formatter)
+            s_log.addHandler(s_handler)
+            c_log.addHandler(c_handler)
+            res_c.addHandler(c_res_handler)
             alert.propagate = False
-            app_handler = CloudHandler(CloudLog.APP_HANDLER_NAME, log_client, cloud_log_level, fmt=formatter)
-            # app_handler = CloudLog.make_handler(CloudLog.APP_HANDLER_NAME, log_client, cloud_log_level, formatter)
+            app_handler = CloudLog.make_handler(CloudLog.APP_HANDLER_NAME, log_client, cloud_log_level, formatter, test)
     app = Flask(__name__)
     app.config.from_object(config)
     app.debug = debug
@@ -43,6 +55,7 @@ def create_app(config, debug=None, testing=None, config_overrides=dict()):
     if config_overrides:
         app.config.update(config_overrides)
     app.log_client = log_client
+    app._resource_test = test
     app.alert = alert
     app.s_log = s_log
     app.c_log = c_log
