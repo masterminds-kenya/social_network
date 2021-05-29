@@ -1,4 +1,6 @@
 import logging
+from sys import stderr, stdout
+from flask import json
 from google.cloud import logging as cloud_logging
 from google.cloud.logging.handlers import CloudLoggingHandler  # , setup_logging
 from google.auth import default as creds_id
@@ -19,6 +21,81 @@ class LowPassFilter(logging.Filter):
         if record.name == self.name and record.levelno > self.below_level - 1:
             return False
         return True
+
+
+class StructHandler(logging.StreamHandler):
+    """EXPERIMENTAL. Will log a json with added parameters of where the log message came from. """
+    DEFAULT_FORMAT = '%(levelname)s:%(name)s:%(message)s'
+
+    def __init__(self, name, level=0, fmt=DEFAULT_FORMAT, stream=None, **kwargs):
+        if stream in (None, stderr, stdout):
+            stream = stdout
+        else:  # stream is intensionally set to some other location.
+            pass
+        super().__init__(stream=stream)
+        self.alt_stream = stderr
+        if name:
+            self.set_name(name)
+        if level:
+            self.setLevel(level)
+        if fmt and not isinstance(fmt, logging.Formatter):
+            fmt = logging.Formatter(fmt)
+        if fmt:
+            self.setFormatter(fmt)
+        self.project = environ.get('GOOGLE_CLOUD_PROJECT', environ.get('PROJECT_ID', ''))
+        self.LogName = 'projects/' + self.project + '/logs/' + self.name
+        self.settings = self.get_settings(**kwargs)
+
+    def get_settings(self, **kwargs):
+        """Creates a dict with expected context settings and any passed kwargs. """
+        rv = {
+            'gae_env': environ.get('GAE_ENV', ''),
+            'project': self.project,
+            'service': environ.get('GAE_SERVICE', ''),
+            'source': self._name,
+            'region': environ.get('PROJECT_REGION', ''),
+            'zone': environ.get('PROJECT_ZONE', ''),
+        }
+        rv.update(kwargs)
+        return rv
+
+    def get_log_path(self, record_name):
+        """Computes the logName path for GCP. """
+        path = 'projects/' + self.project + '/logs/' + record_name
+        return path
+
+    def format(self, record, alt=False):
+        message = super().format(record)
+        if alt:
+            settings = self.settings.copy()
+            settings['logName'] = self.get_log_path(record.name)
+            settings['message'] = message
+            if getattr(self, 'resource', None):
+                settings['resource'] = self.resource
+            settings = self.get_settings(**settings)
+            message = json.dumps(settings)
+        return message
+
+    def flush(self):
+        """If alt_stream is present, flushes all the streams, otherwise calls original method. """
+        if not self.alt_stream:
+            super().flush()
+            return
+        streams = [self.stream, self.alt_stream]
+        self.acquire()
+        try:
+            for stream in streams:
+                if stream and hasattr(stream, 'flush'):
+                    stream.flush()
+        finally:
+            self.release()
+
+    def emit(self, record):
+        if self.alt_stream:
+            message = self.format(record, alt=True)
+            self.alt_stream.write(message + self.terminator)
+        super().emit(record)  # will emit on self.stream and flush both.
+        # self.transport.send(record, message, resource=self.resource, labels=self.settings)
 
 
 class CloudHandler(logging.StreamHandler):
