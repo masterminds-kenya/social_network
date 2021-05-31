@@ -382,6 +382,8 @@ class CloudLog(logging.getLoggerClass()):
         """Used for testing the log setups. """
         from pprint import pprint
         app_loggers = [(name, getattr(app, name)) for name in logger_names if hasattr(app, name)]
+        print(f"Found {len(app_loggers)} named attachments. ")
+        app_loggers = [ea for ea in app_loggers if ea[1] is not None]
         print(f"Expected {len(logger_names)} and found {len(app_loggers)} named loggers. ")
         if hasattr(app, 'logger'):
             app_loggers.insert(0, ('App_Logger', app.logger))
@@ -391,7 +393,7 @@ class CloudLog(logging.getLoggerClass()):
         print(f"Total loggers: {len(loggers)} ")
         code = app.config.get('CODE_SERVICE', 'UNKNOWN')
         print("=================== Logger Tests & Info ===================")
-        log_count_str = ''
+        found_handler_str = ''
         all_handlers = []
         for name, logger in loggers:
             adapter = None
@@ -400,31 +402,31 @@ class CloudLog(logging.getLoggerClass()):
             handlers = getattr(logger, 'handlers', ['not found'])
             if isinstance(handlers, list):
                 all_handlers.extend(handlers)
-            log_count_str += f"{name} handlers: {', '.join([str(ea) for ea in handlers])} " + '\n'
+            found_handler_str += f"{name} handlers: {', '.join([str(ea) for ea in handlers])} " + '\n'
+            if adapter:
+                print(f"-------------------------- {name} ADAPTER Settings --------------------------")
+                pprint(adapter.__dict__)
+            print(f"---------------------------- {name} Logger Settings ----------------------------")
+            pprint(logger.__dict__)
+            print(f'------------------------- Logger Calls: {name} -------------------------')
             for level in levels:
                 if hasattr(adapter or logger, level):
                     getattr(adapter or logger, level)(' - '.join((context, name, level, code)))
                 else:
                     logging.warning(f"{context} in {code}: No {level} method on logger {name} ")
-            if adapter:
-                print(f"--------------- {name} ADAPTER Settings ------------------")
-                pprint(adapter.__dict__)
-            print(f"--------------- {name} Logger Settings ------------------")
-            pprint(logger.__dict__)
-            print('-------------------------------------------------------------')
-        print(log_count_str)
-        print(f"=================== Details for each of {len(all_handlers)} handlers ===================")
+        print(f"=================== Handler Info: found {len(all_handlers)} on tested loggers ===================")
+        print(found_handler_str)
         creds_list = []
         resources = []
-        for handle in all_handlers:
+        for num, handle in enumerate(all_handlers):
+            print(f"------------------------- {num}: {handle.name} -------------------------")
             pprint(handle.__dict__)
             temp_client = getattr(handle, 'client', object)
             temp_creds = getattr(temp_client, '_credentials', None)
             if temp_creds:
                 creds_list.append(temp_creds)
             resources.append(getattr(handle, 'resource', None))
-            print("-------------------------------------------------")
-        print("====================== Resources found attached to the Handlers ======================")
+        print("=================== Resources found attached to the Handlers ===================")
         if hasattr(app, '_resource_test'):
             resources.append(app._resource_test)
         for res in resources:
@@ -432,7 +434,7 @@ class CloudLog(logging.getLoggerClass()):
                 pprint(res._to_dict())
             else:
                 pprint(f"Resource was: {res} ")
-        pprint("=================== App Log Client Credentials ===================")
+        pprint("\n=================== App Log Client Credentials ===================")
         log_client = getattr(app, 'log_client', None)
         if log_client is logging:
             log_client = None
