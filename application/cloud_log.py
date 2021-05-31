@@ -27,13 +27,8 @@ class StructHandler(logging.StreamHandler):
     """EXPERIMENTAL. Will log a json with added parameters of where the log message came from. """
     DEFAULT_FORMAT = '%(levelname)s:%(name)s:%(message)s'
 
-    def __init__(self, name, level=0, fmt=DEFAULT_FORMAT, stream=None, **kwargs):
-        if stream in (None, stderr, stdout):
-            stream = stdout
-        else:  # stream is intensionally set to some other location.
-            pass
+    def __init__(self, name, level=0, fmt=DEFAULT_FORMAT, stream=None, res=None, **kwargs):
         super().__init__(stream=stream)
-        self.alt_stream = stderr
         if name:
             self.set_name(name)
         if level:
@@ -42,8 +37,12 @@ class StructHandler(logging.StreamHandler):
             fmt = logging.Formatter(fmt)
         if fmt:
             self.setFormatter(fmt)
+        if res and not isinstance(res, Resource):
+            res = CloudLog.make_resource(res)
+        if isinstance(res, Resource):
+            self.resource = res
         self.project = environ.get('GOOGLE_CLOUD_PROJECT', environ.get('PROJECT_ID', ''))
-        self.LogName = 'projects/' + self.project + '/logs/' + self.name
+        self.logName = 'projects/' + self.project + '/logs/' + self.name
         self.settings = self.get_settings(**kwargs)
 
     def get_settings(self, **kwargs):
@@ -64,38 +63,18 @@ class StructHandler(logging.StreamHandler):
         path = 'projects/' + self.project + '/logs/' + record_name
         return path
 
-    def format(self, record, alt=False):
+    def format(self, record, alt=True):
         message = super().format(record)
         if alt:
             settings = self.settings.copy()
             settings['logName'] = self.get_log_path(record.name)
+            settings['severity'] = record.levelname
             settings['message'] = message
-            if getattr(self, 'resource', None):
-                settings['resource'] = self.resource
-            settings = self.get_settings(**settings)
+            resource = getattr(self, 'resource', None)
+            if resource:
+                settings['resource'] = resource
             message = json.dumps(settings)
         return message
-
-    def flush(self):
-        """If alt_stream is present, flushes all the streams, otherwise calls original method. """
-        if not self.alt_stream:
-            super().flush()
-            return
-        streams = [self.stream, self.alt_stream]
-        self.acquire()
-        try:
-            for stream in streams:
-                if stream and hasattr(stream, 'flush'):
-                    stream.flush()
-        finally:
-            self.release()
-
-    def emit(self, record):
-        if self.alt_stream:
-            message = self.format(record, alt=True)
-            self.alt_stream.write(message + self.terminator)
-        super().emit(record)  # will emit on self.stream and flush both.
-        # self.transport.send(record, message, resource=self.resource, labels=self.settings)
 
 
 class CloudHandler(logging.StreamHandler):
