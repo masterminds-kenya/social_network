@@ -2,7 +2,8 @@ import logging
 from sys import stderr, stdout
 from flask import json
 from google.cloud import logging as cloud_logging
-from google.cloud.logging.handlers import CloudLoggingHandler  # , setup_logging
+from google.cloud.logging.handlers import CloudLoggingHandler, CloudLoggingFilter  # , setup_logging
+# from google.cloud.logging_v2.handlers.handlers import CloudLoggingFilter
 from google.auth import default as creds_id
 from google.oauth2 import service_account
 from google.cloud.logging import Resource
@@ -322,6 +323,10 @@ class CloudLog(logging.getLoggerClass()):
             fmt = cls.make_formatter(fmt)
         if fmt:
             handler.setFormatter(fmt)
+        labels = res.labels if isinstance(res, Resource) else cls.make_added_labels()
+        project_id = labels['project_id']
+        attach_stackdriver_properties_to_record = CloudLoggingFilter(project=project_id, default_labels=labels)
+        handler.addFilter(attach_stackdriver_properties_to_record)
         return handler
 
     @staticmethod
