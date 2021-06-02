@@ -151,6 +151,7 @@ class CloudLog(logging.getLoggerClass()):
     DEFAULT_HANDLER_NAME = None
     DEFAULT_LEVEL = logging.INFO
     DEFAULT_FORMAT = '%(levelname)s:%(name)s:%(message)s'
+    DEFAULT_RESOURCE_TYPE = 'logging_log'  # 'gae_app', 'global', or any key from RESOURCE_REQUIRED_FIELDS
     LOG_SCOPES = (
         'https://www.googleapis.com/auth/logging.read',
         'https://www.googleapis.com/auth/logging.write',
@@ -254,8 +255,7 @@ class CloudLog(logging.getLoggerClass()):
     @classmethod
     def get_resource_fields(cls, settings):
         """For a given resource type, extract the expected required fields from the kwargs passed and project_id. """
-        default_type = 'gae_app'  # 'global', 'logging_log', 'pubsub_subscription', 'pubsub_topic', 'reported_errors'
-        res_type = settings.pop('res_type', default_type)
+        res_type = settings.pop('res_type', cls.DEFAULT_RESOURCE_TYPE)
         project_id = settings.get('project_id', environ.get('PROJECT_ID', None))
         pid = 'project_id'
         for key in cls.RESOURCE_REQUIRED_FIELDS[res_type]:
