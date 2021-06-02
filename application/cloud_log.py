@@ -252,10 +252,11 @@ class CloudLog(logging.getLoggerClass()):
         return log_client
 
     @classmethod
-    def get_resource_fields(cls, project_id, settings):
+    def get_resource_fields(cls, settings):
         """For a given resource type, extract the expected required fields from the kwargs passed and project_id. """
         default_type = 'gae_app'  # 'global', 'logging_log', 'pubsub_subscription', 'pubsub_topic', 'reported_errors'
         res_type = settings.pop('res_type', default_type)
+        project_id = settings.get('project_id', environ.get('PROJECT_ID', None))
         pid = 'project_id'
         for key in cls.RESOURCE_REQUIRED_FIELDS[res_type]:
             backup_value = project_id if key == pid else None
@@ -265,23 +266,29 @@ class CloudLog(logging.getLoggerClass()):
         return res_type, settings
 
     @classmethod
+    def make_added_labels(cls, config=environ):
+        """Returns a dict of context parameters, using either the config dict or values found in the environment. """
+        added_labels = {
+            'gae_env': config.get('GAE_ENV'),
+            'project_id': config.get('PROJECT_ID'),
+            'code_service': config.get('CODE_SERVICE'),  # Either local or GAE_SERVICE
+            'service': config.get('GAE_SERVICE'),
+            'zone': config.get('PROJECT_ZONE')
+            }
+        return added_labels
+
+    @classmethod
     def make_resource(cls, config, **kwargs):
         """Creates an appropriate resource to help with logging. The 'config' can be a dict or config.Config object. """
         if config and not isinstance(config, dict):
             config = getattr(config, '__dict__', None)
         if not config:
-            raise TypeError("The 'config' must be a dict or an object with needed values in __dict__. ")
-        project_id = config.get('PROJECT_ID')
-        added_labels = {
-            'gae_env': config.get('GAE_ENV'),
-            'project_id': project_id,
-            'code_service': config.get('CODE_SERVICE'),  # Either local or GAE_SERVICE
-            'service': config.get('GAE_SERVICE'),
-            'zone': config.get('PROJECT_ZONE')
-            }
+            config = environ
+            # raise TypeError("The 'config' must be a dict or an object with needed values in __dict__. ")
+        added_labels = cls.make_added_labels(config)
         for key, val in added_labels.items():
             kwargs.setdefault(key, val)
-        res_type, labels = cls.get_resource_fields(project_id, kwargs)
+        res_type, labels = cls.get_resource_fields(kwargs)
         return Resource(res_type, labels)
 
     @classmethod
