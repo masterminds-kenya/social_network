@@ -66,6 +66,14 @@ class StructHandler(logging.StreamHandler):
         self.logName = 'projects/' + self.project + '/logs/' + self.name
         self.settings = self.get_settings(**kwargs)
 
+    def config_obj_to_dict(cls, config):
+        """Returns a dict or 'environ'. Passes through if given a dict, or gives the config.__dict__ if possible.  """
+        if config and not isinstance(config, dict):
+            config = getattr(config, '__dict__', None)
+        if not config:
+            config = environ
+        return config
+
     def get_settings(self, **kwargs):
         """Creates a dict with expected context settings and any passed kwargs. """
         rv = {
