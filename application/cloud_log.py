@@ -112,8 +112,8 @@ class CloudHandler(logging.StreamHandler):
     """EXPERIMENTAL. A handler that both uses the Google Logging API and writes to the standard outpout. """
     DEFAULT_FORMAT = '%(levelname)s:%(name)s:%(message)s'
 
-    def __init__(self, name='', client=None, level=0, fmt=DEFAULT_FORMAT, resource=None):
-        super().__init__()
+    def __init__(self, name='', client=None, level=0, fmt=DEFAULT_FORMAT, resource=None, labels=None, stream=None):
+        super().__init__(stream)
         if name:
             self.set_name(name)
         if level:
@@ -122,16 +122,18 @@ class CloudHandler(logging.StreamHandler):
             fmt = CloudLog.make_formatter(fmt)
         if fmt:
             self.setFormatter(fmt)
-        if client is logging or not isinstance(client, cloud_logging.Client):
+        if client is logging:
             client = None
-        # if not isinstance(client, cloud_logging.Client):  # Either None, or assume a credential filepath.
-        #     client = CloudLog.make_client(client)
-        if not client:
+        project_id = environ.get('GOOGLE_CLOUD_PROJECT', environ.get('PROJECT_ID', ''))
+        if isinstance(client, cloud_logging.Client):
+            project_id = client.project
+        elif client:  # assume a credential filepath.
+            client = CloudLog.make_client(client)
+            project_id = client.project
+        elif not project_id:
             creds, project_id = creds_id(CloudLog.LOG_SCOPES)
             kwargs = {'credentials': creds} if creds else {}
             client = cloud_logging.Client(**kwargs)
-        else:
-            project_id = client.project
         if isinstance(resource, Resource):
             self.resource = resource
         self.gae_service = environ.get('GAE_SERVICE', '')
