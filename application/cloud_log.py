@@ -2,8 +2,8 @@ import logging
 from sys import stderr, stdout
 from flask import json
 from google.cloud import logging as cloud_logging
-from google.cloud.logging.handlers import CloudLoggingHandler, CloudLoggingFilter  # , setup_logging
-# from google.cloud.logging_v2.handlers.handlers import CloudLoggingFilter
+from google.cloud.logging.handlers import CloudLoggingHandler  # , setup_logging
+from google.cloud.logging_v2.handlers import CloudLoggingFilter
 from google.auth import default as creds_id
 from google.oauth2 import service_account
 from google.cloud.logging import Resource
@@ -21,6 +21,26 @@ class LowPassFilter(logging.Filter):
     def filter(self, record):
         if record.name == self.name and record.levelno > self.below_level - 1:
             return False
+        return True
+
+
+class CloudParamFilter(CloudLoggingFilter):
+    """Extending to include severity and prepare JSON object. """
+
+    def __init__(self, project=None, default_labels=None):
+        if not project:
+            project = environ.get('GOOGLE_CLOUD_PROJECT', environ.get('PROJECT_ID', ''))
+        super().__init__(project=project, default_labels=default_labels)
+
+    def filter(self, record):
+        super().filter(record)
+        record._severity = record.levelname
+        keys = ('_resource', '_trace', '_span_id', '_http_request', '_source_location', '_labels', '_trace_str',
+                '_span_id_str', '_http_request_str', '_source_location_str', '_labels_str', '_msg_str', '_severity')
+        data = {key[1:]: getattr(record, key) for key in keys if getattr(record, key, None)}
+        print("============== DATA TEST =====================")
+        print(data)
+        record.json_data = json.dumps(data)
         return True
 
 
