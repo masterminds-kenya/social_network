@@ -139,6 +139,9 @@ class CloudHandler(logging.StreamHandler):
         self.gae_service = environ.get('GAE_SERVICE', '')
         self.client = client
         self.project_id = project_id
+        self.labels = labels
+        log_filter = CloudParamFilter(project=self.project_id, default_labels=labels)
+        self.addFilter(log_filter)  # Adds extra keys to log record for GCP logging structure.
 
     def emit(self, record):
         message = self.format(record)
