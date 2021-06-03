@@ -76,13 +76,15 @@ class StructHandler(logging.StreamHandler):
 
     def get_settings(self, **kwargs):
         """Creates a dict with expected context settings and any passed kwargs. """
+        config = kwargs.get('config', None)
+        config = self.config_obj_to_dict(config)
         rv = {
-            'gae_env': environ.get('GAE_ENV', ''),
+            'gae_env': config.get('GAE_ENV', ''),
             'project': self.project,
-            'service': environ.get('GAE_SERVICE', ''),
-            'source': self._name,
-            'region': environ.get('PROJECT_REGION', ''),
-            'zone': environ.get('PROJECT_ZONE', ''),
+            'service': config.get('GAE_SERVICE', ''),
+            'handler': self.name,
+            'region': config.get('PROJECT_REGION', ''),
+            'zone': config.get('PROJECT_ZONE', ''),
         }
         rv.update(kwargs)
         return rv
