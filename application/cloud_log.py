@@ -238,6 +238,7 @@ class CloudLog(logging.getLoggerClass()):
             raise TypeError("The 'parent' value must be a string, None, or an existing logger. ")
         if parent:
             self.parent = parent
+        self.labels = self.get_environment_labels()
 
     @property
     def full_name(self):
@@ -312,16 +313,15 @@ class CloudLog(logging.getLoggerClass()):
         return res_type, settings
 
     @classmethod
-    def make_added_labels(cls, config=environ):
+    def get_environment_labels(cls, config=environ):
         """Returns a dict of context parameters, using either the config dict or values found in the environment. """
-        added_labels = {
+        return {
             'gae_env': config.get('GAE_ENV'),
             'project_id': config.get('PROJECT_ID'),
             'code_service': config.get('CODE_SERVICE'),  # Either local or GAE_SERVICE
             'service': config.get('GAE_SERVICE'),
             'zone': config.get('PROJECT_ZONE')
             }
-        return added_labels
 
     @classmethod
     def make_resource(cls, config, **kwargs):
