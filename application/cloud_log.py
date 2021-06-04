@@ -35,8 +35,9 @@ class CloudParamFilter(CloudLoggingFilter):
     def filter(self, record):
         super().filter(record)
         record._severity = record.levelname
-        keys = ('_resource', '_trace', '_span_id', '_http_request', '_source_location', '_labels', '_trace_str',
-                '_span_id_str', '_http_request_str', '_source_location_str', '_labels_str', '_msg_str')
+        full_keys = ('_resource', '_trace', '_span_id', '_http_request', '_source_location', '_labels', '_trace_str',
+                     '_span_id_str', '_http_request_str', '_source_location_str', '_labels_str', '_msg_str')
+        keys = [key for key in full_keys if not key.endswith('_str')]
         data = {key[1:]: getattr(record, key) for key in keys if getattr(record, key, None)}
         if data:
             data['severity'] = record.levelname
