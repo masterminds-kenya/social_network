@@ -221,12 +221,12 @@ class CloudLog(logging.getLoggerClass()):
         'reported_errors': ['project_id'],
     }
 
-    def __init__(self, name=None, handler_name=None, log_client=None, level=None, fmt=DEFAULT_FORMAT, parent='root'):
+    def __init__(self, name=None, level=None, fmt=DEFAULT_FORMAT, resource=None, client=None, parent='root'):
         name = self.make_logger_name(name)
         super().__init__(name)
         level = self.get_level(level)
         self.setLevel(level)
-        handler = self.make_handler(handler_name, log_client, None, fmt)
+        handler = self.make_handler(name, None, fmt, resource, client)
         self.addHandler(handler)
         if parent == name:
             parent = None
@@ -333,7 +333,7 @@ class CloudLog(logging.getLoggerClass()):
         return logging.Formatter(fmt, datefmt=datefmt)
 
     @classmethod
-    def make_handler(cls, handler_name=None, log_client=None, level=None, fmt=DEFAULT_FORMAT, res=None):
+    def make_handler(cls, handler_name=None, level=None, fmt=DEFAULT_FORMAT, res=None, log_client=None):
         """Creates a cloud logging handler, or a standard library StreamHandler if log_client is logging. """
         handler_name = cls.make_handler_name(handler_name)
         if log_client is not logging:
@@ -397,7 +397,7 @@ class CloudLog(logging.getLoggerClass()):
         name = cls.make_logger_name(name)
         logger = logging.getLogger(name)
         if handler_name:
-            handler = cls.make_handler(handler_name, log_client, None, fmt, res)
+            handler = cls.make_handler(handler_name, None, fmt, res, log_client)
             logger.addHandler(handler)
         level = cls.get_level(level)
         logger.setLevel(level)
@@ -495,11 +495,11 @@ def setup_cloud_logging(service_account_path, base_log_level, cloud_log_level, e
     low_filter = LowPassFilter(CloudLog.APP_LOGGER_NAME, cloud_log_level)
     root_handler.addFilter(low_filter)
     fmt = getattr(root_handler, 'formatter', None) or CloudLog.DEFAULT_FORMAT
-    handler = CloudLog.make_handler(CloudLog.APP_HANDLER_NAME, log_client, cloud_log_level, fmt)
+    handler = CloudLog.make_handler(CloudLog.APP_HANDLER_NAME, cloud_log_level, fmt, None, log_client)
     logging.root.addHandler(handler)
     if extra is None:
         extra = []
     elif isinstance(extra, str):
         extra = [extra]
-    cloud_logs = [CloudLog(name, name, log_client, base_log_level, fmt) for name in extra]
+    cloud_logs = [CloudLog(name, base_log_level, fmt, None, log_client) for name in extra]
     return (log_client, *cloud_logs)

@@ -36,18 +36,19 @@ def create_app(config, debug=None, testing=None, config_overrides=dict()):
                 test = None
                 # test = CloudLog.make_resource(config, res_type='logging_log', name=CloudLog.APP_HANDLER_NAME)
             alert = CloudLog.make_base_logger(log_name, log_name, log_client, base_log_level, formatter, _res)
-            s_log = logging.getLogger('s_log')
-            c_log = logging.getLogger('c_log')
-            res_c = logging.getLogger('res_c')
-            c_resource = CloudLog.make_resource(config, res_type='logging_log', name='res_c')
-            c_res_handler = CloudHandler('res_c', log_client, base_log_level, formatter, c_resource)
-            s_handler = StructHandler('s_log', base_log_level, formatter)
-            c_handler = CloudHandler('c_log', log_client, base_log_level, formatter)
-            s_log.addHandler(s_handler)
-            c_log.addHandler(c_handler)
-            res_c.addHandler(c_res_handler)
+            # alert = TempLog(log_name, log_name, None, base_log_level, formatter)
+            c_log = CloudLog('c_log', base_log_level, formatter, None, log_client)
+            c_resource = CloudLog.make_resource(config, res_type='logging_log', name='c_res')
+            c_res = CloudLog('c_res', log_client, base_log_level, formatter, c_resource, log_client)
+            # s_log = logging.getLogger('s_log')
+            # s_handler = StructHandler('s_log', base_log_level, formatter)
+            # s_log.addHandler(s_handler)
+            # s_log.propagate = False
             alert.propagate = False
-            app_handler = CloudLog.make_handler(CloudLog.APP_HANDLER_NAME, log_client, cloud_log_level, formatter, test)
+            c_log.propagate = False
+            c_res.propagate = False
+            app_handler = CloudLog.make_handler(CloudLog.APP_HANDLER_NAME, cloud_log_level, formatter, test, log_client)
+            test = c_resource
     app = Flask(__name__)
     app.config.from_object(config)
     app.debug = debug
