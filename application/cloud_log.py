@@ -36,12 +36,32 @@ class CloudParamFilter(CloudLoggingFilter):
         super().filter(record)
         record._severity = record.levelname
         keys = ('_resource', '_trace', '_span_id', '_http_request', '_source_location', '_labels', '_trace_str',
-                '_span_id_str', '_http_request_str', '_source_location_str', '_labels_str', '_msg_str', '_severity')
+                '_span_id_str', '_http_request_str', '_source_location_str', '_labels_str', '_msg_str')
         data = {key[1:]: getattr(record, key) for key in keys if getattr(record, key, None)}
-        print("============== DATA TEST =====================")
-        print(data)
-        record.json_data = json.dumps(data)
+        if data:
+            data['severity'] = record.levelname
+            log_name = 'projects/' + self.project + '/logs/' + record.name
+            data['logName'] = log_name
+            data['path'] = '/' + log_name
+            data['python_logger'] = record.name
+            data['timestamp'] = dt.utcfromtimestamp(record.created)
+            record._data = data
         return True
+
+
+class CloudParamHandler(logging.StreamHandler):
+
+    def __init__(self, stream=None, name='cloud_param_handler'):
+        super().__init__(stream=stream)
+        self.name = name
+
+    def format(self, record):
+        message = super().format(record)
+        data = getattr(record, '_data', None)
+        if data:
+            data['message'] = message
+            message = json.dumps(data)
+        return message
 
 
 class StructHandler(logging.StreamHandler):
