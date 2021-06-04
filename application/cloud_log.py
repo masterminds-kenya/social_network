@@ -226,6 +226,10 @@ class CloudLog(logging.getLoggerClass()):
         super().__init__(name)
         level = self.get_level(level)
         self.setLevel(level)
+        if resource:
+            if not isinstance(resource, Resource):
+                resource = self.make_resource(resource)
+            self.resource = resource
         handler = self.make_handler(name, None, fmt, resource, client)
         self.addHandler(handler)
         if parent == name:
