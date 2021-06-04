@@ -331,7 +331,7 @@ class CloudLog(logging.getLoggerClass()):
         if not config:
             config = environ
             # raise TypeError("The 'config' must be a dict or an object with needed values in __dict__. ")
-        added_labels = cls.make_added_labels(config)
+        added_labels = cls.get_environment_labels(config)
         for key, val in added_labels.items():
             kwargs.setdefault(key, val)
         res_type, labels = cls.get_resource_fields(kwargs)
@@ -368,9 +368,9 @@ class CloudLog(logging.getLoggerClass()):
             fmt = cls.make_formatter(fmt)
         if fmt:
             handler.setFormatter(fmt)
-        labels = res.labels if isinstance(res, Resource) else cls.make_added_labels()
+        labels = res.labels if isinstance(res, Resource) else cls.get_environment_labels()
         project_id = labels['project_id']
-        attach_stackdriver_properties_to_record = CloudLoggingFilter(project=project_id, default_labels=labels)
+        attach_stackdriver_properties_to_record = CloudParamFilter(project=project_id, default_labels=labels)
         handler.addFilter(attach_stackdriver_properties_to_record)
         return handler
 
