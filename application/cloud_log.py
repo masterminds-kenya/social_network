@@ -229,8 +229,13 @@ class CloudLog(logging.getLoggerClass()):
         if resource:
             if not isinstance(resource, Resource):
                 resource = self.make_resource(resource)
-            self.resource = resource
-        handler = self.make_handler(name, None, fmt, resource, client)
+        self.resource = resource
+        if client is not logging and not NEVER_CLOUDLOG:
+            if not isinstance(client, cloud_logging.Client):
+                client = self.make_client(client)  # may have been None, a credential object, or a credential filepath.
+        self.client = client
+        self.project = self.get_project()  # may create and assign self.client if required to get project id.
+        handler = self.make_handler(name, None, fmt, self.resource, self.client)
         self.addHandler(handler)
         if parent == name:
             parent = None
@@ -253,6 +258,19 @@ class CloudLog(logging.getLoggerClass()):
     def path(self):
         """URI path for use in logging APIs"""
         return f"/{self.full_name}"
+
+    def get_project(self):
+        if self.resource:
+            project = self.resource.labels.get('project_id')
+        elif isinstance(self.client, cloud_logging.Client):
+            project = self.client.project
+        else:
+            project = environ.get('GOOGLE_CLOUD_PROJECT', environ.get('PROJECT_ID', None))
+        if not project:
+            cred_path = environ.get('GOOGLE_APPLICATION_CREDENTIALS', None)
+            self.client = self.make_client(cred_path)
+            project = self.client.project
+        return project
 
     @classmethod
     def get_level(cls, level=None):
@@ -350,7 +368,7 @@ class CloudLog(logging.getLoggerClass()):
     def make_handler(cls, handler_name=None, level=None, fmt=DEFAULT_FORMAT, res=None, log_client=None):
         """Creates a cloud logging handler, or a standard library StreamHandler if log_client is logging. """
         handler_name = cls.make_handler_name(handler_name)
-        if log_client is not logging:
+        if log_client is not logging and not NEVER_CLOUDLOG:
             if not isinstance(log_client, cloud_logging.Client):
                 log_client = cls.make_client()
             handler_kwargs = {}
