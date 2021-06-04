@@ -239,6 +239,16 @@ class CloudLog(logging.getLoggerClass()):
         if parent:
             self.parent = parent
 
+    @property
+    def full_name(self):
+        """Fully-qualified name used in logging APIs"""
+        return f"projects/{self.project}/logs/{self.name}"
+
+    @property
+    def path(self):
+        """URI path for use in logging APIs"""
+        return f"/{self.full_name}"
+
     @classmethod
     def get_level(cls, level=None):
         """Returns the level value, based on the input string or integer if provided, or by using the default value. """
