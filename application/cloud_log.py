@@ -444,8 +444,10 @@ class CloudLog(logging.getLoggerClass()):
         return name.lower()
 
     @classmethod
-    def make_client(cls, cred_or_path):
+    def make_client(cls, cred_or_path, **kwargs):
         """Creates the appropriate client, with appropriate handler for the environment, as used by other methods. """
+        client_kw = ('project', 'credentials', 'client_info', 'client_options')  # also: '_http', '_use_grpc'
+        client_kwargs = {key: kwargs[key] for key in client_kw if key in kwargs}  # such as 'project'
         if isinstance(cred_or_path, service_account.Credentials):
             credentials = cred_or_path
         elif cred_or_path:
@@ -453,8 +455,8 @@ class CloudLog(logging.getLoggerClass()):
             credentials = credentials.with_scopes(cls.LOG_SCOPES)
         else:
             credentials = None
-        kwargs = {'credentials': credentials} if credentials else {}
-        log_client = cloud_logging.Client(**kwargs)
+        client_kwargs.setdefault('credentials', credentials)
+        log_client = cloud_logging.Client(**client_kwargs)
         return log_client
 
     @classmethod
