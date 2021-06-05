@@ -477,6 +477,7 @@ class CloudLog(logging.getLoggerClass()):
         """Returns a dict of context parameters, using either the config dict or values found in the environment. """
         return {
             'gae_env': config.get('GAE_ENV'),
+            'project': config.get('GOOGLE_CLOUD_PROJECT'),
             'project_id': config.get('PROJECT_ID'),
             'service': config.get('GAE_SERVICE'),
             'code_service': config.get('CODE_SERVICE'),  # Either local or GAE_SERVICE value
