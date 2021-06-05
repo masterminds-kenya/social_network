@@ -1,5 +1,4 @@
 import logging
-from sys import stderr, stdout
 from flask import json
 from google.cloud import logging as cloud_logging
 from google.cloud.logging.handlers import CloudLoggingHandler  # , setup_logging
@@ -8,7 +7,9 @@ from google.auth import default as creds_id
 from google.oauth2 import service_account
 from google.cloud.logging import Resource
 from os import environ
-# from googleapiclient.discovery import build
+from datetime import datetime as dt
+
+NEVER_CLOUDLOG = True
 
 
 class LowPassFilter(logging.Filter):
@@ -168,15 +169,17 @@ class CloudHandler(logging.StreamHandler):
         message = self.format(record)
         print("This is the print: " + message)
         g_log = self.client.logger(self.name or record.name)
-
         info = {
+            'severity': record.levelname,
             'severity_number': record.levelno,
             'severity_name': record.levelname,
             'python_logger': record.name,
             'service': self.gae_service,
             'project': self.project_id,
             'message': message,
+            'timestamp': dt.utcfromtimestamp(record.created),
         }
+
         # api_body = {
         #     'entries': [
         #         {
@@ -468,8 +471,9 @@ class CloudLog(logging.getLoggerClass()):
         return {
             'gae_env': config.get('GAE_ENV'),
             'project_id': config.get('PROJECT_ID'),
-            'code_service': config.get('CODE_SERVICE'),  # Either local or GAE_SERVICE
             'service': config.get('GAE_SERVICE'),
+            'code_service': config.get('CODE_SERVICE'),  # Either local or GAE_SERVICE value
+            'code_version': config.get('GAE_VERSION'),
             'zone': config.get('PROJECT_ZONE')
             }
 
@@ -508,9 +512,9 @@ class CloudLog(logging.getLoggerClass()):
                 handler_kwargs['resource'] = res
             handler = CloudLoggingHandler(log_client, **handler_kwargs)
         else:
-            handler = logging.StreamHandler()
-            if handler_name:
-                handler.set_name(handler_name)
+            handler = CloudParamHandler()
+            # if handler_name:
+            #     handler.set_name(handler_name)
         if level:
             level = cls.get_level(level)
             handler.setLevel(level)
@@ -620,7 +624,7 @@ class CloudLog(logging.getLoggerClass()):
                 pprint(res._to_dict())
             else:
                 pprint(f"Resource was: {res} ")
-        pprint("\n=================== App Log Client Credentials ===================")
+        pprint("=================== App Log Client Credentials ===================")
         log_client = getattr(app, 'log_client', None)
         if log_client is logging:
             log_client = None
