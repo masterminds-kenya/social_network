@@ -200,6 +200,113 @@ class CloudHandler(logging.StreamHandler):
         g_log.log_struct(info, **kwargs)
 
 
+class TempLog(logging.getLoggerClass()):
+    """EXPERIMENTAL. Extends LoggerClass.makeRecord to populate 'extra' with determined critical conext. """
+    APP_LOGGER_NAME = 'application'
+    APP_HANDLER_NAME = 'app'
+    DEFAULT_LOGGER_NAME = None
+    DEFAULT_HANDLER_NAME = None
+    DEFAULT_LEVEL = logging.INFO
+    DEFAULT_FORMAT = '%(levelname)s:%(name)s:%(message)s'
+
+    def __init__(self, name=None, handler_name=None, level=None, fmt=DEFAULT_FORMAT, client=None, parent='root'):
+        name = self.make_logger_name(name)
+        super().__init__(name)
+        level = self.get_level(level)
+        self.setLevel(level)
+        handler = self.make_handler(handler_name, None, fmt, None, client)
+        self.addHandler(handler)
+        if parent == name:
+            parent = None
+        elif parent == 'root':
+            parent = logging.root
+        elif parent and isinstance(parent, str):
+            parent = logging.getLogger(parent.lower())
+        elif parent and not isinstance(parent, logging.getLoggerClass()):
+            raise TypeError("The 'parent' value must be a string, None, or an existing logger. ")
+        if parent:
+            self.parent = parent
+        self.added_labels = self.make_added_labels()
+
+    def makeRecord(self, name, level, fn, lno, msg, args, exc_info, func=None, extra=None, sinfo=None):
+        initial = extra or {}
+        extra = self.added_labels or self.make_added_labels()
+        project_id = initial.get('project_id', extra.get('project_id'))
+        extra['logName'] = 'projects/' + project_id + '/logs/' + name
+        extra.update(initial)
+        return super().makeRecord(name, level, fn, lno, msg, args, exc_info, func=func, extra=extra, sinfo=sinfo)
+
+    @classmethod
+    def get_level(cls, level=None):
+        """Returns the level value, based on the input string or integer if provided, or by using the default value. """
+        if level is None:
+            level = getattr(level, 'DEFAULT_LEVEL', logging.WARNING)
+        name_to_level = logging._nameToLevel
+        if isinstance(level, str):
+            level = name_to_level.get(level.upper(), None)
+            if level is None:
+                raise ValueError("The level string was not a recognized value. ")
+        elif isinstance(level, int):
+            if level not in name_to_level.values():
+                raise ValueError("The level integer was not a recognized value. ")
+        else:
+            raise TypeError("The level, or default level, must be an appropriate str or int value. ")
+        return level
+
+    @classmethod
+    def make_logger_name(cls, name=None):
+        """Returns a lowercase name for a logger based on provided input or default value. """
+        if not name or not isinstance(name, str):
+            name = cls.DEFAULT_LOGGER_NAME
+        if not name:
+            raise TypeError("Either a parent_name, or a default, string must be provided. ")
+        return name.lower()
+
+    @classmethod
+    def make_handler_name(cls, name=None):
+        """Returns a lowercase name based on the given input or default value. """
+        if not name or not isinstance(name, str):
+            name = cls.DEFAULT_HANDLER_NAME
+        if not name:
+            raise TypeError("Either a name, or a default name, string must be provided. ")
+        return name.lower()
+
+    @classmethod
+    def make_added_labels(cls, config=environ):
+        """Returns a dict of context parameters, using either the config dict or values found in the environment. """
+        added_labels = {
+            'gae_env': config.get('GAE_ENV'),
+            'project_id': config.get('PROJECT_ID'),
+            'code_service': config.get('CODE_SERVICE'),  # Either local or GAE_SERVICE
+            'service': config.get('GAE_SERVICE'),
+            'zone': config.get('PROJECT_ZONE')
+            }
+        return added_labels
+
+    @classmethod
+    def make_formatter(cls, fmt=DEFAULT_FORMAT, datefmt=None):
+        """Creates a standard library formatter to attach to a handler. """
+        return logging.Formatter(fmt, datefmt=datefmt)
+
+    @classmethod
+    def make_handler(cls, handler_name=None, level=None, fmt=DEFAULT_FORMAT, res=None, log_client=None):
+        """Creates a cloud logging handler, or a standard library StreamHandler if log_client is logging. """
+        if log_client not in (None, logging):
+            raise TypeError("Expected None or logging for log_client. Perhaps you meant to use CloudLog instead. ")
+        handler = logging.StreamHandler()
+        handler_name = cls.make_handler_name(handler_name)
+        if handler_name:
+            handler.set_name(handler_name)
+        if level:
+            level = cls.get_level(level)
+            handler.setLevel(level)
+        if fmt and not isinstance(fmt, logging.Formatter):
+            fmt = cls.make_formatter(fmt)
+        if fmt:
+            handler.setFormatter(fmt)
+        return handler
+
+
 class CloudLog(logging.getLoggerClass()):
     """Extended python Logger class that attaches a google cloud log handler. """
     APP_LOGGER_NAME = 'application'
