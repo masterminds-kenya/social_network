@@ -361,11 +361,12 @@ class CloudLog(logging.getLoggerClass()):
             if not isinstance(resource, Resource):
                 resource = self.make_resource(resource)
         self.resource = resource
+        self.labels = self.get_environment_labels(getattr(resource, 'labels', environ))
         if client is not logging and not NEVER_CLOUDLOG:
             if not isinstance(client, cloud_logging.Client):
-                client = self.make_client(client)  # may have been None, a credential object, or a credential filepath.
+                client = self.make_client(client, **self.labels)  # may have been None, a credential object or filepath.
         self.client = client
-        self.project = self.get_project()  # may create and assign self.client if required to get project id.
+        self._project = self.project  # may create and assign self.client if required to get project id.
         handler = self.make_handler(name, None, fmt, self.resource, self.client)
         self.addHandler(handler)
         if parent == name:
@@ -378,7 +379,6 @@ class CloudLog(logging.getLoggerClass()):
             raise TypeError("The 'parent' value must be a string, None, or an existing logger. ")
         if parent:
             self.parent = parent
-        self.labels = self.get_environment_labels()
 
     @property
     def full_name(self):
@@ -390,17 +390,22 @@ class CloudLog(logging.getLoggerClass()):
         """URI path for use in logging APIs"""
         return f"/{self.full_name}"
 
-    def get_project(self):
-        if self.resource:
-            project = self.resource.labels.get('project_id')
-        elif isinstance(self.client, cloud_logging.Client):
-            project = self.client.project
-        else:
-            project = environ.get('GOOGLE_CLOUD_PROJECT', environ.get('PROJECT_ID', None))
+    @property
+    def project(self):
+        project = getattr(self, '_project', None)
         if not project:
-            cred_path = environ.get('GOOGLE_APPLICATION_CREDENTIALS', None)
-            self.client = self.make_client(cred_path)
-            project = self.client.project
+            project = self.labels.get('project', None)
+            if not project and self.resource:
+                project = self.resource.labels.get('project_id') or self.resource.labels.get('project')
+            if not project and isinstance(self.client, cloud_logging.Client):
+                project = self.client.project
+            if not project:
+                project = environ.get('GOOGLE_CLOUD_PROJECT', environ.get('PROJECT_ID', None))
+            if not project:
+                cred_path = environ.get('GOOGLE_APPLICATION_CREDENTIALS', None)
+                self.client = self.make_client(cred_path)
+                project = self.client.project
+            self._project = project
         return project
 
     @classmethod
