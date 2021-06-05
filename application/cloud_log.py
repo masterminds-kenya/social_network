@@ -353,9 +353,9 @@ class CloudLog(logging.getLoggerClass()):
     }
 
     def __init__(self, name=None, level=None, fmt=DEFAULT_FORMAT, resource=None, client=None, parent='root'):
-        name = self.make_logger_name(name)
+        name = self.normalize_logger_name(name)
         super().__init__(name)
-        level = self.get_level(level)
+        level = self.normalize_level(level)
         self.setLevel(level)
         if resource:
             if not isinstance(resource, Resource):
@@ -409,7 +409,7 @@ class CloudLog(logging.getLoggerClass()):
         return project
 
     @classmethod
-    def get_level(cls, level=None):
+    def normalize_level(cls, level=None):
         """Returns the level value, based on the input string or integer if provided, or by using the default value. """
         if level is None:
             level = getattr(level, 'DEFAULT_LEVEL', logging.WARNING)
@@ -426,7 +426,7 @@ class CloudLog(logging.getLoggerClass()):
         return level
 
     @classmethod
-    def make_logger_name(cls, name=None):
+    def normalize_logger_name(cls, name=None):
         """Returns a lowercase name for a logger based on provided input or default value. """
         if not name or not isinstance(name, str):
             name = cls.DEFAULT_LOGGER_NAME
@@ -435,7 +435,7 @@ class CloudLog(logging.getLoggerClass()):
         return name.lower()
 
     @classmethod
-    def make_handler_name(cls, name=None):
+    def normalize_handler_name(cls, name=None):
         """Returns a lowercase name based on the given input or default value. """
         if not name or not isinstance(name, str):
             name = cls.DEFAULT_HANDLER_NAME
@@ -492,7 +492,6 @@ class CloudLog(logging.getLoggerClass()):
             config = getattr(config, '__dict__', None)
         if not config:
             config = environ
-            # raise TypeError("The 'config' must be a dict or an object with needed values in __dict__. ")
         added_labels = cls.get_environment_labels(config)
         for key, val in added_labels.items():
             kwargs.setdefault(key, val)
@@ -524,7 +523,7 @@ class CloudLog(logging.getLoggerClass()):
             # if handler_name:
             #     handler.set_name(handler_name)
         if level:
-            level = cls.get_level(level)
+            level = cls.normalize_level(level)
             handler.setLevel(level)
         if fmt and not isinstance(fmt, logging.Formatter):
             fmt = cls.make_formatter(fmt)
@@ -566,12 +565,12 @@ class CloudLog(logging.getLoggerClass()):
     @classmethod
     def make_base_logger(cls, name=None, handler_name=None, level=None, fmt=DEFAULT_FORMAT, res=None, log_client=None):
         """Used to create a logger with an optional cloud handler when a CloudLog instance is not desired. """
-        name = cls.make_logger_name(name)
+        name = cls.normalize_logger_name(name)
         logger = logging.getLogger(name)
         if handler_name:
             handler = cls.make_handler(handler_name, None, fmt, res, log_client)
             logger.addHandler(handler)
-        level = cls.get_level(level)
+        level = cls.normalize_level(level)
         logger.setLevel(level)
         return logger
 
