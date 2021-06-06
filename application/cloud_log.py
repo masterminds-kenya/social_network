@@ -10,6 +10,7 @@ from os import environ
 from datetime import datetime as dt
 
 NEVER_CLOUDLOG = True
+DEFAULT_FORMAT = logging._defaultFormatter
 
 
 class LowPassFilter(logging.Filter):
@@ -68,7 +69,7 @@ class CloudParamHandler(logging.StreamHandler):
 
 class StructHandler(logging.StreamHandler):
     """EXPERIMENTAL. Will log a json with added parameters of where the log message came from. """
-    DEFAULT_FORMAT = '%(levelname)s:%(name)s:%(message)s'
+    # DEFAULT_FORMAT = '%(levelname)s:%(name)s:%(message)s'
 
     def __init__(self, name, level=0, fmt=DEFAULT_FORMAT, stream=None, res=None, **kwargs):
         super().__init__(stream=stream)
@@ -132,7 +133,7 @@ class StructHandler(logging.StreamHandler):
 
 class CloudHandler(logging.StreamHandler):
     """EXPERIMENTAL. A handler that both uses the Google Logging API and writes to the standard outpout. """
-    DEFAULT_FORMAT = '%(levelname)s:%(name)s:%(message)s'
+    # DEFAULT_FORMAT = '%(levelname)s:%(name)s:%(message)s'
 
     def __init__(self, name='', client=None, level=0, fmt=DEFAULT_FORMAT, resource=None, labels=None, stream=None):
         super().__init__(stream)
@@ -210,7 +211,7 @@ class TempLog(logging.getLoggerClass()):
     DEFAULT_LOGGER_NAME = None
     DEFAULT_HANDLER_NAME = None
     DEFAULT_LEVEL = logging.INFO
-    DEFAULT_FORMAT = '%(levelname)s:%(name)s:%(message)s'
+    # DEFAULT_FORMAT = '%(levelname)s:%(name)s:%(message)s'
 
     def __init__(self, name=None, handler_name=None, level=None, fmt=DEFAULT_FORMAT, client=None, parent='root'):
         name = self.make_logger_name(name)
@@ -317,7 +318,7 @@ class CloudLog(logging.getLoggerClass()):
     DEFAULT_LOGGER_NAME = None
     DEFAULT_HANDLER_NAME = None
     DEFAULT_LEVEL = logging.INFO
-    DEFAULT_FORMAT = '%(levelname)s:%(name)s:%(message)s'
+    # DEFAULT_FORMAT = '%(levelname)s:%(name)s:%(message)s'
     DEFAULT_RESOURCE_TYPE = 'logging_log'  # 'gae_app', 'global', or any key from RESOURCE_REQUIRED_FIELDS
     LOG_SCOPES = (
         'https://www.googleapis.com/auth/logging.read',
@@ -369,6 +370,7 @@ class CloudLog(logging.getLoggerClass()):
         self._project = self.project  # may create and assign self.client if required to get project id.
         handler = self.make_handler(name, None, fmt, self.resource, self.client)
         self.addHandler(handler)
+        self._cloud_loggger = self.make_client_logger(self.client)
         if parent == name:
             parent = None
         elif parent == 'root':
@@ -379,6 +381,13 @@ class CloudLog(logging.getLoggerClass()):
             raise TypeError("The 'parent' value must be a string, None, or an existing logger. ")
         if parent:
             self.parent = parent
+
+    def make_client_logger(self, client=None):
+        """If a client is used, make the expected cloud logger with this client. """
+        client = client or self.client
+        if not isinstance(cloud_logging.Client):
+            return None
+        return client.logger(self.name)
 
     @property
     def full_name(self):
@@ -665,7 +674,7 @@ def setup_cloud_logging(service_account_path, base_log_level, cloud_log_level, e
     root_handler = logging.root.handlers[0]
     low_filter = LowPassFilter(CloudLog.APP_LOGGER_NAME, cloud_log_level)
     root_handler.addFilter(low_filter)
-    fmt = getattr(root_handler, 'formatter', None) or CloudLog.DEFAULT_FORMAT
+    fmt = getattr(root_handler, 'formatter', None) or DEFAULT_FORMAT
     handler = CloudLog.make_handler(CloudLog.APP_HANDLER_NAME, cloud_log_level, fmt, None, log_client)
     logging.root.addHandler(handler)
     if extra is None:
