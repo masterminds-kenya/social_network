@@ -444,7 +444,7 @@ class CloudLog(logging.getLoggerClass()):
         return name.lower()
 
     @classmethod
-    def make_client(cls, cred_or_path, **kwargs):
+    def make_client(cls, cred_or_path=None, **kwargs):
         """Creates the appropriate client, with appropriate handler for the environment, as used by other methods. """
         client_kw = ('project', 'credentials', 'client_info', 'client_options')  # also: '_http', '_use_grpc'
         client_kwargs = {key: kwargs[key] for key in client_kw if key in kwargs}  # such as 'project'
@@ -506,7 +506,7 @@ class CloudLog(logging.getLoggerClass()):
     @classmethod
     def make_handler(cls, handler_name=None, level=None, fmt=DEFAULT_FORMAT, res=None, log_client=None):
         """Creates a cloud logging handler, or a standard library StreamHandler if log_client is logging. """
-        handler_name = cls.make_handler_name(handler_name)
+        handler_name = cls.normalize_handler_name(handler_name)
         if log_client is not logging and not NEVER_CLOUDLOG:
             if not isinstance(log_client, cloud_logging.Client):
                 log_client = cls.make_client()
