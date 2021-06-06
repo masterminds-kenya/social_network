@@ -160,7 +160,11 @@ class CloudHandler(logging.StreamHandler):
             self.setFormatter(fmt)
         if client is logging:
             client = None
-        project_id = environ.get('GOOGLE_CLOUD_PROJECT', environ.get('PROJECT_ID', ''))
+        project_id = None
+        if isinstance(labels, dict):
+            project_id = labels.get('project_id', labels.get('project', None))
+        if not project_id:
+            project_id = environ.get('GOOGLE_CLOUD_PROJECT', environ.get('PROJECT_ID', ''))
         if isinstance(client, cloud_logging.Client):
             project_id = client.project
         elif client:  # assume a credential filepath.
@@ -362,7 +366,7 @@ class CloudLog(logging.getLoggerClass()):
         'pubsub_subscription': ['project_id', 'subscription_id'],
         'pubsub_topic': ['project_id', 'topic_id'],
         'reported_errors': ['project_id'],
-    }
+        }
 
     def __init__(self, name=None, level=None, fmt=DEFAULT_FORMAT, resource=None, client=None, parent='root'):
         name = self.normalize_logger_name(name)
@@ -381,7 +385,6 @@ class CloudLog(logging.getLoggerClass()):
         self._project = self.project  # may create and assign self.client if required to get project id.
         handler = self.make_handler(name, None, fmt, self.resource, self.client)
         self.addHandler(handler)
-        self._cloud_loggger = self.make_client_logger(self.client)
         if parent == name:
             parent = None
         elif parent == 'root':
@@ -392,13 +395,6 @@ class CloudLog(logging.getLoggerClass()):
             raise TypeError("The 'parent' value must be a string, None, or an existing logger. ")
         if parent:
             self.parent = parent
-
-    def make_client_logger(self, client=None):
-        """If a client is used, make the expected cloud logger with this client. """
-        client = client or self.client
-        if not isinstance(cloud_logging.Client):
-            return None
-        return client.logger(self.name)
 
     @property
     def full_name(self):
@@ -530,16 +526,17 @@ class CloudLog(logging.getLoggerClass()):
         labels = res.labels if isinstance(res, Resource) else cls.get_environment_labels()
         labels.update(kwargs)
         name = cls.normalize_handler_name(name)
-
+        handler_kwargs = {'name': name, 'labels': labels}
+        if res:
+            if not isinstance(res, Resource):
+                res = cls.make_resource(res)
+            handler_kwargs['resource'] = res
+        if stream:
+            handler_kwargs['stream'] = stream
         if client is not logging and not NEVER_CLOUDLOG:
             if not isinstance(client, cloud_logging.Client):
                 client = cls.make_client(**labels)
-            handler_kwargs = {'name': name, 'labels': labels}
-            if res:
-                if not isinstance(res, Resource):
-                    res = cls.make_resource(res)
-                handler_kwargs['resource'] = res
-            handler = CloudLoggingHandler(log_client, **handler_kwargs)
+            handler = CloudLoggingHandler(client, **handler_kwargs)
         else:
             handler = CloudParamHandler(**handler_kwargs)
         if level:
@@ -549,10 +546,6 @@ class CloudLog(logging.getLoggerClass()):
             fmt = cls.make_formatter(fmt)
         if fmt:
             handler.setFormatter(fmt)
-        labels = res.labels if isinstance(res, Resource) else cls.get_environment_labels()
-        project_id = labels['project_id']
-        attach_stackdriver_properties_to_record = CloudParamFilter(project=project_id, default_labels=labels)
-        handler.addFilter(attach_stackdriver_properties_to_record)
         return handler
 
     @staticmethod
