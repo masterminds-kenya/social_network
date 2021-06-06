@@ -385,6 +385,8 @@ class CloudLog(logging.getLoggerClass()):
         self._project = self.project  # may create and assign self.client if required to get project id.
         handler = self.make_handler(name, None, fmt, self.resource, self.client)
         self.addHandler(handler)
+        if not isinstance(client, cloud_logging.Client):
+            self.propagate = False
         if parent == name:
             parent = None
         elif parent == 'root':
