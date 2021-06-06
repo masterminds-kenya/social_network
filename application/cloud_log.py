@@ -54,15 +54,23 @@ class CloudParamFilter(CloudLoggingFilter):
 
 class CloudParamHandler(logging.StreamHandler):
 
-    def __init__(self, stream=None, name='cloud_param_handler'):
+    def __init__(self, stream=None, name='cloud_param_handler', resource=None, labels=None):
         super().__init__(stream=stream)
         self.name = name
+        self.resource = resource
+        self.labels = labels
 
     def format(self, record):
         message = super().format(record)
         data = getattr(record, '_data', None)
         if data:
             data['message'] = message
+            if self.resource:
+                data.setdefault('resource', self.resource)  # will use record._resource if present.
+            if self.labels:
+                labels = self.labels
+                labels.update(data.get('labels', {}))
+                data['labels'] = labels
             message = json.dumps(data)
         return message
 
