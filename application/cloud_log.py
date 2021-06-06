@@ -376,6 +376,8 @@ class CloudLog(logging.getLoggerClass()):
         if resource:
             if not isinstance(resource, Resource):
                 resource = self.make_resource(resource)
+        else:
+            resource = self.make_resource(None, res_type='gae_app')
         self.resource = resource
         self.labels = self.get_environment_labels(getattr(resource, 'labels', environ))
         if client is not logging and not NEVER_CLOUDLOG:
@@ -500,8 +502,9 @@ class CloudLog(logging.getLoggerClass()):
             'project': config.get('GOOGLE_CLOUD_PROJECT'),
             'project_id': config.get('PROJECT_ID'),
             'service': config.get('GAE_SERVICE'),
+            'module_id': config.get('GAE_SERVICE'),
             'code_service': config.get('CODE_SERVICE'),  # Either local or GAE_SERVICE value
-            'code_version': config.get('GAE_VERSION'),
+            'version_id': config.get('GAE_VERSION'),
             'zone': config.get('PROJECT_ZONE')
             }
 
