@@ -10,7 +10,7 @@ from os import environ
 from datetime import datetime as dt
 
 NEVER_CLOUDLOG = True
-DEFAULT_FORMAT = logging._defaultFormatter
+DEFAULT_FORMAT = getattr(logging, '_defaultFormatter', logging.Formatter('%(levelname)s:%(name)s:%(message)s'))
 
 
 class LowPassFilter(logging.Filter):
@@ -69,7 +69,6 @@ class CloudParamHandler(logging.StreamHandler):
 
 class StructHandler(logging.StreamHandler):
     """EXPERIMENTAL. Will log a json with added parameters of where the log message came from. """
-    # DEFAULT_FORMAT = '%(levelname)s:%(name)s:%(message)s'
 
     def __init__(self, name, level=0, fmt=DEFAULT_FORMAT, stream=None, res=None, **kwargs):
         super().__init__(stream=stream)
@@ -133,7 +132,6 @@ class StructHandler(logging.StreamHandler):
 
 class CloudHandler(logging.StreamHandler):
     """EXPERIMENTAL. A handler that both uses the Google Logging API and writes to the standard outpout. """
-    # DEFAULT_FORMAT = '%(levelname)s:%(name)s:%(message)s'
 
     def __init__(self, name='', client=None, level=0, fmt=DEFAULT_FORMAT, resource=None, labels=None, stream=None):
         super().__init__(stream)
@@ -211,7 +209,6 @@ class TempLog(logging.getLoggerClass()):
     DEFAULT_LOGGER_NAME = None
     DEFAULT_HANDLER_NAME = None
     DEFAULT_LEVEL = logging.INFO
-    # DEFAULT_FORMAT = '%(levelname)s:%(name)s:%(message)s'
 
     def __init__(self, name=None, handler_name=None, level=None, fmt=DEFAULT_FORMAT, client=None, parent='root'):
         name = self.make_logger_name(name)
@@ -318,7 +315,6 @@ class CloudLog(logging.getLoggerClass()):
     DEFAULT_LOGGER_NAME = None
     DEFAULT_HANDLER_NAME = None
     DEFAULT_LEVEL = logging.INFO
-    # DEFAULT_FORMAT = '%(levelname)s:%(name)s:%(message)s'
     DEFAULT_RESOURCE_TYPE = 'logging_log'  # 'gae_app', 'global', or any key from RESOURCE_REQUIRED_FIELDS
     LOG_SCOPES = (
         'https://www.googleapis.com/auth/logging.read',
