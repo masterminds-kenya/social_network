@@ -517,15 +517,17 @@ class CloudLog(logging.getLoggerClass()):
         return logging.Formatter(fmt, datefmt=datefmt)
 
     @classmethod
-    def make_handler(cls, handler_name=None, level=None, fmt=DEFAULT_FORMAT, res=None, log_client=None):
+    def make_handler(cls, name=None, level=None, fmt=DEFAULT_FORMAT, res=None, client=None, **kwargs):
         """Creates a cloud logging handler, or a standard library StreamHandler if log_client is logging. """
-        handler_name = cls.normalize_handler_name(handler_name)
-        if log_client is not logging and not NEVER_CLOUDLOG:
-            if not isinstance(log_client, cloud_logging.Client):
-                log_client = cls.make_client()
-            handler_kwargs = {}
-            if handler_name:
-                handler_kwargs['name'] = handler_name
+        stream = kwargs.pop('stream', None)
+        labels = res.labels if isinstance(res, Resource) else cls.get_environment_labels()
+        labels.update(kwargs)
+        name = cls.normalize_handler_name(name)
+
+        if client is not logging and not NEVER_CLOUDLOG:
+            if not isinstance(client, cloud_logging.Client):
+                client = cls.make_client(**labels)
+            handler_kwargs = {'name': name, 'labels': labels}
             if res:
                 if not isinstance(res, Resource):
                     res = cls.make_resource(res)
