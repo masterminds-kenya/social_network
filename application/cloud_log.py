@@ -59,6 +59,13 @@ class CloudParamHandler(logging.StreamHandler):
         self.name = name
         self.resource = resource
         self.labels = labels
+        project = None
+        if isinstance(labels, dict):
+            project = labels.get('project', labels.get('project_id', None))
+        if not project:
+            project = environ.get('GOOGLE_CLOUD_PROJECT', environ.get('PROJECT_ID', ''))
+        attach_stackdriver_properties_to_record = CloudParamFilter(project=project, default_labels=labels)
+        self.addFilter(attach_stackdriver_properties_to_record)
 
     def format(self, record):
         message = super().format(record)
@@ -534,9 +541,7 @@ class CloudLog(logging.getLoggerClass()):
                 handler_kwargs['resource'] = res
             handler = CloudLoggingHandler(log_client, **handler_kwargs)
         else:
-            handler = CloudParamHandler()
-            # if handler_name:
-            #     handler.set_name(handler_name)
+            handler = CloudParamHandler(**handler_kwargs)
         if level:
             level = cls.normalize_level(level)
             handler.setLevel(level)
