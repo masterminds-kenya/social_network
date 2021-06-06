@@ -183,9 +183,13 @@ def test_method():
     # info = list_queues()
     # info = get_daily_ig_accounts()
     # pprint([f"{ea}: {len(ea.campaigns)} | {len(ea.brand_campaigns)} " for ea in info])
-    info = {'key1': 1, 'key2': 'two', 'key3': '3rd', 'meaningful': False, 'testing': 'app.alert'}
+    info = {'key1': 1, 'key2': 'two', 'key3': '3rd', 'meaningful': False, 'testing': 'logging'}
     pprint(info)
-    CloudLog.test_loggers(app, ['alert'], context='Admin test')
+    print("****************************************************************************************")
+    print(app.config.get('GAE_VERSION', 'UNKNOWN VERSION'))
+    print("****************************************************************************************")
+    # pprint(app.config)
+    CloudLog.test_loggers(app, app.log_list, context='no-client')
     print("--------------------------------------------------")
 
     return redirect(url_for('admin', data=info))
@@ -566,7 +570,7 @@ def collect_queue(mod, process):
         count, success = media_posts_save(result, bulk_db_operation='update')
         if success:
             info = f"Updated {count} Post records with media {process} info for user ID: {user_id} - SUCCESS. "
-            app.alert.debug(info)
+            app.alert.info(info)  # TODO: Change to debug after confirmed it is working.
             result = {'reason': info, 'status_code': 201}
         else:
             info = f"Updating {count} Posts with the media {process} results for user ID: {user_id} - FAILED. "
@@ -590,7 +594,7 @@ def hook():
             app.logger.error(message)
             return message, 401  # 403 if we KNOW it was done wrong
         res, response_code = process_hook(data)
-    else:  # request.method == 'GET':
+    else:  # request.method == 'GET': Confirm Oauth tokens match.
         mode = request.args.get('hub.mode')
         token_match = request.args.get('hub.verify_token', '') if request.args.get('hub.mode') == 'subscribe' else ''
         token_match = True if token_match == app.config.get('FB_HOOK_SECRET') else False

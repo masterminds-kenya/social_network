@@ -5,8 +5,11 @@ class Config:
     """Flask configuration variables and application settings. """
     # Environment Parameters for Local, Dev, or Production.
     GAE_ENV = environ.get('GAE_ENV')  # expected: standard
-    GAE_SERVICE = environ.get('GAE_SERVICE', '')
+    GAE_SERVICE = environ.get('GAE_SERVICE')  # 'dev', 'default', 'capture', etc.
     GAE_INSTANCE = environ.get('GAE_INSTANCE')
+    GAE_VERSION = environ.get('GAE_VERSION')  # source code version on GCloud.
+    GAE_FLEX_PROJECT = environ.get("GCLOUD_PROJECT")   # GAE - flex environment.
+    GAE_STANDARD_PROJECT = environ.get("GOOGLE_CLOUD_PROJECT")  # GAE - stanard (v2) environment.
     URL_SETTING = environ.get('URL')
     # General Flask Settings
     SECRET_KEY = environ.get('SECRET_KEY')  # for session cookies & flash messages
@@ -24,7 +27,8 @@ class Config:
     FB_HOOK_SECRET = environ.get('FB_HOOK_SECRET')
     # Settings for Deployment on Google Cloud, and local/deployed connection to deployed Database.
     PROJECT_NAME = environ.get('PROJECT_NAME')
-    PROJECT_ID = environ.get('GOOGLE_CLOUD_PROJECT', environ.get('PROJECT_ID', None))
+    PROJECT = GAE_STANDARD_PROJECT or GAE_FLEX_PROJECT
+    PROJECT_ID = environ.get('PROJECT_ID')  # As set by developer in environment variables.
     PROJECT_NUMBER = environ.get('PROJECT_NUMBER')
     PROJECT_REGION = environ.get('PROJECT_REGION')
     PROJECT_ZONE = environ.get('PROJECT_ZONE')
