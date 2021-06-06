@@ -9,7 +9,7 @@ from google.cloud.logging import Resource
 from os import environ
 from datetime import datetime as dt
 
-NEVER_CLOUDLOG = True
+NEVER_CLOUDLOG = False
 DEFAULT_FORMAT = getattr(logging, '_defaultFormatter', logging.Formatter('%(levelname)s:%(name)s:%(message)s'))
 
 
@@ -483,12 +483,12 @@ class CloudLog(logging.getLoggerClass()):
     def get_resource_fields(cls, settings):
         """For a given resource type, extract the expected required fields from the kwargs passed and project_id. """
         res_type = settings.pop('res_type', cls.DEFAULT_RESOURCE_TYPE)
-        project_id = settings.get('project_id', settings.get('project', None))
+        project_id = settings.get('project_id', settings.get('project', ''))
         if not project_id:
-            project_id = environ.get('PROJECT_ID', environ.get('PROJECT', environ.get('GOOGLE_CLOUD_PROJECT', None)))
+            project_id = environ.get('PROJECT_ID', environ.get('PROJECT', environ.get('GOOGLE_CLOUD_PROJECT', '')))
         pid = 'project_id'
         for key in cls.RESOURCE_REQUIRED_FIELDS[res_type]:
-            backup_value = project_id if key == pid else None
+            backup_value = project_id if key == pid else ''
             if key not in settings and not backup_value:
                 logging.warning(f"Could not find {key} for Resource {res_type}. ")
             settings.setdefault(key, backup_value)
@@ -498,14 +498,14 @@ class CloudLog(logging.getLoggerClass()):
     def get_environment_labels(cls, config=environ):
         """Returns a dict of context parameters, using either the config dict or values found in the environment. """
         return {
-            'gae_env': config.get('GAE_ENV'),
-            'project': config.get('GOOGLE_CLOUD_PROJECT'),
-            'project_id': config.get('PROJECT_ID'),
-            'service': config.get('GAE_SERVICE'),
-            'module_id': config.get('GAE_SERVICE'),
-            'code_service': config.get('CODE_SERVICE'),  # Either local or GAE_SERVICE value
-            'version_id': config.get('GAE_VERSION'),
-            'zone': config.get('PROJECT_ZONE')
+            'gae_env': config.get('GAE_ENV', ''),
+            'project': config.get('GOOGLE_CLOUD_PROJECT', ''),
+            'project_id': config.get('PROJECT_ID', ''),
+            'service': config.get('GAE_SERVICE', ''),
+            'module_id': config.get('GAE_SERVICE', ''),
+            'code_service': config.get('CODE_SERVICE', ''),  # Either local or GAE_SERVICE value
+            'version_id': config.get('GAE_VERSION', ''),
+            'zone': config.get('PROJECT_ZONE', ''),
             }
 
     @classmethod
