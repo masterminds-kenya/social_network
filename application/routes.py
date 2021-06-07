@@ -189,7 +189,7 @@ def test_method():
     print(app.config.get('GAE_VERSION', 'UNKNOWN VERSION'))
     print("****************************************************************************************")
     # pprint(app.config)
-    CloudLog.test_loggers(app, app.log_list, context='always-resource')
+    CloudLog.test_loggers(app, app.log_list, context='handler&CloudLog-resource')
     print("--------------------------------------------------")
 
     return redirect(url_for('admin', data=info))

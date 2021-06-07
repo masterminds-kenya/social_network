@@ -9,7 +9,6 @@ from google.cloud.logging import Resource
 from os import environ
 from datetime import datetime as dt
 
-NEVER_CLOUDLOG = False
 DEFAULT_FORMAT = getattr(logging, '_defaultFormatter', logging.Formatter('%(levelname)s:%(name)s:%(message)s'))
 
 
@@ -386,9 +385,9 @@ class CloudLog(logging.getLoggerClass()):
         super().__init__(name)
         level = self.normalize_level(level)
         self.setLevel(level)
-        if not isinstance(resource, Resource):
+        if not isinstance(resource, Resource):  # resource may be None, a Config obj, or a dict.
             resource = self.make_resource(resource, **kwargs)
-        self.resource = resource
+        self.resource = resource._to_dict()
         self.labels = getattr(resource, 'labels', self.get_environment_labels(environ))
         if client is logging:
             self.propagate = False
@@ -425,7 +424,8 @@ class CloudLog(logging.getLoggerClass()):
         if not project:
             project = self.labels.get('project', None)
             if not project and self.resource:
-                project = self.resource.labels.get('project_id') or self.resource.labels.get('project')
+                project = self.resource.get('labels', {})
+                project = project.get('project_id') or project.get('project')
             if not project and isinstance(self.client, cloud_logging.Client):
                 project = self.client.project
             if not project:
