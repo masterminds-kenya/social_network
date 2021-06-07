@@ -17,18 +17,16 @@ def create_app(config, debug=None, testing=None, config_overrides=dict()):
         log_name = 'alert'
         cred_path = getattr(config, 'GOOGLE_APPLICATION_CREDENTIALS', None)
         if not config.standard_env:
-            log_client, alert, *ignore = setup_cloud_logging(cred_path, base_log_level, cloud_log_level, extra=log_name)
+            log_client, alert, *skip = setup_cloud_logging(cred_path, base_log_level, cloud_log_level, config, log_name)
         else:
-            # if getattr(config, 'GAE_ENV', None) == 'standard': log_client = logging
             try:
                 log_client = CloudLog.make_client(cred_path)
             except Exception as e:
                 logging.exception(e)
                 log_client = logging
-            # c_resource = CloudLog.make_resource(config, res_type='logging_log', name='c_res')
             # res = CloudLog.make_resource(config, fancy='I am')  # TODO: fix passing a created resource.
-            alert = CloudLog.make_base_logger(log_name, base_log_level, res, log_client)
-            c_log = CloudLog('c_log', base_log_level, res, log_client)
+            alert = CloudLog(log_name, base_log_level, res, log_client)
+            c_log = CloudLog.make_base_logger('c_log', base_log_level, res, log_client)
             app_handler = CloudLog.make_handler(CloudLog.APP_HANDLER_NAME, cloud_log_level, res, log_client)
     app = Flask(__name__)
     app.config.from_object(config)

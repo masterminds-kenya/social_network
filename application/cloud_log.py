@@ -690,21 +690,22 @@ class CloudLog(logging.getLoggerClass()):
             print("No credentials found to report.")
 
 
-def setup_cloud_logging(service_account_path, base_log_level, cloud_log_level, extra=None):
+def setup_cloud_logging(service_account_path, base_log_level, cloud_log_level, config=None, extra=None):
     """Function to setup logging with google.cloud.logging when not on Google Cloud App Standard. """
     log_client = CloudLog.make_client(service_account_path)
     log_client.get_default_handler()
     log_client.setup_logging(log_level=base_log_level)  # log_level sets the logger, not the handler.
-    # Note: any modifications to the default 'python' handler from setup_logging will invalidate creds.
+    # Verify Note: it seems any modifications to the default 'python' handler from setup_logging will invalidate creds.
     root_handler = logging.root.handlers[0]
     low_filter = LowPassFilter(CloudLog.APP_LOGGER_NAME, cloud_log_level)
     root_handler.addFilter(low_filter)
-    fmt = getattr(root_handler, 'formatter', None) or DEFAULT_FORMAT
-    handler = CloudLog.make_handler(CloudLog.APP_HANDLER_NAME, cloud_log_level, fmt, None, log_client)
+    fmt = getattr(root_handler, 'formatter', DEFAULT_FORMAT)
+    resource = CloudLog.make_resource(config)
+    handler = CloudLog.make_handler(CloudLog.APP_HANDLER_NAME, cloud_log_level, resource, log_client, fmt=fmt)
     logging.root.addHandler(handler)
     if extra is None:
         extra = []
     elif isinstance(extra, str):
         extra = [extra]
-    cloud_logs = [CloudLog(name, base_log_level, fmt, None, log_client) for name in extra]
+    cloud_logs = [CloudLog(name, base_log_level, resource, log_client, fmt=fmt) for name in extra]
     return (log_client, *cloud_logs)
