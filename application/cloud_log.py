@@ -390,15 +390,14 @@ class CloudLog(logging.getLoggerClass()):
             resource = self.make_resource(resource, **kwargs)
         self.resource = resource
         self.labels = getattr(resource, 'labels', self.get_environment_labels(environ))
-        if client is not logging and not NEVER_CLOUDLOG:
-            if not isinstance(client, cloud_logging.Client):  # client may be None, a credential object or path.
-                client = self.make_client(client, **client_kwargs, **self.labels)
+        if client is logging:
+            self.propagate = False
+        else:    # client may be None, a cloud_logging.Client, a credential object or path.
+            client = self.make_client(client, **client_kwargs, **self.labels)
         self.client = client
         self._project = self.project  # may create and assign self.client if required to get project id.
         handler = self.make_handler(name, handler_level, resource, client, fmt=fmt, stream=stream, **self.labels)
         self.addHandler(handler)
-        if not isinstance(client, cloud_logging.Client):
-            self.propagate = False
         if parent == name:
             parent = None
         elif parent == 'root':
@@ -476,6 +475,8 @@ class CloudLog(logging.getLoggerClass()):
     @classmethod
     def make_client(cls, cred_or_path=None, **kwargs):
         """Creates the appropriate client, with appropriate handler for the environment, as used by other methods. """
+        if isinstance(cred_or_path, cloud_logging.Client):
+            return cred_or_path
         client_kwargs = {key: kwargs[key] for key in cls.CLIENT_KW if key in kwargs}  # such as 'project'
         if isinstance(cred_or_path, service_account.Credentials):
             credentials = cred_or_path
@@ -554,9 +555,8 @@ class CloudLog(logging.getLoggerClass()):
             handler_kwargs['resource'] = res
         if stream:
             handler_kwargs['stream'] = stream
-        if client is not logging and not NEVER_CLOUDLOG:
-            if not isinstance(client, cloud_logging.Client):
-                client = cls.make_client(cred_or_path, **labels)  # cred_or_path is likely same as client.
+        if client is not logging:
+            client = cls.make_client(cred_or_path, **labels)  # cred_or_path is likely same as client.
             handler = CloudLoggingHandler(client, **handler_kwargs)
         else:
             handler = CloudParamHandler(**handler_kwargs)
