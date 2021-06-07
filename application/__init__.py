@@ -3,16 +3,13 @@ from flask_login import LoginManager
 import logging
 from .cloud_log import CloudLog, LowPassFilter, setup_cloud_logging  # , StructHandler, TempLog, CloudHandler
 
-NEVER_CLOUDLOG = False
-FORCE_CLOUDlOG = True
-
 
 def create_app(config, debug=None, testing=None, config_overrides=dict()):
     if debug is None:
         debug = config_overrides.get('DEBUG', getattr(config, 'DEBUG', None))
     if testing is None:
         testing = config_overrides.get('TESTING', getattr(config, 'TESTING', None))
-    log_client, alert, app_handler, root_handler, c_log, c_res, s_log = None, None, None, None, None, None, None
+    log_client, alert, app_handler, c_log, res = None, None, None, None, None
     if not testing:
         base_log_level = logging.DEBUG if debug else logging.INFO
         cloud_log_level = logging.WARNING
@@ -20,22 +17,17 @@ def create_app(config, debug=None, testing=None, config_overrides=dict()):
         log_name = 'alert'
         cred_path = getattr(config, 'GOOGLE_APPLICATION_CREDENTIALS', None)
         if not config.standard_env:
-            log_client, alert, *ignore = setup_cloud_logging(cred_path, base_log_level, cloud_log_level, extra=log_name)
+            log_client, alert, *skip = setup_cloud_logging(cred_path, base_log_level, cloud_log_level, config, log_name)
         else:
-            if NEVER_CLOUDLOG or (not FORCE_CLOUDlOG and getattr(config, 'GAE_ENV', None) == 'standard'):
-                log_client = logging
-                _res, test = None, None
-            else:
+            try:
                 log_client = CloudLog.make_client(cred_path)
-                _res = None
-                test = None
-                # test = CloudLog.make_resource(config, res_type='logging_log', name=CloudLog.APP_HANDLER_NAME)
-            alert = CloudLog.make_base_logger(log_name, log_name, base_log_level, None, _res, log_client)
-            c_log = CloudLog('c_log', base_log_level, None, None, log_client)
-            c_resource = CloudLog.make_resource(config, res_type='logging_log', name='c_res')
-            # c_res = CloudLog('c_res', base_log_level, None, c_resource, log_client)
-            app_handler = CloudLog.make_handler(CloudLog.APP_HANDLER_NAME, cloud_log_level, None, test, log_client)
-            test = c_resource
+            except Exception as e:
+                logging.exception(e)
+                log_client = logging
+            # res = CloudLog.make_resource(config, fancy='I am')  # TODO: fix passing a created resource.
+            alert = CloudLog(log_name, base_log_level, res, log_client)
+            c_log = CloudLog.make_base_logger('c_log', base_log_level, res, log_client)
+            app_handler = CloudLog.make_handler(CloudLog.APP_HANDLER_NAME, cloud_log_level, res, log_client)
     app = Flask(__name__)
     app.config.from_object(config)
     app.debug = debug
@@ -43,17 +35,16 @@ def create_app(config, debug=None, testing=None, config_overrides=dict()):
     if config_overrides:
         app.config.update(config_overrides)
     app.log_client = log_client
-    app._resource_test = test
+    app._resource_test = res
     app.alert = alert
     app.c_log = c_log
-    app.c_res = c_res
-    app.s_log = s_log
-    app.log_list = ['alert', 'c_log', 'c_res', 's_log']
+    app.log_list = ['alert', 'c_log']
     if app_handler:
         app.logger.addHandler(app_handler)
-        low_filter = LowPassFilter(app.logger.name, cloud_log_level)
-        root_handler = logging.root.handlers[0]
-        root_handler.addFilter(low_filter)
+        if log_client is logging:
+            low_filter = LowPassFilter(app.logger.name, cloud_log_level)
+            root_handler = logging.root.handlers[0]
+            root_handler.addFilter(low_filter)
 
     # Configure flask_login
     login_manager = LoginManager()
