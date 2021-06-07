@@ -542,11 +542,10 @@ class CloudLog(logging.getLoggerClass()):
         stream = kwargs.pop('stream', None)
         fmt = kwargs.pop('fmt', kwargs.pop('format', DEFAULT_FORMAT))
         cred_or_path = kwargs.pop('cred_or_path', client)
-        if res:
-            if not isinstance(res, Resource):
-                res = cls.make_resource(res, **kwargs)
-            labels = res.labels
-        else:
+        if not isinstance(res, Resource):  # res may be None, a Config obj, or a dict.
+            res = cls.make_resource(res, **kwargs)
+        labels = getattr(res, 'labels', None)
+        if not labels:
             labels = cls.get_environment_labels()
             labels.update(kwargs)
         name = cls.normalize_handler_name(name)
