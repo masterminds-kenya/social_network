@@ -367,12 +367,21 @@ class CloudLog(logging.getLoggerClass()):
         'pubsub_topic': ['project_id', 'topic_id'],
         'reported_errors': ['project_id'],
         }
+    RESERVED_KWARGS = ('stream', 'fmt', 'format', 'handler_name', 'handler_level', 'parent', 'res_type', 'cred_or_path')
+    CLIENT_KW = ('project', 'credentials', 'client_info', 'client_options')  # also: '_http', '_use_grpc'
 
     def __init__(self, name=None, level=None, resource=None, client=None, **kwargs):
         stream = kwargs.pop('stream', None)
-        parent = kwargs.pop('parent', 'root')  # logging.root
-        fmt = kwargs.pop('format', DEFAULT_FORMAT)
+        fmt = kwargs.pop('fmt', kwargs.pop('format', DEFAULT_FORMAT))
+        # 'handler_name' is ignored, using name for both the logger and handler
         handler_level = kwargs.pop('handler_level', None)
+        parent = kwargs.pop('parent', 'root')  # logging.root
+        # 'res_type' is passed through to Resource constructor
+        cred_or_path = kwargs.pop('cred_or_path', None)
+        if client and cred_or_path:
+            raise ValueError("Unsure how to prioritize the passed 'client' and 'cred_or_path' values. ")
+        client = client or cred_or_path
+        client_kwargs = {key: kwargs.pop(key) for key in ('client_info', 'client_options') if key in kwargs}
         name = self.normalize_logger_name(name)
         super().__init__(name)
         level = self.normalize_level(level)
@@ -381,17 +390,15 @@ class CloudLog(logging.getLoggerClass()):
             if not isinstance(resource, Resource):
                 resource = self.make_resource(resource, **kwargs)
         else:
-            kwargs.setdefault('res_type', 'gae_app')
-            resource = self.make_resource(None, **kwargs)
+            resource = self.make_resource(None, res_type='gae_app', **kwargs)
         self.resource = resource
-        # self.labels = self.get_environment_labels(getattr(resource, 'labels', environ))
-        self.labels = getattr(self.resource, 'labels', self.get_environment_labels(environ))
+        self.labels = getattr(resource, 'labels', self.get_environment_labels(environ))
         if client is not logging and not NEVER_CLOUDLOG:
-            if not isinstance(client, cloud_logging.Client):
-                client = self.make_client(client, **self.labels)  # may have been None, a credential object or filepath.
+            if not isinstance(client, cloud_logging.Client):  # client may be None, a credential object or path.
+                client = self.make_client(client, **client_kwargs, **self.labels)
         self.client = client
         self._project = self.project  # may create and assign self.client if required to get project id.
-        handler = self.make_handler(name, handler_level, self.resource, self.client, fmt=fmt, stream=stream, **kwargs)
+        handler = self.make_handler(name, handler_level, resource, client, fmt=fmt, stream=stream, **self.labels)
         self.addHandler(handler)
         if not isinstance(client, cloud_logging.Client):
             self.propagate = False
@@ -472,8 +479,7 @@ class CloudLog(logging.getLoggerClass()):
     @classmethod
     def make_client(cls, cred_or_path=None, **kwargs):
         """Creates the appropriate client, with appropriate handler for the environment, as used by other methods. """
-        client_kw = ('project', 'credentials', 'client_info', 'client_options')  # also: '_http', '_use_grpc'
-        client_kwargs = {key: kwargs[key] for key in client_kw if key in kwargs}  # such as 'project'
+        client_kwargs = {key: kwargs[key] for key in cls.CLIENT_KW if key in kwargs}  # such as 'project'
         if isinstance(cred_or_path, service_account.Credentials):
             credentials = cred_or_path
         elif cred_or_path:
@@ -537,7 +543,7 @@ class CloudLog(logging.getLoggerClass()):
         """Creates a cloud logging handler, or a standard library StreamHandler if log_client is logging. """
         stream = kwargs.pop('stream', None)
         fmt = kwargs.pop('fmt', kwargs.pop('format', DEFAULT_FORMAT))
-        cred_or_path = kwargs.pop('cred_or_path', None)
+        cred_or_path = kwargs.pop('cred_or_path', client)
         if res:
             if not isinstance(res, Resource):
                 res = cls.make_resource(res, **kwargs)
@@ -553,7 +559,7 @@ class CloudLog(logging.getLoggerClass()):
             handler_kwargs['stream'] = stream
         if client is not logging and not NEVER_CLOUDLOG:
             if not isinstance(client, cloud_logging.Client):
-                client = cls.make_client(cred_or_path, **labels)
+                client = cls.make_client(cred_or_path, **labels)  # cred_or_path is likely same as client.
             handler = CloudLoggingHandler(client, **handler_kwargs)
         else:
             handler = CloudParamHandler(**handler_kwargs)
@@ -594,13 +600,15 @@ class CloudLog(logging.getLoggerClass()):
         return None
 
     @classmethod
-    def make_base_logger(cls, name=None, handler_name=None, level=None, fmt=DEFAULT_FORMAT, res=None, log_client=None):
-        """Used to create a logger with an optional cloud handler when a CloudLog instance is not desired. """
+    def make_base_logger(cls, name=None, level=None, res=None, client=None, **kwargs):
+        """Used to create a logger with a cloud handler when a CloudLog instance is not desired. """
+        fmt = kwargs.pop('fmt', kwargs.pop('format', DEFAULT_FORMAT))
+        handler_name = kwargs.pop('handler_hame', name)
+        handler_level = kwargs.pop('handler_level', None)
         name = cls.normalize_logger_name(name)
         logger = logging.getLogger(name)
-        if handler_name:
-            handler = cls.make_handler(handler_name, None, fmt, res, log_client)
-            logger.addHandler(handler)
+        handler = cls.make_handler(handler_name, handler_level, res, client, fmt=fmt, **kwargs)
+        logger.addHandler(handler)
         level = cls.normalize_level(level)
         logger.setLevel(level)
         return logger
