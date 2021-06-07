@@ -334,7 +334,7 @@ class CloudLog(logging.getLoggerClass()):
     DEFAULT_LOGGER_NAME = None
     DEFAULT_HANDLER_NAME = None
     DEFAULT_LEVEL = logging.INFO
-    DEFAULT_RESOURCE_TYPE = 'logging_log'  # 'gae_app', 'global', or any key from RESOURCE_REQUIRED_FIELDS
+    DEFAULT_RESOURCE_TYPE = 'gae_app'  # 'logging_log', 'global', or any key from RESOURCE_REQUIRED_FIELDS
     LOG_SCOPES = (
         'https://www.googleapis.com/auth/logging.read',
         'https://www.googleapis.com/auth/logging.write',
@@ -386,11 +386,8 @@ class CloudLog(logging.getLoggerClass()):
         super().__init__(name)
         level = self.normalize_level(level)
         self.setLevel(level)
-        if resource:
-            if not isinstance(resource, Resource):
-                resource = self.make_resource(resource, **kwargs)
-        else:
-            resource = self.make_resource(None, res_type='gae_app', **kwargs)
+        if not isinstance(resource, Resource):
+            resource = self.make_resource(resource, **kwargs)
         self.resource = resource
         self.labels = getattr(resource, 'labels', self.get_environment_labels(environ))
         if client is not logging and not NEVER_CLOUDLOG:
@@ -566,10 +563,9 @@ class CloudLog(logging.getLoggerClass()):
         if level:
             level = cls.normalize_level(level)
             handler.setLevel(level)
-        if fmt and not isinstance(fmt, logging.Formatter):
+        if not isinstance(fmt, logging.Formatter):
             fmt = cls.make_formatter(fmt)
-        if fmt:
-            handler.setFormatter(fmt)
+        handler.setFormatter(fmt)
         return handler
 
     @staticmethod

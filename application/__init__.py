@@ -12,7 +12,7 @@ def create_app(config, debug=None, testing=None, config_overrides=dict()):
         debug = config_overrides.get('DEBUG', getattr(config, 'DEBUG', None))
     if testing is None:
         testing = config_overrides.get('TESTING', getattr(config, 'TESTING', None))
-    log_client, alert, app_handler, root_handler, c_log, c_res, s_log = None, None, None, None, None, None, None
+    log_client, alert, app_handler, c_log = None, None, None, None
     if not testing:
         base_log_level = logging.DEBUG if debug else logging.INFO
         cloud_log_level = logging.WARNING
@@ -45,9 +45,7 @@ def create_app(config, debug=None, testing=None, config_overrides=dict()):
     app._resource_test = test
     app.alert = alert
     app.c_log = c_log
-    app.c_res = c_res
-    app.s_log = s_log
-    app.log_list = ['alert', 'c_log', 'c_res', 's_log']
+    app.log_list = ['alert', 'c_log']
     if app_handler:
         app.logger.addHandler(app_handler)
         low_filter = LowPassFilter(app.logger.name, cloud_log_level)
