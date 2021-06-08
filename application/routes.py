@@ -584,11 +584,14 @@ def collect_queue(mod, process):
 @app.route('/post/hook/', methods=['GET', 'POST'])
 def hook():
     """Endpoint receives all webhook updates from Instagram/Facebook for Story Posts. """
-    app.logger.debug("========== The hook route has a %s request ==========", request.method)
+    app.logger.info("========== The hook route has a %s request ==========", request.method)
     if request.method == 'POST':
         signed = request.headers.get('X-Hub-Signature', '')
+        app.logger.info(f"Signed: {signed} ")
         data = request.json if request.is_json else request.data  # request.get_data() for byte_data
+        app.logger.info(f"Data {data} ")
         verified = check_hash(signed, data)
+        app.logger.info(f"Verified: {verified} ")
         if not verified:
             message = "Signature given for webhook could not be verified. "
             app.logger.error(message)
