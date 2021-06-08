@@ -21,8 +21,8 @@ def create_app(config, debug=None, testing=None, config_overrides=dict()):
 
     @app.before_first_request
     def before_first_request():
-        logging.debug("****************************** BEFORE FIRST REQUEST ******************************")
-        logging.debug(app.config.get('GAE_VERSION', 'UNKNOWN VERSION'))
+        logging.info("****************************** BEFORE FIRST REQUEST ******************************")
+        logging.info(app.config.get('GAE_VERSION', 'UNKNOWN VERSION'))
         logging.debug("**********************************************************************************")
         cloud_level = logging.WARNING
         log_client, alert, app_handler, c_log, res = None, None, None, None, None
