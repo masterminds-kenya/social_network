@@ -51,10 +51,10 @@ class Config:
         self.CODE_SERVICE = self.get_CODE_SERVICE()
         self.URL = self.get_URL()
         self.SQLALCHEMY_DATABASE_URI = self.get_SQLALCHEMY_DATABASE_URI()
-        self.SERVER_NAME = self.URL.split('//', 1).pop()
         for key in self.add_to_dict:
             setattr(self, key, getattr(self, key, None))
         if self.LOCAL_ENV:
+            self.SERVER_NAME = self.URL.split('//', 1).pop()
             self.SESSION_COOKIE_DOMAIN = self.SERVER_NAME
             self.JSONIFY_PRETTYPRINT_REGULAR = True  # default is True on DEBUG, False on PRODUCTION.
             self.SESSION_COOKIE_SECURE = False
