@@ -189,7 +189,7 @@ def test_method():
     print(app.config.get('GAE_VERSION', 'UNKNOWN VERSION'))
     print("****************************************************************************************")
     # pprint(app.config)
-    CloudLog.test_loggers(app, app.log_list, context='CloudLog-alert')
+    CloudLog.test_loggFers(app, app.log_list, context='CloudLog-alert')
     print("--------------------------------------------------")
 
     return redirect(url_for('admin', data=info))
@@ -587,15 +587,12 @@ def hook():
     app.logger.info("========== The hook route has a %s request ==========", request.method)
     if request.method == 'POST':
         signed = request.headers.get('X-Hub-Signature', '')
-        app.logger.info(f"Signed: {signed} ")
-        data = request.json if request.is_json else request.data  # request.get_data() for byte_data
-        app.logger.info(f"Data {data} ")
-        verified = check_hash(signed, data)
-        app.logger.info(f"Verified: {verified} ")
+        verified = check_hash(signed, request.data)  # use byte data to avoid decode-encode errors from extra spaces.
         if not verified:
             message = "Signature given for webhook could not be verified. "
             app.logger.error(message)
             return message, 401  # 403 if we KNOW it was done wrong
+        data = request.json if request.is_json else request.data
         res, response_code = process_hook(data)
     else:  # request.method == 'GET': Confirm Oauth tokens match.
         mode = request.args.get('hub.mode')
