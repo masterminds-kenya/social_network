@@ -189,7 +189,7 @@ def test_method():
     print(app.config.get('GAE_VERSION', 'UNKNOWN VERSION'))
     print("****************************************************************************************")
     # pprint(app.config)
-    CloudLog.test_loggFers(app, app.log_list, context='CloudLog-alert')
+    CloudLog.test_loggers(app, app.log_list, context='CloudLog-alert')
     print("--------------------------------------------------")
 
     return redirect(url_for('admin', data=info))
@@ -584,7 +584,7 @@ def collect_queue(mod, process):
 @app.route('/post/hook/', methods=['GET', 'POST'])
 def hook():
     """Endpoint receives all webhook updates from Instagram/Facebook for Story Posts. """
-    app.logger.info("========== The hook route has a %s request ==========", request.method)
+    app.logger.debug("========== The hook route has a %s request ==========", request.method)
     if request.method == 'POST':
         signed = request.headers.get('X-Hub-Signature', '')
         verified = check_hash(signed, request.data)  # use byte data to avoid decode-encode errors from extra spaces.
