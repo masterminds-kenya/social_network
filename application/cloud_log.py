@@ -51,13 +51,28 @@ class CloudParamFilter(CloudLoggingFilter):
         return True
 
 
-class CloudParamHandler(logging.StreamHandler):
-
-    def __init__(self, stream=None, name='cloud_param_handler', resource=None, labels=None):
-        super().__init__(stream=stream)
-        self.name = name
-        self.resource = resource
+class ClientDummy:
+    def __init__(self, project=None, labels=None):
+        if not project and isinstance(labels, dict):
+            project = labels.get('project', labels.get('project_id', None))
+        if not project:
+            project = environ.get('GOOGLE_CLOUD_PROJECT', environ.get('PROJECT_ID', ''))
+        self.project = project
         self.labels = labels
+
+
+class CloudParamHandler(CloudLoggingHandler):
+    """Emits log by CloudLoggingHandler technique with a valid Client, or by StreamHandler if client is None. """
+
+    def __init__(self, client, name='cloud_param_handler', resource=None, labels=None, stream=None):
+        if client in (None, logging):
+            client = ClientDummy(labels=labels)
+            super(CloudLoggingHandler, self).__init__(stream=stream)
+            self.client = client
+            self.project_id = client.project
+            self.name = name
+            self.resource = resource
+            self.labels = labels
         project = None
         if isinstance(labels, dict):
             project = labels.get('project', labels.get('project_id', None))
