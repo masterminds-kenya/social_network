@@ -75,7 +75,10 @@ class CloudParamHandler(CloudLoggingHandler):
             self.labels = labels
         else:
             super().__init__(client, name=name, resource=resource, labels=labels, stream=stream)
-            self.removeFilter(CloudLoggingFilter)
+            old_filters = (ea for ea in self.filters if isinstance(ea, CloudLoggingFilter))
+            for old in old_filters:
+                self.removeFilter(old)
+
         attach_stackdriver_properties_to_record = CloudParamFilter(project=self.project_id, default_labels=labels)
         self.addFilter(attach_stackdriver_properties_to_record)
 
