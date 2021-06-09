@@ -34,7 +34,9 @@ class CloudParamFilter(CloudLoggingFilter):
         super().__init__(project=project, default_labels=default_labels)
 
     def filter(self, record):
-        super().filter(record)
+        not_logged = not super().filter(record)
+        if not_logged:
+            return False
         record._severity = record.levelname
         full_keys = ('_resource', '_trace', '_span_id', '_http_request', '_source_location', '_labels', '_trace_str',
                      '_span_id_str', '_http_request_str', '_source_location_str', '_labels_str', '_msg_str')
