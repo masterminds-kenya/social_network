@@ -73,12 +73,10 @@ class CloudParamHandler(CloudLoggingHandler):
             self.name = name
             self.resource = resource
             self.labels = labels
-        project = None
-        if isinstance(labels, dict):
-            project = labels.get('project', labels.get('project_id', None))
-        if not project:
-            project = environ.get('GOOGLE_CLOUD_PROJECT', environ.get('PROJECT_ID', ''))
-        attach_stackdriver_properties_to_record = CloudParamFilter(project=project, default_labels=labels)
+        else:
+            super().__init__(client, name=name, resource=resource, labels=labels, stream=stream)
+            self.removeFilter(CloudLoggingFilter)
+        attach_stackdriver_properties_to_record = CloudParamFilter(project=self.project_id, default_labels=labels)
         self.addFilter(attach_stackdriver_properties_to_record)
 
     def format(self, record):
@@ -94,6 +92,12 @@ class CloudParamHandler(CloudLoggingHandler):
                 data['labels'] = labels
             message = json.dumps(data)
         return message
+
+    def emit(self, record):
+        if isinstance(self.client, ClientDummy):
+            super(CloudLoggingHandler, self).emit(record)
+        else:
+            super().emit(record)
 
 
 class StructHandler(logging.StreamHandler):
@@ -571,9 +575,7 @@ class CloudLog(logging.getLoggerClass()):
             handler_kwargs['stream'] = stream
         if client is not logging:
             client = cls.make_client(cred_or_path, **labels)  # cred_or_path is likely same as client.
-            handler = CloudLoggingHandler(client, **handler_kwargs)
-        else:
-            handler = CloudParamHandler(**handler_kwargs)
+        handler = CloudParamHandler(client, **handler_kwargs)  # CloudLoggingHandler if client, else StreamHandler.
         if level:
             level = cls.normalize_level(level)
             handler.setLevel(level)
