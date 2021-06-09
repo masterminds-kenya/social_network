@@ -20,10 +20,9 @@ def create_app(config, debug=None, testing=None, config_overrides=dict()):
         app.config.update(config_overrides)
 
     @app.before_first_request
-    def before_first_request():
-        logging.info("****************************** BEFORE FIRST REQUEST ******************************")
-        logging.info(app.config.get('GAE_VERSION', 'UNKNOWN VERSION'))
-        logging.debug("**********************************************************************************")
+    def attach_cloud_loggers():
+        build = ' First Request on Build: {} '.format(app.config.get('GAE_VERSION', 'UNKNOWN VERSION'))
+        logging.info('{:*^82}'.format(build))
         cloud_level = logging.WARNING
         log_client, alert, app_handler, c_log, res = None, None, None, None, None
         if not testing:

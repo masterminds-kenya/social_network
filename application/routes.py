@@ -185,9 +185,9 @@ def test_method():
     # pprint([f"{ea}: {len(ea.campaigns)} | {len(ea.brand_campaigns)} " for ea in info])
     info = {'key1': 1, 'key2': 'two', 'key3': '3rd', 'meaningful': False, 'testing': 'logging'}
     pprint(info)
-    print("****************************************************************************************")
+    print("************************************************************************************")
     print(app.config.get('GAE_VERSION', 'UNKNOWN VERSION'))
-    print("****************************************************************************************")
+    print("************************************************************************************")
     # pprint(app.config)
     CloudLog.test_loggers(app, app.log_list, context='CloudLog-alert')
     print("--------------------------------------------------")
