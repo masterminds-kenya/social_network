@@ -95,10 +95,39 @@ class CloudParamHandler(CloudLoggingHandler):
         return message
 
     def emit(self, record):
+        msg = self.format(record)
         if isinstance(self.client, ClientDummy):
-            super(CloudLoggingHandler, self).emit(record)
-        else:
-            super().emit(record)
+            # super(CloudLoggingHandler, self).emit(record)
+            data = getattr(record, '_data', {})
+            data['message'] = msg
+            data['logger'] = record.name
+            data['timestamp'] = dt.utcfromtimestamp(record.created)
+            data['severity'] = record.levelname
+            res = data.get('resource', None)
+            if isinstance(res, Resource):
+                data['resource'] = res._to_dict()
+            msg = json.dumps(data)
+            try:
+                stream = self.stream
+                stream.write(msg + self.terminator)  # issue 35046: merged two stream.writes into one.
+                self.flush()
+            except RecursionError:  # See issue 36272
+                raise
+            except Exception:
+                self.handleError(record)
+        else:  # like CloudLoggingHandler, except using self.format and http_request in the labels.
+            # msg = data  # convert to json does not work.
+            self.transport.send(
+                record,
+                msg,
+                logger=record.name,
+                resource=(record._resource or self.resource),
+                labels=record._labels,
+                trace=record._trace,
+                span_id=record._span_id,
+                http_request=record._http_request,
+                source_location=record._source_location,
+            )
 
 
 class StructHandler(logging.StreamHandler):
