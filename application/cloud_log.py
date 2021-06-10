@@ -93,10 +93,11 @@ class CloudParamHandler(CloudLoggingHandler):
         if self.resource and not record._resource:
             data['resource'] = self.resource
             record._resource = self.resource
-        labels = getattr(record, '_labels', {})
-        http_labels = {'_'.join(('http', key)): val for key, val in getattr(record, '_http_request', {}).items()}
+        http_req = getattr(record, '_http_request', None)
+        http_labels = {} if not http_req else {'_'.join(('http', key)): val for key, val in http_req.items()}
         handler_labels = getattr(self, 'labels', {})
-        labels = {**http_labels, **handler_labels, **labels}
+        record_labels = getattr(record, '_labels', {})
+        labels = {**http_labels, **handler_labels, **record_labels}
         data['labels'] = labels
         record._labels = labels
         record._http_request = None
@@ -136,7 +137,6 @@ class CloudParamHandler(CloudLoggingHandler):
             self.transport.send(
                 record,
                 msg,
-                logger=record.name,
                 resource=record._resource,
                 labels=record._labels,
                 trace=record._trace,
