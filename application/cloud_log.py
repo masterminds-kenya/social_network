@@ -59,7 +59,10 @@ class ClientDummy:
 class CloudParamHandler(CloudLoggingHandler):
     """Emits log by CloudLoggingHandler technique with a valid Client, or by StreamHandler if client is None. """
 
-    def __init__(self, client, name='cloud_param_handler', resource=None, labels=None, stream=None):
+    filter_keys = ('_resource', '_trace', '_span_id', '_http_request', '_source_location', '_labels', '_trace_str',
+                   '_span_id_str', '_http_request_str', '_source_location_str', '_labels_str', '_msg_str')
+
+    def __init__(self, client, name='cloud_param_handler', resource=None, labels=None, stream=None, ignore=None):
         if client in (None, logging):
             client = ClientDummy(labels=labels)
             super(CloudLoggingHandler, self).__init__(stream=stream)
@@ -73,8 +76,21 @@ class CloudParamHandler(CloudLoggingHandler):
             old_filters = (ea for ea in self.filters if isinstance(ea, CloudLoggingFilter))
             for old in old_filters:
                 self.removeFilter(old)
+        self._data_keys = self.get_data_keys(ignore)
         attach_stackdriver_properties_to_record = CloudParamFilter(project=self.project_id, default_labels=labels)
         self.addFilter(attach_stackdriver_properties_to_record)
+
+    def get_data_keys(self, ignore, ignore_str_keys=True):
+        """Returns a list of properties names set by CloudLoggingHandler that store desired values for logging. """
+        keys = set(key[1:] for key in self.filter_keys if not (ignore_str_keys and key.endswith('_str')))
+        if isinstance(ignore, str):
+            ignore = {ignore, }
+        if isinstance(ignore, (list, tuple, set)):
+            ignore = set(key.lstrip('_') for key in ignore)
+        else:
+            ignore = set()
+        keys = keys.difference(ignore)
+        return keys
 
     def format(self, record):
         message = super().format(record)
