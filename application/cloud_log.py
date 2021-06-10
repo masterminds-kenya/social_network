@@ -37,12 +37,6 @@ class CloudParamFilter(CloudLoggingFilter):
         not_logged = not super().filter(record)
         if not_logged:
             return False
-        record._severity = record.levelname
-        full_keys = ('_resource', '_trace', '_span_id', '_http_request', '_source_location', '_labels', '_trace_str',
-                     '_span_id_str', '_http_request_str', '_source_location_str', '_labels_str', '_msg_str')
-        keys = [key for key in full_keys if not key.endswith('_str')]
-        data = {key[1:]: getattr(record, key) for key in keys if getattr(record, key, None)}
-        record._data = data
         return True
 
 
@@ -92,23 +86,22 @@ class CloudParamHandler(CloudLoggingHandler):
         keys = keys.difference(ignore)
         return keys
 
-    def format(self, record):
-        message = super().format(record)
-        data_update = {}
+    def prepare_record_data(self, record):
+        """Updates record attributes set by CloudLoggingHandler and constructs a data dict for possible logging. """
+        data = {key: getattr(record, key) for key in self._data_keys if getattr(record, key, None)}
+        record._severity = record.levelname
         if self.resource and not record._resource:
+            data['resource'] = self.resource
             record._resource = self.resource
-            data_update['resource'] = self.resource
         labels = getattr(record, '_labels', {})
         http_labels = {'_'.join(('http', key)): val for key, val in getattr(record, '_http_request', {}).items()}
         handler_labels = getattr(self, 'labels', {})
         labels = {**http_labels, **handler_labels, **labels}
-        data_update['labels'] = labels
+        data['labels'] = labels
         record._labels = labels
         record._http_request = None
-        if hasattr(record, '_data'):
-            record._data.update(data_update)
-            # data['severity'] = record.levelname
-        return message
+        record._data = data
+        return record
 
     def format(self, record):
         message = super().format(record)
@@ -125,6 +118,7 @@ class CloudParamHandler(CloudLoggingHandler):
         return message
 
     def emit(self, record):
+        self.prepare_record_data(record)
         msg = self.format(record)
         if isinstance(self.client, ClientDummy):
             # super(CloudLoggingHandler, self).emit(record)
@@ -138,11 +132,12 @@ class CloudParamHandler(CloudLoggingHandler):
                 self.handleError(record)
         else:  # like CloudLoggingHandler, except using self.format and http_request in the labels.
             # msg = data  # convert to json does not work.
+            # super().emit(record)
             self.transport.send(
                 record,
                 msg,
                 logger=record.name,
-                resource=(record._resource or self.resource),
+                resource=record._resource,
                 labels=record._labels,
                 trace=record._trace,
                 span_id=record._span_id,
