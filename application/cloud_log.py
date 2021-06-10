@@ -9,7 +9,7 @@ from google.cloud.logging import Resource
 from os import environ
 from datetime import datetime as dt
 
-DEFAULT_FORMAT = getattr(logging, '_defaultFormatter', logging.Formatter('%(levelname)s:%(name)s:%(message)s'))
+DEFAULT_FORMAT = logging.Formatter('%(levelname)s:%(name)s:%(message)s')
 
 
 class LowPassFilter(logging.Filter):
