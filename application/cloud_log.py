@@ -110,19 +110,24 @@ class CloudParamHandler(CloudLoggingHandler):
             # data['severity'] = record.levelname
         return message
 
-    def emit(self, record):
-        msg = self.format(record)
+    def format(self, record):
+        message = super().format(record)
         if isinstance(self.client, ClientDummy):
-            # super(CloudLoggingHandler, self).emit(record)
             data = getattr(record, '_data', {})
-            data['message'] = msg
+            data['message'] = message
             data['logger'] = record.name
             data['timestamp'] = dt.utcfromtimestamp(record.created)
             data['severity'] = record.levelname
             res = data.get('resource', None)
             if isinstance(res, Resource):
                 data['resource'] = res._to_dict()
-            msg = json.dumps(data)
+            message = json.dumps(data)
+        return message
+
+    def emit(self, record):
+        msg = self.format(record)
+        if isinstance(self.client, ClientDummy):
+            # super(CloudLoggingHandler, self).emit(record)
             try:
                 stream = self.stream
                 stream.write(msg + self.terminator)  # issue 35046: merged two stream.writes into one.
