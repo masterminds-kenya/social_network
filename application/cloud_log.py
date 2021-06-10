@@ -42,14 +42,7 @@ class CloudParamFilter(CloudLoggingFilter):
                      '_span_id_str', '_http_request_str', '_source_location_str', '_labels_str', '_msg_str')
         keys = [key for key in full_keys if not key.endswith('_str')]
         data = {key[1:]: getattr(record, key) for key in keys if getattr(record, key, None)}
-        if data:
-            data['severity'] = record.levelname
-            log_name = 'projects/' + self.project + '/logs/' + record.name
-            data['logName'] = log_name
-            data['path'] = '/' + log_name
-            data['python_logger'] = record.name
-            data['timestamp'] = dt.utcfromtimestamp(record.created)
-            record._data = data
+        record._data = data
         return True
 
 
@@ -80,22 +73,25 @@ class CloudParamHandler(CloudLoggingHandler):
             old_filters = (ea for ea in self.filters if isinstance(ea, CloudLoggingFilter))
             for old in old_filters:
                 self.removeFilter(old)
-
         attach_stackdriver_properties_to_record = CloudParamFilter(project=self.project_id, default_labels=labels)
         self.addFilter(attach_stackdriver_properties_to_record)
 
     def format(self, record):
         message = super().format(record)
-        data = getattr(record, '_data', None)
-        if data:
-            data['message'] = message
-            if self.resource:
-                data.setdefault('resource', self.resource)  # will use record._resource if present.
-            if self.labels:
-                labels = self.labels
-                labels.update(data.get('labels', {}))
-                data['labels'] = labels
-            message = json.dumps(data)
+        data_update = {}
+        if self.resource and not record._resource:
+            record._resource = self.resource
+            data_update['resource'] = self.resource
+        labels = getattr(record, '_labels', {})
+        http_labels = {'_'.join('http', key): val for key, val in getattr(record, '_http_request', {}).items()}
+        handler_labels = getattr(self, 'labels', {})
+        labels = {**http_labels, **handler_labels, **labels}
+        data_update['labels'] = labels
+        record._labels = labels
+        record._http_request = None
+        if hasattr(record, '_data'):
+            record._data.update(data_update)
+            # data['severity'] = record.levelname
         return message
 
     def emit(self, record):
