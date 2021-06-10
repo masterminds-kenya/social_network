@@ -83,7 +83,7 @@ class CloudParamHandler(CloudLoggingHandler):
             record._resource = self.resource
             data_update['resource'] = self.resource
         labels = getattr(record, '_labels', {})
-        http_labels = {'_'.join('http', key): val for key, val in getattr(record, '_http_request', {}).items()}
+        http_labels = {'_'.join(('http', key)): val for key, val in getattr(record, '_http_request', {}).items()}
         handler_labels = getattr(self, 'labels', {})
         labels = {**http_labels, **handler_labels, **labels}
         data_update['labels'] = labels
