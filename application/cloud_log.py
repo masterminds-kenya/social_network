@@ -2,8 +2,7 @@ import logging
 from flask import json
 from google.cloud import logging as cloud_logging
 from google.cloud.logging.handlers import CloudLoggingHandler  # , setup_logging
-from google.cloud.logging_v2.handlers import CloudLoggingFilter
-from google.auth import default as creds_id
+from google.cloud.logging_v2.handlers.transports import BackgroundThreadTransport
 from google.oauth2 import service_account
 from google.cloud.logging import Resource
 from os import environ
@@ -25,354 +24,143 @@ class LowPassFilter(logging.Filter):
         return True
 
 
-class CloudParamFilter(CloudLoggingFilter):
-    """Extending to include severity and prepare JSON object. """
+class StreamClient:
+    """Substitute for google.cloud.logging.Client, whose presence triggers standard library logging techniques. """
 
-    def __init__(self, project=None, default_labels=None):
-        if not project:
-            project = environ.get('GOOGLE_CLOUD_PROJECT', environ.get('PROJECT_ID', ''))
-        super().__init__(project=project, default_labels=default_labels)
-
-    def filter(self, record):
-        not_logged = not super().filter(record)
-        if not_logged:
-            return False
-        record._severity = record.levelname
-        full_keys = ('_resource', '_trace', '_span_id', '_http_request', '_source_location', '_labels', '_trace_str',
-                     '_span_id_str', '_http_request_str', '_source_location_str', '_labels_str', '_msg_str')
-        keys = [key for key in full_keys if not key.endswith('_str')]
-        data = {key[1:]: getattr(record, key) for key in keys if getattr(record, key, None)}
-        record._data = data
-        return True
-
-
-class ClientDummy:
-    def __init__(self, project=None, labels=None):
+    def __init__(self, name, labels=None, resource=None, project=None, handler=None):
         if not project and isinstance(labels, dict):
             project = labels.get('project', labels.get('project_id', None))
         if not project:
             project = environ.get('GOOGLE_CLOUD_PROJECT', environ.get('PROJECT_ID', ''))
         self.project = project
-        self.labels = labels
+        self.handler_name = name.lower()
+        self.labels = labels if isinstance(labels, dict) else {'project': project}
+        self.resource = resource
+        self.handler = self.prepare_handler(handler)
+
+    def prepare_handler(self, handler_param):
+        """Creates or updates a logging.Handler with the correct name and attaches the labels and resource. """
+        if isinstance(handler_param, type):
+            handler = handler_param()  # handler_param is a logging.Handler class.
+        elif issubclass(handler_param.__class__, logging.Handler):
+            handler = handler_param  # handler_param is the handler instance we wanted.
+        else:  # assume handler_param is None or a stream for logging.StreamHandler
+            try:
+                handler = logging.StreamHandler(handler_param)
+            except Exception as e:
+                logging.exception(e)
+                raise ValueError("StreamClient handler must be a stream (like stdout) or a Handler class or instance. ")
+        handler.set_name(self.handler_name)
+        handler.labels = self.labels
+        handler.resource = self.resource
+        return handler
+
+    def logger(self, name):
+        """Similar interface of google.cloud.logging.Client, but returns standard library logging.Handler instance. """
+        if isinstance(name, str):
+            name = name.lower()
+        if name != self.handler_name:
+            return None
+        return self.handler
+
+
+class StreamTransport(BackgroundThreadTransport):
+    """Allows CloudParamHandler to use StreamHandler methods when using StreamClient. """
+
+    def __init__(self, client, name, *, grace_period=0, batch_size=0, max_latency=0):
+        self.client = client
+        self.handler = client.logger(name)
+        self.grace_period = grace_period
+        self.batch_size = batch_size
+        self.max_latency = max_latency
+
+    def create_entry(self, record, message, **kwargs):
+        """Format entry close to (but not exact) the style of BackgroundThreadTransport Worker queue """
+        entry = {
+            "message": message,
+            "python_logger": record.name,
+            "severity": record.levelname,
+            "timestamp": dt.utcfromtimestamp(record.created),
+            }
+        entry.update({key: val for key, val in kwargs.items() if val})
+        return entry
+
+    def send(self, record, message, **kwargs):
+        """Similar to standard library logging.StreamHandler.emit, but with a json dict of appropriate values. """
+        entry = self.create_entry(record, message, **kwargs)
+        entry = json.dumps(entry)
+        try:
+            stream = self.stream
+            stream.write(entry + self.terminator)  # std library logging issue 35046: merged two stream.writes into one.
+            self.flush()
+        except RecursionError:  # See standard library logging issue 36272
+            raise
+        except Exception:
+            self.handleError(record)
+
+    @property
+    def stream(self):
+        """Passes through the original Handler stream. """
+        return self.handler.stream
+
+    @property
+    def terminator(self):
+        """Passes through the original Handler terminator character(s). """
+        if not getattr(self, '_terminator', None):
+            self._terminator = self.handler.terminator
+        return self._terminator
+
+    def flush(self):
+        self.handler.flush()
+
+    def handleError(self, record):
+        """Passes through the original Handler handleError method. """
+        return self.handler.handleError(record)
 
 
 class CloudParamHandler(CloudLoggingHandler):
     """Emits log by CloudLoggingHandler technique with a valid Client, or by StreamHandler if client is None. """
 
-    def __init__(self, client, name='cloud_param_handler', resource=None, labels=None, stream=None):
-        if client in (None, logging):
-            client = ClientDummy(labels=labels)
-            super(CloudLoggingHandler, self).__init__(stream=stream)
-            self.client = client
-            self.project_id = client.project
-            self.name = name
-            self.resource = resource
-            self.labels = labels
-        else:
-            super().__init__(client, name=name, resource=resource, labels=labels, stream=stream)
-            old_filters = (ea for ea in self.filters if isinstance(ea, CloudLoggingFilter))
-            for old in old_filters:
-                self.removeFilter(old)
-        attach_stackdriver_properties_to_record = CloudParamFilter(project=self.project_id, default_labels=labels)
-        self.addFilter(attach_stackdriver_properties_to_record)
+    filter_keys = ('_resource', '_trace', '_span_id', '_http_request', '_source_location', '_labels', '_trace_str',
+                   '_span_id_str', '_http_request_str', '_source_location_str', '_labels_str', '_msg_str')
 
-    def format(self, record):
-        message = super().format(record)
-        data_update = {}
+    def __init__(self, client, name='param_handler', resource=None, labels=None, stream=None, ignore=None):
+        if client in (None, logging):
+            client = StreamClient(name, labels, resource, handler=stream)
+        transport = StreamTransport if isinstance(client, StreamClient) else BackgroundThreadTransport
+        super().__init__(client, name=name, transport=transport, resource=resource, labels=labels, stream=stream)
+        self.ignore = ignore  # self._data_keys = self.get_data_keys(ignore)
+
+    def get_data_keys(self, ignore=None, ignore_str_keys=True):
+        """DEPRECATED. Returns a list of the desired property names for logging that are set by CloudLoggingHandler. """
+        keys = set(key[1:] for key in self.filter_keys if not (ignore_str_keys and key.endswith('_str')))
+        ignore = self.ignore if ignore is None else ignore
+        if isinstance(ignore, str):
+            ignore = {ignore, }
+        if isinstance(ignore, (list, tuple, set)):
+            ignore = set(key.lstrip('_') for key in ignore)
+        else:
+            ignore = set()
+        keys = keys.difference(ignore)
+        return keys
+
+    def prepare_record_data(self, record):
+        """Update record attributes set by CloudLoggingHandler and move http_request to labels to assist in logging. """
         if self.resource and not record._resource:
             record._resource = self.resource
-            data_update['resource'] = self.resource
-        labels = getattr(record, '_labels', {})
-        http_labels = {'_'.join(('http', key)): val for key, val in getattr(record, '_http_request', {}).items()}
+        http_req = getattr(record, '_http_request', None)
+        http_labels = {} if not http_req else {'_'.join(('http', key)): val for key, val in http_req.items()}
         handler_labels = getattr(self, 'labels', {})
-        labels = {**http_labels, **handler_labels, **labels}
-        data_update['labels'] = labels
+        record_labels = getattr(record, '_labels', {})
+        labels = {**http_labels, **handler_labels, **record_labels}
         record._labels = labels
         record._http_request = None
-        if hasattr(record, '_data'):
-            record._data.update(data_update)
-            # data['severity'] = record.levelname
-        return message
+        return record
 
     def emit(self, record):
-        msg = self.format(record)
-        if isinstance(self.client, ClientDummy):
-            # super(CloudLoggingHandler, self).emit(record)
-            data = getattr(record, '_data', {})
-            data['message'] = msg
-            data['logger'] = record.name
-            data['timestamp'] = dt.utcfromtimestamp(record.created)
-            data['severity'] = record.levelname
-            res = data.get('resource', None)
-            if isinstance(res, Resource):
-                data['resource'] = res._to_dict()
-            msg = json.dumps(data)
-            try:
-                stream = self.stream
-                stream.write(msg + self.terminator)  # issue 35046: merged two stream.writes into one.
-                self.flush()
-            except RecursionError:  # See issue 36272
-                raise
-            except Exception:
-                self.handleError(record)
-        else:  # like CloudLoggingHandler, except using self.format and http_request in the labels.
-            # msg = data  # convert to json does not work.
-            self.transport.send(
-                record,
-                msg,
-                logger=record.name,
-                resource=(record._resource or self.resource),
-                labels=record._labels,
-                trace=record._trace,
-                span_id=record._span_id,
-                http_request=record._http_request,
-                source_location=record._source_location,
-            )
-
-
-class StructHandler(logging.StreamHandler):
-    """EXPERIMENTAL. Will log a json with added parameters of where the log message came from. """
-
-    def __init__(self, name, level=0, fmt=DEFAULT_FORMAT, stream=None, res=None, **kwargs):
-        super().__init__(stream=stream)
-        if name:
-            self.set_name(name)
-        if level:
-            self.setLevel(level)
-        if fmt and not isinstance(fmt, logging.Formatter):
-            fmt = logging.Formatter(fmt)
-        if fmt:
-            self.setFormatter(fmt)
-        if res and not isinstance(res, Resource):
-            res = CloudLog.make_resource(res)
-        if isinstance(res, Resource):
-            self.resource = res
-        self.project = environ.get('GOOGLE_CLOUD_PROJECT', environ.get('PROJECT_ID', ''))
-        self.logName = 'projects/' + self.project + '/logs/' + self.name
-        self.settings = self.get_settings(**kwargs)
-
-    def config_obj_to_dict(cls, config):
-        """Returns a dict or 'environ'. Passes through if given a dict, or gives the config.__dict__ if possible.  """
-        if config and not isinstance(config, dict):
-            config = getattr(config, '__dict__', None)
-        if not config:
-            config = environ
-        return config
-
-    def get_settings(self, **kwargs):
-        """Creates a dict with expected context settings and any passed kwargs. """
-        config = kwargs.get('config', None)
-        config = self.config_obj_to_dict(config)
-        rv = {
-            'gae_env': config.get('GAE_ENV', ''),
-            'project': self.project,
-            'service': config.get('GAE_SERVICE', ''),
-            'handler': self.name,
-            'region': config.get('PROJECT_REGION', ''),
-            'zone': config.get('PROJECT_ZONE', ''),
-        }
-        rv.update(kwargs)
-        return rv
-
-    def get_log_path(self, record_name):
-        """Computes the logName path for GCP. """
-        path = 'projects/' + self.project + '/logs/' + record_name
-        return path
-
-    def format(self, record, alt=True):
-        message = super().format(record)
-        if alt:
-            settings = self.settings.copy()
-            settings['logName'] = self.get_log_path(record.name)
-            settings['severity'] = record.levelname
-            settings['message'] = message
-            resource = getattr(self, 'resource', None)
-            if resource:
-                settings['resource'] = resource
-            message = json.dumps(settings)
-        return message
-
-
-class CloudHandler(logging.StreamHandler):
-    """EXPERIMENTAL. A handler that both uses the Google Logging API and writes to the standard outpout. """
-
-    def __init__(self, name='', client=None, level=0, fmt=DEFAULT_FORMAT, resource=None, labels=None, stream=None):
-        super().__init__(stream)
-        if name:
-            self.set_name(name)
-        if level:
-            self.setLevel(level)
-        if fmt and not isinstance(fmt, logging.Formatter):
-            fmt = CloudLog.make_formatter(fmt)
-        if fmt:
-            self.setFormatter(fmt)
-        if client is logging:
-            client = None
-        project_id = None
-        if isinstance(labels, dict):
-            project_id = labels.get('project_id', labels.get('project', None))
-        if not project_id:
-            project_id = environ.get('GOOGLE_CLOUD_PROJECT', environ.get('PROJECT_ID', ''))
-        if isinstance(client, cloud_logging.Client):
-            project_id = client.project
-        elif client:  # assume a credential filepath.
-            client = CloudLog.make_client(client)
-            project_id = client.project
-        elif not project_id:
-            creds, project_id = creds_id(CloudLog.LOG_SCOPES)
-            kwargs = {'credentials': creds} if creds else {}
-            client = cloud_logging.Client(**kwargs)
-        if isinstance(resource, Resource):
-            self.resource = resource
-        self.gae_service = environ.get('GAE_SERVICE', '')
-        self.client = client
-        self.project_id = project_id
-        self.labels = labels
-        log_filter = CloudParamFilter(project=self.project_id, default_labels=labels)
-        self.addFilter(log_filter)  # Adds extra keys to log record for GCP logging structure.
-
-    def emit(self, record):
-        message = self.format(record)
-        print("This is the print: " + message)
-        g_log = self.client.logger(self.name or record.name)
-        info = {
-            'severity': record.levelname,
-            'severity_number': record.levelno,
-            'severity_name': record.levelname,
-            'python_logger': record.name,
-            'service': self.gae_service,
-            'project': self.project_id,
-            'message': message,
-            'timestamp': dt.utcfromtimestamp(record.created),
-        }
-
-        # api_body = {
-        #     'entries': [
-        #         {
-        #             'severity': record.levelno,
-        #             'jsonPayload': {
-        #                 'module': record.module,
-        #                 'message': record.getMessage()
-        #             },
-        #             'logName': 'projects/' + self.project_id + '/logs/' + record.name,
-        #             'resource': {
-        #                 'type': 'global',
-        #             }
-        #         }
-        #     ]
-        # }
-        # api_log(body=api_body).execute()
-        kwargs = {'severity': record.levelno}
-        res = getattr(self, 'resource', None)
-        if res:
-            kwargs['resource'] = res
-        g_log.log_struct(info, **kwargs)
-
-
-class TempLog(logging.getLoggerClass()):
-    """EXPERIMENTAL. Extends LoggerClass.makeRecord to populate 'extra' with determined critical conext. """
-    APP_LOGGER_NAME = 'application'
-    APP_HANDLER_NAME = 'app'
-    DEFAULT_LOGGER_NAME = None
-    DEFAULT_HANDLER_NAME = None
-    DEFAULT_LEVEL = logging.INFO
-
-    def __init__(self, name=None, handler_name=None, level=None, fmt=DEFAULT_FORMAT, client=None, parent='root'):
-        name = self.make_logger_name(name)
-        super().__init__(name)
-        level = self.get_level(level)
-        self.setLevel(level)
-        handler = self.make_handler(handler_name, None, fmt, None, client)
-        self.addHandler(handler)
-        if parent == name:
-            parent = None
-        elif parent == 'root':
-            parent = logging.root
-        elif parent and isinstance(parent, str):
-            parent = logging.getLogger(parent.lower())
-        elif parent and not isinstance(parent, logging.getLoggerClass()):
-            raise TypeError("The 'parent' value must be a string, None, or an existing logger. ")
-        if parent:
-            self.parent = parent
-        self.added_labels = self.make_added_labels()
-
-    def makeRecord(self, name, level, fn, lno, msg, args, exc_info, func=None, extra=None, sinfo=None):
-        initial = extra or {}
-        extra = self.added_labels or self.make_added_labels()
-        project_id = initial.get('project_id', extra.get('project_id'))
-        extra['logName'] = 'projects/' + project_id + '/logs/' + name
-        extra.update(initial)
-        return super().makeRecord(name, level, fn, lno, msg, args, exc_info, func=func, extra=extra, sinfo=sinfo)
-
-    @classmethod
-    def get_level(cls, level=None):
-        """Returns the level value, based on the input string or integer if provided, or by using the default value. """
-        if level is None:
-            level = getattr(level, 'DEFAULT_LEVEL', logging.WARNING)
-        name_to_level = logging._nameToLevel
-        if isinstance(level, str):
-            level = name_to_level.get(level.upper(), None)
-            if level is None:
-                raise ValueError("The level string was not a recognized value. ")
-        elif isinstance(level, int):
-            if level not in name_to_level.values():
-                raise ValueError("The level integer was not a recognized value. ")
-        else:
-            raise TypeError("The level, or default level, must be an appropriate str or int value. ")
-        return level
-
-    @classmethod
-    def make_logger_name(cls, name=None):
-        """Returns a lowercase name for a logger based on provided input or default value. """
-        if not name or not isinstance(name, str):
-            name = cls.DEFAULT_LOGGER_NAME
-        if not name:
-            raise TypeError("Either a parent_name, or a default, string must be provided. ")
-        return name.lower()
-
-    @classmethod
-    def make_handler_name(cls, name=None):
-        """Returns a lowercase name based on the given input or default value. """
-        if not name or not isinstance(name, str):
-            name = cls.DEFAULT_HANDLER_NAME
-        if not name:
-            raise TypeError("Either a name, or a default name, string must be provided. ")
-        return name.lower()
-
-    @classmethod
-    def make_added_labels(cls, config=environ):
-        """Returns a dict of context parameters, using either the config dict or values found in the environment. """
-        added_labels = {
-            'gae_env': config.get('GAE_ENV'),
-            'project_id': config.get('PROJECT_ID'),
-            'code_service': config.get('CODE_SERVICE'),  # Either local or GAE_SERVICE
-            'service': config.get('GAE_SERVICE'),
-            'zone': config.get('PROJECT_ZONE')
-            }
-        return added_labels
-
-    @classmethod
-    def make_formatter(cls, fmt=DEFAULT_FORMAT, datefmt=None):
-        """Creates a standard library formatter to attach to a handler. """
-        return logging.Formatter(fmt, datefmt=datefmt)
-
-    @classmethod
-    def make_handler(cls, handler_name=None, level=None, fmt=DEFAULT_FORMAT, res=None, log_client=None):
-        """Creates a cloud logging handler, or a standard library StreamHandler if log_client is logging. """
-        if log_client not in (None, logging):
-            raise TypeError("Expected None or logging for log_client. Perhaps you meant to use CloudLog instead. ")
-        handler = logging.StreamHandler()
-        handler_name = cls.make_handler_name(handler_name)
-        if handler_name:
-            handler.set_name(handler_name)
-        if level:
-            level = cls.get_level(level)
-            handler.setLevel(level)
-        if fmt and not isinstance(fmt, logging.Formatter):
-            fmt = cls.make_formatter(fmt)
-        if fmt:
-            handler.setFormatter(fmt)
-        return handler
+        """After preparing the record data, will call the appropriate StreamTransport or BackgroundThreadTransport. """
+        self.prepare_record_data(record)
+        super().emit(record)
 
 
 class CloudLog(logging.getLoggerClass()):
@@ -423,7 +211,7 @@ class CloudLog(logging.getLoggerClass()):
         fmt = kwargs.pop('fmt', kwargs.pop('format', DEFAULT_FORMAT))
         # 'handler_name' is ignored, using name for both the logger and handler
         handler_level = kwargs.pop('handler_level', None)
-        parent = kwargs.pop('parent', 'root')  # logging.root
+        parent = kwargs.pop('parent', logging.root)
         # 'res_type' is passed through to Resource constructor
         cred_or_path = kwargs.pop('cred_or_path', None)
         if client and cred_or_path:
@@ -442,14 +230,12 @@ class CloudLog(logging.getLoggerClass()):
             self.propagate = False
         else:    # client may be None, a cloud_logging.Client, a credential object or path.
             client = self.make_client(client, **client_kwargs, **self.labels)
-        self.client = client
-        self._project = self.project  # may create and assign self.client if required to get project id.
+        self.client = client  # accessing self.project may, on edge cases, set self.client
+        # self._project = self.project  # may create and assign self.client if required to get project id.
         handler = self.make_handler(name, handler_level, resource, client, fmt=fmt, stream=stream, **self.labels)
         self.addHandler(handler)
         if parent == name:
             parent = None
-        elif parent == 'root':
-            parent = logging.root
         elif parent and isinstance(parent, str):
             parent = logging.getLogger(parent.lower())
         elif parent and not isinstance(parent, logging.getLoggerClass()):
@@ -458,19 +244,9 @@ class CloudLog(logging.getLoggerClass()):
             self.parent = parent
 
     @property
-    def full_name(self):
-        """Fully-qualified name used in logging APIs"""
-        return f"projects/{self.project}/logs/{self.name}"
-
-    @property
-    def path(self):
-        """URI path for use in logging APIs"""
-        return f"/{self.full_name}"
-
-    @property
     def project(self):
-        project = getattr(self, '_project', None)
-        if not project:
+        """If unknown, computes & sets from labels, resource, client, environ, or created client. May set client. """
+        if not getattr(self, '_project', None):
             project = self.labels.get('project', None)
             if not project and self.resource:
                 project = self.resource.get('labels', {})
@@ -484,7 +260,7 @@ class CloudLog(logging.getLoggerClass()):
                 self.client = self.make_client(cred_path)
                 project = self.client.project
             self._project = project
-        return project
+        return self._project
 
     @classmethod
     def normalize_level(cls, level=None):
@@ -583,6 +359,8 @@ class CloudLog(logging.getLoggerClass()):
     @classmethod
     def make_formatter(cls, fmt=DEFAULT_FORMAT, datefmt=None):
         """Creates a standard library formatter to attach to a handler. """
+        if isinstance(fmt, logging.Formatter):
+            return fmt
         return logging.Formatter(fmt, datefmt=datefmt)
 
     @classmethod
@@ -609,8 +387,7 @@ class CloudLog(logging.getLoggerClass()):
         if level:
             level = cls.normalize_level(level)
             handler.setLevel(level)
-        if not isinstance(fmt, logging.Formatter):
-            fmt = cls.make_formatter(fmt)
+        fmt = cls.make_formatter(fmt)
         handler.setFormatter(fmt)
         return handler
 
@@ -659,6 +436,10 @@ class CloudLog(logging.getLoggerClass()):
     def test_loggers(app, logger_names=list(), loggers=list(), levels=('warning', 'info', 'debug'), context=''):
         """Used for testing the log setups. """
         from pprint import pprint
+        if not app.got_first_request:
+            app.try_trigger_before_first_request_functions()
+        if logger_names is not None and not logger_names:
+            logger_names = app.log_list
         app_loggers = [(name, getattr(app, name)) for name in logger_names if hasattr(app, name)]
         print(f"Found {len(app_loggers)} named attachments. ")
         app_loggers = [ea for ea in app_loggers if ea[1] is not None]
@@ -742,11 +523,14 @@ def setup_cloud_logging(service_account_path, base_log_level, cloud_log_level, c
     log_client = CloudLog.make_client(service_account_path)
     log_client.get_default_handler()
     log_client.setup_logging(log_level=base_log_level)  # log_level sets the logger, not the handler.
-    # Verify Note: it seems any modifications to the default 'python' handler from setup_logging will invalidate creds.
+    # TODO: Verify - Does any modifications to the default 'python' handler from setup_logging invalidate creds?
     root_handler = logging.root.handlers[0]
     low_filter = LowPassFilter(CloudLog.APP_LOGGER_NAME, cloud_log_level)
     root_handler.addFilter(low_filter)
-    fmt = getattr(root_handler, 'formatter', DEFAULT_FORMAT)
+    fmt = getattr(root_handler, 'formatter', None)
+    if not fmt:
+        fmt = DEFAULT_FORMAT
+        root_handler.setFormatter(fmt)
     resource = CloudLog.make_resource(config)
     handler = CloudLog.make_handler(CloudLog.APP_HANDLER_NAME, cloud_log_level, resource, log_client, fmt=fmt)
     logging.root.addHandler(handler)
