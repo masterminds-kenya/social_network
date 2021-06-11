@@ -48,11 +48,18 @@ def create_app(config, debug=None, testing=None, config_overrides=dict()):
         app.c_log = c_log
         app.log_list = ['alert', 'c_log']
         if app_handler:
-            app.logger.addHandler(app_handler)
-            if log_client is logging:
-                low_filter = LowPassFilter(app.logger.name, cloud_level)
+            app.logger.addHandler(app_handler)  # name out, propagate=True
+            low_filter = LowPassFilter(app.logger.name, cloud_level)
+            if log_client is logging:  # Hi: name out, Lo: root/stderr out; propagate=True
                 root_handler = logging.root.handlers[0]
                 root_handler.addFilter(low_filter)
+            else:  # Hi: name out, Lo: application out; propagate=False
+                name = app.logger.name if app.logger.name not in ('', None, app_handler.name) else 'app_low_handler'
+                low_handler = CloudLog.make_handler(name, base_level, res, log_client)
+                low_handler.addFilter(low_filter)
+                app.logger.addHandler(low_handler)
+                app.logger.propagate = False
+
         logging.debug("***************************** END PRE-REQUEST ************************************")
 
     # Configure flask_login
