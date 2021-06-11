@@ -73,14 +73,19 @@ class StreamTransport(BackgroundThreadTransport):
         # self.handler = client.handler
         # super().__init__(client, name, grace_period=grace_period, batch_size=batch_size, max_latency=max_latency)
 
-    def send(self, record, message, **kwargs):
-        # format entry similar to BackgroundThreadTransport Worker queue.
+    def create_entry(self, record, message, **kwargs):
+        """Format entry in the style of BackgroundThreadTransport Worker queue """
         entry = {
             "info": {"message": message, "python_logger": record.name},
             "severity": record.levelname,
             "timestamp": dt.utcfromtimestamp(record.created),
             }
         entry.update(kwargs)
+        return entry
+
+    def send(self, record, message, **kwargs):
+        """Similar to standard library logging.StreamHandler.emit, but with a json dict of appropriate values. """
+        entry = self.create_entry(record, message, **kwargs)
         entry = json.dumps(entry)
         # The following is in the style of logging.StreamHandler.emit
         try:
