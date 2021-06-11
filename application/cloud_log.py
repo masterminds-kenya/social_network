@@ -66,7 +66,7 @@ class StreamClient:
 
 
 class StreamTransport(BackgroundThreadTransport):
-    """Allows CloudParamHandler to use StreamHandler methods when using ClientDummy. """
+    """Allows CloudParamHandler to use StreamHandler methods when using StreamClient. """
 
     def __init__(self, client, name, *, grace_period=0, batch_size=0, max_latency=0):
         self.client = client
@@ -76,9 +76,8 @@ class StreamTransport(BackgroundThreadTransport):
         self.max_latency = max_latency
 
     def create_entry(self, record, message, **kwargs):
-        """Format entry in the style of BackgroundThreadTransport Worker queue """
+        """Format entry close to (but not exact) the style of BackgroundThreadTransport Worker queue """
         entry = {
-            # "info": {"message": message, "python_logger": record.name},
             "message": message,
             "python_logger": record.name,
             "severity": record.levelname,
@@ -108,7 +107,9 @@ class StreamTransport(BackgroundThreadTransport):
     @property
     def terminator(self):
         """Passes through the original Handler terminator character(s). """
-        return self.handler.terminator
+        if not getattr(self, '_terminator', None):
+            self._terminator = self.handler.terminator
+        return self._terminator
 
     def flush(self):
         self.handler.flush()
