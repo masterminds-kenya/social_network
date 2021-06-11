@@ -120,11 +120,12 @@ class CloudParamHandler(CloudLoggingHandler):
             self.addFilter(attach_stackdriver_properties_to_record)
         else:
             super().__init__(client, name=name, resource=resource, labels=labels, stream=stream)
-        self._data_keys = self.get_data_keys(ignore)
+        self.ignore = ignore  # self._data_keys = self.get_data_keys(ignore)
 
-    def get_data_keys(self, ignore, ignore_str_keys=True):
+    def get_data_keys(self, ignore=None, ignore_str_keys=True):
         """Returns a list of properties names set by CloudLoggingHandler that store desired values for logging. """
         keys = set(key[1:] for key in self.filter_keys if not (ignore_str_keys and key.endswith('_str')))
+        ignore = self.ignore if ignore is None else ignore
         if isinstance(ignore, str):
             ignore = {ignore, }
         if isinstance(ignore, (list, tuple, set)):
@@ -136,20 +137,16 @@ class CloudParamHandler(CloudLoggingHandler):
 
     def prepare_record_data(self, record):
         """Updates record attributes set by CloudLoggingHandler and constructs a data dict for possible logging. """
-        data = {key: getattr(record, key) for key in self._data_keys if getattr(record, key, None)}
         record._severity = record.levelname
         if self.resource and not record._resource:
-            data['resource'] = self.resource
             record._resource = self.resource
         http_req = getattr(record, '_http_request', None)
         http_labels = {} if not http_req else {'_'.join(('http', key)): val for key, val in http_req.items()}
         handler_labels = getattr(self, 'labels', {})
         record_labels = getattr(record, '_labels', {})
         labels = {**http_labels, **handler_labels, **record_labels}
-        data['labels'] = labels
         record._labels = labels
         record._http_request = None
-        record._data = data
         return record
 
     def emit(self, record):
