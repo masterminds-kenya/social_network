@@ -26,21 +26,6 @@ class LowPassFilter(logging.Filter):
         return True
 
 
-class CloudParamFilter(CloudLoggingFilter):
-    """Extending to include severity and prepare JSON object. """
-
-    def __init__(self, project=None, default_labels=None):
-        if not project:
-            project = environ.get('GOOGLE_CLOUD_PROJECT', environ.get('PROJECT_ID', ''))
-        super().__init__(project=project, default_labels=default_labels)
-
-    def filter(self, record):
-        not_logged = not super().filter(record)
-        if not_logged:
-            return False
-        return True
-
-
 class StreamClient:
     """Substitute for google.cloud.logging.Client, whose presence triggers standard library logging techniques. """
 
@@ -135,12 +120,7 @@ class CloudParamHandler(CloudLoggingHandler):
             self.addFilter(attach_stackdriver_properties_to_record)
         else:
             super().__init__(client, name=name, resource=resource, labels=labels, stream=stream)
-            old_filters = (ea for ea in self.filters if isinstance(ea, CloudLoggingFilter))
-            for old in old_filters:
-                self.removeFilter(old)
         self._data_keys = self.get_data_keys(ignore)
-        attach_stackdriver_properties_to_record = CloudParamFilter(project=self.project_id, default_labels=labels)
-        self.addFilter(attach_stackdriver_properties_to_record)
 
     def get_data_keys(self, ignore, ignore_str_keys=True):
         """Returns a list of properties names set by CloudLoggingHandler that store desired values for logging. """
