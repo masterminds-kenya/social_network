@@ -3,7 +3,6 @@ from flask import json
 from google.cloud import logging as cloud_logging
 from google.cloud.logging.handlers import CloudLoggingHandler  # , setup_logging
 from google.cloud.logging_v2.handlers.transports import BackgroundThreadTransport
-from google.cloud.logging_v2.handlers import CloudLoggingFilter
 from google.auth import default as creds_id
 from google.oauth2 import service_account
 from google.cloud.logging import Resource
@@ -61,13 +60,13 @@ class StreamClient:
         """Similar interface of google.cloud.logging.Client, but returns standard library logging.Handler instance. """
         if isinstance(name, str):
             name = name.lower()
-        if name == self.handler.name.lower():
-            return self.handler
-        return None
+        if name != self.handler_name:
+            return None
+        return self.handler
 
 
 class StreamTransport(BackgroundThreadTransport):
-    """Place holder for to allow CloudParamHandler to use StreamHandler methods when using ClientDummy. """
+    """Allows CloudParamHandler to use StreamHandler methods when using ClientDummy. """
 
     def __init__(self, client, name, *, grace_period=0, batch_size=0, max_latency=0):
         self.client = client
@@ -79,11 +78,13 @@ class StreamTransport(BackgroundThreadTransport):
     def create_entry(self, record, message, **kwargs):
         """Format entry in the style of BackgroundThreadTransport Worker queue """
         entry = {
-            "info": {"message": message, "python_logger": record.name},
+            # "info": {"message": message, "python_logger": record.name},
+            "message": message,
+            "python_logger": record.name,
             "severity": record.levelname,
             "timestamp": dt.utcfromtimestamp(record.created),
             }
-        entry.update(kwargs)
+        entry.update({key: val for key, val in kwargs.items() if val})
         return entry
 
     def send(self, record, message, **kwargs):
@@ -123,7 +124,8 @@ class CloudParamHandler(CloudLoggingHandler):
     filter_keys = ('_resource', '_trace', '_span_id', '_http_request', '_source_location', '_labels', '_trace_str',
                    '_span_id_str', '_http_request_str', '_source_location_str', '_labels_str', '_msg_str')
 
-    def __init__(self, client, name='cloud_param_handler', resource=None, labels=None, stream=None, ignore=None):
+    def __init__(self, client, name='param_handler', resource=None, labels=None, stream=None, ignore=None):
+        transport = BackgroundThreadTransport
         if client in (None, logging):
             transport = StreamTransport
             client = StreamClient(name, labels, resource, handler=stream)
@@ -131,7 +133,7 @@ class CloudParamHandler(CloudLoggingHandler):
         self.ignore = ignore  # self._data_keys = self.get_data_keys(ignore)
 
     def get_data_keys(self, ignore=None, ignore_str_keys=True):
-        """Returns a list of properties names set by CloudLoggingHandler that store desired values for logging. """
+        """DEPRECATED. Returns a list of the desired property names for logging that are set by CloudLoggingHandler. """
         keys = set(key[1:] for key in self.filter_keys if not (ignore_str_keys and key.endswith('_str')))
         ignore = self.ignore if ignore is None else ignore
         if isinstance(ignore, str):
