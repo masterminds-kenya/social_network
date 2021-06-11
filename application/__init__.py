@@ -56,8 +56,24 @@ def create_app(config, debug=None, testing=None, config_overrides=dict()):
                 low_handler.addFilter(low_filter)
                 app.logger.addHandler(low_handler)
                 app.logger.propagate = False
-
         logging.debug("***************************** END PRE-REQUEST ************************************")
+
+    @app.shell_context_processor
+    def expected_shell_imports():
+        from pprint import pprint
+        from .cloud_log import CloudLog, LowPassFilter, StreamClient, StreamTransport
+        import inspect
+
+        app.try_trigger_before_first_request_functions()
+        return {
+            'pprint': pprint,
+            'CloudLog': CloudLog,
+            'LowPassFilter': LowPassFilter,
+            'StreamClient': StreamClient,
+            'StreamTransport': StreamTransport,
+            'logging': logging,
+            'inspect': inspect,
+            }
 
     # Configure flask_login
     login_manager = LoginManager()
