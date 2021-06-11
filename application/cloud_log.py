@@ -70,8 +70,9 @@ class StreamTransport(BackgroundThreadTransport):
     def __init__(self, client, name, *, grace_period=0, batch_size=0, max_latency=0):
         self.client = client
         self.handler = client.logger(name)
-        # self.handler = client.handler
-        # super().__init__(client, name, grace_period=grace_period, batch_size=batch_size, max_latency=max_latency)
+        self.grace_period = grace_period
+        self.batch_size = batch_size
+        self.max_latency = max_latency
 
     def create_entry(self, record, message, **kwargs):
         """Format entry in the style of BackgroundThreadTransport Worker queue """
@@ -87,7 +88,6 @@ class StreamTransport(BackgroundThreadTransport):
         """Similar to standard library logging.StreamHandler.emit, but with a json dict of appropriate values. """
         entry = self.create_entry(record, message, **kwargs)
         entry = json.dumps(entry)
-        # The following is in the style of logging.StreamHandler.emit
         try:
             stream = self.stream
             stream.write(entry + self.terminator)  # std library logging issue 35046: merged two stream.writes into one.
