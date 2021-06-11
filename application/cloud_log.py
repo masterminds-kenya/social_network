@@ -136,7 +136,7 @@ class CloudParamHandler(CloudLoggingHandler):
         return keys
 
     def prepare_record_data(self, record):
-        """Updates record attributes set by CloudLoggingHandler and constructs a data dict for possible logging. """
+        """Update record attributes set by CloudLoggingHandler and move http_request to labels to assist in logging. """
         record._severity = record.levelname
         if self.resource and not record._resource:
             record._resource = self.resource
@@ -150,32 +150,9 @@ class CloudParamHandler(CloudLoggingHandler):
         return record
 
     def emit(self, record):
-        """After preparing the record data, will call the assigned StreamTransport or BackgroundThreadTransport. """
+        """After preparing the record data, will call the appropriate StreamTransport or BackgroundThreadTransport. """
         self.prepare_record_data(record)
-        super().emit(record)  # Use CloudLoggingHandler.emit
-
-        # if isinstance(self.client, StreamClient):
-        #     super(CloudLoggingHandler, self).emit(record)  # StreamHandler is a level above CloudLoggingHandler.
-        #     # try:
-        #     #     stream = self.stream
-        #     #     stream.write(msg + self.terminator)  # issue 35046: merged two stream.writes into one.
-        #     #     self.flush()
-        #     # except RecursionError:  # See issue 36272
-        #     #     raise
-        #     # except Exception:
-        #     #     self.handleError(record)
-        # else:  # like CloudLoggingHandler, except using updated self.format and http_request in the labels.
-        #     super().emit(record)  # Use CloudLoggingHandler.emit
-        #     # self.transport.send(
-        #     #     record,
-        #     #     msg,
-        #     #     resource=record._resource,
-        #     #     labels=record._labels,
-        #     #     trace=record._trace,
-        #     #     span_id=record._span_id,
-        #     #     http_request=record._http_request,
-        #     #     source_location=record._source_location,
-        #     # )
+        super().emit(record)
 
 
 class StructHandler(logging.StreamHandler):
