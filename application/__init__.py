@@ -5,19 +5,17 @@ from .cloud_log import CloudLog, LowPassFilter, setup_cloud_logging  # , StructH
 
 
 def create_app(config, debug=None, testing=None, config_overrides=dict()):
-    if debug is None:
-        debug = config_overrides.get('DEBUG', getattr(config, 'DEBUG', None))
-    if testing is None:
-        testing = config_overrides.get('TESTING', getattr(config, 'TESTING', None))
+    debug = debug or config_overrides.get('DEBUG', getattr(config, 'DEBUG', None))
+    testing = testing or config_overrides.get('TESTING', getattr(config, 'TESTING', None))
     if not testing:
         base_log_level = logging.DEBUG if debug else logging.INFO
         logging.basicConfig(level=base_log_level)  # Ensures a StreamHandler to stderr is attached.
     app = Flask(__name__)
     app.config.from_object(config)
-    app.debug = debug
-    app.testing = testing
     if config_overrides:
         app.config.update(config_overrides)
+    app.debug = debug
+    app.testing = testing
 
     @app.before_first_request
     def attach_cloud_loggers():
@@ -38,9 +36,8 @@ def create_app(config, debug=None, testing=None, config_overrides=dict()):
                     logging.exception(e)
                     log_client = logging
                 # res = CloudLog.make_resource(config, fancy='I am')  # TODO: fix passing a created resource.
-                alert = CloudLog(log_name, base_level, res, log_client)
-                c_log = CloudLog('c_log', base_level, res, logging)
-                # c_log = CloudLog.make_base_logger('c_log', base_level, res, log_client)
+                alert = CloudLog(log_name, base_level, res, log_client)  # name out, propagate=True
+                c_log = CloudLog('c_log', base_level, res, logging)  # stderr out, propagate=False
                 app_handler = CloudLog.make_handler(CloudLog.APP_HANDLER_NAME, cloud_level, res, log_client)
         app.log_client = log_client
         app._resource_test = res

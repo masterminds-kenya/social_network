@@ -125,10 +125,9 @@ class CloudParamHandler(CloudLoggingHandler):
                    '_span_id_str', '_http_request_str', '_source_location_str', '_labels_str', '_msg_str')
 
     def __init__(self, client, name='param_handler', resource=None, labels=None, stream=None, ignore=None):
-        transport = BackgroundThreadTransport
         if client in (None, logging):
-            transport = StreamTransport
             client = StreamClient(name, labels, resource, handler=stream)
+        transport = StreamTransport if isinstance(client, StreamClient) else BackgroundThreadTransport
         super().__init__(client, name=name, transport=transport, resource=resource, labels=labels, stream=stream)
         self.ignore = ignore  # self._data_keys = self.get_data_keys(ignore)
 
@@ -212,7 +211,7 @@ class CloudLog(logging.getLoggerClass()):
         fmt = kwargs.pop('fmt', kwargs.pop('format', DEFAULT_FORMAT))
         # 'handler_name' is ignored, using name for both the logger and handler
         handler_level = kwargs.pop('handler_level', None)
-        parent = kwargs.pop('parent', 'root')  # logging.root
+        parent = kwargs.pop('parent', logging.root)
         # 'res_type' is passed through to Resource constructor
         cred_or_path = kwargs.pop('cred_or_path', None)
         if client and cred_or_path:
@@ -231,14 +230,12 @@ class CloudLog(logging.getLoggerClass()):
             self.propagate = False
         else:    # client may be None, a cloud_logging.Client, a credential object or path.
             client = self.make_client(client, **client_kwargs, **self.labels)
-        self.client = client
-        self._project = self.project  # may create and assign self.client if required to get project id.
+        self.client = client  # accessing self.project may, on edge cases, set self.client
+        # self._project = self.project  # may create and assign self.client if required to get project id.
         handler = self.make_handler(name, handler_level, resource, client, fmt=fmt, stream=stream, **self.labels)
         self.addHandler(handler)
         if parent == name:
             parent = None
-        elif parent == 'root':
-            parent = logging.root
         elif parent and isinstance(parent, str):
             parent = logging.getLogger(parent.lower())
         elif parent and not isinstance(parent, logging.getLoggerClass()):
@@ -247,19 +244,9 @@ class CloudLog(logging.getLoggerClass()):
             self.parent = parent
 
     @property
-    def full_name(self):
-        """Fully-qualified name used in logging APIs"""
-        return f"projects/{self.project}/logs/{self.name}"
-
-    @property
-    def path(self):
-        """URI path for use in logging APIs"""
-        return f"/{self.full_name}"
-
-    @property
     def project(self):
-        project = getattr(self, '_project', None)
-        if not project:
+        """If unknown, computes & sets from labels, resource, client, environ, or created client. May set client. """
+        if not getattr(self, '_project', None):
             project = self.labels.get('project', None)
             if not project and self.resource:
                 project = self.resource.get('labels', {})
@@ -273,7 +260,7 @@ class CloudLog(logging.getLoggerClass()):
                 self.client = self.make_client(cred_path)
                 project = self.client.project
             self._project = project
-        return project
+        return self._project
 
     @classmethod
     def normalize_level(cls, level=None):
@@ -536,11 +523,14 @@ def setup_cloud_logging(service_account_path, base_log_level, cloud_log_level, c
     log_client = CloudLog.make_client(service_account_path)
     log_client.get_default_handler()
     log_client.setup_logging(log_level=base_log_level)  # log_level sets the logger, not the handler.
-    # Verify Note: it seems any modifications to the default 'python' handler from setup_logging will invalidate creds.
+    # TODO: Verify - Does any modifications to the default 'python' handler from setup_logging invalidate creds?
     root_handler = logging.root.handlers[0]
     low_filter = LowPassFilter(CloudLog.APP_LOGGER_NAME, cloud_log_level)
     root_handler.addFilter(low_filter)
-    fmt = getattr(root_handler, 'formatter', DEFAULT_FORMAT)
+    fmt = getattr(root_handler, 'formatter', None)
+    if not fmt:
+        fmt = DEFAULT_FORMAT
+        root_handler.setFormatter(fmt)
     resource = CloudLog.make_resource(config)
     handler = CloudLog.make_handler(CloudLog.APP_HANDLER_NAME, cloud_log_level, resource, log_client, fmt=fmt)
     logging.root.addHandler(handler)
