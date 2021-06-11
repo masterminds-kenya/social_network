@@ -20,10 +20,9 @@ def create_app(config, debug=None, testing=None, config_overrides=dict()):
         app.config.update(config_overrides)
 
     @app.before_first_request
-    def before_first_request():
-        logging.debug("****************************** BEFORE FIRST REQUEST ******************************")
-        logging.debug(app.config.get('GAE_VERSION', 'UNKNOWN VERSION'))
-        logging.debug("**********************************************************************************")
+    def attach_cloud_loggers():
+        build = ' First Request on Build: {} '.format(app.config.get('GAE_VERSION', 'UNKNOWN VERSION'))
+        logging.info('{:*^74}'.format(build))
         cloud_level = logging.WARNING
         log_client, alert, app_handler, c_log, res = None, None, None, None, None
         if not testing:
@@ -40,7 +39,8 @@ def create_app(config, debug=None, testing=None, config_overrides=dict()):
                     log_client = logging
                 # res = CloudLog.make_resource(config, fancy='I am')  # TODO: fix passing a created resource.
                 alert = CloudLog(log_name, base_level, res, log_client)
-                c_log = CloudLog.make_base_logger('c_log', base_level, res, log_client)
+                c_log = CloudLog('c_log', base_level, res, logging)
+                # c_log = CloudLog.make_base_logger('c_log', base_level, res, log_client)
                 app_handler = CloudLog.make_handler(CloudLog.APP_HANDLER_NAME, cloud_level, res, log_client)
         app.log_client = log_client
         app._resource_test = res

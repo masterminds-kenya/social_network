@@ -9,7 +9,7 @@ from google.cloud.logging import Resource
 from os import environ
 from datetime import datetime as dt
 
-DEFAULT_FORMAT = getattr(logging, '_defaultFormatter', logging.Formatter('%(levelname)s:%(name)s:%(message)s'))
+DEFAULT_FORMAT = logging.Formatter('%(levelname)s:%(name)s:%(message)s')
 
 
 class LowPassFilter(logging.Filter):
@@ -34,51 +34,100 @@ class CloudParamFilter(CloudLoggingFilter):
         super().__init__(project=project, default_labels=default_labels)
 
     def filter(self, record):
-        super().filter(record)
+        not_logged = not super().filter(record)
+        if not_logged:
+            return False
         record._severity = record.levelname
         full_keys = ('_resource', '_trace', '_span_id', '_http_request', '_source_location', '_labels', '_trace_str',
                      '_span_id_str', '_http_request_str', '_source_location_str', '_labels_str', '_msg_str')
         keys = [key for key in full_keys if not key.endswith('_str')]
         data = {key[1:]: getattr(record, key) for key in keys if getattr(record, key, None)}
-        if data:
-            data['severity'] = record.levelname
-            log_name = 'projects/' + self.project + '/logs/' + record.name
-            data['logName'] = log_name
-            data['path'] = '/' + log_name
-            data['python_logger'] = record.name
-            data['timestamp'] = dt.utcfromtimestamp(record.created)
-            record._data = data
+        record._data = data
         return True
 
 
-class CloudParamHandler(logging.StreamHandler):
-
-    def __init__(self, stream=None, name='cloud_param_handler', resource=None, labels=None):
-        super().__init__(stream=stream)
-        self.name = name
-        self.resource = resource
-        self.labels = labels
-        project = None
-        if isinstance(labels, dict):
+class ClientDummy:
+    def __init__(self, project=None, labels=None):
+        if not project and isinstance(labels, dict):
             project = labels.get('project', labels.get('project_id', None))
         if not project:
             project = environ.get('GOOGLE_CLOUD_PROJECT', environ.get('PROJECT_ID', ''))
-        attach_stackdriver_properties_to_record = CloudParamFilter(project=project, default_labels=labels)
+        self.project = project
+        self.labels = labels
+
+
+class CloudParamHandler(CloudLoggingHandler):
+    """Emits log by CloudLoggingHandler technique with a valid Client, or by StreamHandler if client is None. """
+
+    def __init__(self, client, name='cloud_param_handler', resource=None, labels=None, stream=None):
+        if client in (None, logging):
+            client = ClientDummy(labels=labels)
+            super(CloudLoggingHandler, self).__init__(stream=stream)
+            self.client = client
+            self.project_id = client.project
+            self.name = name
+            self.resource = resource
+            self.labels = labels
+        else:
+            super().__init__(client, name=name, resource=resource, labels=labels, stream=stream)
+            old_filters = (ea for ea in self.filters if isinstance(ea, CloudLoggingFilter))
+            for old in old_filters:
+                self.removeFilter(old)
+        attach_stackdriver_properties_to_record = CloudParamFilter(project=self.project_id, default_labels=labels)
         self.addFilter(attach_stackdriver_properties_to_record)
 
     def format(self, record):
         message = super().format(record)
-        data = getattr(record, '_data', None)
-        if data:
-            data['message'] = message
-            if self.resource:
-                data.setdefault('resource', self.resource)  # will use record._resource if present.
-            if self.labels:
-                labels = self.labels
-                labels.update(data.get('labels', {}))
-                data['labels'] = labels
-            message = json.dumps(data)
+        data_update = {}
+        if self.resource and not record._resource:
+            record._resource = self.resource
+            data_update['resource'] = self.resource
+        labels = getattr(record, '_labels', {})
+        http_labels = {'_'.join(('http', key)): val for key, val in getattr(record, '_http_request', {}).items()}
+        handler_labels = getattr(self, 'labels', {})
+        labels = {**http_labels, **handler_labels, **labels}
+        data_update['labels'] = labels
+        record._labels = labels
+        record._http_request = None
+        if hasattr(record, '_data'):
+            record._data.update(data_update)
+            # data['severity'] = record.levelname
         return message
+
+    def emit(self, record):
+        msg = self.format(record)
+        if isinstance(self.client, ClientDummy):
+            # super(CloudLoggingHandler, self).emit(record)
+            data = getattr(record, '_data', {})
+            data['message'] = msg
+            data['logger'] = record.name
+            data['timestamp'] = dt.utcfromtimestamp(record.created)
+            data['severity'] = record.levelname
+            res = data.get('resource', None)
+            if isinstance(res, Resource):
+                data['resource'] = res._to_dict()
+            msg = json.dumps(data)
+            try:
+                stream = self.stream
+                stream.write(msg + self.terminator)  # issue 35046: merged two stream.writes into one.
+                self.flush()
+            except RecursionError:  # See issue 36272
+                raise
+            except Exception:
+                self.handleError(record)
+        else:  # like CloudLoggingHandler, except using self.format and http_request in the labels.
+            # msg = data  # convert to json does not work.
+            self.transport.send(
+                record,
+                msg,
+                logger=record.name,
+                resource=(record._resource or self.resource),
+                labels=record._labels,
+                trace=record._trace,
+                span_id=record._span_id,
+                http_request=record._http_request,
+                source_location=record._source_location,
+            )
 
 
 class StructHandler(logging.StreamHandler):
@@ -556,9 +605,7 @@ class CloudLog(logging.getLoggerClass()):
             handler_kwargs['stream'] = stream
         if client is not logging:
             client = cls.make_client(cred_or_path, **labels)  # cred_or_path is likely same as client.
-            handler = CloudLoggingHandler(client, **handler_kwargs)
-        else:
-            handler = CloudParamHandler(**handler_kwargs)
+        handler = CloudParamHandler(client, **handler_kwargs)  # CloudLoggingHandler if client, else StreamHandler.
         if level:
             level = cls.normalize_level(level)
             handler.setLevel(level)
