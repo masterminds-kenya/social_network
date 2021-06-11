@@ -40,14 +40,27 @@ class CloudParamFilter(CloudLoggingFilter):
         return True
 
 
-class ClientDummy:
-    def __init__(self, project=None, labels=None):
+class StreamClient:
+    """Substitute for google.cloud.logging.Client, whose presence triggers standard library logging techniques. """
+
+    def __init__(self, project=None, labels=None, handler=None):
         if not project and isinstance(labels, dict):
             project = labels.get('project', labels.get('project_id', None))
         if not project:
             project = environ.get('GOOGLE_CLOUD_PROJECT', environ.get('PROJECT_ID', ''))
         self.project = project
         self.labels = labels
+        if not handler or not issubclass(handler.__class__, logging.Handler):
+            raise ValueError("StreamClient handler parameter must be a subclass of logging.Handler. ")
+        self.handler = handler
+
+    def logger(self, name):
+        """Similar interface of google.cloud.logging.Client, but returns standard library logging.Handler instance. """
+        if isinstance(name, str):
+            name = name.lower()
+        if name == self.handler.name.lower():
+            return self.handler
+        return None
 
 
 class CloudParamHandler(CloudLoggingHandler):
@@ -58,13 +71,15 @@ class CloudParamHandler(CloudLoggingHandler):
 
     def __init__(self, client, name='cloud_param_handler', resource=None, labels=None, stream=None, ignore=None):
         if client in (None, logging):
-            client = ClientDummy(labels=labels)
-            super(CloudLoggingHandler, self).__init__(stream=stream)
-            self.client = client
-            self.project_id = client.project
+            super(CloudLoggingHandler, self).__init__(stream=stream)  # creates a StreamHandler instance.
             self.name = name
             self.resource = resource
             self.labels = labels
+            client = StreamClient(labels=labels, handler=self)
+            self.client = client
+            self.project_id = client.project
+            attach_stackdriver_properties_to_record = CloudLoggingFilter(project=self.project_id, default_labels=labels)
+            self.addFilter(attach_stackdriver_properties_to_record)
         else:
             super().__init__(client, name=name, resource=resource, labels=labels, stream=stream)
             old_filters = (ea for ea in self.filters if isinstance(ea, CloudLoggingFilter))
