@@ -2,6 +2,7 @@ import logging
 from flask import json
 from google.cloud import logging as cloud_logging
 from google.cloud.logging.handlers import CloudLoggingHandler  # , setup_logging
+from google.cloud.logging_v2.handlers.transports import BackgroundThreadTransport
 from google.cloud.logging_v2.handlers import CloudLoggingFilter
 from google.auth import default as creds_id
 from google.oauth2 import service_account
@@ -63,6 +64,52 @@ class StreamClient:
         return None
 
 
+class StreamTransport(BackgroundThreadTransport):
+    """Place holder for to allow CloudParamHandler to use StreamHandler methods when using ClientDummy. """
+
+    def __init__(self, client, name, *, grace_period=0, batch_size=0, max_latency=0):
+        self.client = client
+        self.handler = client.logger(name)
+        # self.handler = client.handler
+        # super().__init__(client, name, grace_period=grace_period, batch_size=batch_size, max_latency=max_latency)
+
+    def send(self, record, message, **kwargs):
+        # format entry similar to BackgroundThreadTransport Worker queue.
+        entry = {
+            "info": {"message": message, "python_logger": record.name},
+            "severity": record.levelname,
+            "timestamp": dt.utcfromtimestamp(record.created),
+            }
+        entry.update(kwargs)
+        entry = json.dumps(entry)
+        # The following is in the style of logging.StreamHandler.emit
+        try:
+            stream = self.stream
+            stream.write(entry + self.terminator)  # std library logging issue 35046: merged two stream.writes into one.
+            self.flush()
+        except RecursionError:  # See standard library logging issue 36272
+            raise
+        except Exception:
+            self.handleError(record)
+
+    @property
+    def stream(self):
+        """Passes through the original Handler stream. """
+        return self.handler.stream
+
+    @property
+    def terminator(self):
+        """Passes through the original Handler terminator character(s). """
+        return self.handler.terminator
+
+    def flush(self):
+        self.handler.flush()
+
+    def handleError(self, record):
+        """Passes through the original Handler handleError method. """
+        return self.handler.handleError(record)
+
+
 class CloudParamHandler(CloudLoggingHandler):
     """Emits log by CloudLoggingHandler technique with a valid Client, or by StreamHandler if client is None. """
 
@@ -78,6 +125,7 @@ class CloudParamHandler(CloudLoggingHandler):
             client = StreamClient(labels=labels, handler=self)
             self.client = client
             self.project_id = client.project
+            self.transport = StreamTransport(client, name)
             attach_stackdriver_properties_to_record = CloudLoggingFilter(project=self.project_id, default_labels=labels)
             self.addFilter(attach_stackdriver_properties_to_record)
         else:
