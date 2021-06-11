@@ -372,6 +372,8 @@ class CloudLog(logging.getLoggerClass()):
     @classmethod
     def make_formatter(cls, fmt=DEFAULT_FORMAT, datefmt=None):
         """Creates a standard library formatter to attach to a handler. """
+        if isinstance(fmt, logging.Formatter):
+            return fmt
         return logging.Formatter(fmt, datefmt=datefmt)
 
     @classmethod
@@ -398,8 +400,7 @@ class CloudLog(logging.getLoggerClass()):
         if level:
             level = cls.normalize_level(level)
             handler.setLevel(level)
-        if not isinstance(fmt, logging.Formatter):
-            fmt = cls.make_formatter(fmt)
+        fmt = cls.make_formatter(fmt)
         handler.setFormatter(fmt)
         return handler
 
