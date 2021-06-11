@@ -172,46 +172,33 @@ class CloudParamHandler(CloudLoggingHandler):
         record._data = data
         return record
 
-    def format(self, record):
-        message = super().format(record)
-        if isinstance(self.client, ClientDummy):
-            data = getattr(record, '_data', {})
-            data['message'] = message
-            data['logger'] = record.name
-            data['timestamp'] = dt.utcfromtimestamp(record.created)
-            data['severity'] = record.levelname
-            res = data.get('resource', None)
-            if isinstance(res, Resource):
-                data['resource'] = res._to_dict()
-            message = json.dumps(data)
-        return message
-
     def emit(self, record):
+        """After preparing the record data, will call the assigned StreamTransport or BackgroundThreadTransport. """
         self.prepare_record_data(record)
-        msg = self.format(record)
-        if isinstance(self.client, ClientDummy):
-            # super(CloudLoggingHandler, self).emit(record)
-            try:
-                stream = self.stream
-                stream.write(msg + self.terminator)  # issue 35046: merged two stream.writes into one.
-                self.flush()
-            except RecursionError:  # See issue 36272
-                raise
-            except Exception:
-                self.handleError(record)
-        else:  # like CloudLoggingHandler, except using self.format and http_request in the labels.
-            # msg = data  # convert to json does not work.
-            # super().emit(record)
-            self.transport.send(
-                record,
-                msg,
-                resource=record._resource,
-                labels=record._labels,
-                trace=record._trace,
-                span_id=record._span_id,
-                http_request=record._http_request,
-                source_location=record._source_location,
-            )
+        super().emit(record)  # Use CloudLoggingHandler.emit
+
+        # if isinstance(self.client, StreamClient):
+        #     super(CloudLoggingHandler, self).emit(record)  # StreamHandler is a level above CloudLoggingHandler.
+        #     # try:
+        #     #     stream = self.stream
+        #     #     stream.write(msg + self.terminator)  # issue 35046: merged two stream.writes into one.
+        #     #     self.flush()
+        #     # except RecursionError:  # See issue 36272
+        #     #     raise
+        #     # except Exception:
+        #     #     self.handleError(record)
+        # else:  # like CloudLoggingHandler, except using updated self.format and http_request in the labels.
+        #     super().emit(record)  # Use CloudLoggingHandler.emit
+        #     # self.transport.send(
+        #     #     record,
+        #     #     msg,
+        #     #     resource=record._resource,
+        #     #     labels=record._labels,
+        #     #     trace=record._trace,
+        #     #     span_id=record._span_id,
+        #     #     http_request=record._http_request,
+        #     #     source_location=record._source_location,
+        #     # )
 
 
 class StructHandler(logging.StreamHandler):
