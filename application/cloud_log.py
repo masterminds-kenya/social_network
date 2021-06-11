@@ -675,6 +675,10 @@ class CloudLog(logging.getLoggerClass()):
     def test_loggers(app, logger_names=list(), loggers=list(), levels=('warning', 'info', 'debug'), context=''):
         """Used for testing the log setups. """
         from pprint import pprint
+        if not app.got_first_request:
+            app.try_trigger_before_first_request_functions()
+        if logger_names is not None and not logger_names:
+            logger_names = app.log_list
         app_loggers = [(name, getattr(app, name)) for name in logger_names if hasattr(app, name)]
         print(f"Found {len(app_loggers)} named attachments. ")
         app_loggers = [ea for ea in app_loggers if ea[1] is not None]
