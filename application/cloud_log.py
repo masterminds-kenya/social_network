@@ -29,16 +29,33 @@ class LowPassFilter(logging.Filter):
 class StreamClient:
     """Substitute for google.cloud.logging.Client, whose presence triggers standard library logging techniques. """
 
-    def __init__(self, project=None, labels=None, handler=None):
+    def __init__(self, name, labels=None, resource=None, project=None, handler=None):
         if not project and isinstance(labels, dict):
             project = labels.get('project', labels.get('project_id', None))
         if not project:
             project = environ.get('GOOGLE_CLOUD_PROJECT', environ.get('PROJECT_ID', ''))
         self.project = project
-        self.labels = labels
-        if not handler or not issubclass(handler.__class__, logging.Handler):
-            raise ValueError("StreamClient handler parameter must be a subclass of logging.Handler. ")
-        self.handler = handler
+        self.handler_name = name.lower()
+        self.labels = labels if isinstance(labels, dict) else {'project': project}
+        self.resource = resource
+        self.handler = self.prepare_handler(handler)
+
+    def prepare_handler(self, handler_param):
+        """Creates or updates a logging.Handler with the correct name and attaches the labels and resource. """
+        if isinstance(handler_param, type):
+            handler = handler_param()  # handler_param is a logging.Handler class.
+        elif issubclass(handler_param.__class__, logging.Handler):
+            handler = handler_param  # handler_param is the handler instance we wanted.
+        else:  # assume handler_param is None or a stream for logging.StreamHandler
+            try:
+                handler = logging.StreamHandler(handler_param)
+            except Exception as e:
+                logging.exception(e)
+                raise ValueError("StreamClient handler must be a stream (like stdout) or a Handler class or instance. ")
+        handler.set_name(self.handler_name)
+        handler.labels = self.labels
+        handler.resource = self.resource
+        return handler
 
     def logger(self, name):
         """Similar interface of google.cloud.logging.Client, but returns standard library logging.Handler instance. """
@@ -108,18 +125,9 @@ class CloudParamHandler(CloudLoggingHandler):
 
     def __init__(self, client, name='cloud_param_handler', resource=None, labels=None, stream=None, ignore=None):
         if client in (None, logging):
-            super(CloudLoggingHandler, self).__init__(stream=stream)  # creates a StreamHandler instance.
-            self.name = name
-            self.resource = resource
-            self.labels = labels
-            client = StreamClient(labels=labels, handler=self)
-            self.client = client
-            self.project_id = client.project
-            self.transport = StreamTransport(client, name)
-            attach_stackdriver_properties_to_record = CloudLoggingFilter(project=self.project_id, default_labels=labels)
-            self.addFilter(attach_stackdriver_properties_to_record)
-        else:
-            super().__init__(client, name=name, resource=resource, labels=labels, stream=stream)
+            transport = StreamTransport
+            client = StreamClient(name, labels, resource, handler=stream)
+        super().__init__(client, name=name, transport=transport, resource=resource, labels=labels, stream=stream)
         self.ignore = ignore  # self._data_keys = self.get_data_keys(ignore)
 
     def get_data_keys(self, ignore=None, ignore_str_keys=True):
