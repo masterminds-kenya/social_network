@@ -146,8 +146,9 @@ class CloudParamHandler(CloudLoggingHandler):
 
     def prepare_record_data(self, record):
         """Update record attributes set by CloudLoggingHandler and move http_request to labels to assist in logging. """
-        if self.resource and not record._resource:
-            record._resource = self.resource
+        resource = getattr(record, '_resource', None)
+        if self.resource and not resource:
+            record._resource = resource = self.resource
         http_req = getattr(record, '_http_request', None)
         http_labels = {} if not http_req else {'_'.join(('http', key)): val for key, val in http_req.items()}
         handler_labels = getattr(self, 'labels', {})
@@ -155,6 +156,8 @@ class CloudParamHandler(CloudLoggingHandler):
         labels = {**http_labels, **handler_labels, **record_labels}
         record._labels = labels
         record._http_request = None
+        if isinstance(self.client, StreamClient) and resource:
+            record._resource = resource._to_dict()
         return record
 
     def emit(self, record):
