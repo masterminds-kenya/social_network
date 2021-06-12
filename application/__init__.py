@@ -21,34 +21,27 @@ def create_app(config, debug=None, testing=None, config_overrides=dict()):
     def attach_cloud_loggers():
         build = ' First Request on Build: {} '.format(app.config.get('GAE_VERSION', 'UNKNOWN VERSION'))
         logging.info('{:*^74}'.format(build))
+        cred_path = getattr(config, 'GOOGLE_APPLICATION_CREDENTIALS', None)
+        root_handler = logging.root.handlers[0]
+        base_level = logging.DEBUG if debug else logging.INFO
         cloud_level = logging.WARNING
+        log_name = 'alert'
         log_client, alert, app_handler, c_log, res = None, None, None, None, None
-        if not testing:
-            base_level = logging.DEBUG if debug else logging.INFO
-            log_name = 'alert'
-            cred_path = getattr(config, 'GOOGLE_APPLICATION_CREDENTIALS', None)
-            if not config.standard_env:
-                log_client, alert, *skip = setup_cloud_logging(cred_path, base_level, cloud_level, config, log_name)
-            else:
-                try:
-                    log_client = CloudLog.make_client(cred_path)
-                except Exception as e:
-                    logging.exception(e)
-                    log_client = logging
-                # res = CloudLog.make_resource(config, fancy='I am')  # TODO: fix passing a created resource.
-                alert = CloudLog(log_name, base_level, res, log_client)  # name out, propagate=True
-                c_log = CloudLog('c_log', base_level, res, logging)  # stderr out, propagate=False
-                app_handler = CloudLog.make_handler(CloudLog.APP_HANDLER_NAME, cloud_level, res, log_client)
-        app.log_client = log_client
-        app._resource_test = res
-        app.alert = alert
-        app.c_log = c_log
-        app.log_list = ['alert', 'c_log']
-        if app_handler:
+        if not testing and not config.standard_env:
+            log_client, alert, *skip = setup_cloud_logging(cred_path, base_level, cloud_level, config, log_name)
+        elif not testing:
+            try:
+                log_client = CloudLog.make_client(cred_path)
+            except Exception as e:
+                logging.exception(e)
+                log_client = logging
+            # res = CloudLog.make_resource(config, fancy='I am')  # TODO: fix passing a created resource.
+            alert = CloudLog(log_name, base_level, res, log_client)  # name out, propagate=True
+            c_log = CloudLog('c_log', base_level, res, logging)  # stderr out, propagate=False
+            app_handler = CloudLog.make_handler(CloudLog.APP_HANDLER_NAME, cloud_level, res, log_client)
             app.logger.addHandler(app_handler)  # name out, propagate=True
             low_filter = LowPassFilter(app.logger.name, cloud_level)
             if log_client is logging:  # Hi: name out, Lo: root/stderr out; propagate=True
-                root_handler = logging.root.handlers[0]
                 root_handler.addFilter(low_filter)
             else:  # Hi: name out, Lo: application out; propagate=False
                 name = app.logger.name if app.logger.name not in ('', None, app_handler.name) else 'app_low_handler'
@@ -56,6 +49,11 @@ def create_app(config, debug=None, testing=None, config_overrides=dict()):
                 low_handler.addFilter(low_filter)
                 app.logger.addHandler(low_handler)
                 app.logger.propagate = False
+        app.log_client = log_client
+        app._resource_test = res
+        app.alert = alert
+        app.c_log = c_log
+        app.log_list = ['alert', 'c_log']  # assumes to also check for app.logger.
         logging.debug("***************************** END PRE-REQUEST ************************************")
 
     @app.shell_context_processor
