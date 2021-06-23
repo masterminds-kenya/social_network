@@ -4,9 +4,9 @@ import logging
 from .cloud_log import CloudLog, LowPassFilter, setup_cloud_logging  # , StructHandler, TempLog, CloudHandler
 
 
-def create_app(config, debug=None, testing=None, config_overrides=dict()):
-    debug = debug or config_overrides.get('DEBUG', getattr(config, 'DEBUG', None))
-    testing = testing or config_overrides.get('TESTING', getattr(config, 'TESTING', None))
+def create_app(config, config_overrides=dict()):
+    debug = config_overrides.get('DEBUG', getattr(config, 'DEBUG', None))
+    testing = config_overrides.get('TESTING', getattr(config, 'TESTING', None))
     if not testing:
         base_log_level = logging.DEBUG if debug else logging.INFO
         logging.basicConfig(level=base_log_level)  # Ensures a StreamHandler to stderr is attached.
@@ -40,7 +40,7 @@ def create_app(config, debug=None, testing=None, config_overrides=dict()):
             c_log = CloudLog('c_log', base_level, res, logging)  # stderr out, propagate=False
             app_handler = CloudLog.make_handler(CloudLog.APP_HANDLER_NAME, cloud_level, res, log_client)
             app.logger.addHandler(app_handler)  # name out, propagate=True
-            low_filter = LowPassFilter(app.logger.name, cloud_level)
+            low_filter = LowPassFilter(app.logger.name, cloud_level)  # Do not log at this level or higher.
             if log_client is logging:  # Hi: name out, Lo: root/stderr out; propagate=True
                 root_handler.addFilter(low_filter)
             else:  # Hi: name out, Lo: application out; propagate=False

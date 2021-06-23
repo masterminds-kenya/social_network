@@ -1,3 +1,4 @@
+from collections import defaultdict
 import logging
 from flask import json
 from google.cloud import logging as cloud_logging
@@ -21,6 +22,7 @@ class LowPassFilter(logging.Filter):
     def filter(self, record):
         if record.name == self.name and record.levelno > self.below_level - 1:
             return False
+        # record._severity = record.levelname
         return True
 
 
